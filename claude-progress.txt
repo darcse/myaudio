@@ -18,3 +18,5 @@
 [2026-06-08] [Cursor] ALBUM-008 fix ~2023 연도 필터 시 랜덤 추천 풀 release_date≤2023 매칭 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-001 /headfi 페이지·headfi 목록·카테고리/상태/타입 필터·검색·정렬 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-002·003 headfi 등록/수정/삭제 Server Action·카테고리별 폼·상세 모달·Recharts 레이더·매칭 앨범·stale state 방지 | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-004·005 FR 그래프 업로드/프록시 표시·접기 토글·URL 변경 시 해석 초기화·Gemini Vision AI 해석 API·상세 모달 연동 | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-006 /api/headfi-recommended-genres·유선 저장 시 백그라운드 장르 생성·상세 모달 태그·새로고침 버튼 | passes: 변경 없음

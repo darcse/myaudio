@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Headphones } from 'lucide-react';
 import { toast } from 'sonner';
-import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB } from '../actions';
+import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -268,6 +268,19 @@ export function HeadfiLibraryContent() {
     }
   };
 
+  const handleFrGraphFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadHeadfiFrGraphImage(file);
+      setFormData((prev) => ({ ...prev, fr_graph_url: url }));
+      toast.success('FR 그래프 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch {
+      toast.error('FR 그래프 업로드에 실패했습니다. Storage 버킷 headfi-fr 설정을 확인해 주세요.');
+    }
+    e.target.value = '';
+  };
+
   const handleEditClick = () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
@@ -328,6 +341,28 @@ export function HeadfiLibraryContent() {
         const sp = new URLSearchParams(searchParams.toString());
         sp.set('view', String(savedId));
         router.replace(`/headfi?${sp.toString()}`);
+
+        const wired = formData.category === '헤드폰' || formData.category === '이어폰';
+        if (wired) {
+          const { data: row } = await client
+            .from('headfi')
+            .select('recommended_genres')
+            .eq('id', savedId)
+            .single();
+          const needsGen =
+            !row?.recommended_genres || (Array.isArray(row.recommended_genres) && row.recommended_genres.length === 0);
+          if (needsGen) {
+            void fetch('/api/headfi-recommended-genres', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ headfiId: savedId }),
+            })
+              .then((res) => {
+                if (res.ok) void fetchLibrary();
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch (e) {
       toast.error(getClientErrorMessage(e));
@@ -405,6 +440,7 @@ export function HeadfiLibraryContent() {
           onClose={() => setSelectedItem(null)}
           onSave={handleSave}
           onImageUpload={handleImageUpload}
+          onFrGraphFileChange={handleFrGraphFileChange}
           isSaving={isSaving}
         />
       ) : null}
@@ -457,6 +493,15 @@ export function HeadfiLibraryContent() {
           onClose={handleCloseView}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
+          onHeadfiPatch={(patch) => {
+            setViewingItem((v) => (v ? { ...v, ...patch } : null));
+            const targetId = typeof patch.id === 'number' ? patch.id : undefined;
+            if (targetId != null) {
+              setLibrary((prev) =>
+                prev.map((item) => (item.id === targetId ? { ...item, ...patch } : item)),
+              );
+            }
+          }}
           isAuthenticated={isAuthenticated}
           isDeleting={isDeleting}
         />
