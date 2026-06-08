@@ -11,7 +11,7 @@
       ".gitignore에 .env.local 포함 여부 확인",
       "git remote -v 에서 origin이 https://github.com/darcse/myaudio.git 인지 확인"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "SETUP-001",
@@ -25,7 +25,7 @@
       "자동 모드에서 시스템 설정 따라가는지 확인",
       "npm run build 에러 없이 통과 확인"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "SETUP-002",
@@ -39,7 +39,7 @@
       "로그아웃 후 보호된 경로 접근 시 로그인 페이지로 리다이렉트 확인",
       "잘못된 이메일/비밀번호 입력 시 에러 메시지 노출 확인"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "SETUP-003",
@@ -53,6 +53,6 @@
       "toast 성공/에러 각 1회 노출 확인",
       "네비게이션 메뉴 hover/selected 스타일 확인"
     ],
-    "passes": false
+    "passes": true
   }
 ]

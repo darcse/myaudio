@@ -4,3 +4,6 @@
 
 [2026-06-08] [Init] 프로젝트 하네스 문서 초기화 (CLAUDE.md, AGENTS.md, HARNESS.md, CONVENTIONS.md, PRODUCT_BRIEF.md, feature_list/)
 [2026-06-08] [Cursor] SETUP-000 progress 헤더 myaudio 수정, .gitignore .env.local 명시 | passes: 변경 없음
+[2026-06-08] [Cursor] SETUP-001 Pretendard·라이트/다크/자동 테마(theme-mode)·globals.css CSS 변수 | passes: 변경 없음
+[2026-06-08] [Cursor] SETUP-002 Supabase Auth (client/server, proxy, useAuthState, /login) | passes: 변경 없음
+[2026-06-08] [Cursor] SETUP-003 상단 네비게이션/외부 앱 링크/모바일 햄버거/테마 토글/Toaster | passes: 변경 없음
