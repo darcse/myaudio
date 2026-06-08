@@ -1,0 +1,5 @@
+# claude-progress.txt — mybooks
+
+---
+
+[2026-06-08] [Init] 프로젝트 하네스 문서 초기화 (CLAUDE.md, AGENTS.md, HARNESS.md, CONVENTIONS.md, PRODUCT_BRIEF.md, feature_list/)
