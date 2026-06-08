@@ -27,3 +27,10 @@
 [2026-06-08] [Cursor] UX-001 /archive 연도별 월 카드 그리드·앨범 청취/헤드파이/가사 집계·로그인 전용·활동 없는 월 미표시·monthly_review app=myaudio 헬퍼 | passes: 변경 없음
 [2026-06-08] [Cursor] UX-002 /archive/[year]/[month] 타임라인·상세 모달 직오픈·/api/monthly-review-comment app=myaudio·Gemini 월간 코멘트 | passes: 변경 없음
 [2026-06-08] [Cursor] UX-003 BackToTop 공통 컴포넌트·스크롤 300px 노출·smooth scroll·AppShell 전역 적용 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-004 메인 대시보드 stat 바·보유 기기 통계·무드 추천·최근 앨범/기기 5개·상세 모달 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-004 후속 오늘의 추천 앨범(AlbumLotteryModal)·최근 앨범/기기 가로 5칸 카드 그리드 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-004 후속2 3분할(보유기기/이번달청취/오늘추천)·카드 내 인라인 슬롯머신 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-004 후속3 오늘의 추천 앨범 dominant color 그라디언트·풀블리드 커버·하단 오버레이·고정 높이 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: DashboardTodayAlbumCard button 중첩 hydration 오류 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: Summary stat 바 기기 수 보유중(status2) 기준으로 집계 | passes: 변경 없음
+[2026-06-08] [Cursor] layout.tsx 전역 Footer 추가(© 2026 SSH Love, --muted 중앙 정렬) | passes: 변경 없음
