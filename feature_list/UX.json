@@ -59,5 +59,19 @@
           "비로그인 상태에서도 대시보드 정상 로드 확인"
         ],
         "passes": true
+      },
+      {
+        "id": "UX-005",
+        "category": "ux",
+        "title": "PWA 설정 — myaudio",
+        "description": "myaudio를 PWA로 설치 가능하게 manifest.json, 아이콘, 메타태그를 설정한다.",
+        "steps": [
+          "Chrome/Safari에서 audio.sshlove.com 접속 시 '홈 화면에 추가' 옵션 노출 확인",
+          "홈 화면에서 앱 아이콘과 이름 'myaudio' 정상 표시 확인",
+          "설치된 앱 실행 시 브라우저 UI 없이 독립 창으로 실행 확인",
+          "manifest.json에 name, short_name, icons, display, start_url, theme_color 포함 확인",
+          "아이콘 192x192, 512x512 사이즈 정상 표시 확인"
+        ],
+        "passes": false
       }
   ]
