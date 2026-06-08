@@ -2,12 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LayoutGrid, LayoutList, List, X } from 'lucide-react';
+import { LayoutGrid, LayoutList, List, Shuffle, X } from 'lucide-react';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
+import { AlbumLotteryModal } from './AlbumLotteryModal';
 
 interface AlbumListProps {
   yearOptions: string[];
+  lotteryPool: Album[];
   paginatedLibrary: Album[];
   listSearchQuery: string;
   setListSearchQuery: (v: string) => void;
@@ -32,6 +34,7 @@ interface AlbumListProps {
 
 export function AlbumList({
   yearOptions,
+  lotteryPool,
   paginatedLibrary,
   listSearchQuery,
   setListSearchQuery,
@@ -54,6 +57,8 @@ export function AlbumList({
   onLibraryViewModeChange,
 }: AlbumListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [lotteryOpen, setLotteryOpen] = useState(false);
+  const canLottery = lotteryPool.length > 0;
   const defaultYearFilter = yearOptions[0] ?? '';
 
   const activeFilters = [
@@ -126,6 +131,17 @@ export function AlbumList({
               ))
             )}
           </select>
+          <button
+            type="button"
+            disabled={!canLottery}
+            onClick={() => setLotteryOpen(true)}
+            className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+            title={canLottery ? `${listYearFilter} 앨범 랜덤 추천` : '이 연도에 등록된 앨범이 없습니다'}
+            aria-label={canLottery ? '랜덤 앨범 추천' : '추천할 앨범 없음'}
+          >
+            <Shuffle className="size-[18px]" strokeWidth={1.75} />
+          </button>
         </div>
         <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-auto lg:min-w-0">
           {onLibraryViewModeChange && (
@@ -244,6 +260,14 @@ export function AlbumList({
           </div>
         )}
       </div>
+
+      <AlbumLotteryModal
+        open={lotteryOpen}
+        onClose={() => setLotteryOpen(false)}
+        lotteryPool={lotteryPool}
+        yearLabel={listYearFilter}
+        onAlbumClick={onItemClick}
+      />
 
       {totalFilteredCount === 0 ? (
         <div className="empty-state-apple text-center py-12">

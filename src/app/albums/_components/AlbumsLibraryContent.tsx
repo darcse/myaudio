@@ -20,7 +20,7 @@ import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
-import { albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
+import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -204,6 +204,11 @@ export function AlbumsLibraryContent() {
         (item) => albumMatchesYearFilter(item, listYearFilter) && listFilterCommon(item),
       ),
     [library, listYearFilter, listFilterCommon],
+  );
+
+  const yearLotteryPool = useMemo(
+    () => library.filter((item) => albumMatchesLotteryYearFilter(item, listYearFilter)),
+    [library, listYearFilter],
   );
 
   const sortedLibrary = useMemo(
@@ -583,6 +588,7 @@ export function AlbumsLibraryContent() {
           ) : (
             <AlbumList
               yearOptions={dynamicYearOptions}
+              lotteryPool={yearLotteryPool}
               paginatedLibrary={paginatedLibrary}
               listSearchQuery={listSearchQuery}
               setListSearchQuery={setListSearchQuery}

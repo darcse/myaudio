@@ -14,3 +14,5 @@
 [2026-06-08] [Cursor] ALBUM-005 무드보드 탭·/api/album-mood-groups·Gemini 9무드 분류·캐시·카드 펼침/썸네일 | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-006 /api/mood-recommend·기분/날씨/시간대 추천 모달·앨범 상세 연동·로딩/에러 toast | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-007 /api/analyze-music-taste·Gemini 취향 분석·MusicTasteModal·빈 앨범/에러 toast | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-008 슬롯머신 랜덤 추첨 모달·연도/album.year 풀·Shuffle 버튼·상세 모달 연동 | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-008 fix ~2023 연도 필터 시 랜덤 추천 풀 release_date≤2023 매칭 | passes: 변경 없음

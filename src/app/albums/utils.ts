@@ -9,10 +9,25 @@ export function albumYearIncludesFilter(year: Album['year'], filter: string): bo
   return String(year).trim() === filter;
 }
 
+function isAllTimeYearValue(value: string): boolean {
+  return value.trim().toLowerCase() === 'all time';
+}
+
 export function albumHasAllTimeYear(year: Album['year']): boolean {
   if (year == null) return false;
-  if (Array.isArray(year)) return year.includes('All Time');
-  return String(year).trim() === 'All Time';
+  if (Array.isArray(year)) return year.some((y) => isAllTimeYearValue(String(y)));
+  return isAllTimeYearValue(String(year));
+}
+
+export function albumMatchesLotteryYearFilter(item: Album, filter: string): boolean {
+  if (!filter) return false;
+  if (filter === 'All Time') return albumHasAllTimeYear(item.year);
+  if (filter === LEGACY_YEAR_GROUP) {
+    if (albumYearIncludesFilter(item.year, filter)) return true;
+    const y = releaseYearFromAlbum(item);
+    return y != null && y <= 2023;
+  }
+  return albumYearIncludesFilter(item.year, filter);
 }
 
 export function releaseYearFromAlbum(item: Album): number | null {
