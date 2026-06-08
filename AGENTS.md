@@ -28,6 +28,7 @@ alwaysApply: true
 - feature 1개씩만 작업 — 범위 확장 금지
 - passes 변경은 Claude Code만 한다
 - passes 변경 후 grep으로 실제 저장 여부 반드시 확인
+- npm run build 완료 후 반드시 npm run dev 재시작 (CSS 캐시 충돌 방지)
 - 작업 후 Codex-progress.txt에 한 줄로 업데이트
 - 전체 파일 재작성 금지 — 변경되는 부분만 최소 수정
 - 주석 추가 금지

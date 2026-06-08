@@ -7,3 +7,5 @@
 [2026-06-08] [Cursor] SETUP-001 Pretendard·라이트/다크/자동 테마(theme-mode)·globals.css CSS 변수 | passes: 변경 없음
 [2026-06-08] [Cursor] SETUP-002 Supabase Auth (client/server, proxy, useAuthState, /login) | passes: 변경 없음
 [2026-06-08] [Cursor] SETUP-003 상단 네비게이션/외부 앱 링크/모바일 햄버거/테마 토글/Toaster | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-001 /albums 목록·장르/국가/연도 필터·검색·정렬·페이지네이션 | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-002 MusicBrainz 검색·등록/수정/삭제 폼·Server Action·비로그인 쓰기 차단 | passes: 변경 없음

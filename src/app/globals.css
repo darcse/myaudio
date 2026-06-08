@@ -73,6 +73,163 @@ body {
   outline-offset: 2px;
 }
 
+.btn-apple {
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.btn-apple:active {
+  transform: scale(0.98);
+}
+
+.btn-apple-secondary {
+  background: var(--card-bg);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.btn-apple-secondary:hover {
+  opacity: 0.88;
+}
+
+.btn-apple-primary {
+  background: var(--foreground);
+  color: var(--background);
+  border: none;
+}
+
+.btn-apple-primary:hover {
+  opacity: 0.88;
+}
+
+.btn-apple-danger {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+  border: none;
+}
+
+.btn-apple-danger:hover {
+  opacity: 0.88;
+}
+
+:root.theme-dark .btn-apple-danger {
+  background: rgba(255, 69, 58, 0.2);
+  color: #ff453a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light):not(.theme-dark) .btn-apple-danger {
+    background: rgba(255, 69, 58, 0.2);
+    color: #ff453a;
+  }
+}
+
+.card-apple {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.modal-overlay-apple {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.modal-panel-apple {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+}
+
+:root.theme-dark .modal-panel-apple {
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light):not(.theme-dark) .modal-panel-apple {
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.input-apple,
+.select-apple {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--foreground);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-apple:focus,
+.select-apple:focus {
+  outline: none;
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+:root.theme-dark .input-apple:focus,
+:root.theme-dark .select-apple:focus {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light):not(.theme-dark) .input-apple:focus,
+  :root:not(.theme-light):not(.theme-dark) .select-apple:focus {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  }
+}
+
+.badge-apple {
+  background: var(--badge-bg);
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.list-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.link-apple {
+  color: var(--link);
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.link-apple:hover {
+  opacity: 0.8;
+}
+
+.empty-state-apple {
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  font-weight: 500;
+}
+
 @layer utilities {
   .glass-card {
     background: var(--card-bg);
