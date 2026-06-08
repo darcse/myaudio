@@ -85,7 +85,7 @@
         "추천 결과 클릭 시 해당 상세 모달 오픈 확인",
         "Gemini API 오류 시 에러 toast 노출 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ALBUM-007",
@@ -98,6 +98,6 @@
         "앨범이 없을 때 안내 메시지 노출 확인",
         "Gemini API 오류 시 에러 toast 노출 확인"
       ],
-      "passes": false
+      "passes": true
     }
   ]

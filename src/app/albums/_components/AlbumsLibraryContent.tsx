@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Disc } from 'lucide-react';
+import { Disc, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -14,6 +14,8 @@ import {
 } from '../actions';
 import { AlbumList } from './AlbumList';
 import { AlbumMoodboard } from './AlbumMoodboard';
+import { MoodRecommendModal } from './MoodRecommendModal';
+import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
@@ -84,6 +86,10 @@ export function AlbumsLibraryContent() {
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
+  const [moodModalOpen, setMoodModalOpen] = useState(false);
+  const [tasteModalOpen, setTasteModalOpen] = useState(false);
+  const [tasteResult, setTasteResult] = useState<TasteResult | null>(null);
+  const [tasteLoading, setTasteLoading] = useState(false);
 
   const fetchLibrary = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -431,6 +437,40 @@ export function AlbumsLibraryContent() {
     }
   };
 
+  const handleAnalyzeTaste = async () => {
+    if (library.length === 0) {
+      toast.error('등록된 앨범이 없어 취향 분석을 할 수 없습니다.');
+      return;
+    }
+    setTasteModalOpen(true);
+    setTasteLoading(true);
+    setTasteResult(null);
+    try {
+      const res = await fetch('/api/analyze-music-taste');
+      let data: TasteResult & { error?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('parse');
+      }
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error('등록된 앨범이 없어 취향 분석을 할 수 없습니다.');
+        } else {
+          toast.error('취향 분석에 실패했습니다.');
+        }
+        setTasteResult(null);
+        return;
+      }
+      setTasteResult(data);
+    } catch {
+      toast.error('취향 분석에 실패했습니다.');
+      setTasteResult(null);
+    } finally {
+      setTasteLoading(false);
+    }
+  };
+
   const handleDeleteFromModal = async () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
@@ -456,10 +496,28 @@ export function AlbumsLibraryContent() {
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <h1 className="page-title flex items-center gap-2">
           <Disc className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Albums
         </h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMoodModalOpen(true)}
+            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <span>🎵</span>
+            기분 추천
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleAnalyzeTaste()}
+            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <Sparkles className="size-4" strokeWidth={1.5} />
+            취향 분석
+          </button>
+        </div>
       </div>
 
       {isAuthenticated && (
@@ -554,6 +612,24 @@ export function AlbumsLibraryContent() {
             />
           )}
         </div>
+      )}
+
+      {tasteModalOpen && (
+        <MusicTasteModal
+          result={tasteResult}
+          isLoading={tasteLoading}
+          onClose={() => setTasteModalOpen(false)}
+        />
+      )}
+
+      {moodModalOpen && (
+        <MoodRecommendModal
+          onClose={() => setMoodModalOpen(false)}
+          onAlbumClick={(albumId) => {
+            const album = library.find((a) => a.id === albumId);
+            if (album) openAlbumDetail(album);
+          }}
+        />
       )}
 
       {viewingItem && (

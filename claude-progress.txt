@@ -12,3 +12,5 @@
 [2026-06-08] [Cursor] ALBUM-003 앨범 상세 모달·오디오 태그/소개/추천 헤드폰/청취 이력·stale state 방지 | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-004 /api/album-intro·Gemini+Google Search 소개/태그 생성·모달 갱신·로딩/에러 toast | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-005 무드보드 탭·/api/album-mood-groups·Gemini 9무드 분류·캐시·카드 펼침/썸네일 | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-006 /api/mood-recommend·기분/날씨/시간대 추천 모달·앨범 상세 연동·로딩/에러 toast | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-007 /api/analyze-music-taste·Gemini 취향 분석·MusicTasteModal·빈 앨범/에러 toast | passes: 변경 없음

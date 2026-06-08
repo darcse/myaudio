@@ -46,6 +46,52 @@ function extractJsonObjectFromGeminiText(text: string): string | null {
   return brace ? brace[0] : null;
 }
 
+export async function analyzeMusicTaste(albums: {
+  genre1: string | null;
+  genre2: string | null;
+  country: string | null;
+  release_date: string | null;
+}[]) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+
+  const albumSummary = albums
+    .map(
+      (a) =>
+        `장르: ${a.genre1 || ''}${a.genre2 ? '/' + a.genre2 : ''}, 국가: ${a.country || ''}, 연도: ${a.release_date?.substring(0, 4) || ''}`,
+    )
+    .join('\n');
+
+  const prompt = `
+다음은 한 사람이 등록한 명반 목록의 요약이야.
+이 데이터를 분석해서 반드시 아래 JSON 형식으로만 답변해줘.
+다른 텍스트는 절대 포함하지 마.
+
+앨범 목록:
+${albumSummary}
+
+응답 형식:
+{
+  "dominant_genres": ["장르1", "장르2", "장르3"],
+  "preferred_era": "선호 시대 (예: 1990~2000년대)",
+  "preferred_countries": ["국가1", "국가2"],
+  "taste_summary": "취향을 한 문장으로 표현",
+  "unregistered_recommendations": [
+    { "artist": "아티스트명", "album": "앨범명", "reason": "추천 이유 한 줄" }
+  ]
+}
+  `;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    return JSON.parse(jsonRaw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateAlbumIntroAndTags(album: {
   artist: string | null;
   album_name: string | null;
@@ -94,6 +140,101 @@ album_intro 작성 시 헤드폰·이어폰·DAC·앰프 등 오디오 기기명
     let intro = typeof parsed.album_intro === 'string' ? parsed.album_intro.trim() : '';
     intro = intro.replace(/\\n/g, '\n');
     return { audio_tags: tags, album_intro: intro };
+  } catch {
+    return null;
+  }
+}
+
+export async function recommendByMood(
+  mood: string,
+  moodText: string,
+  weather: { temperature: number; condition: string; description: string } | null,
+  albums: {
+    id: number;
+    artist: string | null;
+    album_name: string | null;
+    genre1: string | null;
+    genre2: string | null;
+  }[],
+  headphones: {
+    id: number;
+    brand: string;
+    model: string;
+    tone_warmth?: number | null;
+    treble_brightness?: number | null;
+    soundstage?: number | null;
+  }[],
+  timeSlot = '',
+): Promise<{ album_id: number | null; headphone_id: number | null; reason: string } | null> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+
+  const albumList = albums
+    .map(
+      (a) =>
+        `ID:${a.id} | ${a.artist || ''} - ${a.album_name || ''} | ${a.genre1 || ''}${a.genre2 ? '/' + a.genre2 : ''}`,
+    )
+    .join('\n');
+
+  const headphoneList = headphones
+    .map(
+      (h) =>
+        `ID:${h.id} | ${h.brand} ${h.model} | 온도:${h.tone_warmth ?? '?'} 밝기:${h.treble_brightness ?? '?'} 무대감:${h.soundstage ?? '?'}`,
+    )
+    .join('\n');
+
+  const weatherDesc = weather
+    ? `${weather.description}, 기온 ${weather.temperature}°C`
+    : '날씨 정보 없음';
+
+  const prompt = `
+기분, 날씨, 시간대를 모두 종합해서 지금 이 순간에 가장 어울리는 정교한 추천을 해줘.
+
+지금 사용자의 상태:
+- 기분: ${mood} ${moodText ? `(추가 메모: ${moodText})` : ''}
+- 현재 날씨: ${weatherDesc}
+- 현재 시간대: ${timeSlot || '알 수 없음'}
+
+아래는 사용자가 등록한 앨범 목록이야:
+${albumList}
+
+아래는 사용자가 보유한 헤드폰 목록이야:
+${headphoneList}
+
+1. 지금 이 순간 듣기 가장 좋은 앨범 1개
+2. 그 앨범과 기분/날씨에 가장 어울리는 헤드폰 1개
+3. 왜 이 조합이 어울리는지 한 문장
+
+reason 작성 시 헤드폰은 "브랜드 모델명" 형식으로만 언급하고 ID 번호는 쓰지 마.
+반드시 아래 JSON 형식으로만 답변해. 다른 텍스트는 절대 포함하지 마.
+{
+  "album_id": 앨범ID,
+  "headphone_id": 헤드폰ID,
+  "reason": "추천 이유 한 문장"
+}
+  `;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as {
+      album_id?: unknown;
+      headphone_id?: unknown;
+      reason?: unknown;
+    };
+    const validAlbumIds = albums.map((a) => a.id);
+    const validHeadphoneIds = headphones.map((h) => h.id);
+    const albumId = typeof parsed.album_id === 'number' ? parsed.album_id : null;
+    const headphoneId = typeof parsed.headphone_id === 'number' ? parsed.headphone_id : null;
+    return {
+      album_id: albumId != null && validAlbumIds.includes(albumId) ? albumId : null,
+      headphone_id: headphoneId != null && validHeadphoneIds.includes(headphoneId) ? headphoneId : null,
+      reason: typeof parsed.reason === 'string' ? parsed.reason : '',
+    };
   } catch {
     return null;
   }
