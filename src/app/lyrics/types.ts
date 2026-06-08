@@ -26,3 +26,5 @@ export type LyricsFormData = {
 };
 
 export type SelectedLyrics = Lyrics | { isManual: true };
+
+export type LyricsQueueSource = 'album' | 'favorites';

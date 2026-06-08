@@ -23,3 +23,4 @@
 [2026-06-08] [Cursor] LYRICS-001 /lyrics 앨범 그리드·제목/앨범 검색·페이지네이션·?album= 앨범 상세 진입 | passes: 변경 없음
 [2026-06-08] [Cursor] LYRICS-002 가사 등록/수정/삭제 폼·Server Action·커버/오디오 Storage 업로드·비로그인 쓰기 차단 | passes: 변경 없음
 [2026-06-08] [Cursor] LYRICS-003 /api/analyze-lyrics-vibe·Gemini 바이브 색상/이모지·앨범 카드 그라디언트·상세 모달 분석 버튼 | passes: 변경 없음
+[2026-06-08] [Cursor] LYRICS-004 LyricsPlayerProvider·하단 고정 플레이어·앨범 재생·즐겨찾기 토글/플레이리스트·드로어·페이지 이동 후 재생 유지 | passes: 변경 없음

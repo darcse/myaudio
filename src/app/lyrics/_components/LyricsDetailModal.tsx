@@ -19,6 +19,7 @@ type LyricsDetailModalProps = {
   vibeAnalyzeLoading?: boolean;
   isAuthenticated: boolean | null;
   isDeleting?: boolean;
+  hideAudioSection?: boolean;
 };
 
 function formatCreated(createdAt: string | undefined) {
@@ -44,6 +45,7 @@ export function LyricsDetailModal({
   vibeAnalyzeLoading = false,
   isAuthenticated,
   isDeleting = false,
+  hideAudioSection = false,
 }: LyricsDetailModalProps) {
   const [lyricsExpanded, setLyricsExpanded] = useState(false);
   const ytId = viewingItem.youtube_url ? getYoutubeId(viewingItem.youtube_url) : null;
@@ -108,7 +110,7 @@ export function LyricsDetailModal({
           </div>
         </div>
 
-        {viewingItem.audio_url ? (
+        {viewingItem.audio_url && !hideAudioSection ? (
           <div className="mb-6">
             <strong className="block mb-2 text-sm opacity-90">오디오</strong>
             <audio controls className="w-full max-w-full" src={viewingItem.audio_url}>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Toaster } from "sonner";
-import { Navigation } from "@/components/Navigation";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,9 +26,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen font-sans antialiased transition-colors duration-300">
-        <Navigation />
-        {children}
-        <Toaster position="top-center" richColors closeButton />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

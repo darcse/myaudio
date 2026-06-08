@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { ArrowLeft, Disc, FileText } from 'lucide-react';
+import { ArrowLeft, Disc, FileText, Heart, Play } from 'lucide-react';
 import type { Lyrics } from '../types';
 
 type LyricsAlbumDetailProps = {
@@ -9,9 +9,20 @@ type LyricsAlbumDetailProps = {
   tracks: Lyrics[];
   onBack: () => void;
   onLyricsClick: (track: Lyrics) => void;
+  onPlayTrack: (track: Lyrics) => void;
+  onFavoriteToggle?: (track: Lyrics) => void | Promise<void>;
+  favoriteBusyId?: number | null;
 };
 
-export function LyricsAlbumDetail({ albumTitle, tracks, onBack, onLyricsClick }: LyricsAlbumDetailProps) {
+export function LyricsAlbumDetail({
+  albumTitle,
+  tracks,
+  onBack,
+  onLyricsClick,
+  onPlayTrack,
+  onFavoriteToggle,
+  favoriteBusyId,
+}: LyricsAlbumDetailProps) {
   return (
     <div>
       <div className="flex items-center gap-2 sm:gap-3 mb-6">
@@ -47,7 +58,8 @@ export function LyricsAlbumDetail({ albumTitle, tracks, onBack, onLyricsClick }:
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
                   <span
-                    className="tabular-nums text-sm font-semibold w-8 shrink-0 text-center select-none opacity-70"
+                    className="tabular-nums text-sm font-semibold w-8 shrink-0 text-center select-none"
+                    style={{ color: 'var(--lyrics-row-accent)' }}
                     aria-hidden
                   >
                     {String(index + 1).padStart(2, '0')}
@@ -69,19 +81,55 @@ export function LyricsAlbumDetail({ albumTitle, tracks, onBack, onLyricsClick }:
                     <p className="font-semibold text-sm sm:text-[15px] leading-snug truncate">
                       {t.title}
                     </p>
-                    <p className="text-xs sm:text-[13px] truncate mt-0.5 leading-snug opacity-70">
+                    <p
+                      className="text-xs sm:text-[13px] truncate mt-0.5 leading-snug"
+                      style={{ color: 'var(--lyrics-row-accent)' }}
+                    >
                       {[t.genre1, t.genre2].filter(Boolean).join(' · ') || '—'}
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onLyricsClick(t)}
-                  className="btn-apple btn-apple-primary h-9 px-3 text-sm inline-flex items-center gap-1.5 shrink-0 self-end sm:self-center"
-                >
-                  <FileText className="size-4 shrink-0" />
-                  가사
-                </button>
+                <div className="flex w-full sm:w-auto items-center justify-end gap-2 shrink-0 sm:self-center">
+                  <button
+                    type="button"
+                    disabled={!t.audio_url?.trim()}
+                    title={!t.audio_url?.trim() ? '오디오가 등록되지 않았습니다.' : undefined}
+                    onClick={() => onPlayTrack(t)}
+                    className="btn-apple btn-apple-secondary h-9 px-3 text-sm inline-flex items-center gap-1.5 disabled:opacity-45 disabled:pointer-events-none"
+                  >
+                    <Play className="size-4 shrink-0" />
+                    재생
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onLyricsClick(t)}
+                    className="btn-apple btn-apple-primary h-9 px-3 text-sm inline-flex items-center gap-1.5"
+                  >
+                    <FileText className="size-4 shrink-0" />
+                    가사
+                  </button>
+                  {onFavoriteToggle ? (
+                    <button
+                      type="button"
+                      disabled={favoriteBusyId === t.id}
+                      onClick={() => onFavoriteToggle(t)}
+                      className="p-2 rounded-lg shrink-0 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-45 transition-colors"
+                      style={{ color: 'var(--foreground)' }}
+                      aria-label={t.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                      title={t.is_favorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                    >
+                      <Heart
+                        className={`size-5 shrink-0 ${
+                          t.is_favorite
+                            ? 'fill-[var(--favorite-heart)] text-[var(--favorite-heart)]'
+                            : 'text-[var(--favorite-heart)] opacity-40'
+                        }`}
+                        strokeWidth={t.is_favorite ? 0 : 1.75}
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mic2 } from 'lucide-react';
+import { Mic2, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   saveLyricsToDB,
@@ -10,6 +10,7 @@ import {
   deleteLyricsFromDB,
   uploadAudioFile,
   uploadCoverImage,
+  toggleLyricsFavorite,
 } from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -21,6 +22,9 @@ import {
   findTracksForAlbumKey,
   toAlbumCards,
 } from '../lib/album-groups';
+import { buildFavoritePlayableQueue } from '../lib/favorites-queue';
+import { LYRICS_LIBRARY_SYNC_EVENT } from '../lib/lyrics-events';
+import { useLyricsPlayer } from '@/contexts/LyricsPlayerContext';
 import { LyricsList } from './LyricsList';
 import { LyricsAlbumDetail } from './LyricsAlbumDetail';
 import { LyricsForm } from './LyricsForm';
@@ -44,6 +48,7 @@ export function LyricsLibraryContent() {
   const searchParams = useSearchParams();
   const albumParam = searchParams.get('album');
   const isAuthenticated = useAuthState();
+  const { playingTrack, playTrack, stopPlayback, patchTrackFavorite } = useLyricsPlayer();
 
   const [library, setLibrary] = useState<Lyrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +60,7 @@ export function LyricsLibraryContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [vibeAnalyzeLoading, setVibeAnalyzeLoading] = useState(false);
+  const [favoriteBusyId, setFavoriteBusyId] = useState<number | null>(null);
 
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
@@ -77,6 +83,24 @@ export function LyricsLibraryContent() {
   useEffect(() => {
     void fetchLibrary();
   }, [fetchLibrary]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(LYRICS_LIBRARY_SYNC_EVENT, { detail: library }));
+  }, [library]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ id: number; isFavorite: boolean }>;
+      const d = ce.detail;
+      if (!d || typeof d.id !== 'number') return;
+      setLibrary((prev) =>
+        prev.map((r) => (r.id === d.id ? { ...r, is_favorite: d.isFavorite } : r)),
+      );
+    };
+    window.addEventListener('lyrics-favorite-updated', handler);
+    return () => window.removeEventListener('lyrics-favorite-updated', handler);
+  }, []);
 
   useEffect(() => {
     const viewId = searchParams.get('view');
@@ -197,6 +221,7 @@ export function LyricsLibraryContent() {
     setIsDeleting(true);
     try {
       await deleteLyricsFromDB(viewingItem.id);
+      if (playingTrack?.id === viewingItem.id) stopPlayback();
       toast.success('삭제되었습니다.');
       handleModalClose();
       await fetchLibrary();
@@ -351,6 +376,52 @@ export function LyricsLibraryContent() {
     router.push('/lyrics');
   };
 
+  const favoritePlayableQueue = useMemo(() => buildFavoritePlayableQueue(library), [library]);
+  const hasFavoriteTracks = useMemo(() => library.some((t) => t.is_favorite ?? false), [library]);
+
+  const handlePlayTrack = (t: Lyrics) => {
+    if (!t.audio_url?.trim()) {
+      toast.error('재생할 오디오 URL이 없습니다.');
+      return;
+    }
+    playTrack(t, sortedDetailTracks, 'album');
+  };
+
+  const handlePlayFavoritesPlaylist = useCallback(() => {
+    const queue = buildFavoritePlayableQueue(library);
+    if (queue.length === 0) {
+      toast.error('재생할 즐겨찾기 곡이 없습니다. 오디오가 등록된 즐겨찾기 곡이 필요합니다.');
+      return;
+    }
+    playTrack(queue[0], queue, 'favorites');
+  }, [library, playTrack]);
+
+  const handleFavoriteToggle = useCallback(
+    async (track: Lyrics) => {
+      if (!isAuthenticated) {
+        toast.error('로그인 후 이용할 수 있습니다.');
+        return;
+      }
+      const next = !(track.is_favorite ?? false);
+      setFavoriteBusyId(track.id);
+      try {
+        await toggleLyricsFavorite(track.id, next);
+        setLibrary((prev) => prev.map((r) => (r.id === track.id ? { ...r, is_favorite: next } : r)));
+        patchTrackFavorite(track.id, next);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('lyrics-favorite-updated', { detail: { id: track.id, isFavorite: next } }),
+          );
+        }
+      } catch (e) {
+        toast.error(getClientErrorMessage(e));
+      } finally {
+        setFavoriteBusyId(null);
+      }
+    },
+    [isAuthenticated, patchTrackFavorite],
+  );
+
   const showAlbumDetail = Boolean(albumParam?.length);
 
   return (
@@ -361,14 +432,44 @@ export function LyricsLibraryContent() {
           <span className="truncate">Lyrics</span>
         </h1>
         {isAuthenticated ? (
-          <button
-            type="button"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center shrink-0"
-            onClick={handleManualRegister}
-          >
-            <span className="text-lg leading-none sm:mr-1">＋</span>
-            <span className="hidden sm:inline">가사 등록하기</span>
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {hasFavoriteTracks ? (
+              <button
+                type="button"
+                disabled={favoritePlayableQueue.length === 0}
+                onClick={handlePlayFavoritesPlaylist}
+                title={
+                  favoritePlayableQueue.length === 0
+                    ? '오디오가 등록된 즐겨찾기 곡이 없습니다'
+                    : '즐겨찾기에 담긴 곡만 큐에 넣고 재생합니다'
+                }
+                className="inline-flex items-center justify-center gap-1 h-[42px] px-2 sm:px-2.5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-40 disabled:pointer-events-none hover:opacity-90 transition-opacity"
+                style={{
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--foreground)',
+                }}
+                aria-label="즐겨찾기 재생"
+              >
+                <span className="hidden sm:inline">즐겨찾기 재생</span>
+                <Play
+                  className="size-[18px] sm:size-4 shrink-0"
+                  strokeWidth={2.25}
+                  fill="currentColor"
+                  style={{ color: 'var(--favorite-heart)' }}
+                  aria-hidden
+                />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center shrink-0"
+              onClick={handleManualRegister}
+            >
+              <span className="text-lg leading-none sm:mr-1">＋</span>
+              <span className="hidden sm:inline">가사 등록하기</span>
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -412,6 +513,9 @@ export function LyricsLibraryContent() {
             sp.set('view', String(t.id));
             router.replace(`/lyrics?${sp.toString()}`);
           }}
+          onPlayTrack={handlePlayTrack}
+          onFavoriteToggle={isAuthenticated ? handleFavoriteToggle : undefined}
+          favoriteBusyId={favoriteBusyId}
         />
       ) : (
         <LyricsList
@@ -446,6 +550,7 @@ export function LyricsLibraryContent() {
           vibeAnalyzeLoading={vibeAnalyzeLoading}
           isAuthenticated={isAuthenticated}
           isDeleting={isDeleting}
+          hideAudioSection={showAlbumDetail || !!playingTrack}
         />
       ) : null}
     </div>

@@ -60,6 +60,27 @@ export async function deleteLyricsFromDB(id: number) {
   return true;
 }
 
+export async function toggleLyricsFavorite(id: number, isFavorite: boolean) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('로그인이 필요합니다.');
+  const supabase = await createClient();
+  const { error } = await supabase.from('lyrics').update({ is_favorite: isFavorite }).eq('id', id);
+  if (error) {
+    const raw = error.message ?? '';
+    if (
+      raw.includes('is_favorite') ||
+      raw.includes('schema cache') ||
+      error.code === '42703' ||
+      error.code === 'PGRST204'
+    ) {
+      throw new Error(
+        '가사 테이블에 is_favorite 컬럼이 없습니다. Supabase에서 is_favorite 컬럼 마이그레이션을 적용해 주세요.',
+      );
+    }
+    throw new Error(toSupabaseErrorMessage(error));
+  }
+}
+
 const AUDIO_EXT = new Set(['mp3', 'wav', 'flac']);
 
 export async function uploadAudioFile(file: File) {
