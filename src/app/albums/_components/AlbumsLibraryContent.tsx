@@ -14,6 +14,7 @@ import {
 import { AlbumList } from './AlbumList';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
+import { AlbumDetailModal } from './AlbumDetailModal';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
 import { albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
 
@@ -73,21 +74,60 @@ export function AlbumsLibraryContent() {
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
+  const [viewingItem, setViewingItem] = useState<Album | null>(null);
+  const [recommendedHeadphones, setRecommendedHeadphones] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
+  const [audioTags, setAudioTags] = useState<string[]>([]);
+  const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
 
-  const fetchLibrary = useCallback(async () => {
-    setIsLoading(true);
+  const fetchLibrary = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const client = createClient();
       const { data } = await client.from('album').select('*').order('created_at', { ascending: false });
       setLibrary((data as Album[]) || []);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchLibrary();
   }, [fetchLibrary]);
+
+  useEffect(() => {
+    setViewingItem((prev) => {
+      if (!prev) return prev;
+      const fresh = library.find((a) => a.id === prev.id);
+      return fresh ? { ...prev, ...fresh } : prev;
+    });
+  }, [library]);
+
+  useEffect(() => {
+    if (!viewingItem?.id) {
+      setRecommendedHeadphones([]);
+      setAudioTags([]);
+      return;
+    }
+    setAudioTags(viewingItem.audio_tags ?? []);
+    const ids = viewingItem.manual_recommended_headphone_ids ?? [];
+    if (ids.length === 0) {
+      setRecommendedHeadphones([]);
+      return;
+    }
+    const client = createClient();
+    client
+      .from('headfi')
+      .select('id, brand, model')
+      .in('id', ids)
+      .then(({ data }) => {
+        const ordered = ids
+          .map((id) => (data || []).find((h) => h.id === id))
+          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+        setRecommendedHeadphones(ordered);
+      });
+  }, [viewingItem?.id, viewingItem?.manual_recommended_headphone_ids, viewingItem?.audio_tags]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -224,11 +264,58 @@ export function AlbumsLibraryContent() {
     });
   };
 
-  const handleEditClick = (item: Album) => {
+  const openAlbumDetail = (item: Album) => {
+    setViewingItem(item);
+  };
+
+  const closeAlbumDetail = () => {
+    setViewingItem(null);
+    void fetchLibrary(true);
+  };
+
+  const handleRefreshAlbumIntro = async () => {
+    if (!viewingItem || isAuthenticated === false) return;
+    setAlbumIntroLoading(true);
+    try {
+      const res = await fetch('/api/album-intro', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: viewingItem.id }),
+      });
+      let payload: { error?: string; audio_tags?: string[]; album_intro?: string } = {};
+      try {
+        payload = await res.json();
+      } catch {
+        throw new Error('응답을 읽을 수 없습니다.');
+      }
+      if (!res.ok) throw new Error(payload.error ?? 'Generation failed');
+      const updated: Album = {
+        ...viewingItem,
+        audio_tags: payload.audio_tags ?? [],
+        album_intro: payload.album_intro ?? '',
+        ai_recommended_headphone_ids: null,
+        ai_recommended_headphone_reason: null,
+      };
+      setViewingItem(updated);
+      setLibrary((prev) => prev.map((a) => (a.id === viewingItem.id ? updated : a)));
+      setAudioTags(payload.audio_tags ?? []);
+      toast.success('앨범 소개와 태그를 갱신했습니다.');
+    } catch {
+      toast.error('앨범 소개 갱신에 실패했습니다.');
+    } finally {
+      setAlbumIntroLoading(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    if (!viewingItem) return;
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
       return;
     }
+    const item = viewingItem;
+    setViewingItem(null);
     setSelectedItem(item);
     const mids = item.manual_recommended_headphone_ids ?? [];
     setFormData({
@@ -288,9 +375,19 @@ export function AlbumsLibraryContent() {
         await saveAlbumToDB(data);
         toast.success('앨범이 라이브러리에 등록되었습니다.');
       }
+      const savedId = updateId;
       setSelectedItem(null);
       handleClearSearch();
-      await fetchLibrary();
+      await fetchLibrary(true);
+      if (savedId != null) {
+        const client = createClient();
+        const { data: updatedRow } = await client.from('album').select('*').eq('id', savedId).single();
+        if (updatedRow) {
+          const updated = updatedRow as Album;
+          setLibrary((prev) => prev.map((a) => (a.id === savedId ? updated : a)));
+          setViewingItem((prev) => (prev?.id === savedId ? updated : prev));
+        }
+      }
     } catch (e) {
       const message = e instanceof Error && e.message === 'Unauthorized'
         ? '로그인이 필요합니다.'
@@ -301,7 +398,7 @@ export function AlbumsLibraryContent() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteFromForm = async () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
       return;
@@ -313,7 +410,31 @@ export function AlbumsLibraryContent() {
       await deleteAlbumFromDB(selectedItem.id);
       toast.success('앨범이 삭제되었습니다.');
       setSelectedItem(null);
-      await fetchLibrary();
+      setViewingItem(null);
+      await fetchLibrary(true);
+    } catch (e) {
+      const message = e instanceof Error && e.message === 'Unauthorized'
+        ? '로그인이 필요합니다.'
+        : '삭제 중 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteFromModal = async () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    if (!viewingItem) return;
+    if (!confirm('정말 이 앨범을 삭제하시겠습니까?')) return;
+    setIsDeleting(true);
+    try {
+      await deleteAlbumFromDB(viewingItem.id);
+      toast.success('앨범이 삭제되었습니다.');
+      setViewingItem(null);
+      await fetchLibrary(true);
     } catch (e) {
       const message = e instanceof Error && e.message === 'Unauthorized'
         ? '로그인이 필요합니다.'
@@ -360,7 +481,7 @@ export function AlbumsLibraryContent() {
           headfiOwnedHeadphones={headfiOwnedHeadphones}
           onClose={() => setSelectedItem(null)}
           onSave={handleSave}
-          onDelete={'id' in selectedItem && typeof selectedItem.id === 'number' ? handleDelete : undefined}
+          onDelete={'id' in selectedItem && typeof selectedItem.id === 'number' ? handleDeleteFromForm : undefined}
           onImageUpload={handleImageUpload}
           isSaving={isSaving}
           isDeleting={isDeleting}
@@ -401,7 +522,7 @@ export function AlbumsLibraryContent() {
               setListCurrentPage={setListCurrentPage}
               totalFilteredCount={totalFilteredCount}
               listTotalPages={listTotalPages}
-              onItemClick={handleEditClick}
+              onItemClick={openAlbumDetail}
               onGenreLabelClick={(genre) => {
                 setListGenreFilter(genre);
                 setListCurrentPage(1);
@@ -413,6 +534,22 @@ export function AlbumsLibraryContent() {
             />
           )}
         </div>
+      )}
+
+      {viewingItem && (
+        <AlbumDetailModal
+          viewingItem={viewingItem}
+          recommendedHeadphones={recommendedHeadphones}
+          albumIntro={(viewingItem.album_intro ?? viewingItem.ai_recommended_headphone_reason ?? '').trim()}
+          audioTags={audioTags}
+          albumIntroLoading={albumIntroLoading}
+          onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
+          onClose={closeAlbumDetail}
+          onEdit={handleEditClick}
+          onDelete={handleDeleteFromModal}
+          isAuthenticated={isAuthenticated}
+          isDeleting={isDeleting}
+        />
       )}
     </div>
   );

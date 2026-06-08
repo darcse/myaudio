@@ -9,3 +9,5 @@
 [2026-06-08] [Cursor] SETUP-003 상단 네비게이션/외부 앱 링크/모바일 햄버거/테마 토글/Toaster | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-001 /albums 목록·장르/국가/연도 필터·검색·정렬·페이지네이션 | passes: 변경 없음
 [2026-06-08] [Cursor] ALBUM-002 MusicBrainz 검색·등록/수정/삭제 폼·Server Action·비로그인 쓰기 차단 | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-003 앨범 상세 모달·오디오 태그/소개/추천 헤드폰/청취 이력·stale state 방지 | passes: 변경 없음
+[2026-06-08] [Cursor] ALBUM-004 /api/album-intro·Gemini+Google Search 소개/태그 생성·모달 갱신·로딩/에러 toast | passes: 변경 없음

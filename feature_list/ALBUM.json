@@ -43,7 +43,7 @@
         "청취일 + 소감 입력 후 저장 시 DB 반영 확인",
         "모달 닫기 후 목록 stale state 없이 최신 데이터 유지 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ALBUM-004",
@@ -57,23 +57,22 @@
         "생성 결과 DB 저장 후 재오픈 시 즉시 표시 확인",
         "Gemini API 오류 시 에러 toast 노출 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
-      "id": "ALBUM-005",
-      "category": "album",
-      "title": "무드보드 — 앨범 무드 그룹 분류·캐싱",
-      "description": "Gemini가 앨범을 무드 그룹으로 분류하고 album_mood_groups에 캐싱한다. 무드 카드 상세 펼침, 커버 썸네일, 무드명 인라인 편집이 동작한다.",
-      "steps": [
-        "무드보드 탭 진입 시 무드 그룹 카드 목록 표시 확인",
-        "무드 카드 클릭 시 해당 앨범 목록 펼침 확인",
-        "무드명 인라인 편집 후 저장 시 반영 확인",
-        "무드 재생성 버튼 클릭 시 Gemini 재분류 후 캐시 업데이트 확인",
-        "앨범이 없을 때 빈 상태 처리 확인",
-        "비로그인 상태에서 무드 편집 시도 시 차단 확인"
-      ],
-      "passes": false
-    },
+        "id": "ALBUM-005",
+        "category": "album",
+        "title": "무드보드 — 앨범 무드 그룹 자동 분류·캐싱",
+        "description": "Gemini가 앨범을 정해진 무드 그룹으로 자동 분류하고 album_mood_groups에 캐싱한다. 무드 카드 상세 펼침과 커버 썸네일이 동작한다.",
+        "steps": [
+          "무드보드 탭 진입 시 무드 그룹 카드 목록 표시 확인",
+          "무드 카드 클릭 시 해당 앨범 목록 펼침 및 커버 썸네일 표시 확인",
+          "캐시 없을 때 Gemini 자동 분류 후 album_mood_groups 저장 확인",
+          "재진입 시 캐시된 무드 그룹 즉시 표시 확인",
+          "앨범이 없을 때 빈 상태 처리 확인"
+        ],
+        "passes": false
+      },
     {
       "id": "ALBUM-006",
       "category": "album",

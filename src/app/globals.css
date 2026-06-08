@@ -231,6 +231,14 @@ body {
 }
 
 @layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .glass-card {
     background: var(--card-bg);
     border: 1px solid var(--border);

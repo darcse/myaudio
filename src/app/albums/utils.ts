@@ -32,6 +32,12 @@ export function albumMatchesYearFilter(item: Album, filter: string): boolean {
   return item.release_date?.substring(0, 4) === filter;
 }
 
+export function getYoutubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url?.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+}
+
 export function buildDynamicYearOptions(library: Album[]): string[] {
   const recentYears = new Set<string>();
   let hasLegacy = false;
