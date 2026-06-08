@@ -1,0 +1,58 @@
+[
+  {
+    "id": "SETUP-000",
+    "category": "setup",
+    "title": "프로젝트 하네스 문서 초기화",
+    "description": "CLAUDE.md, AGENTS.md, HARNESS.md, CONVENTIONS.md, PRODUCT_BRIEF.md, claude-progress.txt, Codex-progress.txt, feature_list/ 폴더가 루트에 존재하고 내용이 올바른지 확인한다.",
+    "steps": [
+      "루트에 CLAUDE.md, AGENTS.md, HARNESS.md, CONVENTIONS.md, PRODUCT_BRIEF.md 파일 존재 확인",
+      "feature_list/ 폴더 존재 및 SETUP.json 파일 존재 확인",
+      "claude-progress.txt, Codex-progress.txt 파일 존재 확인",
+      ".gitignore에 .env.local 포함 여부 확인",
+      "git remote -v 에서 origin이 https://github.com/darcse/myaudio.git 인지 확인"
+    ],
+    "passes": false
+  },
+  {
+    "id": "SETUP-001",
+    "category": "setup",
+    "title": "Next.js 프로젝트 초기화 및 기본 설정",
+    "description": "Next.js 15 App Router 프로젝트에 Tailwind v4, TypeScript, Pretendard 폰트, 라이트/다크/자동 테마를 설정한다.",
+    "steps": [
+      "npm run dev 실행 후 localhost:3000 정상 접속 확인",
+      "Pretendard 폰트가 본문에 적용되어 있는지 확인",
+      "라이트/다크/자동 테마 토글 시 전환 확인",
+      "자동 모드에서 시스템 설정 따라가는지 확인",
+      "npm run build 에러 없이 통과 확인"
+    ],
+    "passes": false
+  },
+  {
+    "id": "SETUP-002",
+    "category": "setup",
+    "title": "Supabase 연결 및 Auth 구조 세팅",
+    "description": "Supabase 클라이언트(server/client), proxy.ts, useAuthState 훅을 구성하고 기존 Supabase 인스턴스에 정상 연결한다.",
+    "steps": [
+      "환경변수 NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY 설정 후 빌드 통과 확인",
+      "/login 페이지에서 이메일/비밀번호 로그인 후 세션 유지 확인",
+      "로그인 상태에서 새로고침해도 로그인 상태 유지 확인",
+      "로그아웃 후 보호된 경로 접근 시 로그인 페이지로 리다이렉트 확인",
+      "잘못된 이메일/비밀번호 입력 시 에러 메시지 노출 확인"
+    ],
+    "passes": false
+  },
+  {
+    "id": "SETUP-003",
+    "category": "setup",
+    "title": "레이아웃 및 네비게이션 구성",
+    "description": "상단 네비게이션(Albums, Head-fi, Lyrics, Archive, 로그인/로그아웃), 모바일 햄버거 메뉴, Sonner toast provider를 레이아웃에 구성한다.",
+    "steps": [
+      "데스크탑에서 모든 네비게이션 링크 클릭 시 해당 페이지 이동 확인",
+      "모바일 뷰포트에서 햄버거 메뉴 열기/닫기 확인",
+      "로그인 상태와 비로그인 상태에서 네비게이션 액션 차이 확인",
+      "toast 성공/에러 각 1회 노출 확인",
+      "네비게이션 메뉴 hover/selected 스타일 확인"
+    ],
+    "passes": false
+  }
+]

@@ -1,5 +1,6 @@
-# claude-progress.txt — mybooks
+# claude-progress.txt — myaudio
 
 ---
 
 [2026-06-08] [Init] 프로젝트 하네스 문서 초기화 (CLAUDE.md, AGENTS.md, HARNESS.md, CONVENTIONS.md, PRODUCT_BRIEF.md, feature_list/)
+[2026-06-08] [Cursor] SETUP-000 progress 헤더 myaudio 수정, .gitignore .env.local 명시 | passes: 변경 없음
