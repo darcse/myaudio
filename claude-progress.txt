@@ -35,3 +35,4 @@
 [2026-06-08] [Cursor] fix: Summary stat 바 기기 수 보유중(status2) 기준으로 집계 | passes: 변경 없음
 [2026-06-08] [Cursor] layout.tsx 전역 Footer 추가(© 2026 SSH Love, --muted 중앙 정렬) | passes: 변경 없음
 [2026-06-08] [Cursor] UX-005 PWA manifest·헤드폰 아이콘(192/512)·layout 메타태그 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] PWA 아이콘 lucide Headphones 기반으로 교체(sharp generate-icons) | passes: 변경 없음
