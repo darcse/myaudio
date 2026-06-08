@@ -11,7 +11,7 @@
         "앨범 클릭 시 ?album= 기반 앨범 상세 진입 확인",
         "가사가 0건일 때 빈 상태 메시지 노출 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "LYRICS-002",
@@ -27,7 +27,7 @@
         "삭제 후 목록에서 제거 확인",
         "비로그인 상태에서 등록/수정/삭제 시도 시 차단 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "LYRICS-003",
@@ -41,7 +41,7 @@
         "가사 내용 없을 때 안내 메시지 노출 확인",
         "Gemini API 오류 시 에러 toast 노출 확인"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "LYRICS-004",
@@ -57,6 +57,6 @@
         "즐겨찾기 하트 토글 후 즐겨찾기 플레이리스트 재생 확인",
         "플레이어 닫기 후 재생 중지 확인"
       ],
-      "passes": false
+      "passes": true
     }
   ]

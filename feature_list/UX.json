@@ -1,0 +1,46 @@
+[
+    {
+      "id": "UX-001",
+      "category": "ux",
+      "title": "Archive 이관 — 연도별 월 카드 그리드",
+      "description": "mylibrary의 Archive 페이지를 myaudio로 이관한다. 로그인 전용, 앨범 청취·헤드파이 구매·가사 등록 기준 월별 집계, 연도별 월 카드 그리드가 동작해야 한다.",
+      "steps": [
+        "/archive 페이지 진입 후 연도별 월 카드 그리드 정상 로드 확인",
+        "비로그인 상태에서 /archive 접근 시 로그인 프롬프트 노출 확인",
+        "월 카드에 앨범 청취·헤드파이 구매·가사 등록 집계 수치 표시 확인",
+        "books·comics·photobook 관련 집계는 표시되지 않는지 확인",
+        "월 카드 클릭 시 /archive/[year]/[month] 이동 확인",
+        "활동이 없는 월 카드 미표시 확인"
+      ],
+      "passes": true
+    },
+    {
+      "id": "UX-002",
+      "category": "ux",
+      "title": "Archive 월별 상세 타임라인",
+      "description": "Archive 월별 상세 페이지에서 해당 월의 앨범 청취·헤드파이 구매·가사 등록 타임라인과 Gemini 월간 코멘트가 표시된다.",
+      "steps": [
+        "/archive/[year]/[month] 진입 후 타임라인 정상 로드 확인",
+        "앨범 청취·헤드파이 구매·가사 등록 항목만 타임라인에 표시 확인",
+        "각 항목 클릭 시 해당 도메인 상세 모달 직오픈 확인",
+        "Gemini 월간 코멘트 생성 시 app='myaudio' 기준으로 저장·조회 확인",
+        "생성된 코멘트 재진입 시 즉시 표시 확인",
+        "해당 월 활동이 없을 때 빈 상태 메시지 노출 확인"
+      ],
+      "passes": true
+    },
+    {
+        "id": "UX-003",
+        "category": "ux",
+        "title": "Back to Top 버튼",
+        "description": "모든 페이지에서 일정 스크롤 이하로 내려가면 Back to Top 버튼이 노출되고 클릭 시 페이지 상단으로 부드럽게 이동한다.",
+        "steps": [
+          "스크롤 300px 이상 내려갔을 때 버튼 노출 확인",
+          "300px 미만일 때 버튼 미노출 확인",
+          "버튼 클릭 시 페이지 상단으로 smooth scroll 확인",
+          "모든 페이지(/books, /albums, /headfi, /lyrics, /archive 등)에서 동작 확인",
+          "모바일 뷰포트에서 버튼 위치·크기 확인"
+        ],
+        "passes": true
+      }
+  ]

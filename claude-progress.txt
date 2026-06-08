@@ -24,3 +24,6 @@
 [2026-06-08] [Cursor] LYRICS-002 가사 등록/수정/삭제 폼·Server Action·커버/오디오 Storage 업로드·비로그인 쓰기 차단 | passes: 변경 없음
 [2026-06-08] [Cursor] LYRICS-003 /api/analyze-lyrics-vibe·Gemini 바이브 색상/이모지·앨범 카드 그라디언트·상세 모달 분석 버튼 | passes: 변경 없음
 [2026-06-08] [Cursor] LYRICS-004 LyricsPlayerProvider·하단 고정 플레이어·앨범 재생·즐겨찾기 토글/플레이리스트·드로어·페이지 이동 후 재생 유지 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-001 /archive 연도별 월 카드 그리드·앨범 청취/헤드파이/가사 집계·로그인 전용·활동 없는 월 미표시·monthly_review app=myaudio 헬퍼 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-002 /archive/[year]/[month] 타임라인·상세 모달 직오픈·/api/monthly-review-comment app=myaudio·Gemini 월간 코멘트 | passes: 변경 없음
+[2026-06-08] [Cursor] UX-003 BackToTop 공통 컴포넌트·스크롤 300px 노출·smooth scroll·AppShell 전역 적용 | passes: 변경 없음

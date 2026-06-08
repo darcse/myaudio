@@ -439,3 +439,25 @@ export async function generateAlbumMoodGroups(
     return null;
   }
 }
+
+export async function generateMonthlyReviewComment(
+  year: number,
+  month: number,
+  activityText: string,
+  systemInstruction: string,
+): Promise<string | null> {
+  const trimmed = activityText.trim();
+  if (!trimmed) return null;
+  const user = `${year}년 ${month}월 활동:\n${trimmed}`;
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite-preview',
+    systemInstruction,
+  });
+  try {
+    const result = await withRetry(() => model.generateContent(user));
+    const text = result.response.text().trim();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
