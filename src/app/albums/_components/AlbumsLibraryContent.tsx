@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Disc } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +13,7 @@ import {
   updateAlbumInDB,
 } from '../actions';
 import { AlbumList } from './AlbumList';
+import { AlbumMoodboard } from './AlbumMoodboard';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
@@ -51,7 +53,9 @@ function formYearsFromAlbum(year: Album['year']): string[] {
 }
 
 export function AlbumsLibraryContent() {
+  const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
+  const [libraryViewMode, setLibraryViewMode] = useState<'list' | 'moodboard'>('list');
   const [library, setLibrary] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listSearchQuery, setListSearchQuery] = useState('');
@@ -95,6 +99,11 @@ export function AlbumsLibraryContent() {
   useEffect(() => {
     void fetchLibrary();
   }, [fetchLibrary]);
+
+  useEffect(() => {
+    const m = searchParams.get('mood');
+    if (m?.trim()) setLibraryViewMode('moodboard');
+  }, [searchParams]);
 
   useEffect(() => {
     setViewingItem((prev) => {
@@ -500,7 +509,16 @@ export function AlbumsLibraryContent() {
         </div>
       ) : (
         <div className={`${isAuthenticated ? 'mt-8 pt-8 border-t-2' : ''}`} style={{ borderColor: 'var(--border)' }}>
-          {library.length === 0 ? (
+          {libraryViewMode === 'moodboard' ? (
+            <AlbumMoodboard
+              library={library}
+              onAlbumClick={openAlbumDetail}
+              viewMode={libraryViewMode}
+              onViewModeChange={setLibraryViewMode}
+              isAuthenticated={isAuthenticated === true}
+              selectedYearLabel={listYearFilter}
+            />
+          ) : library.length === 0 ? (
             <div className="empty-state-apple text-center py-12">
               <p>등록된 앨범이 없습니다.</p>
             </div>
@@ -531,6 +549,8 @@ export function AlbumsLibraryContent() {
                 setListSearchQuery(subGenre);
                 setListCurrentPage(1);
               }}
+              libraryViewMode={libraryViewMode}
+              onLibraryViewModeChange={setLibraryViewMode}
             />
           )}
         </div>

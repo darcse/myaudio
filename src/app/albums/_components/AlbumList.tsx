@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { List, X } from 'lucide-react';
+import { LayoutGrid, LayoutList, List, X } from 'lucide-react';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
 
@@ -26,6 +26,8 @@ interface AlbumListProps {
   onItemClick: (item: Album) => void;
   onGenreLabelClick?: (genre: string) => void;
   onSubGenreLabelClick?: (subGenre: string) => void;
+  libraryViewMode?: 'list' | 'moodboard';
+  onLibraryViewModeChange?: (mode: 'list' | 'moodboard') => void;
 }
 
 export function AlbumList({
@@ -48,6 +50,8 @@ export function AlbumList({
   onItemClick,
   onGenreLabelClick,
   onSubGenreLabelClick,
+  libraryViewMode = 'list',
+  onLibraryViewModeChange,
 }: AlbumListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultYearFilter = yearOptions[0] ?? '';
@@ -124,6 +128,38 @@ export function AlbumList({
           </select>
         </div>
         <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-auto lg:min-w-0">
+          {onLibraryViewModeChange && (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                title="목록 뷰"
+                aria-label="목록 뷰"
+                onClick={() => onLibraryViewModeChange('list')}
+                className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90"
+                style={
+                  libraryViewMode === 'list'
+                    ? { background: 'var(--foreground)', color: 'var(--background)' }
+                    : { background: 'var(--card-bg)', border: '1px solid var(--border)' }
+                }
+              >
+                <LayoutList className="size-[18px]" strokeWidth={1.75} />
+              </button>
+              <button
+                type="button"
+                title="무드보드 뷰"
+                aria-label="무드보드 뷰"
+                onClick={() => onLibraryViewModeChange('moodboard')}
+                className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90"
+                style={
+                  libraryViewMode === 'moodboard'
+                    ? { background: 'var(--foreground)', color: 'var(--background)' }
+                    : { background: 'var(--card-bg)', border: '1px solid var(--border)' }
+                }
+              >
+                <LayoutGrid className="size-[18px]" strokeWidth={1.75} />
+              </button>
+            </div>
+          )}
           <div className="relative flex-1 min-w-0 lg:w-[320px]">
             <input
               className="input-apple px-3 py-2 text-sm w-full h-[38px] pr-8"

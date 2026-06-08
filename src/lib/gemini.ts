@@ -1,4 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  buildAlbumIdCatalog,
+  isUuidLike,
+  narrowCatalogToExplicitUuids,
+  parseGeminiAlbumMoodJson,
+  type AlbumMoodGroupRow,
+  type AlbumMoodUuidOptions,
+} from '@/lib/albumMoodRefs';
+
+export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRefs';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -85,6 +95,69 @@ album_intro 작성 시 헤드폰·이어폰·DAC·앰프 등 오디오 기기명
     intro = intro.replace(/\\n/g, '\n');
     return { audio_tags: tags, album_intro: intro };
   } catch {
+    return null;
+  }
+}
+
+export const MOOD_GROUP_MUST_BE_NINE_MSG = '무드 그룹은 정확히 9개여야 합니다.';
+
+export async function generateAlbumMoodGroups(
+  albums: { id: number | string; genre1: string | null; genre2: string | null; audio_tags: string[] | null }[],
+  options?: AlbumMoodUuidOptions,
+): Promise<AlbumMoodGroupRow[] | null> {
+  if (albums.length === 0) return [];
+  const catalogBase = buildAlbumIdCatalog(albums);
+  let catalog = catalogBase;
+  if (options?.promptAllowedUuids && options.promptAllowedUuids.length > 0) {
+    const narrowed = narrowCatalogToExplicitUuids(catalogBase, options.promptAllowedUuids);
+    if (!narrowed) return null;
+    catalog = narrowed;
+  }
+  if (catalog.allKeys.length === 0) return null;
+  const idRule =
+    catalog.kind === 'uuid'
+      ? 'album_ids에는 아래에 제시한 "허용 album_uuid 목록"에 있는 문자열만 그대로 사용해. 목록에 없는 값(숫자만 있는 문자열 포함)은 절대 넣지 마.'
+      : 'album_ids에는 목록에 적힌 id와 동일한 정수만 사용해.';
+  const system = `너는 음악 큐레이터야. 응답은 오직 JSON 배열 하나뿐이며, 배열 원소(무드 그룹 객체) 개수는 반드시 정확히 9개여야 한다. 8개 이하나 10개 이상이면 잘못된 응답이다. 빈 배열이나 다른 키로 감싼 객체 전체를 내지 마. 각 원소 형식: {"mood_name":"무드명","album_ids":[…]}. 모든 앨범 id가 정확히 한 번씩만 전체 그룹에 걸쳐 포함되어야 한다. ${idRule}`;
+  const allowedUuidHeader =
+    catalog.kind === 'uuid'
+      ? `[허용 album_uuid 목록 — album_ids에는 여기 나온 문자열만 사용. 목록에 없으면 무조건 제거.]\n${catalog.allKeys.join('\n')}\n\n`
+      : '';
+  const metaLines = albums
+    .filter((a) => {
+      if (catalog.kind !== 'uuid') return true;
+      const id = a.id;
+      const key =
+        typeof id === 'string' && isUuidLike(id) ? id.trim().toLowerCase() : null;
+      return key != null && catalog.byKey.has(key);
+    })
+    .map((a) => {
+      const tags = Array.isArray(a.audio_tags) ? JSON.stringify(a.audio_tags) : '[]';
+      if (catalog.kind === 'uuid') {
+        const u =
+          typeof a.id === 'string' && isUuidLike(a.id) ? a.id.trim().toLowerCase() : '';
+        return `album_uuid:${u} | genre1:${a.genre1 ?? ''} | genre2:${a.genre2 ?? ''} | audio_tags:${tags}`;
+      }
+      return `id:${a.id} genre1:${a.genre1 ?? ''} genre2:${a.genre2 ?? ''} audio_tags:${tags}`;
+    });
+  const user = `${allowedUuidHeader}다음 앨범 메타를 참고해 9개 무드로 분류해줘:\n${metaLines.join('\n')}`;
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    systemInstruction: system,
+  });
+  try {
+    const result = await withRetry(() => model.generateContent(user));
+    const text = result.response.text();
+    const fenced = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
+    const jsonMatch = fenced?.[1] ? [fenced[1]] : text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 9) {
+      throw new Error(MOOD_GROUP_MUST_BE_NINE_MSG);
+    }
+    return parseGeminiAlbumMoodJson(parsed, catalog);
+  } catch (e) {
+    if (e instanceof Error && e.message === MOOD_GROUP_MUST_BE_NINE_MSG) throw e;
     return null;
   }
 }
