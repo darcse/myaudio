@@ -2,7 +2,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LayoutGrid, LayoutList, List, Shuffle, X } from 'lucide-react';
+import { LayoutGrid, LayoutList, List, Music, Shuffle, X } from 'lucide-react';
+import type { LibraryViewMode } from './albumBoardShared';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
@@ -28,8 +29,8 @@ interface AlbumListProps {
   onItemClick: (item: Album) => void;
   onGenreLabelClick?: (genre: string) => void;
   onSubGenreLabelClick?: (subGenre: string) => void;
-  libraryViewMode?: 'list' | 'moodboard';
-  onLibraryViewModeChange?: (mode: 'list' | 'moodboard') => void;
+  libraryViewMode?: LibraryViewMode;
+  onLibraryViewModeChange?: (mode: LibraryViewMode) => void;
 }
 
 export function AlbumList({
@@ -174,6 +175,20 @@ export function AlbumList({
                 }
               >
                 <LayoutGrid className="size-[18px]" strokeWidth={1.75} />
+              </button>
+              <button
+                type="button"
+                title="장르보드 뷰"
+                aria-label="장르보드 뷰"
+                onClick={() => onLibraryViewModeChange('genreboard')}
+                className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90"
+                style={
+                  libraryViewMode === 'genreboard'
+                    ? { background: 'var(--foreground)', color: 'var(--background)' }
+                    : { background: 'var(--card-bg)', border: '1px solid var(--border)' }
+                }
+              >
+                <Music className="size-[18px]" strokeWidth={1.75} />
               </button>
             </div>
           )}

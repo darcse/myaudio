@@ -14,6 +14,8 @@ import {
 } from '../actions';
 import { AlbumList } from './AlbumList';
 import { AlbumMoodboard } from './AlbumMoodboard';
+import { AlbumGenreboard } from './AlbumGenreboard';
+import type { LibraryViewMode } from './albumBoardShared';
 import { MoodRecommendModal } from './MoodRecommendModal';
 import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
@@ -58,7 +60,7 @@ export function AlbumsLibraryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
-  const [libraryViewMode, setLibraryViewMode] = useState<'list' | 'moodboard'>('list');
+  const [libraryViewMode, setLibraryViewMode] = useState<LibraryViewMode>('list');
   const [library, setLibrary] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listSearchQuery, setListSearchQuery] = useState('');
@@ -109,7 +111,9 @@ export function AlbumsLibraryContent() {
 
   useEffect(() => {
     const m = searchParams.get('mood');
+    const g = searchParams.get('genre');
     if (m?.trim()) setLibraryViewMode('moodboard');
+    else if (g?.trim()) setLibraryViewMode('genreboard');
   }, [searchParams]);
 
   useEffect(() => {
@@ -649,6 +653,14 @@ export function AlbumsLibraryContent() {
               viewMode={libraryViewMode}
               onViewModeChange={setLibraryViewMode}
               isAuthenticated={isAuthenticated === true}
+              selectedYearLabel={listYearFilter}
+            />
+          ) : libraryViewMode === 'genreboard' ? (
+            <AlbumGenreboard
+              library={library}
+              onAlbumClick={openAlbumDetail}
+              viewMode={libraryViewMode}
+              onViewModeChange={setLibraryViewMode}
               selectedYearLabel={listYearFilter}
             />
           ) : library.length === 0 ? (

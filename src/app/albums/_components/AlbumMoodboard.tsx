@@ -1,15 +1,19 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, LayoutGrid, LayoutList, Sparkles } from 'lucide-react';
+import { ChevronLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '../types';
 import { getMoodGradientPair, hexToRgba } from '../moodGradient';
+import {
+  BoardCollage,
+  BoardExpandedAlbumGrid,
+  LibraryViewModeIcons,
+  type LibraryViewMode,
+} from './albumBoardShared';
 
-function moodCardGlassStyle(moodName: string): CSSProperties {
+function moodCardGlassStyle(moodName: string) {
   const pair = getMoodGradientPair(moodName);
   return {
     backdropFilter: 'blur(12px)',
@@ -26,8 +30,8 @@ export type AlbumMoodGroupApi = {
 type AlbumMoodboardProps = {
   library: Album[];
   onAlbumClick: (album: Album) => void;
-  viewMode: 'list' | 'moodboard';
-  onViewModeChange: (mode: 'list' | 'moodboard') => void;
+  viewMode: LibraryViewMode;
+  onViewModeChange: (mode: LibraryViewMode) => void;
   isAuthenticated: boolean;
   selectedYearLabel: string;
 };
@@ -40,70 +44,6 @@ function resolveAlbums(ids: (number | string)[], library: Album[]): Album[] {
       return Number.isInteger(id) ? map.get(id) : undefined;
     })
     .filter((a): a is Album => !!a);
-}
-
-function albumYearBadgeLabel(album: Album, fallback: string): string {
-  if (Array.isArray(album.year)) {
-    const values = album.year.map((value) => String(value).trim()).filter(Boolean);
-    if (values.length > 0) return values[0];
-  } else if (album.year != null) {
-    const value = String(album.year).trim();
-    if (value) return value;
-  }
-  return fallback;
-}
-
-function MoodCollage({ albums }: { albums: Album[] }) {
-  const slots = Array.from({ length: 6 }, (_, i) => albums[i] ?? null);
-  return (
-    <div className="grid grid-cols-3 gap-1 mb-3 w-full aspect-[3/2]">
-      {slots.map((item, i) => (
-        <div
-          key={i}
-          className="relative rounded-md overflow-hidden min-h-0"
-          style={{ background: 'var(--badge-bg)' }}
-        >
-          {item?.cover_image_url ? (
-            <img src={item.cover_image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-[10px] opacity-40">—</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ViewModeIcons({
-  viewMode,
-  onViewModeChange,
-}: {
-  viewMode: 'list' | 'moodboard';
-  onViewModeChange: (mode: 'list' | 'moodboard') => void;
-}) {
-  const iconBtn = (mode: 'list' | 'moodboard', Icon: typeof LayoutList, label: string) => (
-    <button
-      key={mode}
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={() => onViewModeChange(mode)}
-      className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90"
-      style={
-        viewMode === mode
-          ? { background: 'var(--foreground)', color: 'var(--background)' }
-          : { background: 'var(--card-bg)', border: '1px solid var(--border)' }
-      }
-    >
-      <Icon className="size-[18px]" strokeWidth={1.75} />
-    </button>
-  );
-  return (
-    <div className="flex items-center gap-1 shrink-0">
-      {iconBtn('list', LayoutList, '목록 뷰')}
-      {iconBtn('moodboard', LayoutGrid, '무드보드 뷰')}
-    </div>
-  );
 }
 
 export function AlbumMoodboard({
@@ -217,46 +157,13 @@ export function AlbumMoodboard({
               {expandedMood}
             </p>
           </div>
-          <ViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+          <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-          {expandedAlbums.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="group text-left w-full"
-              onClick={() => onAlbumClick(item)}
-            >
-              <div
-                className="relative aspect-square mb-2 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
-                style={{ boxShadow: 'var(--shadow)' }}
-              >
-                <span
-                  className="absolute left-2 top-2 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none"
-                  style={{
-                    background: '#2F3440',
-                    color: '#EAEAF0',
-                    boxShadow: '0 6px 18px rgba(0, 0, 0, 0.18)',
-                  }}
-                >
-                  {albumYearBadgeLabel(item, selectedYearLabel)}
-                </span>
-                {item.cover_image_url ? (
-                  <img src={item.cover_image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center text-xs opacity-45"
-                    style={{ background: 'var(--badge-bg)' }}
-                  >
-                    No Cover
-                  </div>
-                )}
-              </div>
-              <p className="font-bold text-sm leading-tight line-clamp-2">{item.album_name}</p>
-              <p className="text-xs opacity-60 truncate mt-0.5">{item.artist ?? ''}</p>
-            </button>
-          ))}
-        </div>
+        <BoardExpandedAlbumGrid
+          albums={expandedAlbums}
+          selectedYearLabel={selectedYearLabel}
+          onAlbumClick={onAlbumClick}
+        />
       </div>
     );
   }
@@ -268,7 +175,7 @@ export function AlbumMoodboard({
           <Sparkles className="size-[18px] shrink-0" strokeWidth={1.75} aria-hidden />
           Moodboard
         </h2>
-        <ViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
       </div>
 
       {!isAuthenticated ? (
@@ -295,6 +202,7 @@ export function AlbumMoodboard({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {groups.map((g) => {
             const list = resolveAlbums(g.album_ids ?? [], library);
+            if (list.length === 0) return null;
             return (
               <button
                 key={g.mood_name}
@@ -303,7 +211,7 @@ export function AlbumMoodboard({
                 className="album-mood-card text-left rounded-2xl p-4 overflow-hidden hover:opacity-95"
                 style={moodCardGlassStyle(g.mood_name)}
               >
-                <MoodCollage albums={list} />
+                <BoardCollage albums={list} />
                 <p className="text-sm font-extrabold leading-snug truncate mt-3 tracking-tight" style={{ color: 'var(--foreground)' }}>
                   {g.mood_name}
                 </p>
