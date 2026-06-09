@@ -47,6 +47,13 @@ function extractJsonObjectFromGeminiText(text: string): string | null {
   return brace ? brace[0] : null;
 }
 
+function extractJsonArrayFromGeminiText(text: string): string | null {
+  const fenced = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
+  if (fenced?.[1]) return fenced[1];
+  const bracket = text.match(/\[[\s\S]*\]/);
+  return bracket ? bracket[0] : null;
+}
+
 export async function analyzeMusicTaste(albums: {
   genre1: string | null;
   genre2: string | null;
@@ -477,6 +484,81 @@ export async function generateAlbumMoodGroups(
     return parseGeminiAlbumMoodJson(parsed, catalog);
   } catch (e) {
     if (e instanceof Error && e.message === MOOD_GROUP_MUST_BE_NINE_MSG) throw e;
+    return null;
+  }
+}
+
+export async function recommendHeadfiAlbumMatch(
+  dacAmp: {
+    name: string;
+    amp_type: string;
+    temp: string;
+    output_impedance: string;
+  },
+  headphone: {
+    name: string;
+    temp: string;
+    fr_summary: string;
+    recommended_genres: string;
+  },
+  albums: {
+    id: number;
+    artist: string | null;
+    genre1: string | null;
+    genre2: string | null;
+    audio_tags: string[] | null;
+  }[],
+): Promise<{ album_id: number; reason: string }[] | null> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+
+  const albumList = albums
+    .map((a) => {
+      const tags = Array.isArray(a.audio_tags) ? a.audio_tags.join(', ') : '';
+      return `${a.id}, ${a.artist || ''}, ${a.genre1 || ''}, ${a.genre2 || ''}, ${tags}`;
+    })
+    .join('\n');
+
+  const prompt = `너는 하이파이 오디오 전문가이자 음악 큐레이터야.
+
+[DAC/AMP] ${dacAmp.name} | 앰프타입: ${dacAmp.amp_type} | 음색: ${dacAmp.temp} | 출력임피던스: ${dacAmp.output_impedance}
+[헤드폰] ${headphone.name} | 음색: ${headphone.temp} | FR요약: ${headphone.fr_summary} | 추천장르: ${headphone.recommended_genres}
+
+위 조합의 음색 시너지를 분석하고 아래 앨범 중 이 조합으로 들었을 때
+가장 돋보일 앨범 5개를 추천해줘.
+
+추천 기준:
+- 기기 조합의 강점이 부각되는 장르/음색
+- FR 특성과 앨범 오디오 태그 매칭
+- 단순 장르 매칭이 아닌 음향적 시너지 기준
+
+앨범 목록 형식: id, artist, genre1, genre2, audio_tags
+
+JSON만 응답: [{"album_id": 123, "reason": "추천 이유 2~3줄"}]
+
+앨범 목록:
+${albumList}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonArrayFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as unknown;
+    if (!Array.isArray(parsed)) return null;
+    const validIds = new Set(albums.map((a) => a.id));
+    const out: { album_id: number; reason: string }[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const row = item as { album_id?: unknown; reason?: unknown };
+      const albumId = typeof row.album_id === 'number' ? row.album_id : null;
+      const reason = typeof row.reason === 'string' ? row.reason.trim() : '';
+      if (albumId == null || !validIds.has(albumId) || !reason) continue;
+      if (out.some((o) => o.album_id === albumId)) continue;
+      out.push({ album_id: albumId, reason });
+      if (out.length >= 5) break;
+    }
+    return out.length > 0 ? out : null;
+  } catch {
     return null;
   }
 }
