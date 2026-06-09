@@ -4,19 +4,23 @@
 import type { CSSProperties } from 'react';
 import { LayoutGrid, LayoutList, Music } from 'lucide-react';
 import type { Album } from '../types';
+import { albumHasAllTimeYear, releaseYearFromAlbum } from '../utils';
 import { getMoodGradientPair, hexToRgba } from '../moodGradient';
 
 export type LibraryViewMode = 'list' | 'moodboard' | 'genreboard';
 
-export function albumYearBadgeLabel(album: Album, fallback: string): string {
-  if (Array.isArray(album.year)) {
-    const values = album.year.map((value) => String(value).trim()).filter(Boolean);
-    if (values.length > 0) return values[0];
-  } else if (album.year != null) {
-    const value = String(album.year).trim();
-    if (value) return value;
-  }
-  return fallback;
+const coverBadgeStyle = {
+  background: '#2F3440',
+  color: '#EAEAF0',
+  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.18)',
+} as const;
+
+export function albumCoverBadges(album: Album): string[] {
+  const badges: string[] = [];
+  const releaseYear = releaseYearFromAlbum(album);
+  if (releaseYear != null) badges.push(String(releaseYear));
+  if (albumHasAllTimeYear(album.year)) badges.push('All Time');
+  return badges;
 }
 
 export function BoardCollage({ albums }: { albums: Album[] }) {
@@ -42,16 +46,16 @@ export function BoardCollage({ albums }: { albums: Album[] }) {
 
 export function BoardExpandedAlbumGrid({
   albums,
-  selectedYearLabel,
   onAlbumClick,
 }: {
   albums: Album[];
-  selectedYearLabel: string;
   onAlbumClick: (album: Album) => void;
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-      {albums.map((item) => (
+      {albums.map((item) => {
+        const badges = albumCoverBadges(item);
+        return (
         <button
           key={item.id}
           type="button"
@@ -62,16 +66,19 @@ export function BoardExpandedAlbumGrid({
             className="relative aspect-square mb-2 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
             style={{ boxShadow: 'var(--shadow)' }}
           >
-            <span
-              className="absolute left-2 top-2 z-10 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none"
-              style={{
-                background: '#2F3440',
-                color: '#EAEAF0',
-                boxShadow: '0 6px 18px rgba(0, 0, 0, 0.18)',
-              }}
-            >
-              {albumYearBadgeLabel(item, selectedYearLabel)}
-            </span>
+            {badges.length > 0 ? (
+              <div className="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-1.5">
+                {badges.map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none"
+                    style={coverBadgeStyle}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {item.cover_image_url ? (
               <img src={item.cover_image_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -86,7 +93,8 @@ export function BoardExpandedAlbumGrid({
           <p className="font-bold text-sm leading-tight line-clamp-2">{item.album_name}</p>
           <p className="text-xs opacity-60 truncate mt-0.5">{item.artist ?? ''}</p>
         </button>
-      ))}
+        );
+      })}
     </div>
   );
 }

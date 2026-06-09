@@ -18,7 +18,6 @@ type AlbumGenreboardProps = {
   onAlbumClick: (album: Album) => void;
   viewMode: LibraryViewMode;
   onViewModeChange: (mode: LibraryViewMode) => void;
-  selectedYearLabel: string;
 };
 
 export function AlbumGenreboard({
@@ -26,7 +25,6 @@ export function AlbumGenreboard({
   onAlbumClick,
   viewMode,
   onViewModeChange,
-  selectedYearLabel,
 }: AlbumGenreboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,7 +101,6 @@ export function AlbumGenreboard({
         </div>
         <BoardExpandedAlbumGrid
           albums={expandedAlbums}
-          selectedYearLabel={selectedYearLabel}
           onAlbumClick={onAlbumClick}
         />
       </div>

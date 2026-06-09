@@ -653,7 +653,6 @@ export function AlbumsLibraryContent() {
               viewMode={libraryViewMode}
               onViewModeChange={setLibraryViewMode}
               isAuthenticated={isAuthenticated === true}
-              selectedYearLabel={listYearFilter}
             />
           ) : libraryViewMode === 'genreboard' ? (
             <AlbumGenreboard
@@ -661,7 +660,6 @@ export function AlbumsLibraryContent() {
               onAlbumClick={openAlbumDetail}
               viewMode={libraryViewMode}
               onViewModeChange={setLibraryViewMode}
-              selectedYearLabel={listYearFilter}
             />
           ) : library.length === 0 ? (
             <div className="empty-state-apple text-center py-12">

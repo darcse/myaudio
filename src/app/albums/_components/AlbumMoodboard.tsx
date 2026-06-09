@@ -33,7 +33,6 @@ type AlbumMoodboardProps = {
   viewMode: LibraryViewMode;
   onViewModeChange: (mode: LibraryViewMode) => void;
   isAuthenticated: boolean;
-  selectedYearLabel: string;
 };
 
 function resolveAlbums(ids: (number | string)[], library: Album[]): Album[] {
@@ -52,7 +51,6 @@ export function AlbumMoodboard({
   viewMode,
   onViewModeChange,
   isAuthenticated,
-  selectedYearLabel,
 }: AlbumMoodboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -161,7 +159,6 @@ export function AlbumMoodboard({
         </div>
         <BoardExpandedAlbumGrid
           albums={expandedAlbums}
-          selectedYearLabel={selectedYearLabel}
           onAlbumClick={onAlbumClick}
         />
       </div>
