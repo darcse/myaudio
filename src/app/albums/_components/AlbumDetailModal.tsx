@@ -162,6 +162,11 @@ export function AlbumDetailModal({
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
   const [listenSaving, setListenSaving] = useState(false);
+  const [wikiData, setWikiData] = useState<{
+    extract: string;
+    thumbnail?: { source: string };
+  } | null>(null);
+  const [wikiLoading, setWikiLoading] = useState(false);
   const [youtubeOpen, setYoutubeOpen] = useState(false);
   const [headphonesOpen, setHeadphonesOpen] = useState(true);
   const [listenOpen, setListenOpen] = useState(false);
@@ -203,6 +208,35 @@ export function AlbumDetailModal({
     setListenOpen(false);
     setYoutubeOpen(false);
   }, [viewingItem.id]);
+
+  useEffect(() => {
+    if (!viewingItem.wiki_url?.trim()) {
+      setWikiData(null);
+      return;
+    }
+    setWikiData(null);
+    setWikiLoading(true);
+    try {
+      const url = new URL(viewingItem.wiki_url.trim());
+      const lang = url.hostname.split('.')[0];
+      const title = decodeURIComponent(url.pathname.replace('/wiki/', ''));
+
+      fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.extract) {
+            setWikiData({
+              extract: data.extract,
+              thumbnail: data.thumbnail,
+            });
+          }
+        })
+        .catch(() => null)
+        .finally(() => setWikiLoading(false));
+    } catch {
+      setWikiLoading(false);
+    }
+  }, [viewingItem.wiki_url]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -381,6 +415,50 @@ export function AlbumDetailModal({
                     <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
                   </div>
                 </div>
+
+                {wikiLoading ? (
+                  <div className="flex items-center gap-2 py-2 opacity-60">
+                    <div
+                      className="w-4 h-4 border-2 rounded-full animate-spin"
+                      style={{
+                        borderColor: 'var(--border)',
+                        borderTopColor: 'var(--foreground)',
+                      }}
+                    />
+                    <span className="text-xs">Wikipedia 정보 불러오는 중...</span>
+                  </div>
+                ) : null}
+
+                {!wikiLoading && wikiData ? (
+                  <div className="pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <strong className="block mb-3 text-sm">📖 Wikipedia</strong>
+                    <div className="flex gap-4">
+                      {wikiData.thumbnail?.source ? (
+                        <img
+                          src={wikiData.thumbnail.source}
+                          alt={viewingItem.artist ?? 'artist'}
+                          className="w-16 h-20 object-cover rounded-xl flex-shrink-0"
+                          style={{ border: '1px solid var(--border)' }}
+                        />
+                      ) : null}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-relaxed opacity-80 line-clamp-3">
+                          {wikiData.extract}
+                        </p>
+                        {viewingItem.wiki_url ? (
+                          <a
+                            href={viewingItem.wiki_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="link-apple text-xs mt-2 inline-block"
+                          >
+                            Wikipedia에서 더 보기 →
+                          </a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {(isAuthenticated !== false ||
                   albumIntroLoading ||
