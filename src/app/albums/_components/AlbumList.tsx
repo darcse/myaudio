@@ -60,6 +60,7 @@ export function AlbumList({
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const canLottery = lotteryPool.length > 0;
   const defaultYearFilter = yearOptions[0] ?? '';
+  const hideYearTagOnCard = ['2024', '2025', '2026'].includes(listYearFilter);
 
   const activeFilters = [
     defaultYearFilter && listYearFilter !== defaultYearFilter && {
@@ -322,7 +323,7 @@ export function AlbumList({
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {item.release_date && (
+                    {item.release_date && !hideYearTagOnCard && (
                       <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
                         {item.release_date.substring(0, 4)}
                       </span>
