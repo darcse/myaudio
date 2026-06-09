@@ -581,21 +581,34 @@ export async function analyzeHeadfiMatchScore(
   candidateLines: string[],
   validGearIds: number[],
 ): Promise<HeadfiMatchScoreResult[] | null> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
   const list = candidateLines.join('\n');
-  const prompt = `너는 하이파이 오디오 전문가야. 기준 기기와 후보 기기들의 조합 궁합을 분석해줘.
+  const prompt = `너는 헤드파이 전문 리뷰어이자 오디오 엔지니어야.
+실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
 
-[기준] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres} | FR요약:${base.fr_summary}
-[후보 목록] id|기기명|음색|임피던스|감도|저역|중역|고역
+[기준 기기] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres} | FR요약:${base.fr_summary}
+
+[후보 기기 목록]
+id|기기명|음색|임피던스|감도|저역|중역|고역
 ${list}
 
-각 후보를 100점 만점으로 평가:
-- drive: 드라이브 능력
-- synergy: 음색 시너지
-- genre: 장르 매칭
+각 후보 기기와의 조합을 아래 기준으로 100점 만점 평가:
+- drive: 해당 DAC/AMP가 헤드폰을 충분히 구동할 수 있는지 (임피던스, 감도, 출력 매칭)
+- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지
+- genre: 조합이 특정 장르에서 강점을 보이는지
 
-JSON만 응답 (설명 없이):
-[{"gear_id":1,"drive":85,"synergy":90,"genre":80,"comment":"한 줄 총평"}]`;
+평가 시 주의사항:
+- 임피던스/감도 수치를 반드시 고려해서 drive 점수 산정
+- 음색이 겹치면 synergy 낮게, 상호 보완이면 높게
+- 실제 측정/리뷰 데이터 검색 후 반영
+
+각 기기에 대해 구체적 근거와 함께 2~3줄 총평 작성.
+
+JSON만 응답:
+[{"gear_id":1,"drive":85,"synergy":90,"genre":80,"comment":"구체적 근거 포함 2~3줄 총평"}]`;
 
   try {
     const result = await withRetry(() => model.generateContent(prompt));

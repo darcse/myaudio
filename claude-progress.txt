@@ -50,3 +50,4 @@
 [2026-06-09] [Cursor] fix: 신규 앨범 무드 분류 — album-mood-assign API 추가·intro 완료 후 기존 그룹 album_ids에 추가·mood_name 갱신 | passes: 변경 없음
 [2026-06-09] [Cursor] fix: 신규 등록 무드 분류 전체 재생성 제거·단일 assign만·모달 mood_name 그라디언트 표시 | passes: 변경 없음
 [2026-06-09] [Cursor] ALBUM-009 장르보드 뷰·genre1 카드 그리드·펼침 UX·미분류 그룹·무드보드 공통 UI 재사용 | passes: 변경 없음
+[2026-06-09] [Cursor] headfi-match-score Gemini 프롬프트 고도화·googleSearch 그라운딩 | passes: 변경 없음
