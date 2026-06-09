@@ -563,6 +563,81 @@ ${albumList}`;
   }
 }
 
+export type HeadfiMatchScoreResult = {
+  gear_id: number;
+  drive: number;
+  synergy: number;
+  genre: number;
+  comment: string;
+};
+
+export async function analyzeHeadfiMatchScore(
+  base: {
+    name: string;
+    temp: string;
+    genres: string;
+    fr_summary: string;
+  },
+  candidateLines: string[],
+  validGearIds: number[],
+): Promise<HeadfiMatchScoreResult[] | null> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+  const list = candidateLines.join('\n');
+  const prompt = `너는 하이파이 오디오 전문가야. 기준 기기와 후보 기기들의 조합 궁합을 분석해줘.
+
+[기준] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres} | FR요약:${base.fr_summary}
+[후보 목록] id|기기명|음색|임피던스|감도|저역|중역|고역
+${list}
+
+각 후보를 100점 만점으로 평가:
+- drive: 드라이브 능력
+- synergy: 음색 시너지
+- genre: 장르 매칭
+
+JSON만 응답 (설명 없이):
+[{"gear_id":1,"drive":85,"synergy":90,"genre":80,"comment":"한 줄 총평"}]`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonArrayFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as unknown;
+    if (!Array.isArray(parsed)) return null;
+    const validIds = new Set(validGearIds);
+    const out: HeadfiMatchScoreResult[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const row = item as {
+        gear_id?: unknown;
+        drive?: unknown;
+        synergy?: unknown;
+        genre?: unknown;
+        comment?: unknown;
+      };
+      const gearId = typeof row.gear_id === 'number' ? row.gear_id : null;
+      const drive = typeof row.drive === 'number' ? row.drive : null;
+      const synergy = typeof row.synergy === 'number' ? row.synergy : null;
+      const genre = typeof row.genre === 'number' ? row.genre : null;
+      const comment = typeof row.comment === 'string' ? row.comment.trim() : '';
+      if (gearId == null || !validIds.has(gearId) || drive == null || synergy == null || genre == null) {
+        continue;
+      }
+      if (out.some((o) => o.gear_id === gearId)) continue;
+      out.push({
+        gear_id: gearId,
+        drive: Math.min(100, Math.max(0, Math.round(drive))),
+        synergy: Math.min(100, Math.max(0, Math.round(synergy))),
+        genre: Math.min(100, Math.max(0, Math.round(genre))),
+        comment: comment || '-',
+      });
+    }
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMonthlyReviewComment(
   year: number,
   month: number,

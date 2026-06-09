@@ -43,6 +43,9 @@
 [2026-06-08] [Cursor] /headfi/match 추천 받기 버튼 2열 사이 중앙 배치 | passes: 변경 없음
 [2026-06-08] [Cursor] /headfi/match 추천 받기 버튼 2열 아래 중앙·px-16 배치 | passes: 변경 없음
 [2026-06-08] [Cursor] /headfi/match 추천 앨범 클릭 시 전체 앨범 조회 후 상세 모달 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-008 기기 궁합 분석 모달·/api/headfi-match-score·상단 버튼 레이블 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-008 headfi_match_cache 캐싱·재분석(force)·헤드폰 기준만 | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-008 캐시 전체 조회·cacheOnly 프리로드·재분석 confirm | passes: 변경 없음
 [2026-06-08] [Cursor] 앨범 상세 무드 그라디언트·오디오태그 스타일 이관, 신규 등록 후 album-intro·album-mood-groups fire-and-forget, Gemini 태그 구문 프롬프트 수정 | passes: 변경 없음
 [2026-06-09] [Cursor] fix: 신규 앨범 무드 분류 — album-mood-assign API 추가·intro 완료 후 기존 그룹 album_ids에 추가·mood_name 갱신 | passes: 변경 없음
 [2026-06-09] [Cursor] fix: 신규 등록 무드 분류 전체 재생성 제거·단일 assign만·모달 mood_name 그라디언트 표시 | passes: 변경 없음

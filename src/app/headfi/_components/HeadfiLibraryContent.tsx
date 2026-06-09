@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Headphones } from 'lucide-react';
+import { Headphones, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { Headfi, SelectedHeadfi } from '../types';
+import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiForm } from './HeadfiForm';
 import { HeadfiDetailModal } from './HeadfiDetailModal';
 import { HeadfiList } from './HeadfiList';
@@ -95,6 +96,7 @@ export function HeadfiLibraryContent() {
   const [listCurrentPage, setListCurrentPage] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [scoreModalOpen, setScoreModalOpen] = useState(false);
 
   const [matchedAlbums, setMatchedAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
@@ -421,21 +423,29 @@ export function HeadfiLibraryContent() {
           <Headphones className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Head-fi
         </h1>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+            onClick={() => setScoreModalOpen(true)}
+          >
+            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">기기 매칭</span>
+          </button>
           <Link
             href="/headfi/match"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
           >
-            <span className="hidden sm:inline">매칭 앨범 추천</span>
-            <span className="sm:hidden">매칭 추천</span>
+            <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">앨범 매칭</span>
           </Link>
           {isAuthenticated ? (
             <button
               type="button"
-              className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center"
+              className="btn-apple btn-apple-secondary flex h-[42px] w-[42px] items-center justify-center"
               onClick={handleManualRegister}
+              aria-label="기기 등록하기"
             >
-              <span className="text-lg leading-none sm:mr-1">＋</span>
-              <span className="hidden sm:inline">기기 등록하기</span>
+              <span className="text-lg leading-none">＋</span>
             </button>
           ) : null}
         </div>
@@ -493,6 +503,12 @@ export function HeadfiLibraryContent() {
           }}
         />
       )}
+
+      <HeadfiMatchScoreModal
+        open={scoreModalOpen}
+        onClose={() => setScoreModalOpen(false)}
+        library={library}
+      />
 
       {viewingItem ? (
         <HeadfiDetailModal
