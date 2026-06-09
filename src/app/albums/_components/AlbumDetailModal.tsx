@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { DeletingLabel } from '@/components/AsyncMutationUi';
 import { countryOptions } from '../constants';
 import { getYoutubeId } from '../utils';
+import { getMoodGradientPair, hexToRgba, getMoodVibeGradient } from '../moodGradient';
 import type { Album } from '../types';
 
 type ListenHistoryRow = {
@@ -31,6 +32,100 @@ interface AlbumDetailModalProps {
   onDelete: () => void;
   isAuthenticated: boolean | null;
   isDeleting?: boolean;
+  onNavigateToMood?: (moodName: string) => void;
+}
+
+function audioTagSurfaceFromMood(moodName: string | null | undefined): CSSProperties {
+  const pair = getMoodGradientPair(typeof moodName === 'string' ? moodName : '');
+  return {
+    background: `linear-gradient(135deg, ${hexToRgba(pair.a, 0.22)}, ${hexToRgba(pair.b, 0.22)})`,
+    color: 'var(--foreground)',
+    border: '1px solid var(--border)',
+  };
+}
+
+const MOOD_VIBE_EMOJIS = ['🤘', '🌙', '⚡', '🎷', '🍃', '✨', '🔷', '🎻', '🎤'];
+
+const MOOD_KEYWORD_SLOTS: { keys: string[]; slot: number }[] = [
+  { keys: ['메탈', 'metal', '둠', 'doom', '데스', 'death', '블랙', 'black', '스래시', 'thrash', '헤비', '냉소', '다크', 'dark', 'cold'], slot: 0 },
+  { keys: ['슈게', 'shoegaze', '몽환', 'dream', '탐미', 'ambient', '앰비', 'ethereal', '노이즈', 'noise'], slot: 1 },
+  { keys: ['펑크', 'punk', '저항', '하드코어', 'hardcore', '스카', 'ska', '강렬', 'energy', 'riot'], slot: 2 },
+  { keys: ['재즈', 'jazz', '스윙', 'swing', 'soul', '보사', 'bossa', '쿨', 'cool'], slot: 3 },
+  { keys: ['포크', 'folk', '어쿠스', 'acoustic', '컨츄리', 'country', '따뜻', 'warm'], slot: 4 },
+  { keys: ['팝', 'pop', '밝', 'bright', '상큼', '댄스', 'dance'], slot: 5 },
+  { keys: ['일렉', 'electronic', '신스', 'synth', 'edm', '테크', 'techno', '하우스', 'house'], slot: 6 },
+  { keys: ['클래식', 'classical', '오페라', 'opera', '현악', 'orchestral', '실내악'], slot: 7 },
+  { keys: ['힙합', 'hip', 'hop', '랩', 'rap', 'r&b', 'urban', '트랩', 'trap'], slot: 8 },
+];
+
+const vibeBadgeStyle: CSSProperties = {
+  padding: '0.875rem 1.25rem',
+  borderRadius: '0.75rem',
+  border: '1px solid rgba(255,255,255,0.2)',
+  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+  color: '#ffffff',
+  display: 'flex',
+  alignItems: 'center',
+  width: 'fit-content',
+  maxWidth: '100%',
+};
+
+const vibeContentStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.6rem',
+  fontWeight: 500,
+  fontSize: '0.85rem',
+};
+
+const vibeIconStyle: CSSProperties = {
+  color: '#fbbf24',
+};
+
+function getMoodVibeEmoji(moodName: string): string {
+  const n = moodName.trim().toLowerCase();
+  for (const row of MOOD_KEYWORD_SLOTS) {
+    if (row.keys.some((k) => n.includes(k.toLowerCase()))) {
+      return MOOD_VIBE_EMOJIS[row.slot % MOOD_VIBE_EMOJIS.length];
+    }
+  }
+  let h = 0;
+  for (let i = 0; i < n.length; i++) {
+    h = (h + n.charCodeAt(i) * (i + 7)) | 0;
+  }
+  return MOOD_VIBE_EMOJIS[Math.abs(h) % MOOD_VIBE_EMOJIS.length];
+}
+
+function MoodMiniCard({
+  moodName,
+  onNavigate,
+}: {
+  moodName: string;
+  onNavigate?: (name: string) => void;
+}) {
+  const emoji = getMoodVibeEmoji(moodName);
+  const badgeSurface: CSSProperties = { ...vibeBadgeStyle, background: getMoodVibeGradient(moodName) };
+  const inner = (
+    <div style={vibeContentStyle}>
+      <span style={vibeIconStyle} className="shrink-0 leading-none text-base" aria-hidden>
+        {emoji}
+      </span>
+      <span className="break-words text-left">{moodName.trim()}</span>
+    </div>
+  );
+  if (onNavigate) {
+    return (
+      <button
+        type="button"
+        onClick={() => onNavigate(moodName.trim())}
+        className="text-left cursor-pointer transition-[filter,opacity] duration-200 hover:brightness-110 active:opacity-90"
+        style={badgeSurface}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return <div style={badgeSurface}>{inner}</div>;
 }
 
 const modalPanelStyle: CSSProperties = {
@@ -60,6 +155,7 @@ export function AlbumDetailModal({
   onDelete,
   isAuthenticated,
   isDeleting = false,
+  onNavigateToMood,
 }: AlbumDetailModalProps) {
   const [listenHistory, setListenHistory] = useState<ListenHistoryRow[]>([]);
   const [listenLoading, setListenLoading] = useState(false);
@@ -274,9 +370,16 @@ export function AlbumDetailModal({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <div className="scrollbar-hide min-h-0 flex-1 overscroll-y-contain" style={modalBodyScrollStyle}>
               <div className="min-w-0 p-6 space-y-5">
-                <div className="flex flex-col gap-y-2 text-sm opacity-90">
-                  <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
-                  <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
+                <div className="flex flex-row gap-4 items-start text-sm opacity-90">
+                  {typeof viewingItem.mood_name === 'string' && viewingItem.mood_name.trim() ? (
+                    <div className="shrink-0 w-fit max-w-full min-w-0">
+                      <MoodMiniCard moodName={viewingItem.mood_name} onNavigate={onNavigateToMood} />
+                    </div>
+                  ) : null}
+                  <div className="flex flex-col gap-y-2 min-w-0 flex-1">
+                    <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
+                    <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
+                  </div>
                 </div>
 
                 {(isAuthenticated !== false ||
@@ -325,7 +428,7 @@ export function AlbumDetailModal({
                               <span
                                 key={tag}
                                 className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
-                                style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                                style={audioTagSurfaceFromMood(viewingItem.mood_name)}
                               >
                                 {tag}
                               </span>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Disc, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -55,6 +55,7 @@ function formYearsFromAlbum(year: Album['year']): string[] {
 }
 
 export function AlbumsLibraryContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
   const [libraryViewMode, setLibraryViewMode] = useState<'list' | 'moodboard'>('list');
@@ -293,6 +294,15 @@ export function AlbumsLibraryContent() {
     void fetchLibrary(true);
   };
 
+  const navigateToMood = (moodName: string) => {
+    setViewingItem(null);
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete('view');
+    sp.set('mood', moodName);
+    router.replace(`/albums?${sp.toString()}`);
+    setLibraryViewMode('moodboard');
+  };
+
   const handleRefreshAlbumIntro = async () => {
     if (!viewingItem || isAuthenticated === false) return;
     setAlbumIntroLoading(true);
@@ -321,6 +331,32 @@ export function AlbumsLibraryContent() {
       setLibrary((prev) => prev.map((a) => (a.id === viewingItem.id ? updated : a)));
       setAudioTags(payload.audio_tags ?? []);
       toast.success('앨범 소개와 태그를 갱신했습니다.');
+      const albumId = viewingItem.id;
+      void fetch('/api/album-mood-assign', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId }),
+      })
+        .then(async (assignRes) => {
+          if (!assignRes.ok) return;
+          const client = createClient();
+          const { data: moodRow } = await client
+            .from('album')
+            .select('mood_name')
+            .eq('id', albumId)
+            .maybeSingle();
+          const moodName =
+            moodRow && typeof (moodRow as { mood_name?: unknown }).mood_name === 'string'
+              ? String((moodRow as { mood_name: string }).mood_name).trim() || null
+              : null;
+          if (!moodName) return;
+          setViewingItem((prev) => (prev?.id === albumId ? { ...prev, mood_name: moodName } : prev));
+          setLibrary((prev) =>
+            prev.map((a) => (a.id === albumId ? { ...a, mood_name: moodName } : a)),
+          );
+        })
+        .catch(() => {});
     } catch {
       toast.error('앨범 소개 갱신에 실패했습니다.');
     } finally {
@@ -387,13 +423,18 @@ export function AlbumsLibraryContent() {
       matching2: formData.matching2 === ' ' ? '' : formData.matching2,
     };
 
+    let savedNewId: number | undefined;
+
     try {
       if (updateId != null) {
         await updateAlbumInDB(updateId, data);
         toast.success('앨범 정보가 수정되었습니다.');
       } else {
-        await saveAlbumToDB(data);
+        const saved = await saveAlbumToDB(data);
         toast.success('앨범이 라이브러리에 등록되었습니다.');
+        if (saved && typeof saved === 'object' && 'id' in saved) {
+          savedNewId = (saved as { id: number }).id;
+        }
       }
       const savedId = updateId;
       setSelectedItem(null);
@@ -415,6 +456,35 @@ export function AlbumsLibraryContent() {
       toast.error(message);
     } finally {
       setIsSaving(false);
+    }
+
+    if (savedNewId != null) {
+      const newAlbumId = savedNewId;
+      void fetch('/api/album-intro', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: newAlbumId }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
+            return null;
+          }
+          toast.success('앨범 소개와 태그가 생성되었습니다.');
+          return fetch('/api/album-mood-assign', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ albumId: newAlbumId }),
+          });
+        })
+        .then(() => {
+          void fetchLibrary(true);
+        })
+        .catch(() => {
+          toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
+        });
     }
   };
 
@@ -651,6 +721,7 @@ export function AlbumsLibraryContent() {
           onDelete={handleDeleteFromModal}
           isAuthenticated={isAuthenticated}
           isDeleting={isDeleting}
+          onNavigateToMood={navigateToMood}
         />
       )}
     </div>

@@ -18,6 +18,7 @@
 [2026-06-08] [Cursor] ALBUM-008 fix ~2023 연도 필터 시 랜덤 추천 풀 release_date≤2023 매칭 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-001 /headfi 페이지·headfi 목록·카테고리/상태/타입 필터·검색·정렬 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-002·003 headfi 등록/수정/삭제 Server Action·카테고리별 폼·상세 모달·Recharts 레이더·매칭 앨범·stale state 방지 | passes: 변경 없음
+[2026-06-08] [Cursor] 앨범 상세 무드 그라디언트·오디오태그 스타일 이관, 신규 등록 후 album-intro·album-mood-groups fire-and-forget, Gemini 태그 구문 프롬프트 수정 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-004·005 FR 그래프 업로드/프록시 표시·접기 토글·URL 변경 시 해석 초기화·Gemini Vision AI 해석 API·상세 모달 연동 | passes: 변경 없음
 [2026-06-08] [Cursor] GEAR-006 /api/headfi-recommended-genres·유선 저장 시 백그라운드 장르 생성·상세 모달 태그·새로고침 버튼 | passes: 변경 없음
 [2026-06-08] [Cursor] LYRICS-001 /lyrics 앨범 그리드·제목/앨범 검색·페이지네이션·?album= 앨범 상세 진입 | passes: 변경 없음
@@ -36,3 +37,6 @@
 [2026-06-08] [Cursor] layout.tsx 전역 Footer 추가(© 2026 SSH Love, --muted 중앙 정렬) | passes: 변경 없음
 [2026-06-08] [Cursor] UX-005 PWA manifest·헤드폰 아이콘(192/512)·layout 메타태그 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] PWA 아이콘 lucide Headphones 기반으로 교체(sharp generate-icons) | passes: 변경 없음
+[2026-06-08] [Cursor] 앨범 상세 무드 그라디언트·오디오태그 스타일 이관, 신규 등록 후 album-intro·album-mood-groups fire-and-forget, Gemini 태그 구문 프롬프트 수정 | passes: 변경 없음
+[2026-06-09] [Cursor] fix: 신규 앨범 무드 분류 — album-mood-assign API 추가·intro 완료 후 기존 그룹 album_ids에 추가·mood_name 갱신 | passes: 변경 없음
+[2026-06-09] [Cursor] fix: 신규 등록 무드 분류 전체 재생성 제거·단일 assign만·모달 mood_name 그라디언트 표시 | passes: 변경 없음

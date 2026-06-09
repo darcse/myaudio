@@ -123,10 +123,16 @@ audio_tags와 album_intro는 반드시 한국어로만 작성해.
 }
 
 audio_tags는 이 앨범의 음향적 특성을 나타내는 한국어 태그 최대 6개.
+예: ["풍성한 공간감", "강렬한 드럼 타격감", "여성 보컬 강조", "따뜻한 중역대", "높은 해상도의 분리도", "넓은 사운드스테이지"]
 구성 규칙:
 - 감성적 태그 3개 + 기술적 태그 3개로 정확히 6개를 작성해.
+- 감성적 태그는 분위기/정서 중심, 기술적 태그는 대역/해상도/다이내믹/공간표현 중심으로 작성해.
+- 태그를 한 단어로 요약하지 말고, 의미가 분명히 드러나는 구문 그대로 작성해. (예: "고해상도" 대신 "높은 해상도의 분리도")
 album_intro는 3~4줄 분량으로 작성해.
-album_intro 작성 시 헤드폰·이어폰·DAC·앰프 등 오디오 기기명은 쓰지 마.
+album_intro 작성 시 반드시 지킬 것:
+- 헤드폰·이어폰·DAC·앰프 등 오디오 기기명, 브랜드명, 모델명을 쓰지 마.
+- 기기 추천, 매칭, "OO에 어울리는", 번호 매긴 목록(1. 2. 3.) 형식은 쓰지 마.
+- 앨범 음악·프로덕션·분위기 설명만 작성해.
   `;
 
   try {
@@ -378,6 +384,41 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
 }
 
 export const MOOD_GROUP_MUST_BE_NINE_MSG = '무드 그룹은 정확히 9개여야 합니다.';
+
+export async function pickAlbumMoodGroupName(
+  album: {
+    artist: string | null;
+    album_name: string | null;
+    genre1: string | null;
+    genre2: string | null;
+    audio_tags: string[] | null;
+  },
+  moodNames: string[],
+): Promise<string | null> {
+  if (moodNames.length === 0) return null;
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+  const tags = Array.isArray(album.audio_tags) ? JSON.stringify(album.audio_tags) : '[]';
+  const prompt = `무드 그룹 목록:
+${moodNames.join('\n')}
+
+앨범 정보:
+아티스트: ${album.artist ?? ''}
+앨범명: ${album.album_name ?? ''}
+장르1: ${album.genre1 ?? ''}
+장르2: ${album.genre2 ?? ''}
+오디오 태그: ${tags}
+
+위 무드 그룹 중 가장 적합한 하나의 mood_name만 반환해. 다른 텍스트 없이 목록에 있는 무드명 그대로만 출력해.`;
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text().trim().replace(/```json|```/g, '').replace(/^["']|["']$/g, '');
+    if (moodNames.includes(text)) return text;
+    const hit = moodNames.find((name) => text.includes(name));
+    return hit ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export async function generateAlbumMoodGroups(
   albums: { id: number | string; genre1: string | null; genre2: string | null; audio_tags: string[] | null }[],

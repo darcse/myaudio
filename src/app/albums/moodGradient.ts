@@ -36,3 +36,8 @@ export function getMoodGradientPair(moodName: string): { a: string; b: string } 
   const row = MOOD_GRADIENT_ROWS[Math.abs(h) % MOOD_GRADIENT_ROWS.length];
   return { a: row.a, b: row.b };
 }
+
+export function getMoodVibeGradient(moodName: string): string {
+  const { a, b } = getMoodGradientPair(moodName);
+  return `linear-gradient(135deg, ${a}, ${b})`;
+}
