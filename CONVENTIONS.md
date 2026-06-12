@@ -123,6 +123,7 @@ mylibrary와 동일한 Supabase 인스턴스를 공유한다.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
+MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 필수 권장, 미설정 시 로그인 사용자 이메일 fallback)
 ```
 
 ---

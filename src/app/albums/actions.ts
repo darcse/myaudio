@@ -58,15 +58,26 @@ type MusicBrainzSearchResult = {
   error?: string;
 };
 
+async function resolveMusicBrainzContact(): Promise<string | null> {
+  const fromEnv = process.env.MUSICBRAINZ_CONTACT_EMAIL?.trim();
+  if (fromEnv) return fromEnv;
+  const user = await getCurrentUser();
+  return user?.email?.trim() || null;
+}
+
 export async function searchMusicBrainz(
   query: string,
   page: number = 1,
   display: number = 30,
 ): Promise<MusicBrainzSearchResult> {
   try {
-    const contact = process.env.MUSICBRAINZ_CONTACT_EMAIL?.trim();
+    const contact = await resolveMusicBrainzContact();
     if (!contact) {
-      return { items: [], total: 0, error: 'MusicBrainz 연락처가 설정되지 않았습니다.' };
+      return {
+        items: [],
+        total: 0,
+        error: 'MusicBrainz 연락처를 확인할 수 없습니다. 로그인 후 다시 시도해 주세요.',
+      };
     }
 
     const headers = {
