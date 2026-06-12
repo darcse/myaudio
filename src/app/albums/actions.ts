@@ -45,11 +45,28 @@ function mapAlbumData(data: AlbumFormData) {
   };
 }
 
-export async function searchMusicBrainz(query: string, page: number = 1, display: number = 30) {
+type MusicBrainzSearchResult = {
+  items: {
+    mbid: string;
+    album_name: string;
+    artist: string;
+    album_type: string;
+    release_date: string;
+    cover_image_url: string;
+  }[];
+  total: number;
+  error?: string;
+};
+
+export async function searchMusicBrainz(
+  query: string,
+  page: number = 1,
+  display: number = 30,
+): Promise<MusicBrainzSearchResult> {
   try {
     const contact = process.env.MUSICBRAINZ_CONTACT_EMAIL?.trim();
     if (!contact) {
-      throw new Error('MusicBrainz 연락처가 설정되지 않았습니다.');
+      return { items: [], total: 0, error: 'MusicBrainz 연락처가 설정되지 않았습니다.' };
     }
 
     const headers = {
@@ -142,10 +159,11 @@ export async function searchMusicBrainz(query: string, page: number = 1, display
       total: releaseData['release-group-count'] || 0,
     };
   } catch (error) {
-    if (error instanceof Error && error.message.trim()) {
-      throw error;
-    }
-    throw new Error('검색 중 오류가 발생했습니다.');
+    const message =
+      error instanceof Error && error.message.trim()
+        ? error.message
+        : '검색 중 오류가 발생했습니다.';
+    return { items: [], total: 0, error: message };
   }
 }
 

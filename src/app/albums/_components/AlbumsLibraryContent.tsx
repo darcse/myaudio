@@ -193,13 +193,15 @@ export function AlbumsLibraryContent() {
     setIsSearching(true);
     try {
       const result = await searchMusicBrainz(q, page, ITEMS_PER_PAGE);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
       setSearchResults(result.items || []);
       setTotalResults(result.total || 0);
       setMbCurrentPage(page);
-    } catch (e) {
-      const message =
-        e instanceof Error && e.message.trim() ? e.message : '검색 중 오류가 발생했습니다.';
-      toast.error(message);
+    } catch {
+      toast.error('검색 중 오류가 발생했습니다.');
     } finally {
       setIsSearching(false);
     }
