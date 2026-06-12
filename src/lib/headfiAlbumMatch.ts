@@ -1,3 +1,5 @@
+import { shuffleArray } from '@/lib/utils';
+
 export type HeadfiAlbumMatchCandidate = {
   id: number;
   artist: string | null;
@@ -33,18 +35,18 @@ export function selectAlbumsForHeadfiMatch(
   limit = 80,
 ): HeadfiAlbumMatchCandidate[] {
   if (albums.length <= limit) {
-    return [...albums].sort(() => Math.random() - 0.5);
+    return shuffleArray(albums);
   }
 
   const genres = (recommendedGenres ?? []).filter((g) => g.trim());
   if (genres.length === 0) {
-    return [...albums].sort(() => Math.random() - 0.5).slice(0, limit);
+    return shuffleArray(albums).slice(0, limit);
   }
 
   const matched = albums.filter((album) => albumMatchesRecommendedGenres(album, genres));
   const matchedIds = new Set(matched.map((a) => a.id));
   const rest = albums.filter((a) => !matchedIds.has(a.id));
-  const shuffledRest = [...rest].sort(() => Math.random() - 0.5);
+  const shuffledRest = shuffleArray(rest);
   const selected = [...matched];
   if (selected.length < limit) {
     selected.push(...shuffledRest.slice(0, limit - selected.length));

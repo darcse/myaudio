@@ -1,5 +1,3 @@
-'use client';
-
 import { Suspense } from 'react';
 import { AlbumsLibraryContent } from './_components/AlbumsLibraryContent';
 

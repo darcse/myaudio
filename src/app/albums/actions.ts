@@ -46,61 +46,107 @@ function mapAlbumData(data: AlbumFormData) {
 }
 
 export async function searchMusicBrainz(query: string, page: number = 1, display: number = 30) {
-  const headers = {
-    'User-Agent': 'MyAudio/1.0.0 ( contact@example.com )',
-    Accept: 'application/json',
-  };
+  try {
+    const contact = process.env.MUSICBRAINZ_CONTACT_EMAIL?.trim();
+    if (!contact) {
+      throw new Error('MusicBrainz 연락처가 설정되지 않았습니다.');
+    }
 
-  const artistRes = await fetch(
-    `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(query)}&limit=1&fmt=json`,
-    { headers },
-  );
+    const headers = {
+      'User-Agent': `MyAudio/1.0.0 (${contact})`,
+      Accept: 'application/json',
+    };
 
-  if (!artistRes.ok) throw new Error('아티스트 검색 실패');
-  const artistData = await artistRes.json();
+    let artistRes: Response;
+    try {
+      artistRes = await fetch(
+        `https://musicbrainz.org/ws/2/artist?query=${encodeURIComponent(query)}&limit=1&fmt=json`,
+        { headers },
+      );
+    } catch {
+      throw new Error('MusicBrainz 서버에 연결할 수 없습니다.');
+    }
 
-  if (!artistData.artists || artistData.artists.length === 0) {
-    return { items: [], total: 0 };
-  }
+    if (!artistRes.ok) {
+      throw new Error('아티스트 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
 
-  const exactArtist = artistData.artists[0];
-  const artistId = exactArtist.id;
-  const artistName = exactArtist.name;
+    let artistData: { artists?: { id: string; name: string }[] };
+    try {
+      artistData = await artistRes.json();
+    } catch {
+      throw new Error('아티스트 검색 응답을 읽을 수 없습니다.');
+    }
 
-  const limit = display;
-  const offset = (page - 1) * limit;
+    if (!artistData.artists || artistData.artists.length === 0) {
+      return { items: [], total: 0 };
+    }
 
-  const releaseRes = await fetch(
-    `https://musicbrainz.org/ws/2/release-group?artist=${artistId}&limit=${limit}&offset=${offset}&fmt=json`,
-    { headers },
-  );
+    const exactArtist = artistData.artists[0];
+    const artistId = exactArtist.id;
+    const artistName = exactArtist.name;
 
-  if (!releaseRes.ok) throw new Error('앨범 검색 실패');
-  const releaseData = await releaseRes.json();
+    const limit = display;
+    const offset = (page - 1) * limit;
 
-  const formattedItems = releaseData['release-groups'].map((item: {
-    id: string;
-    title: string;
-    'primary-type'?: string;
-    'first-release-date'?: string;
-  }) => {
-    const coverUrl = `https://coverartarchive.org/release-group/${item.id}/front`;
-    const releaseDate = item['first-release-date'] || '';
+    let releaseRes: Response;
+    try {
+      releaseRes = await fetch(
+        `https://musicbrainz.org/ws/2/release-group?artist=${artistId}&limit=${limit}&offset=${offset}&fmt=json`,
+        { headers },
+      );
+    } catch {
+      throw new Error('MusicBrainz 서버에 연결할 수 없습니다.');
+    }
+
+    if (!releaseRes.ok) {
+      throw new Error('앨범 검색에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+
+    let releaseData: {
+      'release-groups'?: {
+        id: string;
+        title: string;
+        'primary-type'?: string;
+        'first-release-date'?: string;
+      }[];
+      'release-group-count'?: number;
+    };
+    try {
+      releaseData = await releaseRes.json();
+    } catch {
+      throw new Error('앨범 검색 응답을 읽을 수 없습니다.');
+    }
+
+    const releaseGroups = releaseData['release-groups'];
+    if (!Array.isArray(releaseGroups)) {
+      throw new Error('앨범 검색 응답 형식이 올바르지 않습니다.');
+    }
+
+    const formattedItems = releaseGroups.map((item) => {
+      const coverUrl = `https://coverartarchive.org/release-group/${item.id}/front`;
+      const releaseDate = item['first-release-date'] || '';
+
+      return {
+        mbid: item.id,
+        album_name: item.title,
+        artist: artistName,
+        album_type: item['primary-type'] || 'Album',
+        release_date: releaseDate,
+        cover_image_url: coverUrl,
+      };
+    });
 
     return {
-      mbid: item.id,
-      album_name: item.title,
-      artist: artistName,
-      album_type: item['primary-type'] || 'Album',
-      release_date: releaseDate,
-      cover_image_url: coverUrl,
+      items: formattedItems,
+      total: releaseData['release-group-count'] || 0,
     };
-  });
-
-  return {
-    items: formattedItems,
-    total: releaseData['release-group-count'] || 0,
-  };
+  } catch (error) {
+    if (error instanceof Error && error.message.trim()) {
+      throw error;
+    }
+    throw new Error('검색 중 오류가 발생했습니다.');
+  }
 }
 
 export async function saveAlbumToDB(data: AlbumFormData) {

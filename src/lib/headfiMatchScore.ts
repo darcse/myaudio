@@ -1,4 +1,8 @@
 import type { Headfi } from '@/app/headfi/types';
+import { parseFrInterpretationSummary } from '@/lib/headfiAlbumMatch';
+import { shuffleArray } from '@/lib/utils';
+
+export { parseFrInterpretationSummary };
 
 export type HeadfiMatchScoreMode = 'dac_amp' | 'headphone';
 
@@ -30,19 +34,6 @@ export function compressHeadfiAudioBands(item: Headfi): { low: number; mid: numb
     mid: avgScore(item.midrange_body, item.midrange_clarity),
     high: avgScore(item.treble_brightness, item.treble_airiness),
   };
-}
-
-export function parseFrInterpretationSummary(raw: string | null | undefined): string {
-  if (!raw?.trim()) return '-';
-  try {
-    const parsed = JSON.parse(raw) as { summary?: unknown };
-    if (typeof parsed.summary === 'string' && parsed.summary.trim()) {
-      return parsed.summary.trim();
-    }
-  } catch {
-    return '-';
-  }
-  return '-';
 }
 
 export function formatGenres(genres: string[] | null | undefined, max = 3): string {
@@ -82,5 +73,5 @@ export function candidateLine(row: CompressedCandidate): string {
 }
 
 export function pickCandidates(items: Headfi[], limit = 20): Headfi[] {
-  return [...items].sort(() => Math.random() - 0.5).slice(0, limit);
+  return shuffleArray(items).slice(0, limit);
 }

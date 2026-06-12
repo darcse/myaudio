@@ -1,0 +1,57 @@
+[
+    {
+        "id": "BUG-001",
+        "category": "bug",
+        "title": "searchMusicBrainz try/catch 누락 수정",
+        "description": "albums/actions.ts의 searchMusicBrainz 함수에서 외부 fetch 호출에 try/catch가 없어 네트워크 오류·JSON 파싱 실패 시 unhandled rejection이 발생한다.",
+        "steps": [
+          "MusicBrainz 검색 시 정상 동작 확인",
+          "네트워크 오류 상황에서 에러 toast 노출 확인 (throw 대신 에러 핸들링)",
+          "API 응답이 JSON이 아닐 때 graceful 처리 확인",
+          "User-Agent 더미 이메일을 실제 연락처 또는 env 변수로 변경 확인"
+        ],
+        "passes": true
+      },
+    
+        {
+          "id": "BUG-002",
+          "category": "bug",
+          "title": "불필요한 use client 제거",
+          "description": "Suspense 래핑만 하는 페이지 파일(albums, headfi, lyrics, headfi/match)에서 불필요한 'use client' 선언을 제거하고 서버 컴포넌트로 전환한다.",
+          "steps": [
+            "albums/page.tsx, headfi/page.tsx, lyrics/page.tsx, headfi/match/page.tsx에서 'use client' 제거 확인",
+            "각 페이지 정상 렌더링 확인",
+            "클라이언트 인터랙션(필터, 모달 등) 정상 동작 확인",
+            "npm run build 통과 확인"
+          ],
+          "passes": true
+        },
+        {
+          "id": "BUG-003",
+          "category": "bug",
+          "title": "중복 코드 통합 — parseFrInterpretationSummary, 셔플 헬퍼",
+          "description": "headfiAlbumMatch.ts와 headfiMatchScore.ts에 중복 정의된 parseFrInterpretationSummary를 한쪽으로 통합하고, 반복되는 셔플 패턴을 Fisher-Yates 헬퍼로 통일한다.",
+          "steps": [
+            "parseFrInterpretationSummary가 한 곳에만 정의되고 다른 파일에서 import하는지 확인",
+            "Fisher-Yates 셔플 헬퍼 함수 생성 및 기존 3곳의 셔플 패턴 교체 확인",
+            "기존 기능(FR 요약 파싱, 앨범 셔플) 동작 변화 없음 확인",
+            "npm run build 통과 확인"
+          ],
+          "passes": true
+        },
+        {
+          "id": "BUG-004",
+          "category": "bug",
+          "title": "거대 컴포넌트 분리 — Albums/Headfi 모달·콘텐츠",
+          "description": "300줄 이상인 AlbumsLibraryContent, AlbumDetailModal, HeadfiDetailModal을 섹션별 하위 컴포넌트로 분리한다.",
+          "steps": [
+            "AlbumDetailModal — 정보/오디오태그/추천헤드폰/청취이력 섹션별 컴포넌트 분리 확인",
+            "HeadfiDetailModal — 기본정보/레이더차트/FR그래프/매칭앨범 섹션별 컴포넌트 분리 확인",
+            "AlbumsLibraryContent — 필터/정렬 로직 커스텀 훅으로 분리 확인",
+            "분리 후 기존 기능 전체 동작 변화 없음 확인",
+            "npm run build 통과 확인"
+          ],
+          "passes": true
+        }
+      
+]

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Disc, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,8 +21,8 @@ import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
+import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
-import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -63,12 +63,25 @@ export function AlbumsLibraryContent() {
   const [libraryViewMode, setLibraryViewMode] = useState<LibraryViewMode>('list');
   const [library, setLibrary] = useState<Album[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [listSearchQuery, setListSearchQuery] = useState('');
-  const [listYearFilter, setListYearFilter] = useState('');
-  const [listGenreFilter, setListGenreFilter] = useState('전체');
-  const [listCountryFilter, setListCountryFilter] = useState('전체');
-  const [listSortOrder, setListSortOrder] = useState('release_desc');
-  const [listCurrentPage, setListCurrentPage] = useState(1);
+  const {
+    listSearchQuery,
+    setListSearchQuery,
+    listYearFilter,
+    setListYearFilter,
+    listGenreFilter,
+    setListGenreFilter,
+    listCountryFilter,
+    setListCountryFilter,
+    listSortOrder,
+    setListSortOrder,
+    listCurrentPage,
+    setListCurrentPage,
+    dynamicYearOptions,
+    yearLotteryPool,
+    paginatedLibrary,
+    totalFilteredCount,
+    listTotalPages,
+  } = useAlbumFilters(library);
 
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MusicBrainzSearchItem[]>([]);
@@ -170,70 +183,6 @@ export function AlbumsLibraryContent() {
       });
   }, [isAuthenticated]);
 
-  const dynamicYearOptions = useMemo(() => buildDynamicYearOptions(library), [library]);
-
-  useEffect(() => {
-    if (dynamicYearOptions.length === 0) {
-      setListYearFilter('');
-      return;
-    }
-    setListYearFilter((prev) => {
-      if (prev && dynamicYearOptions.includes(prev)) return prev;
-      return dynamicYearOptions[0];
-    });
-  }, [dynamicYearOptions]);
-
-  useEffect(() => {
-    setListCurrentPage(1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [listSearchQuery, listYearFilter, listGenreFilter, listCountryFilter, listSortOrder]);
-
-  const listFilterCommon = useCallback(
-    (item: Album) => {
-      const matchesGenre = listGenreFilter === '전체' || item.genre1 === listGenreFilter;
-      const matchesCountry = listCountryFilter === '전체' || item.country === listCountryFilter;
-      const lowerQuery = listSearchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !lowerQuery ||
-        (item.album_name && item.album_name.toLowerCase().includes(lowerQuery)) ||
-        (item.artist && item.artist.toLowerCase().includes(lowerQuery)) ||
-        (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery));
-      return matchesGenre && matchesCountry && matchesSearch;
-    },
-    [listGenreFilter, listCountryFilter, listSearchQuery],
-  );
-
-  const filteredLibrary = useMemo(
-    () =>
-      library.filter(
-        (item) => albumMatchesYearFilter(item, listYearFilter) && listFilterCommon(item),
-      ),
-    [library, listYearFilter, listFilterCommon],
-  );
-
-  const yearLotteryPool = useMemo(
-    () => library.filter((item) => albumMatchesLotteryYearFilter(item, listYearFilter)),
-    [library, listYearFilter],
-  );
-
-  const sortedLibrary = useMemo(
-    () =>
-      [...filteredLibrary].sort((a, b) => {
-        if (listSortOrder === 'release_desc') {
-          return (b.release_date || '').localeCompare(a.release_date || '');
-        }
-        if (listSortOrder === 'release_asc') {
-          return (a.release_date || '').localeCompare(b.release_date || '');
-        }
-        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
-      }),
-    [filteredLibrary, listSortOrder],
-  );
-
-  const totalFilteredCount = sortedLibrary.length;
-  const listTotalPages = Math.ceil(totalFilteredCount / ITEMS_PER_PAGE) || 1;
-  const listStartIndex = (listCurrentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedLibrary = sortedLibrary.slice(listStartIndex, listStartIndex + ITEMS_PER_PAGE);
   const mbTotalPages = Math.ceil(totalResults / ITEMS_PER_PAGE) || 1;
 
   const handleSearch = async (page = 1, searchQuery?: string) => {
@@ -247,8 +196,10 @@ export function AlbumsLibraryContent() {
       setSearchResults(result.items || []);
       setTotalResults(result.total || 0);
       setMbCurrentPage(page);
-    } catch {
-      toast.error('검색 중 오류가 발생했습니다.');
+    } catch (e) {
+      const message =
+        e instanceof Error && e.message.trim() ? e.message : '검색 중 오류가 발생했습니다.';
+      toast.error(message);
     } finally {
       setIsSearching(false);
     }
