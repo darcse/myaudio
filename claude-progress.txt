@@ -59,4 +59,9 @@
 [2026-06-12] [Cursor] BUG-004 AlbumDetailModal/HeadfiDetailModal 섹션 분리·useAlbumFilters 훅 추출 | passes: 변경 없음
 [2026-06-12] [Cursor] fix: searchMusicBrainz throw 제거·{ error } 반환으로 Server Components render 에러 해결 | passes: 변경 없음
 [2026-06-12] [Cursor] fix: searchMusicBrainz MUSICBRAINZ_CONTACT_EMAIL 미설정 시 로그인 사용자 이메일 fallback | passes: 변경 없음
+[2026-06-12] [Cursor] style: HeadfiInfoSection 메모를 상세 스펙 펼침 영역 하단으로 이동 | passes: 변경 없음
+[2026-06-12] [Cursor] fix: 대시보드 이번달 청취 listened_at 내림차순 정렬·상세 모달 정보 수정 폼 인라인 오픈 | passes: 변경 없음
+[2026-06-12] [Cursor] fix: 대시보드 수정 폼 저장 후 재조회 제거·폼 닫기·router.refresh로 로딩 멈춤 해결 | passes: 변경 없음
+[2026-06-12] [Cursor] style: Archive 월 상세 등록 기기 섹션을 감상 앨범 위로 이동 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: 대시보드 보유기기·이번달 청취 배지 클릭 시 headfi/archive 월 상세 이동 | passes: 변경 없음
 260612_1009 BUG-001~004 검수 통과 — BUG.json passes 4건 true 변경, 빌드 통과 확인

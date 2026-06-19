@@ -31,7 +31,7 @@ export default async function Home() {
       supabase.from('headfi').select('category, status2').neq('status2', '방출'),
       supabase
         .from('album_listen_history')
-        .select('album_id')
+        .select('album_id, listened_at')
         .gte('listened_at', start)
         .lt('listened_at', endExclusive),
       supabase
@@ -50,13 +50,24 @@ export default async function Home() {
         .limit(5),
     ]);
 
-  const countByAlbum = new Map<number, number>();
+  const albumListenMeta = new Map<number, { count: number; latestListenedAt: string }>();
   for (const row of monthlyListenRes.data ?? []) {
     const id = row.album_id as number;
-    if (!Number.isInteger(id)) continue;
-    countByAlbum.set(id, (countByAlbum.get(id) ?? 0) + 1);
+    const listenedAt = String(row.listened_at ?? '');
+    if (!Number.isInteger(id) || !listenedAt) continue;
+    const prev = albumListenMeta.get(id);
+    if (!prev) {
+      albumListenMeta.set(id, { count: 1, latestListenedAt: listenedAt });
+      continue;
+    }
+    albumListenMeta.set(id, {
+      count: prev.count + 1,
+      latestListenedAt: listenedAt > prev.latestListenedAt ? listenedAt : prev.latestListenedAt,
+    });
   }
-  const sortedListenIds = [...countByAlbum.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const sortedListenIds = [...albumListenMeta.entries()]
+    .sort((a, b) => b[1].latestListenedAt.localeCompare(a[1].latestListenedAt))
+    .map(([id]) => id);
   let monthlyListenAlbums: { id: number; album_name: string; artist: string | null; cover_image_url: string | null; listenCount: number }[] = [];
   if (sortedListenIds.length > 0) {
     const { data: listenAlbumRows } = await supabase
@@ -73,7 +84,7 @@ export default async function Home() {
           album_name: String(al.album_name ?? ''),
           artist: (al.artist as string | null) ?? null,
           cover_image_url: (al.cover_image_url as string | null) ?? null,
-          listenCount: countByAlbum.get(id) ?? 0,
+          listenCount: albumListenMeta.get(id)?.count ?? 0,
         };
       })
       .filter((x): x is NonNullable<typeof x> => x != null);

@@ -8,8 +8,13 @@ import { BarChart3, Headphones, Music, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
-import type { Album } from '@/app/albums/types';
+import { updateAlbumInDB } from '@/app/albums/actions';
+import { AlbumForm } from '@/app/albums/_components/AlbumForm';
+import type { Album, AlbumFormData } from '@/app/albums/types';
+import { updateHeadfiInDB, uploadHeadfiFrGraphImage } from '@/app/headfi/actions';
+import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
 import type { Headfi } from '@/app/headfi/types';
+import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
@@ -44,6 +49,117 @@ type DashboardContentProps = {
 
 const recentGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
 
+const initialAlbumFormData: AlbumFormData = {
+  artist: '',
+  artist_type: '',
+  country: '',
+  album_name: '',
+  album_type: '',
+  year: ['2026'],
+  release_date: '',
+  genre1: '',
+  genre2: '',
+  cover_image_url: '',
+  matching1: '',
+  matching2: '',
+  title_song_url: '',
+  wiki_url: '',
+  album_intro: '',
+  recommended_hp1: '',
+  recommended_hp2: '',
+  recommended_hp3: '',
+  mood_names: [],
+};
+
+const initialHeadfiFormData = {
+  brand: '',
+  model: '',
+  category: '헤드폰',
+  type1: '',
+  type2: '',
+  impedance: '',
+  db1: '',
+  db2: '',
+  volume: '',
+  volume_type: '',
+  purchase_date: '',
+  price: '',
+  status1: '',
+  status2: '',
+  cable: '',
+  cable_price: '',
+  etc: '',
+  matching: '',
+  gain: '',
+  temp: '',
+  bright: '',
+  bass_quantity: '',
+  bass_depth: '',
+  bass_speed: '',
+  dynamics_slam: '',
+  midrange_body: '',
+  tone_warmth: '',
+  vocal_position: '',
+  midrange_clarity: '',
+  treble_brightness: '',
+  treble_smoothness: '',
+  treble_airiness: '',
+  resolution: '',
+  separation: '',
+  soundstage: '',
+  imaging: '',
+  timbre: '',
+  memo: '',
+  image_url: '',
+  fr_graph_url: '',
+  amp_type: '',
+  output_impedance: '',
+  chipset: '',
+  vrms_bal: '',
+  vrms_single: '',
+};
+
+function formYearsFromAlbum(year: Album['year']): string[] {
+  if (year == null) return ['2026'];
+  if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
+  const s = String(year).trim();
+  return s ? [s] : ['2026'];
+}
+
+function albumFormDataFromItem(item: Album): AlbumFormData {
+  const mids = item.manual_recommended_headphone_ids ?? [];
+  return {
+    artist: item.artist ?? '',
+    artist_type: item.artist_type ?? '',
+    country: item.country ?? '',
+    album_name: item.album_name ?? '',
+    album_type: item.album_type ?? '',
+    year: formYearsFromAlbum(item.year),
+    release_date: item.release_date ?? '',
+    genre1: item.genre1 ?? '',
+    genre2: item.genre2 ?? '',
+    cover_image_url: item.cover_image_url ?? '',
+    matching1: item.matching1 ?? '',
+    matching2: item.matching2 ?? '',
+    title_song_url: item.title_song_url ?? '',
+    wiki_url: item.wiki_url ?? '',
+    album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
+    recommended_hp1: mids[0] != null ? String(mids[0]) : '',
+    recommended_hp2: mids[1] != null ? String(mids[1]) : '',
+    recommended_hp3: mids[2] != null ? String(mids[2]) : '',
+    mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
+  };
+}
+
+function headfiFormDataFromItem(item: Headfi) {
+  const normalizedEntries = Object.entries(item).map(([key, value]) => {
+    if (value === null || value === undefined) return [key, ''];
+    if (typeof value === 'number') return [key, String(value)];
+    return [key, value];
+  });
+  return { ...initialHeadfiFormData, ...Object.fromEntries(normalizedEntries) };
+}
+
 export function DashboardContent({
   totalAlbums,
   totalHeadfi,
@@ -56,6 +172,11 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
+  const currentMonthArchiveHref = (() => {
+    const now = new Date();
+    return `/archive/${now.getFullYear()}/${now.getMonth() + 1}`;
+  })();
+  const ownedHeadfiListHref = `/headfi?status=${encodeURIComponent('보유중')}`;
   const sortedHeadfiCategories = buildSortedHeadfiCategories(headfiCategoryRows);
   const ownedHeadfiTotal = sortedHeadfiCategories.reduce((sum, [, n]) => sum + n, 0);
 
@@ -75,6 +196,15 @@ export function DashboardContent({
   const [matchedHeadphones, setMatchedHeadphones] = useState<
     { id: number; brand: string; model: string; category: string }[]
   >([]);
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
+  const [editingHeadfi, setEditingHeadfi] = useState<Headfi | null>(null);
+  const [headfiFormData, setHeadfiFormData] = useState(initialHeadfiFormData);
+  const [isSaving, setIsSaving] = useState(false);
+  const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
+  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
 
   const openAlbumById = useCallback(async (albumId: number) => {
     const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
@@ -193,6 +323,141 @@ export function DashboardContent({
       });
   }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const client = createClient();
+    client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', '헤드폰')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) => {
+        setHeadfiOwnedHeadphones(
+          (data || []).map((r) => ({
+            id: r.id,
+            brand: r.brand || '',
+            model: r.model || '',
+          })),
+        );
+      });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const client = createClient();
+    client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', 'DAC/AMP')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) =>
+        setDacAmpList((data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }))),
+      );
+  }, [isAuthenticated]);
+
+  const handleAlbumEditClick = useCallback(() => {
+    if (!viewingAlbum) return;
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    const item = viewingAlbum;
+    setViewingAlbum(null);
+    setEditingAlbum(item);
+    setAlbumFormData(albumFormDataFromItem(item));
+  }, [viewingAlbum, isAuthenticated]);
+
+  const handleHeadfiEditClick = useCallback(() => {
+    if (!viewingHeadfi) return;
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    const item = viewingHeadfi;
+    setViewingHeadfi(null);
+    setEditingHeadfi(item);
+    setHeadfiFormData(headfiFormDataFromItem(item));
+  }, [viewingHeadfi, isAuthenticated]);
+
+  const handleAlbumImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () =>
+      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleHeadfiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setHeadfiFormData((prev) => ({ ...prev, image_url: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleHeadfiFrGraphFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadHeadfiFrGraphImage(file);
+      setHeadfiFormData((prev) => ({ ...prev, fr_graph_url: url }));
+      toast.success('FR 그래프 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch {
+      toast.error('FR 그래프 업로드에 실패했습니다. Storage 버킷 headfi-fr 설정을 확인해 주세요.');
+    }
+    e.target.value = '';
+  };
+
+  const handleAlbumSave = async () => {
+    if (!editingAlbum || isAuthenticated !== true) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const data = {
+        ...albumFormData,
+        matching1: albumFormData.matching1 === ' ' ? '' : albumFormData.matching1,
+        matching2: albumFormData.matching2 === ' ' ? '' : albumFormData.matching2,
+      };
+      await updateAlbumInDB(editingAlbum.id, data);
+      toast.success('앨범 정보가 수정되었습니다.');
+      setEditingAlbum(null);
+      router.refresh();
+    } catch (e) {
+      const message =
+        e instanceof Error && e.message === 'Unauthorized'
+          ? '로그인이 필요합니다.'
+          : '저장 중 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleHeadfiSave = async () => {
+    if (!editingHeadfi || isAuthenticated !== true) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateHeadfiInDB(editingHeadfi.id, headfiFormData);
+      toast.success('기기 정보가 수정되었습니다.');
+      setEditingHeadfi(null);
+      router.refresh();
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleRefreshAlbumIntro = useCallback(async () => {
     if (!viewingAlbum || isAuthenticated === false) return;
     setAlbumIntroLoading(true);
@@ -263,9 +528,12 @@ export function DashboardContent({
                 보유 기기
               </h2>
             </Link>
-            <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums">
+            <Link
+              href={ownedHeadfiListHref}
+              className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums transition-opacity hover:opacity-90"
+            >
               {ownedHeadfiTotal}대
-            </span>
+            </Link>
           </div>
           <div className="min-h-[40px]">
             {sortedHeadfiCategories.length === 0 ? (
@@ -297,9 +565,12 @@ export function DashboardContent({
               <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
               이번 달 청취
             </h2>
-            <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums">
+            <Link
+              href={currentMonthArchiveHref}
+              className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums transition-opacity hover:opacity-90"
+            >
               {monthlyListens}회
-            </span>
+            </Link>
           </div>
           {monthlyListenAlbums.length === 0 ? (
             <p className="text-sm opacity-60">이번 달 청취 기록이 없습니다.</p>
@@ -430,11 +701,7 @@ export function DashboardContent({
           albumIntroLoading={albumIntroLoading}
           onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
           onClose={() => setViewingAlbum(null)}
-          onEdit={() => {
-            const id = viewingAlbum.id;
-            setViewingAlbum(null);
-            router.push(`/albums?view=${id}`);
-          }}
+          onEdit={handleAlbumEditClick}
           onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
           isAuthenticated={isAuthenticated}
         />
@@ -447,14 +714,37 @@ export function DashboardContent({
           matchedMatchingDevice={matchedMatchingDevice}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
-          onEdit={() => {
-            const id = viewingHeadfi.id;
-            setViewingHeadfi(null);
-            router.push(`/headfi?view=${id}`);
-          }}
+          onEdit={handleHeadfiEditClick}
           onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
           onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
           isAuthenticated={isAuthenticated}
+        />
+      ) : null}
+
+      {editingAlbum ? (
+        <AlbumForm
+          selectedItem={editingAlbum}
+          formData={albumFormData}
+          setFormData={setAlbumFormData}
+          headfiOwnedHeadphones={headfiOwnedHeadphones}
+          onClose={() => setEditingAlbum(null)}
+          onSave={() => void handleAlbumSave()}
+          onImageUpload={handleAlbumImageUpload}
+          isSaving={isSaving}
+        />
+      ) : null}
+
+      {editingHeadfi ? (
+        <HeadfiForm
+          selectedItem={editingHeadfi}
+          formData={headfiFormData}
+          setFormData={setHeadfiFormData}
+          dacAmpList={dacAmpList}
+          onClose={() => setEditingHeadfi(null)}
+          onSave={() => void handleHeadfiSave()}
+          onImageUpload={handleHeadfiImageUpload}
+          onFrGraphFileChange={handleHeadfiFrGraphFileChange}
+          isSaving={isSaving}
         />
       ) : null}
     </div>

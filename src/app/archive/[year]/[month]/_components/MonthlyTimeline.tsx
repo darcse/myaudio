@@ -348,6 +348,52 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       </section>
     ) : null;
 
+  const headfiSection =
+    t && t.headfi.length > 0 ? (
+      <section>
+        <h2 className="mb-3 text-sm font-semibold opacity-90">🎧 등록 기기</h2>
+        <div className={mediaGridClass}>
+          {t.headfi.map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              onClick={() => void openHeadfiById(h.id)}
+              className="group flex cursor-pointer flex-col rounded-xl p-4 text-left transition-all duration-300"
+              style={{
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)',
+              }}
+            >
+              <div
+                className="relative mb-4 aspect-square overflow-hidden rounded-lg"
+                style={{ background: 'var(--badge-bg)' }}
+              >
+                {h.image_url ? (
+                  <img
+                    src={h.image_url}
+                    alt="기기 이미지"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs opacity-50">
+                    <Headphones className="size-8 opacity-40" strokeWidth={1.25} aria-hidden />
+                  </div>
+                )}
+              </div>
+              <span className="badge-apple mb-2 inline-flex w-fit px-2 py-0.5 text-[11px] font-semibold">
+                {h.category ?? '—'}
+              </span>
+              <h3 className="mb-0.5 truncate text-sm font-bold leading-tight">{h.model ?? '—'}</h3>
+              <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>
+                {h.brand ?? '—'}
+              </p>
+            </button>
+          ))}
+        </div>
+      </section>
+    ) : null;
+
   return (
     <div className="mt-6 flex flex-col gap-8">
       <div
@@ -402,6 +448,8 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
         </div>
       </div>
 
+      {headfiSection}
+
       {listenAlbumSection}
 
       {loading && !refreshing ? (
@@ -418,87 +466,39 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
         <p className="text-sm opacity-80">이달에는 표시할 활동이 없습니다.</p>
       ) : (
         <div className="flex flex-col gap-10">
-          {t ? (
-            <div className="flex flex-col gap-10">
-              {t.headfi.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-sm font-semibold opacity-90">🎧 등록 기기</h2>
-                  <div className={mediaGridClass}>
-                    {t.headfi.map((h) => (
-                      <button
-                        key={h.id}
-                        type="button"
-                        onClick={() => void openHeadfiById(h.id)}
-                        className="group flex cursor-pointer flex-col rounded-xl p-4 text-left transition-all duration-300"
-                        style={{
-                          background: 'var(--card-bg)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--foreground)',
-                        }}
-                      >
+          {t && t.lyrics.length > 0 ? (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold opacity-90">🎶 등록 가사</h2>
+              <div className={mediaGridClass}>
+                {t.lyrics.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => void openLyricsById(l.id)}
+                    className="group w-full cursor-pointer text-left"
+                    style={{ color: 'var(--foreground)' }}
+                  >
+                    <div
+                      className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                      style={{ boxShadow: 'var(--shadow)' }}
+                    >
+                      {l.cover_image_url ? (
+                        <img src={l.cover_image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
                         <div
-                          className="relative mb-4 aspect-square overflow-hidden rounded-lg"
+                          className="flex h-full w-full items-center justify-center text-xs opacity-50"
                           style={{ background: 'var(--badge-bg)' }}
                         >
-                          {h.image_url ? (
-                            <img
-                              src={h.image_url}
-                              alt="기기 이미지"
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs opacity-50">
-                              <Headphones className="size-8 opacity-40" strokeWidth={1.25} aria-hidden />
-                            </div>
-                          )}
+                          No Cover
                         </div>
-                        <span className="badge-apple mb-2 inline-flex w-fit px-2 py-0.5 text-[11px] font-semibold">
-                          {h.category ?? '—'}
-                        </span>
-                        <h3 className="mb-0.5 truncate text-sm font-bold leading-tight">{h.model ?? '—'}</h3>
-                        <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>
-                          {h.brand ?? '—'}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
-              {t.lyrics.length > 0 && (
-                <section>
-                  <h2 className="mb-3 text-sm font-semibold opacity-90">🎶 등록 가사</h2>
-                  <div className={mediaGridClass}>
-                    {t.lyrics.map((l) => (
-                      <button
-                        key={l.id}
-                        type="button"
-                        onClick={() => void openLyricsById(l.id)}
-                        className="group w-full cursor-pointer text-left"
-                        style={{ color: 'var(--foreground)' }}
-                      >
-                        <div
-                          className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
-                          style={{ boxShadow: 'var(--shadow)' }}
-                        >
-                          {l.cover_image_url ? (
-                            <img src={l.cover_image_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div
-                              className="flex h-full w-full items-center justify-center text-xs opacity-50"
-                              style={{ background: 'var(--badge-bg)' }}
-                            >
-                              No Cover
-                            </div>
-                          )}
-                        </div>
-                        <h3 className="truncate text-sm font-bold leading-tight">{l.title}</h3>
-                        <p className="mt-1 truncate text-xs opacity-70 tabular-nums">{l.album ?? '—'}</p>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
+                      )}
+                    </div>
+                    <h3 className="truncate text-sm font-bold leading-tight">{l.title}</h3>
+                    <p className="mt-1 truncate text-xs opacity-70 tabular-nums">{l.album ?? '—'}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
           ) : null}
         </div>
       )}

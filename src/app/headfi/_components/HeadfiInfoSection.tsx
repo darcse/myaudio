@@ -161,21 +161,20 @@ export function HeadfiInfoSection({
               </>
             ) : null}
             <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc || '-'}</p>
+            {viewingItem.memo ? (
+              <div className="col-span-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                <strong className="block mb-2">메모</strong>
+                <p
+                  className="p-4 rounded-xl whitespace-pre-wrap leading-relaxed text-sm opacity-90"
+                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                >
+                  {viewingItem.memo}
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
-
-      {viewingItem.memo ? (
-        <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-          <strong className="block mb-2">메모</strong>
-          <p
-            className="p-4 rounded-xl whitespace-pre-wrap leading-relaxed text-sm opacity-90"
-            style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-          >
-            {viewingItem.memo}
-          </p>
-        </div>
-      ) : null}
 
       {viewingItem.category === 'DAC/AMP' ? (
         <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
