@@ -81,3 +81,4 @@
 [2026-06-12] [Cursor] feat: GEAR-011 청음 평가 AI 분석·/api/headfi-sound-analysis | passes: 변경 없음
 [2026-06-12] [Cursor] feat: headfi-album-recommend 헤드폰 ai_sound_analysis 프롬프트 반영 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 헤드파이 모달 오픈 시 페이지 스크롤 top 이동 방지 (앨범 화면과 동일) | passes: 변경 없음
+[2026-06-08] [Cursor] fix: headfi-album-recommend reason에 album_id 노출 방지 프롬프트·album_name 목록 추가 | passes: 변경 없음

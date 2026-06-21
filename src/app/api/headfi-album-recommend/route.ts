@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         .select('id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis')
         .eq('id', headfiId)
         .single(),
-      supabase.from('album').select('id, artist, genre1, genre2, audio_tags'),
+      supabase.from('album').select('id, artist, album_name, genre1, genre2, audio_tags'),
     ]);
 
     if (headfiRes.error || !headfiRes.data) {

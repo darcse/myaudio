@@ -3,6 +3,7 @@ import { shuffleArray } from '@/lib/utils';
 export type HeadfiAlbumMatchCandidate = {
   id: number;
   artist: string | null;
+  album_name?: string | null;
   genre1: string | null;
   genre2: string | null;
   audio_tags: string[] | null;

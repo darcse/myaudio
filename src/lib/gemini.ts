@@ -594,6 +594,7 @@ export async function recommendHeadfiAlbums(
   albums: {
     id: number;
     artist: string | null;
+    album_name?: string | null;
     genre1: string | null;
     genre2: string | null;
     audio_tags: string[] | null;
@@ -606,7 +607,7 @@ export async function recommendHeadfiAlbums(
   const list = albums
     .map((a) => {
       const tags = Array.isArray(a.audio_tags) ? a.audio_tags.join(', ') : '';
-      return `${a.id}|${a.artist || ''}|${a.genre1 || ''}|${a.genre2 || ''}|${tags}`;
+      return `${a.id}|${a.artist || ''}|${a.album_name || ''}|${a.genre1 || ''}|${a.genre2 || ''}|${tags}`;
     })
     .join('\n');
 
@@ -619,11 +620,16 @@ export async function recommendHeadfiAlbums(
 
   const prompt = `너는 헤드파이 전문가이자 음악 큐레이터야.
 [기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres} | FR요약:${headfi.fr_summary}${analysisBlock}
-[보유 앨범 목록] id|artist|genre1|genre2|audio_tags
+[보유 앨범 목록] id|artist|album_name|genre1|genre2|audio_tags
 ${list}
 
 ${recommendInstruction}
 album_ids에는 위 목록에 있는 id 숫자만 사용해.
+
+추천 이유(reason) 작성 시 절대 규칙:
+- album_id 숫자를 텍스트에 언급하지 마
+- 반드시 실제 앨범명으로 지칭해 (예: "339번은" → "Clover는")
+- 앨범 목록에 제공된 artist, album_name을 활용해 이름으로 서술
 
 JSON만 응답: {"album_ids":[1,2,3],"reason":"근거 포함 2~3줄 소개"}`;
 
