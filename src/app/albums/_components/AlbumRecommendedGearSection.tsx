@@ -166,7 +166,7 @@ export function AlbumRecommendedGearSection({
           내 매칭
         </h3>
         <p className="mb-3 text-[11px] opacity-60">
-          수동 추천을 변경하려면 하단의 「정보 수정하기」에서 편집해 주세요.
+          수동 추천을 변경하려면 우측 상단 「정보 수정하기」에서 편집해 주세요.
         </p>
         {manualHeadphones.length > 0 ? (
           <HeadphoneGrid

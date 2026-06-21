@@ -46,7 +46,8 @@ const modalBodyScrollStyle: CSSProperties = {
   WebkitOverflowScrolling: 'touch',
 };
 
-const btnIconClass = 'size-4 shrink-0 mr-1.5';
+const modalActionIconClass =
+  'flex size-8 shrink-0 items-center justify-center rounded-lg transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40';
 
 const TAB_ITEMS: { id: DetailTab; label: string }[] = [
   { id: 'info', label: '앨범 정보' },
@@ -205,18 +206,47 @@ export function AlbumDetailModal({
           <AlbumInfoHeroSection viewingItem={viewingItem} />
 
           <div className="mt-4 shrink-0 border-b px-6" style={{ borderColor: 'var(--border)' }}>
-            <div className="-mb-px flex gap-4">
-              {TAB_ITEMS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={tabButtonClass(activeTab === tab.id)}
-                  aria-pressed={activeTab === tab.id}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="-mb-px flex items-center justify-between gap-2">
+              <div className="flex min-w-0 gap-4">
+                {TAB_ITEMS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={tabButtonClass(activeTab === tab.id)}
+                    aria-pressed={activeTab === tab.id}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {isAuthenticated ? (
+                <div className="flex shrink-0 items-center gap-0.5 pb-3">
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className={modalActionIconClass}
+                    style={{ color: 'var(--foreground)' }}
+                    disabled={isDeleting}
+                    aria-label="정보 수정하기"
+                    title="정보 수정하기"
+                  >
+                    <Pencil className="size-4" strokeWidth={2} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className={modalActionIconClass}
+                    style={{ color: 'var(--foreground)' }}
+                    disabled={isDeleting}
+                    aria-busy={isDeleting}
+                    aria-label="삭제하기"
+                    title="삭제하기"
+                  >
+                    {isDeleting ? <DeletingLabel /> : <Trash2 className="size-4" strokeWidth={2} />}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -263,34 +293,6 @@ export function AlbumDetailModal({
                     onHeadfiClick={onHeadfiClick}
                   />
                 </div>
-
-                {isAuthenticated ? (
-                  <div className="flex gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                    <button
-                      type="button"
-                      onClick={onEdit}
-                      className="btn-apple btn-apple-secondary flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-                      disabled={isDeleting}
-                    >
-                      <Pencil className={btnIconClass} /> 정보 수정하기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDelete}
-                      className="btn-apple btn-apple-danger flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-                      disabled={isDeleting}
-                      aria-busy={isDeleting}
-                    >
-                      {isDeleting ? (
-                        <DeletingLabel />
-                      ) : (
-                        <>
-                          <Trash2 className={btnIconClass} /> 삭제하기
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : null}
               </div>
             </div>
           </div>
