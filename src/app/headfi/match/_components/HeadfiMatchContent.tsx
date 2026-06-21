@@ -8,6 +8,7 @@ import { ChevronLeft, Disc3, Headphones, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
+import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import type { Headfi } from '../../types';
@@ -113,6 +114,7 @@ export function HeadfiMatchContent() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchResult[]>([]);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
+  const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
@@ -160,6 +162,15 @@ export function HeadfiMatchContent() {
     setViewingAlbum(data as Album);
   }, []);
 
+  const openHeadfiById = useCallback(async (id: number) => {
+    const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
+    if (error || !data) {
+      toast.error('기기 정보를 불러오지 못했습니다.');
+      return;
+    }
+    setViewingHeadfi(data as Headfi);
+  }, []);
+
   const handleRecommend = async () => {
     if (!canRecommend || loading) return;
     setLoading(true);
@@ -199,7 +210,7 @@ export function HeadfiMatchContent() {
       return;
     }
     setAudioTags(viewingAlbum.audio_tags ?? []);
-    const ids = viewingAlbum.manual_recommended_headphone_ids ?? [];
+    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
     if (ids.length === 0) {
       setRecommendedHeadphones([]);
       return;
@@ -360,7 +371,7 @@ export function HeadfiMatchContent() {
         <AlbumDetailModal
           viewingItem={viewingAlbum}
           recommendedHeadphones={recommendedHeadphones}
-          albumIntro={(viewingAlbum.album_intro ?? viewingAlbum.ai_recommended_headphone_reason ?? '').trim()}
+          albumIntro={(viewingAlbum.album_intro ?? '').trim()}
           audioTags={audioTags}
           albumIntroLoading={albumIntroLoading}
           onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
@@ -371,6 +382,26 @@ export function HeadfiMatchContent() {
             router.push(`/albums?view=${id}`);
           }}
           onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
+          isAuthenticated={isAuthenticated}
+          onAlbumPatch={(updated) => setViewingAlbum(updated)}
+          onHeadfiClick={(id) => void openHeadfiById(id)}
+        />
+      ) : null}
+
+      {viewingHeadfi ? (
+        <HeadfiDetailModal
+          viewingItem={viewingHeadfi}
+          matchedAlbums={[]}
+          matchedMatchingDevice={null}
+          matchedHeadphones={[]}
+          onClose={() => setViewingHeadfi(null)}
+          onEdit={() => {
+            const id = viewingHeadfi.id;
+            setViewingHeadfi(null);
+            router.push(`/headfi?view=${id}`);
+          }}
+          onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
+          onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
           isAuthenticated={isAuthenticated}
         />
       ) : null}

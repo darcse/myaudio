@@ -127,7 +127,7 @@ function formYearsFromAlbum(year: Album['year']): string[] {
 }
 
 function albumFormDataFromItem(item: Album): AlbumFormData {
-  const mids = item.manual_recommended_headphone_ids ?? [];
+  const mids = (item.manual_recommended_headphone_ids ?? []).slice(0, 2);
   return {
     artist: item.artist ?? '',
     artist_type: item.artist_type ?? '',
@@ -146,7 +146,7 @@ function albumFormDataFromItem(item: Album): AlbumFormData {
     album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
     recommended_hp1: mids[0] != null ? String(mids[0]) : '',
     recommended_hp2: mids[1] != null ? String(mids[1]) : '',
-    recommended_hp3: mids[2] != null ? String(mids[2]) : '',
+    recommended_hp3: '',
     mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
   };
 }
@@ -306,7 +306,7 @@ export function DashboardContent({
       return;
     }
     setAudioTags(viewingAlbum.audio_tags ?? []);
-    const ids = viewingAlbum.manual_recommended_headphone_ids ?? [];
+    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
     if (ids.length === 0) {
       setRecommendedHeadphones([]);
       return;
@@ -696,7 +696,7 @@ export function DashboardContent({
         <AlbumDetailModal
           viewingItem={viewingAlbum}
           recommendedHeadphones={recommendedHeadphones}
-          albumIntro={(viewingAlbum.album_intro ?? viewingAlbum.ai_recommended_headphone_reason ?? '').trim()}
+          albumIntro={(viewingAlbum.album_intro ?? '').trim()}
           audioTags={audioTags}
           albumIntroLoading={albumIntroLoading}
           onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
@@ -704,6 +704,8 @@ export function DashboardContent({
           onEdit={handleAlbumEditClick}
           onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
           isAuthenticated={isAuthenticated}
+          onAlbumPatch={(updated) => setViewingAlbum(updated)}
+          onHeadfiClick={(id) => void openHeadfiById(id)}
         />
       ) : null}
 

@@ -21,6 +21,7 @@ type AlbumIntroSectionProps = {
   albumIntroLoading: boolean;
   onRefreshAlbumIntro: () => void;
   isAuthenticated: boolean | null;
+  variant?: 'default' | 'tab';
 };
 
 export function AlbumIntroSection({
@@ -30,8 +31,10 @@ export function AlbumIntroSection({
   albumIntroLoading,
   onRefreshAlbumIntro,
   isAuthenticated,
+  variant = 'default',
 }: AlbumIntroSectionProps) {
   const showSection =
+    variant === 'tab' ||
     isAuthenticated !== false ||
     albumIntroLoading ||
     audioTags.length > 0 ||
@@ -40,7 +43,7 @@ export function AlbumIntroSection({
   if (!showSection) return null;
 
   return (
-    <div className="pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+    <div className={variant === 'tab' ? '' : 'pt-4 border-t'} style={variant === 'tab' ? undefined : { borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <strong className="text-sm flex items-center gap-1.5">
           <Disc3 className="size-4 opacity-80" />

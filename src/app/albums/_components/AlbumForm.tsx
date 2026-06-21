@@ -183,7 +183,7 @@ export function AlbumForm({
           </div>
           <div className="col-span-2">
             <p className="text-[11px] opacity-60 mb-2">추천 헤드폰은 Head-Fi 라이브러리에서 <strong className="opacity-90">보유중</strong>인 모델만 선택할 수 있어요.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">추천 헤드폰 1순위</label>
                 <select
@@ -205,21 +205,6 @@ export function AlbumForm({
                   className="select-apple px-3 py-2 w-full h-[42px]"
                   value={formData.recommended_hp2}
                   onChange={(e) => setFormData({ ...formData, recommended_hp2: e.target.value })}
-                >
-                  <option value="">선택 안 함</option>
-                  {headfiOwnedHeadphones.map((h) => (
-                    <option key={h.id} value={String(h.id)}>
-                      {h.brand} {h.model}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">추천 헤드폰 3순위</label>
-                <select
-                  className="select-apple px-3 py-2 w-full h-[42px]"
-                  value={formData.recommended_hp3}
-                  onChange={(e) => setFormData({ ...formData, recommended_hp3: e.target.value })}
                 >
                   <option value="">선택 안 함</option>
                   {headfiOwnedHeadphones.map((h) => (

@@ -64,4 +64,6 @@
 [2026-06-12] [Cursor] fix: 대시보드 수정 폼 저장 후 재조회 제거·폼 닫기·router.refresh로 로딩 멈춤 해결 | passes: 변경 없음
 [2026-06-12] [Cursor] style: Archive 월 상세 등록 기기 섹션을 감상 앨범 위로 이동 | passes: 변경 없음
 [2026-06-12] [Cursor] feat: 대시보드 보유기기·이번달 청취 배지 클릭 시 headfi/archive 월 상세 이동 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: ALBUM-010 앨범 상세 모달 3탭(앨범 정보/추천 헤드폰/청취 이력) 재구성 | passes: 변경 없음
 260612_1009 BUG-001~004 검수 통과 — BUG.json passes 4건 true 변경, 빌드 통과 확인
+[2026-06-12] [Cursor] feat: 앨범 상세 추천 헤드폰 탭 UI 개선·수동 2순위 읽기전용·/api/album-headphone-recommend AI 새로고침 | passes: 변경 없음

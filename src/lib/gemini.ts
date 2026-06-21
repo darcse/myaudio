@@ -488,6 +488,88 @@ export async function generateAlbumMoodGroups(
   }
 }
 
+export async function recommendAlbumHeadphones(
+  album: {
+    artist: string | null;
+    album_name: string | null;
+    genre1: string | null;
+    genre2: string | null;
+    audio_tags: string[] | null;
+    mood_name: string | null;
+  },
+  headphones: {
+    id: number;
+    brand: string;
+    model: string;
+    temp: string;
+    impedance: string;
+    sensitivity: string;
+    recommended_genres: string;
+    fr_summary: string;
+  }[],
+): Promise<{ headphone_ids: number[]; reason: string } | null> {
+  if (headphones.length === 0) return null;
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+
+  const tags = Array.isArray(album.audio_tags) ? album.audio_tags.join(', ') : '-';
+  const mood = album.mood_name?.trim() || '-';
+  const genre = `${album.genre1 || ''}${album.genre2 ? `/${album.genre2}` : ''}`.trim() || '-';
+
+  const list = headphones
+    .map(
+      (h) =>
+        `${h.id}|${h.brand}|${h.model}|${h.temp}|${h.impedance}|${h.sensitivity}|${h.recommended_genres}|${h.fr_summary}`,
+    )
+    .join('\n');
+
+  const prompt = `너는 헤드파이 전문 리뷰어야. 실제 기기 특성과 리뷰를 참고해서 이 앨범에 가장 잘 어울리는 헤드폰을 추천해줘.
+
+[앨범] ${album.artist || ''} - ${album.album_name || ''} | 장르: ${genre} | 오디오 태그: ${tags} | 무드: ${mood}
+
+[보유 헤드폰/이어폰 목록]
+id|브랜드|모델명|음색|임피던스|감도|추천장르|FR요약
+${list}
+
+이 앨범의 음악적 특성(장르, 분위기, 사운드 텍스처)을 고려했을 때
+가장 잘 어울리는 헤드폰 최대 2개를 선택하고, 음향적 근거를 포함한 추천 이유를 작성해줘.
+
+평가 기준:
+- 장르와 헤드폰 음색의 매칭도
+- 헤드폰의 강점(저역/중역/고역)이 이 앨범의 핵심 사운드와 부합하는지
+- 실제 측정/리뷰 데이터 기반 신뢰성
+
+JSON만 응답:
+{"headphone_ids": [1, 2], "reason": "구체적 근거를 포함한 2~3줄 추천 이유"}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { headphone_ids?: unknown; reason?: unknown };
+    const validIds = new Set(headphones.map((h) => h.id));
+    const rawIds = Array.isArray(parsed.headphone_ids) ? parsed.headphone_ids : [];
+    const seen = new Set<number>();
+    const headphoneIds: number[] = [];
+    for (const item of rawIds) {
+      const id = typeof item === 'number' ? item : parseInt(String(item), 10);
+      if (!Number.isFinite(id) || !validIds.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      headphoneIds.push(id);
+      if (headphoneIds.length >= 2) break;
+    }
+    const reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
+    if (headphoneIds.length === 0 || !reason) return null;
+    return { headphone_ids: headphoneIds, reason };
+  } catch {
+    return null;
+  }
+}
+
 export async function recommendHeadfiAlbumMatch(
   dacAmp: {
     name: string;

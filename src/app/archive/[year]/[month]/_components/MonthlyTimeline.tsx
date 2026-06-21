@@ -252,7 +252,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       return;
     }
     setAudioTags(viewingAlbum.audio_tags ?? []);
-    const ids = viewingAlbum.manual_recommended_headphone_ids ?? [];
+    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
     if (ids.length === 0) {
       setRecommendedHeadphones([]);
       return;
@@ -552,6 +552,8 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           }}
           onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
           isAuthenticated={isAuthenticated}
+          onAlbumPatch={(updated) => setViewingAlbum(updated)}
+          onHeadfiClick={(id) => void openHeadfiById(id)}
         />
       ) : null}
     </div>

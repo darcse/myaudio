@@ -21,6 +21,8 @@ import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
+import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
+import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
 
@@ -97,7 +99,11 @@ export function AlbumsLibraryContent() {
     { id: number; brand: string; model: string }[]
   >([]);
   const [viewingItem, setViewingItem] = useState<Album | null>(null);
+  const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
+  const [aiRecommendedHeadphones, setAiRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
@@ -144,7 +150,7 @@ export function AlbumsLibraryContent() {
       return;
     }
     setAudioTags(viewingItem.audio_tags ?? []);
-    const ids = viewingItem.manual_recommended_headphone_ids ?? [];
+    const ids = (viewingItem.manual_recommended_headphone_ids ?? []).slice(0, 2);
     if (ids.length === 0) {
       setRecommendedHeadphones([]);
       return;
@@ -161,6 +167,29 @@ export function AlbumsLibraryContent() {
         setRecommendedHeadphones(ordered);
       });
   }, [viewingItem?.id, viewingItem?.manual_recommended_headphone_ids, viewingItem?.audio_tags]);
+
+  useEffect(() => {
+    if (!viewingItem?.id) {
+      setAiRecommendedHeadphones([]);
+      return;
+    }
+    const ids = viewingItem.ai_recommended_headphone_ids ?? [];
+    if (ids.length === 0) {
+      setAiRecommendedHeadphones([]);
+      return;
+    }
+    const client = createClient();
+    client
+      .from('headfi')
+      .select('id, brand, model')
+      .in('id', ids)
+      .then(({ data }) => {
+        const ordered = ids
+          .map((id) => (data || []).find((h) => h.id === id))
+          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+        setAiRecommendedHeadphones(ordered);
+      });
+  }, [viewingItem?.id, viewingItem?.ai_recommended_headphone_ids]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -246,6 +275,15 @@ export function AlbumsLibraryContent() {
     setViewingItem(item);
   };
 
+  const openHeadfiById = useCallback(async (id: number) => {
+    const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
+    if (error || !data) {
+      toast.error('기기 정보를 불러오지 못했습니다.');
+      return;
+    }
+    setViewingHeadfi(data as Headfi);
+  }, []);
+
   const closeAlbumDetail = () => {
     setViewingItem(null);
     void fetchLibrary(true);
@@ -330,7 +368,7 @@ export function AlbumsLibraryContent() {
     const item = viewingItem;
     setViewingItem(null);
     setSelectedItem(item);
-    const mids = item.manual_recommended_headphone_ids ?? [];
+    const mids = (item.manual_recommended_headphone_ids ?? []).slice(0, 2);
     setFormData({
       artist: item.artist ?? '',
       artist_type: item.artist_type ?? '',
@@ -349,7 +387,7 @@ export function AlbumsLibraryContent() {
       album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
       recommended_hp1: mids[0] != null ? String(mids[0]) : '',
       recommended_hp2: mids[1] != null ? String(mids[1]) : '',
-      recommended_hp3: mids[2] != null ? String(mids[2]) : '',
+      recommended_hp3: '',
       mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
     });
   };
@@ -675,7 +713,8 @@ export function AlbumsLibraryContent() {
         <AlbumDetailModal
           viewingItem={viewingItem}
           recommendedHeadphones={recommendedHeadphones}
-          albumIntro={(viewingItem.album_intro ?? viewingItem.ai_recommended_headphone_reason ?? '').trim()}
+          aiRecommendedHeadphones={aiRecommendedHeadphones}
+          albumIntro={(viewingItem.album_intro ?? '').trim()}
           audioTags={audioTags}
           albumIntroLoading={albumIntroLoading}
           onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
@@ -685,8 +724,31 @@ export function AlbumsLibraryContent() {
           isAuthenticated={isAuthenticated}
           isDeleting={isDeleting}
           onNavigateToMood={navigateToMood}
+          onAlbumPatch={(updated) => {
+            setViewingItem(updated);
+            setLibrary((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          }}
+          onHeadfiClick={(id) => void openHeadfiById(id)}
         />
       )}
+
+      {viewingHeadfi ? (
+        <HeadfiDetailModal
+          viewingItem={viewingHeadfi}
+          matchedAlbums={[]}
+          matchedMatchingDevice={null}
+          matchedHeadphones={[]}
+          onClose={() => setViewingHeadfi(null)}
+          onEdit={() => {
+            const id = viewingHeadfi.id;
+            setViewingHeadfi(null);
+            router.push(`/headfi?view=${id}`);
+          }}
+          onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
+          onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          isAuthenticated={isAuthenticated}
+        />
+      ) : null}
     </div>
   );
 }

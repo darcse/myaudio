@@ -14,9 +14,14 @@ type ListenHistoryRow = {
 type AlbumListenHistorySectionProps = {
   albumId: number;
   isAuthenticated: boolean | null;
+  variant?: 'accordion' | 'tab';
 };
 
-export function AlbumListenHistorySection({ albumId, isAuthenticated }: AlbumListenHistorySectionProps) {
+export function AlbumListenHistorySection({
+  albumId,
+  isAuthenticated,
+  variant = 'accordion',
+}: AlbumListenHistorySectionProps) {
   const [listenHistory, setListenHistory] = useState<ListenHistoryRow[]>([]);
   const [listenLoading, setListenLoading] = useState(false);
   const [listenDate, setListenDate] = useState('');
@@ -107,7 +112,97 @@ export function AlbumListenHistorySection({ albumId, isAuthenticated }: AlbumLis
     }
   };
 
-  if (isAuthenticated !== true) return null;
+  if (isAuthenticated !== true) {
+    if (variant === 'tab') {
+      return <p className="text-xs opacity-60">로그인 후 청취 이력을 기록할 수 있습니다.</p>;
+    }
+    return null;
+  }
+
+  const historyBody = (
+    <>
+      {listenLoading ? (
+        <div className="mb-4 flex items-center gap-2 py-2 opacity-60">
+          <div
+            className="h-4 w-4 animate-spin rounded-full border-2"
+            style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
+          />
+          <span className="text-xs">불러오는 중…</span>
+        </div>
+      ) : listenHistory.length > 0 ? (
+        <ul className="mb-4 space-y-3">
+          {listenHistory.map((row) => (
+            <li
+              key={row.id}
+              className="flex gap-3 rounded-xl p-3"
+              style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold tabular-nums">
+                  {new Date(row.listened_at + 'T12:00:00').toLocaleDateString('ko-KR')}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-sm opacity-85">
+                  {row.impression?.trim() ? row.impression : '—'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void deleteListenHistory(row.id)}
+                disabled={listenSaving}
+                className="btn-apple btn-apple-danger shrink-0 self-start px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
+                aria-label="이력 삭제"
+              >
+                <Trash2 className="size-3.5" strokeWidth={2} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-4 text-xs opacity-60">아직 기록된 청취 이력이 없습니다.</p>
+      )}
+      <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2">
+        <input
+          type="date"
+          value={listenDate}
+          onChange={(e) => setListenDate(e.target.value)}
+          title="청취일"
+          aria-label="청취일"
+          className="box-border w-[10.5rem] max-w-[min(100%,10.5rem)] shrink-0 rounded-lg border px-1.5 py-2 text-sm"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
+        />
+        <input
+          type="text"
+          value={listenImpression}
+          onChange={(e) => setListenImpression(e.target.value)}
+          placeholder="소감 (선택)"
+          title="소감 (선택)"
+          aria-label="소감 (선택)"
+          className="min-w-0 flex-1 basis-0 rounded-lg border px-3 py-2 text-sm"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
+        />
+        <button
+          type="button"
+          onClick={() => void addListenHistory()}
+          disabled={listenSaving}
+          className="btn-apple btn-apple-primary box-border shrink-0 px-3 py-2 text-sm leading-none disabled:pointer-events-none disabled:opacity-50"
+        >
+          추가
+        </button>
+      </div>
+    </>
+  );
+
+  if (variant === 'tab') {
+    return (
+      <div>
+        <div className="mb-3 flex items-baseline gap-2">
+          <strong className="text-sm">청취 이력</strong>
+          <span className="text-xs tabular-nums opacity-55">{listenHistory.length}건</span>
+        </div>
+        {historyBody}
+      </div>
+    );
+  }
 
   return (
     <div className="pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
@@ -128,78 +223,7 @@ export function AlbumListenHistorySection({ albumId, isAuthenticated }: AlbumLis
           aria-hidden
         />
       </button>
-      {listenOpen ? (
-        <>
-          {listenLoading ? (
-            <div className="mb-4 mt-3 flex items-center gap-2 py-2 opacity-60">
-              <div
-                className="h-4 w-4 animate-spin rounded-full border-2"
-                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
-              />
-              <span className="text-xs">불러오는 중…</span>
-            </div>
-          ) : listenHistory.length > 0 ? (
-            <ul className="mb-4 mt-3 space-y-3">
-              {listenHistory.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex gap-3 rounded-xl p-3"
-                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold tabular-nums">
-                      {new Date(row.listened_at + 'T12:00:00').toLocaleDateString('ko-KR')}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm opacity-85">
-                      {row.impression?.trim() ? row.impression : '—'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void deleteListenHistory(row.id)}
-                    disabled={listenSaving}
-                    className="btn-apple btn-apple-danger shrink-0 self-start px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                    aria-label="이력 삭제"
-                  >
-                    <Trash2 className="size-3.5" strokeWidth={2} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mb-4 mt-3 text-xs opacity-60">아직 기록된 청취 이력이 없습니다.</p>
-          )}
-          <div className="mt-1 flex min-w-0 flex-row flex-nowrap items-center gap-2">
-            <input
-              type="date"
-              value={listenDate}
-              onChange={(e) => setListenDate(e.target.value)}
-              title="청취일"
-              aria-label="청취일"
-              className="box-border w-[10.5rem] max-w-[min(100%,10.5rem)] shrink-0 rounded-lg border px-1.5 py-2 text-sm"
-              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
-            />
-            <input
-              type="text"
-              value={listenImpression}
-              onChange={(e) => setListenImpression(e.target.value)}
-              placeholder="소감 (선택)"
-              title="소감 (선택)"
-              aria-label="소감 (선택)"
-              className="min-w-0 flex-1 basis-0 rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
-            />
-            <button
-              type="button"
-              onClick={() => void addListenHistory()}
-              disabled={listenSaving}
-              className="btn-apple btn-apple-primary box-border shrink-0 px-3 py-2 text-sm leading-none disabled:pointer-events-none disabled:opacity-50"
-            >
-              추가
-            </button>
-          </div>
-        </>
-      ) : null}
+      {listenOpen ? historyBody : null}
     </div>
   );
 }

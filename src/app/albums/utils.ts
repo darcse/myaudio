@@ -1,4 +1,37 @@
-import type { Album } from './types';
+import type { Album, AlbumFormData } from './types';
+
+function formYearsFromAlbum(year: Album['year']): string[] {
+  if (year == null) return ['2026'];
+  if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
+  const s = String(year).trim();
+  return s ? [s] : ['2026'];
+}
+
+export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>): AlbumFormData {
+  const mids = (item.manual_recommended_headphone_ids ?? []).slice(0, 2);
+  return {
+    artist: item.artist ?? '',
+    artist_type: item.artist_type ?? '',
+    country: item.country ?? '',
+    album_name: item.album_name ?? '',
+    album_type: item.album_type ?? '',
+    year: formYearsFromAlbum(item.year),
+    release_date: item.release_date ?? '',
+    genre1: item.genre1 ?? '',
+    genre2: item.genre2 ?? '',
+    cover_image_url: item.cover_image_url ?? '',
+    matching1: item.matching1 ?? '',
+    matching2: item.matching2 ?? '',
+    title_song_url: item.title_song_url ?? '',
+    wiki_url: item.wiki_url ?? '',
+    album_intro: item.album_intro ?? '',
+    recommended_hp1: mids[0] != null ? String(mids[0]) : '',
+    recommended_hp2: mids[1] != null ? String(mids[1]) : '',
+    recommended_hp3: '',
+    mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
+    ...overrides,
+  };
+}
 
 export const YEAR_GROUP_CUTOFF = 2024;
 export const LEGACY_YEAR_GROUP = '~2023';

@@ -12,14 +12,14 @@ const formatReleaseDate = (dateStr: string) => {
 
 function mapAlbumData(data: AlbumFormData) {
   const seen = new Set<number>();
-  const manualIds = [data.recommended_hp1, data.recommended_hp2, data.recommended_hp3]
+  const manualIds = [data.recommended_hp1, data.recommended_hp2]
     .map((s) => parseInt(String(s || '').trim(), 10))
     .filter((n) => {
       if (Number.isNaN(n) || seen.has(n)) return false;
       seen.add(n);
       return true;
     })
-    .slice(0, 3);
+    .slice(0, 2);
   return {
     artist: data.artist,
     artist_type: data.artist_type,
