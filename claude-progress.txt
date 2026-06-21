@@ -67,3 +67,7 @@
 [2026-06-12] [Cursor] feat: ALBUM-010 앨범 상세 모달 3탭(앨범 정보/추천 헤드폰/청취 이력) 재구성 | passes: 변경 없음
 260612_1009 BUG-001~004 검수 통과 — BUG.json passes 4건 true 변경, 빌드 통과 확인
 [2026-06-12] [Cursor] feat: 앨범 상세 추천 헤드폰 탭 UI 개선·수동 2순위 읽기전용·/api/album-headphone-recommend AI 새로고침 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: 청취 이력 탭 DAC/AMP·헤드폰 기록·목록 표시·헤드파이 모달 연동 | passes: 변경 없음
+[2026-06-12] [Cursor] style: 청취 이력 입력 폼 3행 레이아웃·소감 textarea | passes: 변경 없음
+[2026-06-12] [Cursor] feat: 청취 이력 입력 폼 기본 숨김·+ 토글·저장 후 자동 닫힘 | passes: 변경 없음
+[2026-06-12] [Cursor] style: 추천 헤드폰 탭 카드 썸네일·가로 레이아웃(내 매칭·AI 추천) | passes: 변경 없음

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { ChevronDown, Headphones, RefreshCw, Sparkles } from 'lucide-react';
-type HeadphoneRow = { id: number; brand: string; model: string };
+
+type HeadphoneRow = { id: number; brand: string; model: string; image_url?: string | null };
 
 type AlbumRecommendedGearSectionProps = {
   variant?: 'accordion' | 'tab';
@@ -16,6 +18,31 @@ type AlbumRecommendedGearSectionProps = {
   onHeadfiClick?: (headfiId: number) => void;
   onRefreshAiRecommend?: () => void;
 };
+
+function HeadphoneThumb({ imageUrl, alt }: { imageUrl?: string | null; alt: string }) {
+  const boxClass = 'relative size-11 shrink-0 overflow-hidden rounded-lg';
+  const boxStyle = { background: 'var(--card-bg)', border: '1px solid var(--border)' };
+  if (!imageUrl?.trim()) {
+    return (
+      <div className={`${boxClass} flex items-center justify-center`} style={boxStyle}>
+        <Headphones className="size-5 opacity-35" strokeWidth={1.5} aria-hidden />
+      </div>
+    );
+  }
+  return (
+    <div className={boxClass} style={boxStyle}>
+      <Image
+        src={imageUrl}
+        alt={alt}
+        fill
+        className="object-cover"
+        sizes="44px"
+        loading="lazy"
+        unoptimized
+      />
+    </div>
+  );
+}
 
 function HeadphoneGrid({
   headphones,
@@ -33,21 +60,25 @@ function HeadphoneGrid({
     <div className={`grid gap-2 ${showRank ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-3'}`}>
       {headphones.map((h, idx) => {
         const cardClass =
-          'flex w-full flex-col items-center justify-center gap-1 rounded-xl p-3 text-center text-[11px] font-semibold leading-tight transition-opacity hover:opacity-90';
+          'flex w-full min-h-[4.5rem] items-center gap-2.5 rounded-xl p-2.5 text-left text-[11px] font-semibold leading-tight transition-opacity hover:opacity-90';
         const cardStyle = {
           background: 'var(--badge-bg)',
           border: '1px solid var(--border)',
           color: 'var(--foreground)',
         };
+        const thumbAlt = `${h.brand} ${h.model}`.trim() || '헤드폰';
         const inner = (
           <>
-            {showRank ? (
-              <span className="text-[10px] font-bold uppercase tracking-wide opacity-60">
-                {idx + 1}순위
-              </span>
-            ) : null}
-            <span className="line-clamp-2 w-full">{h.brand}</span>
-            <span className="line-clamp-3 w-full text-[10px] font-medium opacity-75">{h.model}</span>
+            <HeadphoneThumb imageUrl={h.image_url} alt={thumbAlt} />
+            <div className="min-w-0 flex-1">
+              {showRank ? (
+                <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide opacity-60">
+                  {idx + 1}순위
+                </span>
+              ) : null}
+              <span className="line-clamp-1 block w-full">{h.brand}</span>
+              <span className="line-clamp-2 block w-full text-[10px] font-medium opacity-75">{h.model}</span>
+            </div>
           </>
         );
         if (onHeadfiClick) {

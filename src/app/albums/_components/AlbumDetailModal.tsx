@@ -17,8 +17,8 @@ type DetailTab = 'info' | 'gear' | 'listen';
 
 interface AlbumDetailModalProps {
   viewingItem: Album;
-  recommendedHeadphones: { id: number; brand: string; model: string }[];
-  aiRecommendedHeadphones?: { id: number; brand: string; model: string }[];
+  recommendedHeadphones: { id: number; brand: string; model: string; image_url?: string | null }[];
+  aiRecommendedHeadphones?: { id: number; brand: string; model: string; image_url?: string | null }[];
   albumIntro: string;
   audioTags: string[];
   albumIntroLoading: boolean;
@@ -114,12 +114,20 @@ export function AlbumDetailModal({
     if (aiRecommendedHeadphones.length > 0) return;
     void createClient()
       .from('headfi')
-      .select('id, brand, model')
+      .select('id, brand, model, image_url')
       .in('id', ids)
       .then(({ data }) => {
         const ordered = ids
           .map((id) => (data || []).find((h) => h.id === id))
-          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
         setLocalAiHeadphones(ordered);
       });
   }, [viewingItem.id, viewingItem.ai_recommended_headphone_ids, aiRecommendedHeadphones.length]);
@@ -153,11 +161,19 @@ export function AlbumDetailModal({
       if (ids.length > 0) {
         const { data } = await createClient()
           .from('headfi')
-          .select('id, brand, model')
+          .select('id, brand, model, image_url')
           .in('id', ids);
         const ordered = ids
           .map((id) => (data || []).find((h) => h.id === id))
-          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
         setLocalAiHeadphones(ordered);
       } else {
         setLocalAiHeadphones([]);
@@ -244,6 +260,7 @@ export function AlbumDetailModal({
                     albumId={viewingItem.id}
                     isAuthenticated={isAuthenticated}
                     variant="tab"
+                    onHeadfiClick={onHeadfiClick}
                   />
                 </div>
 

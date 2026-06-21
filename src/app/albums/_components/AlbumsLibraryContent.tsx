@@ -101,10 +101,10 @@ export function AlbumsLibraryContent() {
   const [viewingItem, setViewingItem] = useState<Album | null>(null);
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
-    { id: number; brand: string; model: string }[]
+    { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
   const [aiRecommendedHeadphones, setAiRecommendedHeadphones] = useState<
-    { id: number; brand: string; model: string }[]
+    { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
@@ -158,12 +158,20 @@ export function AlbumsLibraryContent() {
     const client = createClient();
     client
       .from('headfi')
-      .select('id, brand, model')
+      .select('id, brand, model, image_url')
       .in('id', ids)
       .then(({ data }) => {
         const ordered = ids
           .map((id) => (data || []).find((h) => h.id === id))
-          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
         setRecommendedHeadphones(ordered);
       });
   }, [viewingItem?.id, viewingItem?.manual_recommended_headphone_ids, viewingItem?.audio_tags]);
@@ -181,12 +189,20 @@ export function AlbumsLibraryContent() {
     const client = createClient();
     client
       .from('headfi')
-      .select('id, brand, model')
+      .select('id, brand, model, image_url')
       .in('id', ids)
       .then(({ data }) => {
         const ordered = ids
           .map((id) => (data || []).find((h) => h.id === id))
-          .filter((h): h is { id: number; brand: string; model: string } => !!h);
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
         setAiRecommendedHeadphones(ordered);
       });
   }, [viewingItem?.id, viewingItem?.ai_recommended_headphone_ids]);
