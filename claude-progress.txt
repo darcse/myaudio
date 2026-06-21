@@ -73,3 +73,4 @@
 [2026-06-12] [Cursor] style: 추천 헤드폰 탭 카드 썸네일·가로 레이아웃(내 매칭·AI 추천) | passes: 변경 없음
 [2026-06-12] [Cursor] fix: album-headphone-recommend AI 추천 대상 헤드폰만(이어폰 제외) | passes: 변경 없음
 [2026-06-12] [Cursor] fix: AI 추천 카드 1개만 표시 — stale prop 조기 return 수정·Gemini 2개 id 검증·프롬프트 강화 | passes: 변경 없음
+[2026-06-12] [Cursor] fix: AI 추천 reason 헤드폰명 뒤 (id) 표시 제거 | passes: 변경 없음

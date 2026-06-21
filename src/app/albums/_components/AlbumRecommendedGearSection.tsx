@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown, Headphones, RefreshCw, Sparkles } from 'lucide-react';
+import { stripHeadphoneIdSuffixes } from '@/lib/utils';
 
 type HeadphoneRow = { id: number; brand: string; model: string; image_url?: string | null };
 
@@ -155,7 +156,7 @@ export function AlbumRecommendedGearSection({
     );
   }
 
-  const aiReason = aiRecommendReason?.trim() ?? '';
+  const aiReason = stripHeadphoneIdSuffixes(aiRecommendReason?.trim() ?? '');
   const aiBusy = aiRecommendLoading || albumIntroLoading;
 
   return (

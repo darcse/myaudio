@@ -8,6 +8,7 @@ import {
   type AlbumMoodGroupRow,
   type AlbumMoodUuidOptions,
 } from '@/lib/albumMoodRefs';
+import { stripHeadphoneIdSuffixes } from '@/lib/utils';
 
 export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRefs';
 
@@ -539,6 +540,7 @@ ${list}
 
 후보 헤드폰이 2개 이상이면 headphone_ids 배열에 반드시 정확히 2개의 id를 넣어.
 headphone_ids에는 위 목록에 있는 id 숫자만 사용하고, reason에 언급하는 헤드폰과 headphone_ids가 반드시 일치해야 해.
+reason에는 브랜드·모델명만 쓰고 id나 괄호 안 숫자는 절대 넣지 마.
 
 평가 기준:
 - 장르와 헤드폰 음색의 매칭도
@@ -570,7 +572,8 @@ JSON만 응답:
       headphoneIds.push(id);
       if (headphoneIds.length >= 2) break;
     }
-    const reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
+    const reasonRaw = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
+    const reason = stripHeadphoneIdSuffixes(reasonRaw);
     if (headphoneIds.length === 0 || !reason) return null;
     if (headphones.length >= 2 && headphoneIds.length < 2) return null;
     return { headphone_ids: headphoneIds, reason };

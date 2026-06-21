@@ -6,3 +6,7 @@ export function shuffleArray<T>(items: readonly T[]): T[] {
   }
   return arr;
 }
+
+export function stripHeadphoneIdSuffixes(text: string): string {
+  return text.replace(/(\S)\(\d+\)/g, '$1');
+}
