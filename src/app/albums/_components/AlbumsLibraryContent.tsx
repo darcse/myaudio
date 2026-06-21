@@ -100,6 +100,9 @@ export function AlbumsLibraryContent() {
   >([]);
   const [viewingItem, setViewingItem] = useState<Album | null>(null);
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
+  const [registeredAlbums, setRegisteredAlbums] = useState<
+    { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
+  >([]);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
@@ -299,6 +302,42 @@ export function AlbumsLibraryContent() {
     }
     setViewingHeadfi(data as Headfi);
   }, []);
+
+  const openAlbumById = useCallback(
+    async (albumId: number) => {
+      const cached = library.find((a) => a.id === albumId);
+      if (cached) {
+        openAlbumDetail(cached);
+        return;
+      }
+      const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
+      if (error || !data) {
+        toast.error('앨범 정보를 불러오지 못했습니다.');
+        return;
+      }
+      openAlbumDetail(data as Album);
+    },
+    [library],
+  );
+
+  useEffect(() => {
+    if (!viewingHeadfi?.id) {
+      setRegisteredAlbums([]);
+      return;
+    }
+    const id = viewingHeadfi.id;
+    void createClient()
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const rows = data || [];
+        rows.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(rows);
+      });
+  }, [viewingHeadfi?.id]);
 
   const closeAlbumDetail = () => {
     setViewingItem(null);
@@ -751,7 +790,7 @@ export function AlbumsLibraryContent() {
       {viewingHeadfi ? (
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
-          matchedAlbums={[]}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={null}
           matchedHeadphones={[]}
           onClose={() => setViewingHeadfi(null)}
@@ -762,6 +801,7 @@ export function AlbumsLibraryContent() {
           }}
           onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
           onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          onAlbumClick={(id) => void openAlbumById(id)}
           isAuthenticated={isAuthenticated}
         />
       ) : null}

@@ -187,14 +187,14 @@ export function DashboardContent({
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
-  const [matchedAlbums, setMatchedAlbums] = useState<MatchedAlbum[]>([]);
+  const [registeredAlbums, setRegisteredAlbums] = useState<MatchedAlbum[]>([]);
   const [matchedMatchingDevice, setMatchedMatchingDevice] = useState<{
     id: number;
     brand: string;
     model: string;
   } | null>(null);
   const [matchedHeadphones, setMatchedHeadphones] = useState<
-    { id: number; brand: string; model: string; category: string }[]
+    { id: number; brand: string; model: string; category: string; image_url?: string | null }[]
   >([]);
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
@@ -226,36 +226,22 @@ export function DashboardContent({
 
   useEffect(() => {
     if (!viewingHeadfi?.id) {
-      setMatchedAlbums([]);
+      setRegisteredAlbums([]);
       return;
     }
     const client = createClient();
     const id = viewingHeadfi.id;
-    void Promise.all([
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('manual_recommended_headphone_ids', [id]),
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('ai_recommended_headphone_ids', [id]),
-    ]).then(([manualRes, aiRes]) => {
-      const map = new Map<number, MatchedAlbum>();
-      (manualRes.data || []).forEach((a) => {
-        const row = a as MatchedAlbum;
-        map.set(row.id, row);
+    void client
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const merged = (data || []) as MatchedAlbum[];
+        merged.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(merged);
       });
-      (aiRes.data || []).forEach((a) => {
-        const row = a as MatchedAlbum;
-        map.set(row.id, row);
-      });
-      const merged = Array.from(map.values());
-      merged.sort(
-        (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
-      );
-      setMatchedAlbums(merged);
-    });
   }, [viewingHeadfi?.id]);
 
   useEffect(() => {
@@ -287,14 +273,15 @@ export function DashboardContent({
     }
     void createClient()
       .from('headfi')
-      .select('id,brand,model,category')
+      .select('id,brand,model,category,image_url')
       .in('category', ['헤드폰', '이어폰'])
       .eq('matching', String(viewingHeadfi.id))
       .order('brand')
       .order('model')
       .then(({ data }) =>
         setMatchedHeadphones(
-          (data as { id: number; brand: string; model: string; category: string }[]) || [],
+          (data as { id: number; brand: string; model: string; category: string; image_url?: string | null }[]) ||
+            [],
         ),
       );
   }, [viewingHeadfi?.id, viewingHeadfi?.category]);
@@ -720,13 +707,14 @@ export function DashboardContent({
       {viewingHeadfi ? (
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
-          matchedAlbums={matchedAlbums}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={handleHeadfiEditClick}
           onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
           onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          onAlbumClick={(id) => void openAlbumById(id)}
           isAuthenticated={isAuthenticated}
         />
       ) : null}

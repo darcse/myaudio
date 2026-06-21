@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Headphones, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
+import type { Album } from '@/app/albums/types';
+import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -98,7 +100,7 @@ export function HeadfiLibraryContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
 
-  const [matchedAlbums, setMatchedAlbums] = useState<
+  const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
   >([]);
   const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
@@ -106,8 +108,23 @@ export function HeadfiLibraryContent() {
     null,
   );
   const [matchedHeadphones, setMatchedHeadphones] = useState<
-    { id: number; brand: string; model: string; category: string }[]
+    { id: number; brand: string; model: string; category: string; image_url?: string | null }[]
   >([]);
+  const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
+  const [recommendedHeadphones, setRecommendedHeadphones] = useState<
+    { id: number; brand: string; model: string; image_url?: string | null }[]
+  >([]);
+  const [audioTags, setAudioTags] = useState<string[]>([]);
+  const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
+
+  const openAlbumById = useCallback(async (albumId: number) => {
+    const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
+    if (error || !data) {
+      toast.error('앨범 정보를 불러오지 못했습니다.');
+      return;
+    }
+    setViewingAlbum(data as Album);
+  }, []);
 
   const fetchLibrary = useCallback(async () => {
     setIsLoading(true);
@@ -180,31 +197,22 @@ export function HeadfiLibraryContent() {
 
   useEffect(() => {
     if (!viewingItem?.id) {
-      setMatchedAlbums([]);
+      setRegisteredAlbums([]);
       return;
     }
     const client = createClient();
     const id = viewingItem.id;
-    Promise.all([
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('manual_recommended_headphone_ids', [id]),
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('ai_recommended_headphone_ids', [id]),
-    ]).then(([manualRes, aiRes]) => {
-      const map = new Map<
-        number,
-        { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }
-      >();
-      (manualRes.data || []).forEach((a) => map.set(a.id, a));
-      (aiRes.data || []).forEach((a) => map.set(a.id, a));
-      const merged = Array.from(map.values());
-      merged.sort((a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime());
-      setMatchedAlbums(merged);
-    });
+    void client
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const rows = data || [];
+        rows.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(rows);
+      });
   }, [viewingItem?.id]);
 
   useEffect(() => {
@@ -237,13 +245,70 @@ export function HeadfiLibraryContent() {
     const client = createClient();
     client
       .from('headfi')
-      .select('id,brand,model,category')
+      .select('id,brand,model,category,image_url')
       .in('category', ['헤드폰', '이어폰'])
       .eq('matching', idStr)
       .order('brand')
       .order('model')
       .then(({ data }) => setMatchedHeadphones(data || []));
   }, [viewingItem?.id, viewingItem?.category]);
+
+  useEffect(() => {
+    if (!viewingAlbum?.id) {
+      setRecommendedHeadphones([]);
+      setAudioTags([]);
+      return;
+    }
+    setAudioTags(viewingAlbum.audio_tags ?? []);
+    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
+    if (ids.length === 0) {
+      setRecommendedHeadphones([]);
+      return;
+    }
+    void createClient()
+      .from('headfi')
+      .select('id, brand, model, image_url')
+      .in('id', ids)
+      .then(({ data }) => {
+        const ordered = ids
+          .map((id) => (data || []).find((h) => h.id === id))
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
+        setRecommendedHeadphones(ordered);
+      });
+  }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
+
+  const handleRefreshAlbumIntro = async () => {
+    if (!viewingAlbum || isAuthenticated === false) return;
+    setAlbumIntroLoading(true);
+    try {
+      const res = await fetch('/api/album-intro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: viewingAlbum.id }),
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error);
+      setViewingAlbum({
+        ...viewingAlbum,
+        album_intro: payload.album_intro ?? '',
+        ai_recommended_headphone_ids: null,
+        ai_recommended_headphone_reason: null,
+      });
+      toast.success('앨범 소개를 갱신했습니다.');
+    } catch {
+      toast.error('앨범 소개 갱신에 실패했습니다.');
+    } finally {
+      setAlbumIntroLoading(false);
+    }
+  };
 
   const handleCloseView = () => {
     setViewingItem(null);
@@ -510,10 +575,41 @@ export function HeadfiLibraryContent() {
         library={library}
       />
 
+      {viewingAlbum ? (
+        <AlbumDetailModal
+          viewingItem={viewingAlbum}
+          recommendedHeadphones={recommendedHeadphones}
+          albumIntro={(viewingAlbum.album_intro ?? '').trim()}
+          audioTags={audioTags}
+          albumIntroLoading={albumIntroLoading}
+          onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
+          onClose={() => setViewingAlbum(null)}
+          onEdit={() => {
+            const id = viewingAlbum.id;
+            setViewingAlbum(null);
+            router.push(`/albums?view=${id}`);
+          }}
+          onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
+          isAuthenticated={isAuthenticated}
+          onAlbumPatch={(updated) => setViewingAlbum(updated)}
+          onHeadfiClick={(id) => {
+            setViewingAlbum(null);
+            void createClient()
+              .from('headfi')
+              .select('*')
+              .eq('id', id)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data) setViewingItem(data as Headfi);
+              });
+          }}
+        />
+      ) : null}
+
       {viewingItem ? (
         <HeadfiDetailModal
           viewingItem={viewingItem}
-          matchedAlbums={matchedAlbums}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
           matchedHeadphones={matchedHeadphones}
           onClose={handleCloseView}
@@ -528,6 +624,7 @@ export function HeadfiLibraryContent() {
               );
             }
           }}
+          onAlbumClick={(id) => void openAlbumById(id)}
           isAuthenticated={isAuthenticated}
           isDeleting={isDeleting}
         />

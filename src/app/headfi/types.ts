@@ -46,7 +46,9 @@ export interface Headfi {
   soundstage?: number | null;
   imaging?: number | null;
   timbre?: number | null;
+  ai_sound_analysis?: string | null;
   ai_recommended_album_ids?: number[] | null;
+  ai_recommended_album_reason?: string | null;
   ai_recommended_genres?: string[] | null;
   ai_recommended_at?: string | null;
   /** 유선 헤드폰/이어폰 커뮤니티 기반 추천 장르(서술형, 최대 4개) */

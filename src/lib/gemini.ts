@@ -582,6 +582,177 @@ JSON만 응답:
   }
 }
 
+export async function recommendHeadfiAlbums(
+  headfi: {
+    brand: string;
+    model: string;
+    temp: string;
+    recommended_genres: string;
+    fr_summary: string;
+    ai_sound_analysis?: string | null;
+  },
+  albums: {
+    id: number;
+    artist: string | null;
+    genre1: string | null;
+    genre2: string | null;
+    audio_tags: string[] | null;
+  }[],
+): Promise<{ album_ids: number[]; reason: string } | null> {
+  if (albums.length === 0) return null;
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
+
+  const list = albums
+    .map((a) => {
+      const tags = Array.isArray(a.audio_tags) ? a.audio_tags.join(', ') : '';
+      return `${a.id}|${a.artist || ''}|${a.genre1 || ''}|${a.genre2 || ''}|${tags}`;
+    })
+    .join('\n');
+
+  const soundAnalysis = headfi.ai_sound_analysis?.trim() || '';
+  const analysisBlock = soundAnalysis ? `\n[음색 성향 분석] ${soundAnalysis}\n` : '';
+  const recommendInstruction = soundAnalysis
+    ? `위 기기의 음색 성향 분석을 핵심 근거로 삼아, 이 기기로 들었을 때 가장 잘 어울리는 
+앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`
+    : `이 기기로 들었을 때 가장 잘 어울리는 앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`;
+
+  const prompt = `너는 헤드파이 전문가이자 음악 큐레이터야.
+[기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres} | FR요약:${headfi.fr_summary}${analysisBlock}
+[보유 앨범 목록] id|artist|genre1|genre2|audio_tags
+${list}
+
+${recommendInstruction}
+album_ids에는 위 목록에 있는 id 숫자만 사용해.
+
+JSON만 응답: {"album_ids":[1,2,3],"reason":"근거 포함 2~3줄 소개"}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { album_ids?: unknown; reason?: unknown };
+    const validIds = new Set(albums.map((a) => a.id));
+    let rawIds: unknown[] = [];
+    if (Array.isArray(parsed.album_ids)) {
+      rawIds = parsed.album_ids;
+    } else if (typeof parsed.album_ids === 'number') {
+      rawIds = [parsed.album_ids];
+    }
+    const seen = new Set<number>();
+    const albumIds: number[] = [];
+    for (const item of rawIds) {
+      const id = typeof item === 'number' ? item : parseInt(String(item), 10);
+      if (!Number.isFinite(id) || !validIds.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      albumIds.push(id);
+      if (albumIds.length >= 3) break;
+    }
+    const reasonRaw = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
+    const reason = stripHeadphoneIdSuffixes(reasonRaw);
+    if (albumIds.length === 0 || !reason) return null;
+    if (albums.length >= 3 && albumIds.length < 3) return null;
+    return { album_ids: albumIds, reason };
+  } catch {
+    return null;
+  }
+}
+
+export type HeadfiSoundScores = {
+  brand: string;
+  model: string;
+  category: string;
+  bass_quantity: number | null | undefined;
+  bass_depth: number | null | undefined;
+  bass_speed: number | null | undefined;
+  dynamics_slam: number | null | undefined;
+  midrange_body: number | null | undefined;
+  tone_warmth: number | null | undefined;
+  vocal_position: number | null | undefined;
+  midrange_clarity: number | null | undefined;
+  treble_brightness: number | null | undefined;
+  treble_smoothness: number | null | undefined;
+  treble_airiness: number | null | undefined;
+  resolution: number | null | undefined;
+  separation: number | null | undefined;
+  soundstage: number | null | undefined;
+  imaging: number | null | undefined;
+  timbre: number | null | undefined;
+};
+
+function formatSoundScore(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return '-';
+  return String(value);
+}
+
+export function headfiHasSoundScores(scores: HeadfiSoundScores): boolean {
+  const values = [
+    scores.bass_quantity,
+    scores.bass_depth,
+    scores.bass_speed,
+    scores.dynamics_slam,
+    scores.midrange_body,
+    scores.tone_warmth,
+    scores.vocal_position,
+    scores.midrange_clarity,
+    scores.treble_brightness,
+    scores.treble_smoothness,
+    scores.treble_airiness,
+    scores.resolution,
+    scores.separation,
+    scores.soundstage,
+    scores.imaging,
+    scores.timbre,
+  ];
+  return values.some((v) => v != null && Number(v) > 0);
+}
+
+export async function analyzeHeadfiSound(
+  headfi: HeadfiSoundScores,
+): Promise<{ analysis: string } | null> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+
+  const prompt = `너는 헤드파이 전문 리뷰어야. 아래 기기의 청음 평가 점수와 실제 리뷰/측정 데이터를 종합해 
+이 기기의 음색 성향을 상세하게 분석해줘.
+
+[기기] ${headfi.brand} ${headfi.model} | 카테고리: ${headfi.category}
+
+[청음 평가 점수 (10점 만점)]
+저역 - 양감:${formatSoundScore(headfi.bass_quantity)} 깊이:${formatSoundScore(headfi.bass_depth)} 속도:${formatSoundScore(headfi.bass_speed)}
+중역 - 다이내믹스:${formatSoundScore(headfi.dynamics_slam)} 두께감:${formatSoundScore(headfi.midrange_body)} 온기:${formatSoundScore(headfi.tone_warmth)} 보컬위치:${formatSoundScore(headfi.vocal_position)} 명료도:${formatSoundScore(headfi.midrange_clarity)}
+고역 - 밝기:${formatSoundScore(headfi.treble_brightness)} 부드러움:${formatSoundScore(headfi.treble_smoothness)} 공기감:${formatSoundScore(headfi.treble_airiness)}
+기술 - 해상력:${formatSoundScore(headfi.resolution)} 분리도:${formatSoundScore(headfi.separation)} 음장:${formatSoundScore(headfi.soundstage)} 이미징:${formatSoundScore(headfi.imaging)} 음색:${formatSoundScore(headfi.timbre)}
+
+실제 이 모델에 대한 전문 리뷰나 측정 데이터를 검색해서 참고하고, 
+위 점수 패턴과 비교해 다음을 포함한 분석을 작성해줘:
+- 전반적인 음색 성향 (예: 따뜻하고 부드러운, 분석적이고 정교한 등)
+- 저역/중역/고역 밸런스 특징과 그 근거
+- 이 기기가 가장 빛을 발하는 음악적 상황 (장르, 보컬/악기 중심 등)
+- 실측 데이터와 청음 평가 점수가 일치하는지, 다르다면 어떻게 다른지
+
+4~6줄 분량으로 구체적이고 전문적으로 작성. 평이한 설명 금지, 근거 기반 서술.
+
+JSON만 응답:
+{"analysis":"분석 텍스트"}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { analysis?: unknown };
+    const analysis = typeof parsed.analysis === 'string' ? parsed.analysis.trim() : '';
+    if (!analysis) return null;
+    return { analysis };
+  } catch {
+    return null;
+  }
+}
+
 export async function recommendHeadfiAlbumMatch(
   dacAmp: {
     name: string;

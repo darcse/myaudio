@@ -74,3 +74,9 @@
 [2026-06-12] [Cursor] fix: album-headphone-recommend AI 추천 대상 헤드폰만(이어폰 제외) | passes: 변경 없음
 [2026-06-12] [Cursor] fix: AI 추천 카드 1개만 표시 — stale prop 조기 return 수정·Gemini 2개 id 검증·프롬프트 강화 | passes: 변경 없음
 [2026-06-12] [Cursor] fix: AI 추천 reason 헤드폰명 뒤 (id) 표시 제거 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: GEAR-009 HeadfiDetailModal 3탭(기본 정보/FR 그래프/추천 앨범) 재구성 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: GEAR-010 추천 앨범 탭 AI/등록 앨범 2섹션·/api/headfi-album-recommend | passes: 변경 없음
+[2026-06-12] [Cursor] style: HeadfiDetailModal 탭을 기본 정보 히어로 하단으로 이동(AlbumDetailModal 구조 통일) | passes: 변경 없음
+[2026-06-12] [Cursor] feat: HeadfiDetailModal 상세 스펙 기본 펼침·청음 평가 헤드폰 전용 탭 분리 | passes: 변경 없음
+[2026-06-12] [Cursor] feat: GEAR-011 청음 평가 AI 분석·/api/headfi-sound-analysis | passes: 변경 없음
+[2026-06-12] [Cursor] feat: headfi-album-recommend 헤드폰 ai_sound_analysis 프롬프트 반영 | passes: 변경 없음

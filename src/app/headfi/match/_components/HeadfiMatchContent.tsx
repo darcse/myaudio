@@ -115,6 +115,9 @@ export function HeadfiMatchContent() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
+  const [registeredAlbums, setRegisteredAlbums] = useState<
+    { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
+  >([]);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
@@ -235,6 +238,25 @@ export function HeadfiMatchContent() {
         setRecommendedHeadphones(ordered);
       });
   }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
+
+  useEffect(() => {
+    if (!viewingHeadfi?.id) {
+      setRegisteredAlbums([]);
+      return;
+    }
+    const id = viewingHeadfi.id;
+    void createClient()
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const rows = data || [];
+        rows.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(rows);
+      });
+  }, [viewingHeadfi?.id]);
 
   const handleRefreshAlbumIntro = async () => {
     if (!viewingAlbum || isAuthenticated === false) return;
@@ -399,7 +421,7 @@ export function HeadfiMatchContent() {
       {viewingHeadfi ? (
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
-          matchedAlbums={[]}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={null}
           matchedHeadphones={[]}
           onClose={() => setViewingHeadfi(null)}
@@ -410,6 +432,7 @@ export function HeadfiMatchContent() {
           }}
           onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
           onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          onAlbumClick={(id) => void openAlbumById(id)}
           isAuthenticated={isAuthenticated}
         />
       ) : null}

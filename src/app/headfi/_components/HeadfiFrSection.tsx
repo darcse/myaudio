@@ -42,15 +42,21 @@ type HeadfiFrSectionProps = {
   viewingItem: Headfi;
   isAuthenticated: boolean | null;
   onHeadfiPatch?: (patch: Partial<Headfi>) => void;
+  variant?: 'accordion' | 'tab';
 };
 
-export function HeadfiFrSection({ viewingItem, isAuthenticated, onHeadfiPatch }: HeadfiFrSectionProps) {
-  const [frOpen, setFrOpen] = useState(false);
+export function HeadfiFrSection({
+  viewingItem,
+  isAuthenticated,
+  onHeadfiPatch,
+  variant = 'accordion',
+}: HeadfiFrSectionProps) {
+  const [frOpen, setFrOpen] = useState(variant === 'tab');
   const [frInterpretLoading, setFrInterpretLoading] = useState(false);
 
   useEffect(() => {
-    setFrOpen(false);
-  }, [viewingItem.id]);
+    setFrOpen(variant === 'tab');
+  }, [viewingItem.id, variant]);
 
   const showFrSection = viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const frInterpretParsed = parseFrInterpretation(viewingItem.fr_interpretation ?? undefined);
@@ -89,6 +95,87 @@ export function HeadfiFrSection({ viewingItem, isAuthenticated, onHeadfiPatch }:
 
   if (!showFrSection) return null;
 
+  const frContent = hasFrGraphUrl ? (
+    <div className="space-y-4">
+      <div
+        className="rounded-xl overflow-hidden flex justify-center p-2"
+        style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+      >
+        <img
+          src={frImageDisplaySrc}
+          alt={`${viewingItem.brand} ${viewingItem.model} 주파수 응답 그래프`}
+          className="max-w-full max-h-[280px] object-contain"
+          onError={() =>
+            toast.error(
+              '이미지를 불러올 수 없습니다. URL을 확인하거나 로그인 후 다시 시도해 주세요.',
+            )
+          }
+        />
+      </div>
+      {frInterpretLoading ? (
+        <div className="flex items-center gap-2 py-2 text-sm opacity-80">
+          <div
+            className="w-4 h-4 border-2 rounded-full animate-spin shrink-0"
+            style={{
+              borderColor: 'var(--border)',
+              borderTopColor: 'var(--foreground)',
+            }}
+            aria-hidden
+          />
+          AI가 그래프를 해석하는 중…
+        </div>
+      ) : null}
+      {frInterpretParsed ? (
+        <div
+          className="text-sm space-y-3 p-4 rounded-xl leading-relaxed"
+          style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+        >
+          <p>
+            <span className="font-semibold opacity-90">저음</span>{' '}
+            <span className="opacity-85">{frInterpretParsed.bass}</span>
+          </p>
+          <p>
+            <span className="font-semibold opacity-90">중음</span>{' '}
+            <span className="opacity-85">{frInterpretParsed.mid}</span>
+          </p>
+          <p>
+            <span className="font-semibold opacity-90">고음</span>{' '}
+            <span className="opacity-85">{frInterpretParsed.treble}</span>
+          </p>
+          <p className="pt-2 border-t opacity-90" style={{ borderColor: 'var(--border)' }}>
+            {frInterpretParsed.summary}
+          </p>
+        </div>
+      ) : null}
+      {isAuthenticated !== false && !frInterpretParsed ? (
+        <button
+          type="button"
+          onClick={handleFrInterpret}
+          disabled={frInterpretLoading || !hasFrGraphUrl}
+          className="btn-apple btn-apple-secondary w-full py-2.5 text-sm disabled:opacity-40 disabled:pointer-events-none"
+        >
+          AI 해석
+        </button>
+      ) : null}
+    </div>
+  ) : (
+    <p className="text-sm opacity-70 py-1">
+      등록된 FR 그래프가 없습니다. 수정 화면에서 이미지를 업로드하거나 외부 이미지 URL을 입력해 저장해 주세요.
+    </p>
+  );
+
+  if (variant === 'tab') {
+    return (
+      <div className="space-y-4">
+        <strong className="text-sm flex items-center gap-1.5 font-semibold">
+          <LineChart className="size-4 opacity-80 shrink-0" aria-hidden />
+          FR 그래프
+        </strong>
+        {frContent}
+      </div>
+    );
+  }
+
   return (
     <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
       {hasFrGraphUrl ? (
@@ -105,70 +192,7 @@ export function HeadfiFrSection({ viewingItem, isAuthenticated, onHeadfiPatch }:
             </strong>
             <span className="text-sm opacity-60 tabular-nums shrink-0">{frOpen ? '▴' : '▾'}</span>
           </button>
-          {frOpen ? (
-            <div className="space-y-4">
-              <div
-                className="rounded-xl overflow-hidden flex justify-center p-2"
-                style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-              >
-                <img
-                  src={frImageDisplaySrc}
-                  alt={`${viewingItem.brand} ${viewingItem.model} 주파수 응답 그래프`}
-                  className="max-w-full max-h-[280px] object-contain"
-                  onError={() =>
-                    toast.error(
-                      '이미지를 불러올 수 없습니다. URL을 확인하거나 로그인 후 다시 시도해 주세요.',
-                    )
-                  }
-                />
-              </div>
-              {frInterpretLoading ? (
-                <div className="flex items-center gap-2 py-2 text-sm opacity-80">
-                  <div
-                    className="w-4 h-4 border-2 rounded-full animate-spin shrink-0"
-                    style={{
-                      borderColor: 'var(--border)',
-                      borderTopColor: 'var(--foreground)',
-                    }}
-                    aria-hidden
-                  />
-                  AI가 그래프를 해석하는 중…
-                </div>
-              ) : null}
-              {frInterpretParsed ? (
-                <div
-                  className="text-sm space-y-3 p-4 rounded-xl leading-relaxed"
-                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-                >
-                  <p>
-                    <span className="font-semibold opacity-90">저음</span>{' '}
-                    <span className="opacity-85">{frInterpretParsed.bass}</span>
-                  </p>
-                  <p>
-                    <span className="font-semibold opacity-90">중음</span>{' '}
-                    <span className="opacity-85">{frInterpretParsed.mid}</span>
-                  </p>
-                  <p>
-                    <span className="font-semibold opacity-90">고음</span>{' '}
-                    <span className="opacity-85">{frInterpretParsed.treble}</span>
-                  </p>
-                  <p className="pt-2 border-t opacity-90" style={{ borderColor: 'var(--border)' }}>
-                    {frInterpretParsed.summary}
-                  </p>
-                </div>
-              ) : null}
-              {isAuthenticated !== false && !frInterpretParsed ? (
-                <button
-                  type="button"
-                  onClick={handleFrInterpret}
-                  disabled={frInterpretLoading || !hasFrGraphUrl}
-                  className="btn-apple btn-apple-secondary w-full py-2.5 text-sm disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  AI 해석
-                </button>
-              ) : null}
-            </div>
-          ) : null}
+          {frOpen ? frContent : null}
         </>
       ) : (
         <>
@@ -176,9 +200,7 @@ export function HeadfiFrSection({ viewingItem, isAuthenticated, onHeadfiPatch }:
             <LineChart className="size-4 opacity-80 shrink-0" aria-hidden />
             FR 그래프
           </strong>
-          <p className="text-sm opacity-70 py-1">
-            등록된 FR 그래프가 없습니다. 수정 화면에서 이미지를 업로드하거나 외부 이미지 URL을 입력해 저장해 주세요.
-          </p>
+          {frContent}
         </>
       )}
     </div>

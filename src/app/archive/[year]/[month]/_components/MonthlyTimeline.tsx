@@ -60,20 +60,29 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   const [viewingLyrics, setViewingLyrics] = useState<Lyrics | null>(null);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [listenRows] = useState<ListenAlbumCard[]>(initialListenRows);
-  const [matchedAlbums, setMatchedAlbums] = useState<MatchedAlbum[]>([]);
+  const [registeredAlbums, setRegisteredAlbums] = useState<MatchedAlbum[]>([]);
   const [matchedMatchingDevice, setMatchedMatchingDevice] = useState<{
     id: number;
     brand: string;
     model: string;
   } | null>(null);
   const [matchedHeadphones, setMatchedHeadphones] = useState<
-    { id: number; brand: string; model: string; category: string }[]
+    { id: number; brand: string; model: string; category: string; image_url?: string | null }[]
   >([]);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
+
+  const openAlbumById = useCallback(async (albumId: number) => {
+    const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
+    if (error || !data) {
+      toast.error('앨범 정보를 불러오지 못했습니다.');
+      return;
+    }
+    setViewingAlbum(data as Album);
+  }, []);
 
   const load = useCallback(
     async (opts: { refresh?: boolean; signal?: AbortSignal }) => {
@@ -127,60 +136,37 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
 
   useEffect(() => {
     if (!viewingHeadfi?.id) {
-      setMatchedAlbums([]);
+      setRegisteredAlbums([]);
       return;
     }
     const client = createClient();
     const id = viewingHeadfi.id;
-    void Promise.all([
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('manual_recommended_headphone_ids', [id]),
-      client
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date')
-        .contains('ai_recommended_headphone_ids', [id]),
-    ]).then(([manualRes, aiRes]) => {
-      const map = new Map<number, MatchedAlbum>();
-      (manualRes.data || []).forEach((a) => {
-        const row = a as {
-          id: number;
-          album_name: string;
-          artist: string | null;
-          cover_image_url: string | null;
-          release_date?: string | null;
-        };
-        map.set(row.id, {
-          id: row.id,
-          album_name: row.album_name,
-          artist: row.artist ?? '',
-          cover_image_url: row.cover_image_url,
-          release_date: row.release_date,
+    void client
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const rows = (data || []).map((a) => {
+          const row = a as {
+            id: number;
+            album_name: string;
+            artist: string | null;
+            cover_image_url: string | null;
+            release_date?: string | null;
+          };
+          return {
+            id: row.id,
+            album_name: row.album_name,
+            artist: row.artist ?? '',
+            cover_image_url: row.cover_image_url,
+            release_date: row.release_date,
+          };
         });
+        rows.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(rows);
       });
-      (aiRes.data || []).forEach((a) => {
-        const row = a as {
-          id: number;
-          album_name: string;
-          artist: string | null;
-          cover_image_url: string | null;
-          release_date?: string | null;
-        };
-        map.set(row.id, {
-          id: row.id,
-          album_name: row.album_name,
-          artist: row.artist ?? '',
-          cover_image_url: row.cover_image_url,
-          release_date: row.release_date,
-        });
-      });
-      const merged = Array.from(map.values());
-      merged.sort(
-        (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
-      );
-      setMatchedAlbums(merged);
-    });
   }, [viewingHeadfi?.id]);
 
   useEffect(() => {
@@ -215,14 +201,15 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
     const client = createClient();
     void client
       .from('headfi')
-      .select('id,brand,model,category')
+      .select('id,brand,model,category,image_url')
       .in('category', ['헤드폰', '이어폰'])
       .eq('matching', idStr)
       .order('brand')
       .order('model')
       .then(({ data }) =>
         setMatchedHeadphones(
-          (data as { id: number; brand: string; model: string; category: string }[]) || [],
+          (data as { id: number; brand: string; model: string; category: string; image_url?: string | null }[]) ||
+            [],
         ),
       );
   }, [viewingHeadfi?.id, viewingHeadfi?.category]);
@@ -514,7 +501,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       {viewingHeadfi ? (
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
-          matchedAlbums={matchedAlbums}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
@@ -525,6 +512,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           }}
           onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
           onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          onAlbumClick={(id) => void openAlbumById(id)}
           isAuthenticated={isAuthenticated}
         />
       ) : null}

@@ -10,49 +10,82 @@ import { formatVrmsAt32Ohm } from '../utils';
 type HeadfiInfoSectionProps = {
   viewingItem: Headfi;
   matchedMatchingDevice: { id: number; brand: string; model: string } | null;
-  matchedHeadphones: { id: number; brand: string; model: string; category: string }[];
+  matchedHeadphones: { id: number; brand: string; model: string; category: string; image_url?: string | null }[];
+  variant?: 'default' | 'tab';
 };
+
+export function HeadfiInfoHeroSection({ viewingItem }: Pick<HeadfiInfoSectionProps, 'viewingItem'>) {
+  return (
+    <div className="flex flex-col gap-6 px-6 pt-3 sm:flex-row">
+      {viewingItem.image_url ? (
+        <img
+          src={viewingItem.image_url}
+          alt="기기 이미지"
+          className="mx-auto h-32 w-32 flex-shrink-0 rounded-xl object-cover sm:mx-0"
+          style={{ border: '1px solid var(--border)' }}
+        />
+      ) : null}
+      <div className="flex-1 space-y-2 text-sm opacity-90">
+        <p><strong>브랜드:</strong> {viewingItem.brand}</p>
+        <p><strong>모델명:</strong> {viewingItem.model}</p>
+        <p><strong>카테고리:</strong> {viewingItem.category}</p>
+        <p><strong>구입일:</strong> {viewingItem.purchase_date || '-'}</p>
+        <p>
+          <strong>구매 정보:</strong>{' '}
+          {viewingItem.status1 || '-'} /{' '}
+          {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
+          <span className="font-semibold">{viewingItem.status2 || '-'}</span>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function HeadfiInfoSection({
   viewingItem,
   matchedMatchingDevice,
   matchedHeadphones,
+  variant = 'default',
 }: HeadfiInfoSectionProps) {
-  const [specOpen, setSpecOpen] = useState(() => viewingItem.category === 'DAC/AMP');
+  const [specOpen, setSpecOpen] = useState(() => variant === 'tab' || viewingItem.category === 'DAC/AMP');
 
   useEffect(() => {
-    setSpecOpen(viewingItem.category === 'DAC/AMP');
-  }, [viewingItem.id, viewingItem.category]);
+    setSpecOpen(variant === 'tab' || viewingItem.category === 'DAC/AMP');
+  }, [viewingItem.id, viewingItem.category, variant]);
 
   return (
     <>
-      <h2 className="section-title text-xl mb-4 pr-12">
-        {viewingItem.brand} {viewingItem.model}
-      </h2>
-      <div className="flex flex-col sm:flex-row gap-6 mb-2 pb-6">
-        {viewingItem.image_url ? (
-          <img
-            src={viewingItem.image_url}
-            alt="기기 이미지"
-            className="w-32 h-32 object-cover rounded-xl mx-auto sm:mx-0 flex-shrink-0"
-            style={{ border: '1px solid var(--border)' }}
-          />
-        ) : null}
-        <div className="space-y-2 text-sm opacity-90 flex-1">
-          <p><strong>브랜드:</strong> {viewingItem.brand}</p>
-          <p><strong>모델명:</strong> {viewingItem.model}</p>
-          <p><strong>카테고리:</strong> {viewingItem.category}</p>
-          <p><strong>구입일:</strong> {viewingItem.purchase_date || '-'}</p>
-          <p>
-            <strong>구매 정보:</strong>{' '}
-            {viewingItem.status1 || '-'} /{' '}
-            {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
-            <span className="font-semibold">{viewingItem.status2 || '-'}</span>
-          </p>
+      {variant === 'default' ? (
+        <h2 className="section-title text-xl mb-4 pr-12">
+          {viewingItem.brand} {viewingItem.model}
+        </h2>
+      ) : null}
+      {variant === 'default' ? (
+        <div className="mb-2 flex flex-col gap-6 pb-6 sm:flex-row">
+          {viewingItem.image_url ? (
+            <img
+              src={viewingItem.image_url}
+              alt="기기 이미지"
+              className="mx-auto h-32 w-32 flex-shrink-0 rounded-xl object-cover sm:mx-0"
+              style={{ border: '1px solid var(--border)' }}
+            />
+          ) : null}
+          <div className="flex-1 space-y-2 text-sm opacity-90">
+            <p><strong>브랜드:</strong> {viewingItem.brand}</p>
+            <p><strong>모델명:</strong> {viewingItem.model}</p>
+            <p><strong>카테고리:</strong> {viewingItem.category}</p>
+            <p><strong>구입일:</strong> {viewingItem.purchase_date || '-'}</p>
+            <p>
+              <strong>구매 정보:</strong>{' '}
+              {viewingItem.status1 || '-'} /{' '}
+              {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
+              <span className="font-semibold">{viewingItem.status2 || '-'}</span>
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className={`${variant === 'tab' ? '' : 'pt-4 mt-2 border-t'}`} style={{ borderColor: 'var(--border)' }}>
         <button
           type="button"
           onClick={() => setSpecOpen((o) => !o)}
@@ -184,15 +217,36 @@ export function HeadfiInfoSection({
           {matchedHeadphones.length === 0 ? (
             <p className="text-sm opacity-70 py-2">이 기기를 매칭으로 선택한 헤드폰이 없습니다.</p>
           ) : (
-            <ul className="space-y-1">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {matchedHeadphones.map((h) => (
-                <li key={h.id}>
-                  <Link href={`/headfi?view=${h.id}`} className="link-apple text-sm">
-                    {h.brand} {h.model}
-                  </Link>
-                </li>
+                <Link
+                  key={h.id}
+                  href={`/headfi?view=${h.id}`}
+                  className="flex items-center gap-3 rounded-xl p-3 transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                >
+                  {h.image_url ? (
+                    <img
+                      src={h.image_url}
+                      alt=""
+                      className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
+                      style={{ border: '1px solid var(--border)' }}
+                    />
+                  ) : (
+                    <div
+                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
+                      style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+                    >
+                      <Headphones className="size-4 opacity-40" strokeWidth={1.5} aria-hidden />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] opacity-70">{h.brand}</p>
+                    <p className="truncate text-sm font-semibold">{h.model}</p>
+                  </div>
+                </Link>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       ) : null}
