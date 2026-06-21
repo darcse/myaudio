@@ -3,8 +3,6 @@ import { recommendAlbumHeadphones } from '@/lib/gemini';
 import { parseFrInterpretationSummary } from '@/lib/headfiAlbumMatch';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
-const WIRED_CATEGORIES = ['헤드폰', '이어폰'];
-
 function formatImpedance(value: number | null | undefined): string {
   if (value != null && Number.isFinite(Number(value))) {
     return `${value} Ω`;
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
         .select(
           'id, brand, model, category, temp, impedance, db1, db2, recommended_genres, fr_interpretation, status2',
         )
-        .in('category', WIRED_CATEGORIES)
+        .eq('category', '헤드폰')
         .eq('status2', '보유중'),
     ]);
 
@@ -59,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     const headphones = headphonesRes.data ?? [];
     if (headphones.length === 0) {
-      return NextResponse.json({ error: '보유중인 헤드폰·이어폰이 없습니다.' }, { status: 404 });
+      return NextResponse.json({ error: '보유중인 헤드폰이 없습니다.' }, { status: 404 });
     }
 
     const headphoneRows = headphones.map((h) => ({
