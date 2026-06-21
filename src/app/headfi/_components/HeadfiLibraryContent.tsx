@@ -315,7 +315,7 @@ export function HeadfiLibraryContent() {
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete('view');
     const qs = sp.toString();
-    router.replace(qs ? `/headfi?${qs}` : '/headfi');
+    router.replace(qs ? `/headfi?${qs}` : '/headfi', { scroll: false });
   };
 
   const handleManualRegister = () => {
@@ -408,7 +408,7 @@ export function HeadfiLibraryContent() {
 
         const sp = new URLSearchParams(searchParams.toString());
         sp.set('view', String(savedId));
-        router.replace(`/headfi?${sp.toString()}`);
+        router.replace(`/headfi?${sp.toString()}`, { scroll: false });
 
         const wired = formData.category === '헤드폰' || formData.category === '이어폰';
         if (wired) {
@@ -562,9 +562,6 @@ export function HeadfiLibraryContent() {
           isLibraryEmpty={library.length === 0}
           onItemClick={(item) => {
             setViewingItem(item);
-            const sp = new URLSearchParams(searchParams.toString());
-            sp.set('view', String(item.id));
-            router.replace(`/headfi?${sp.toString()}`);
           }}
         />
       )}
