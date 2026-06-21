@@ -530,12 +530,15 @@ export async function recommendAlbumHeadphones(
 
 [앨범] ${album.artist || ''} - ${album.album_name || ''} | 장르: ${genre} | 오디오 태그: ${tags} | 무드: ${mood}
 
-[보유 헤드폰/이어폰 목록]
+[보유 헤드폰 목록]
 id|브랜드|모델명|음색|임피던스|감도|추천장르|FR요약
 ${list}
 
 이 앨범의 음악적 특성(장르, 분위기, 사운드 텍스처)을 고려했을 때
 가장 잘 어울리는 헤드폰 최대 2개를 선택하고, 음향적 근거를 포함한 추천 이유를 작성해줘.
+
+후보 헤드폰이 2개 이상이면 headphone_ids 배열에 반드시 정확히 2개의 id를 넣어.
+headphone_ids에는 위 목록에 있는 id 숫자만 사용하고, reason에 언급하는 헤드폰과 headphone_ids가 반드시 일치해야 해.
 
 평가 기준:
 - 장르와 헤드폰 음색의 매칭도
@@ -552,7 +555,12 @@ JSON만 응답:
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { headphone_ids?: unknown; reason?: unknown };
     const validIds = new Set(headphones.map((h) => h.id));
-    const rawIds = Array.isArray(parsed.headphone_ids) ? parsed.headphone_ids : [];
+    let rawIds: unknown[] = [];
+    if (Array.isArray(parsed.headphone_ids)) {
+      rawIds = parsed.headphone_ids;
+    } else if (typeof parsed.headphone_ids === 'number') {
+      rawIds = [parsed.headphone_ids];
+    }
     const seen = new Set<number>();
     const headphoneIds: number[] = [];
     for (const item of rawIds) {
@@ -564,6 +572,7 @@ JSON만 응답:
     }
     const reason = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
     if (headphoneIds.length === 0 || !reason) return null;
+    if (headphones.length >= 2 && headphoneIds.length < 2) return null;
     return { headphone_ids: headphoneIds, reason };
   } catch {
     return null;

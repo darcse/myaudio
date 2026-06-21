@@ -99,10 +99,6 @@ export function AlbumDetailModal({
   }, [viewingItem.id]);
 
   useEffect(() => {
-    setLocalAiHeadphones(aiRecommendedHeadphones);
-  }, [aiRecommendedHeadphones, viewingItem.id]);
-
-  useEffect(() => {
     setLocalAiReason(viewingItem.ai_recommended_headphone_reason?.trim() || null);
   }, [viewingItem.id, viewingItem.ai_recommended_headphone_reason]);
 
@@ -112,7 +108,13 @@ export function AlbumDetailModal({
       setLocalAiHeadphones([]);
       return;
     }
-    if (aiRecommendedHeadphones.length > 0) return;
+    const propIds = aiRecommendedHeadphones.map((h) => h.id);
+    const propMatches =
+      propIds.length === ids.length && ids.every((id, idx) => propIds[idx] === id);
+    if (propMatches) {
+      setLocalAiHeadphones(aiRecommendedHeadphones);
+      return;
+    }
     void createClient()
       .from('headfi')
       .select('id, brand, model, image_url')
@@ -131,7 +133,7 @@ export function AlbumDetailModal({
           }));
         setLocalAiHeadphones(ordered);
       });
-  }, [viewingItem.id, viewingItem.ai_recommended_headphone_ids, aiRecommendedHeadphones.length]);
+  }, [viewingItem.id, viewingItem.ai_recommended_headphone_ids, aiRecommendedHeadphones]);
 
   const handleRefreshAiRecommend = useCallback(async () => {
     if (isAuthenticated !== true || !onAlbumPatch) return;
