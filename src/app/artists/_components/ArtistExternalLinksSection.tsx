@@ -100,7 +100,7 @@ function normalizeUrl(value: string): string | null {
 }
 
 const linkIconButtonClassName =
-  'inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-[filter,background-color] hover:brightness-110';
+  'inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-[filter,background-color] hover:brightness-110';
 
 export function ArtistExternalLinksSection({
   children,
@@ -176,7 +176,7 @@ export function ArtistExternalLinksSection({
                     title={label}
                     aria-label={label}
                   >
-                    <Icon className="size-4 shrink-0" />
+                    <Icon className="size-3.5 shrink-0" />
                   </a>
                 );
               })}
