@@ -127,7 +127,7 @@ export function BoardExpandedAlbumGrid({
               </div>
             )}
           </div>
-          <p className="min-h-[2.5rem] line-clamp-2 text-sm font-bold leading-tight">{item.album_name}</p>
+          <p className="line-clamp-2 text-sm font-bold leading-tight">{item.album_name}</p>
           <p className="text-xs opacity-60 truncate mt-0.5">{subtitleText}</p>
         </button>
         );
