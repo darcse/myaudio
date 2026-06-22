@@ -101,7 +101,7 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
   }, [displayAlbum?.id, displayAlbum?.cover_image_url]);
 
   return (
-    <div className="card-apple flex h-[280px] max-h-[280px] min-h-[280px] flex-col overflow-hidden p-0">
+    <div className="card-apple flex h-72 max-h-72 min-h-72 flex-col overflow-hidden p-0">
       {lotteryPool.length === 0 ? (
         <div className="flex h-full flex-col p-4">
           <h2 className="mb-2 flex items-center gap-2 text-[15px] font-semibold opacity-80">

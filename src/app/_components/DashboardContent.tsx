@@ -48,6 +48,7 @@ type DashboardContentProps = {
 };
 
 const recentGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
+const summaryCardClass = 'card-apple flex h-72 min-h-72 flex-col overflow-hidden p-4';
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -533,9 +534,9 @@ export function DashboardContent({
         </span>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="card-apple flex min-h-[280px] flex-col p-4">
-          <div className="mb-5 flex items-center justify-between gap-2">
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+        <div className={summaryCardClass}>
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
             <Link
               href={`/headfi?status=${encodeURIComponent('보유중')}`}
               className="inline-flex min-w-0 items-center rounded-lg transition-opacity hover:opacity-90"
@@ -552,23 +553,23 @@ export function DashboardContent({
               {ownedHeadfiTotal}대
             </Link>
           </div>
-          <div className="min-h-[40px]">
+          <div className="flex min-h-0 flex-1 flex-col">
             {sortedHeadfiCategories.length === 0 ? (
-              <p className="text-sm opacity-60">보유 중인 기기가 없습니다.</p>
+              <p className="flex flex-1 items-center text-sm opacity-60">보유 중인 기기가 없습니다.</p>
             ) : (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-3 gap-1.5">
                 {sortedHeadfiCategories.map(([cat, count]) => (
                   <Link
                     key={cat}
                     href={`/headfi?category=${encodeURIComponent(cat)}&status=${encodeURIComponent('보유중')}`}
-                    className="flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-opacity hover:opacity-90"
+                    className="flex min-h-0 flex-col items-center justify-center gap-0.5 rounded-lg p-1.5 transition-opacity hover:opacity-90"
                     style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
                   >
-                    <span style={{ color: 'var(--foreground)', opacity: 0.7 }}>
-                      {HEADFI_CATEGORY_ICON[cat] ?? <Package className="size-5" strokeWidth={1.5} />}
+                    <span className="shrink-0 [&_svg]:size-4" style={{ color: 'var(--foreground)', opacity: 0.7 }}>
+                      {HEADFI_CATEGORY_ICON[cat] ?? <Package className="size-4" strokeWidth={1.5} />}
                     </span>
-                    <span className="text-sm font-bold tabular-nums">{count}</span>
-                    <span className="text-center text-[10px] leading-tight opacity-60">{cat}</span>
+                    <span className="text-xs font-bold tabular-nums leading-none">{count}</span>
+                    <span className="line-clamp-2 text-center text-[9px] leading-tight opacity-60">{cat}</span>
                   </Link>
                 ))}
               </div>
@@ -576,8 +577,8 @@ export function DashboardContent({
           </div>
         </div>
 
-        <div className="card-apple flex min-h-[280px] flex-col p-4">
-          <div className="mb-3 flex items-center justify-between gap-2">
+        <div className={summaryCardClass}>
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold opacity-80">
               <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
               이번 달 청취
