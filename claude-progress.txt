@@ -103,3 +103,4 @@
 [2026-06-08] [Cursor] feat: 앨범 모달 아티스트명 → Artists 페이지 딥링크 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 대시보드 Summary 타이틀 새로고침 버튼 | passes: 변경 없음
 [2026-06-08] [Cursor] chore: 작업 완료 후 dev 재시작 금지·build만 확인 규칙 반영 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 외부 링크 브랜드 SVG·순서 변경 | passes: 변경 없음

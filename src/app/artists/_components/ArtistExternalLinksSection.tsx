@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode, type SVGProps } from 'react';
-import { Music } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { ArtistRecord } from '../types';
 
 export type ArtistLinksPatch = {
@@ -14,39 +13,46 @@ export type ArtistLinksPatch = {
 
 type LinkKey = keyof ArtistLinksPatch;
 
-type LinkIconProps = SVGProps<SVGSVGElement>;
+type LinkIconProps = {
+  className?: string;
+};
 
-function YoutubeIcon({ className, ...props }: LinkIconProps) {
+function AppleMusicIcon({ className }: LinkIconProps) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden {...props}>
-      <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8ZM9.75 15.02V8.98L15.5 12l-5.75 3.02Z" />
+    <svg viewBox="0 0 457.3 512" className={className} fill="white" aria-hidden>
+      <path d="M435.3,16.2c-5.7-0.7-11.5,0.2-16.7,2.5L184,124.6v270.4c0,35.9-29.2,65.1-65.1,65.1S54.1,431,54.1,395.1 c0-35.9,29.2-65.1,65.1-65.1c11.9,0,23.3,3.3,33.2,9.5V161.4c0-7.3,5.2-13.6,12.4-14.9L403.4,26.7c7.4-1.3,14.6,3.6,15.9,11 c0.3,1.8,0.4,3.7,0.4,5.5v120.3c0,35.9-29.2,65.1-65.1,65.1c-35.9,0-65.1-29.2-65.1-65.1c0-21.4,10.7-40.4,27-51.6V126.7 l-184.8,84v220.2c0,35.9-29.2,65.1-65.1,65.1S22,431,22,395.1c0-35.9,29.2-65.1,65.1-65.1c11.9,0,23.3,3.3,33.2,9.5V113.9 c0-9.8,7.9-17.8,17.8-17.8l275-125c1.4-0.6,2.8-1.1,4.3-1.4C428.1,17,431.9,17.8,435.3,16.2z" />
     </svg>
   );
 }
 
-function SpotifyIcon({ className }: { className?: string }) {
+function SpotifyIcon({ className }: LinkIconProps) {
   return (
-    <span
-      className={`inline-flex size-4 items-center justify-center rounded-full bg-[#1DB954] text-[9px] font-bold leading-none text-white ${className ?? ''}`}
-      aria-hidden
-    >
-      S
-    </span>
-  );
-}
-
-function TwitterIcon({ className, ...props }: LinkIconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden {...props}>
-      <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.7l-5.2-6.8L5.2 22H2l7.3-8.4L.8 2h6.9l4.7 6.2L18.9 2Zm-1.2 18h1.7L7.1 3.9H5.3L17.7 20Z" />
+    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.794c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 01-.955 1.613z" />
     </svg>
   );
 }
 
-function InstagramIcon({ className, ...props }: LinkIconProps) {
+function YoutubeIcon({ className }: LinkIconProps) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden {...props}>
-      <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm10 2H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3Zm-5 3.5A5.5 5.5 0 1 1 6.5 13 5.5 5.5 0 0 1 12 7.5Zm0 2A3.5 3.5 0 1 0 15.5 13 3.5 3.5 0 0 0 12 9.5ZM17.8 6.7a1.3 1.3 0 1 1-1.3 1.3 1.3 1.3 0 0 1 1.3-1.3Z" />
+    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+function TwitterIcon({ className }: LinkIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+function InstagramIcon({ className }: LinkIconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
     </svg>
   );
 }
@@ -54,13 +60,19 @@ function InstagramIcon({ className, ...props }: LinkIconProps) {
 const LINK_ITEMS: {
   key: LinkKey;
   label: string;
-  Icon: typeof YoutubeIcon | typeof SpotifyIcon | typeof Music;
+  background: string;
+  Icon: (props: LinkIconProps) => ReactNode;
 }[] = [
-  { key: 'youtube_url', label: 'YouTube', Icon: YoutubeIcon },
-  { key: 'spotify_url', label: 'Spotify', Icon: SpotifyIcon },
-  { key: 'apple_music_url', label: 'Apple Music', Icon: Music },
-  { key: 'twitter_url', label: 'Twitter', Icon: TwitterIcon },
-  { key: 'instagram_url', label: 'Instagram', Icon: InstagramIcon },
+  { key: 'apple_music_url', label: 'Apple Music', background: '#FC3C44', Icon: AppleMusicIcon },
+  { key: 'spotify_url', label: 'Spotify', background: '#1DB954', Icon: SpotifyIcon },
+  { key: 'youtube_url', label: 'YouTube', background: '#FF0000', Icon: YoutubeIcon },
+  { key: 'twitter_url', label: 'Twitter', background: '#000000', Icon: TwitterIcon },
+  {
+    key: 'instagram_url',
+    label: 'Instagram',
+    background: 'linear-gradient(45deg, #833AB4, #FD1D1D, #F77737)',
+    Icon: InstagramIcon,
+  },
 ];
 
 type ArtistExternalLinksSectionProps = {
@@ -150,7 +162,7 @@ export function ArtistExternalLinksSection({
           )}
           {showLinkIcons ? (
             <div className="flex shrink-0 items-center gap-1.5">
-              {registered.map(({ key, label, Icon }) => {
+              {registered.map(({ key, label, background, Icon }) => {
                 const href = saved[key];
                 if (!href) return null;
                 return (
@@ -160,11 +172,11 @@ export function ArtistExternalLinksSection({
                     target="_blank"
                     rel="noopener noreferrer"
                     className={linkIconButtonClassName}
-                    style={{ background: 'var(--surface-elevated)' }}
+                    style={{ background }}
                     title={label}
                     aria-label={label}
                   >
-                    <Icon className="size-4 shrink-0" strokeWidth={1.75} />
+                    <Icon className="size-4 shrink-0" />
                   </a>
                 );
               })}
