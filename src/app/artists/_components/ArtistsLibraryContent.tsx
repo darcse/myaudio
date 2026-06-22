@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
-import { updateAlbumInDB } from '@/app/albums/actions';
+import { deleteAlbumFromDB, updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
@@ -71,6 +71,7 @@ export function ArtistsLibraryContent() {
     mood_names: [],
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
@@ -400,6 +401,37 @@ export function ArtistsLibraryContent() {
     }
   };
 
+  const handleDeleteFromModal = async () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    if (!viewingAlbum) return;
+    if (!confirm('정말 이 앨범을 삭제하시겠습니까?')) return;
+    const deletedId = viewingAlbum.id;
+    setIsDeleting(true);
+    try {
+      await deleteAlbumFromDB(deletedId);
+      toast.success('앨범이 삭제되었습니다.');
+      setViewingAlbum(null);
+      setEditingAlbum((prev) => (prev?.id === deletedId ? null : prev));
+      setAlbums((prev) => prev.filter((a) => a.id !== deletedId));
+      setListenHistoryIndex((prev) => {
+        const next = new Map(prev);
+        next.delete(deletedId);
+        return next;
+      });
+    } catch (e) {
+      const message =
+        e instanceof Error && e.message === 'Unauthorized'
+          ? '로그인이 필요합니다.'
+          : '삭제 중 오류가 발생했습니다.';
+      toast.error(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleRefreshAlbumIntro = async () => {
     if (!viewingAlbum || isAuthenticated === false) return;
     setAlbumIntroLoading(true);
@@ -536,7 +568,8 @@ export function ArtistsLibraryContent() {
           onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
           onClose={() => setViewingAlbum(null)}
           onEdit={handleAlbumEditClick}
-          onDelete={() => toast.info('삭제는 앨범 화면에서 진행해 주세요.')}
+          onDelete={() => void handleDeleteFromModal()}
+          isDeleting={isDeleting}
           isAuthenticated={isAuthenticated}
           onAlbumPatch={(updated) => {
             setViewingAlbum(updated);
