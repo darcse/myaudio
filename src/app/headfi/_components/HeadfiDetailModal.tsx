@@ -77,7 +77,8 @@ export function HeadfiDetailModal({
   );
   const [aiAlbumRecommendLoading, setAiAlbumRecommendLoading] = useState(false);
 
-  const showListenTab = viewingItem.category === '헤드폰';
+  const showListenTab =
+    viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const showFrTab = viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const showAlbumsTab = !HIDE_ALBUMS_TAB_CATEGORIES.has(viewingItem.category);
 

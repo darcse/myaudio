@@ -79,16 +79,13 @@ export function HeadfiRadarSection({
     { subject: 'Imaging', value: viewingItem.imaging ?? 0 },
     { subject: 'Timbre', value: viewingItem.timbre ?? 0 },
   ];
+  const isWiredListeningDevice =
+    viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const hasRadarData = hasSoundScores(viewingItem);
-  const showRadarChart = viewingItem.category === '헤드폰' && hasRadarData;
-  const showEarphoneRadar =
-    mode === 'all' &&
-    viewingItem.category === '이어폰' &&
-    hasRadarData;
-  const showRadar = showRadarChart || showEarphoneRadar;
+  const showRadarChart = isWiredListeningDevice && hasRadarData;
+  const showRadar = showRadarChart;
   const showWiredHeadphoneGenres =
-    (mode === 'all' || mode === 'genres') &&
-    (viewingItem.category === '헤드폰' || viewingItem.category === '이어폰');
+    (mode === 'all' || mode === 'genres') && isWiredListeningDevice;
 
   const showRadarBlock = (mode === 'radar' || mode === 'all') && showRadar;
 
@@ -149,7 +146,7 @@ export function HeadfiRadarSection({
 
   if (mode === 'genres' && !showWiredHeadphoneGenres) return null;
   if (mode === 'all' && !showRadar && !showWiredHeadphoneGenres) return null;
-  if (mode === 'radar' && viewingItem.category !== '헤드폰') return null;
+  if (mode === 'radar' && !isWiredListeningDevice) return null;
 
   const sectionWrapClass = variant === 'tab' ? 'space-y-4 text-sm' : 'space-y-4 text-sm mb-6';
   const blockClass = variant === 'tab' && mode !== 'radar' ? 'pt-4 border-t' : variant === 'tab' ? '' : 'pt-4 mt-2 border-t';

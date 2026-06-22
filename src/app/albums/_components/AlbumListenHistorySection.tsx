@@ -125,15 +125,15 @@ export function AlbumListenHistorySection({
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .eq('category', 'DAC/AMP')
-        .in('status2', ['보유중', '방출'])
+        .in('category', ['DAC/AMP', 'DAP', 'Source', '기타'])
+        .eq('status2', '보유중')
         .order('brand')
         .order('model'),
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['헤드폰', '이어폰'])
-        .in('status2', ['보유중', '방출'])
+        .in('category', ['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'])
+        .eq('status2', '보유중')
         .order('brand')
         .order('model'),
     ]).then(([dacRes, hpRes]) => {

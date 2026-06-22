@@ -32,6 +32,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Headfi not found' }, { status: 404 });
     }
 
+    if (row.category !== '헤드폰' && row.category !== '이어폰') {
+      return NextResponse.json({ error: '헤드폰·이어폰만 분석할 수 있습니다.' }, { status: 400 });
+    }
+
     const scores = {
       brand: row.brand || '',
       model: row.model || '',
