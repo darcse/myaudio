@@ -160,6 +160,44 @@ album_intro 작성 시 반드시 지킬 것:
   }
 }
 
+export async function generateArtistBio(artist: {
+  artist_name: string;
+  country: string;
+  artist_type: string;
+  genre: string;
+}): Promise<{ bio: string } | null> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+
+  const prompt = `너는 음악 전문 에디터야. 아래 아티스트에 대해 실제 검색을 통해 정확한 소개를 작성해줘.
+
+[아티스트] ${artist.artist_name} | 국적: ${artist.country || '-'} | 타입: ${artist.artist_type || '-'} | 주요 장르: ${artist.genre || '-'}
+
+검색을 통해 다음을 포함한 3~4줄 소개를 작성해줘:
+- 아티스트 활동 시작 시기와 배경
+- 음악적 특징과 대표 사운드
+- 대표작 또는 주요 활동
+- 국내외 평가나 영향력
+
+JSON만 응답: {"bio": "소개 내용"}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { bio?: unknown };
+    let bio = typeof parsed.bio === 'string' ? parsed.bio.trim() : '';
+    bio = bio.replace(/\\n/g, '\n');
+    if (!bio) return null;
+    return { bio };
+  } catch {
+    return null;
+  }
+}
+
 export async function recommendByMood(
   mood: string,
   moodText: string,

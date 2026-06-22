@@ -12,6 +12,7 @@ type NavItem = { name: string; path: string };
 
 const navItems: NavItem[] = [
   { name: 'Albums', path: '/albums' },
+  { name: 'Artists', path: '/artists' },
   { name: 'Head-fi', path: '/headfi' },
   { name: 'Lyrics', path: '/lyrics' },
   { name: 'Archive', path: '/archive' },

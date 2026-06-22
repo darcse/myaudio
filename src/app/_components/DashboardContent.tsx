@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Headphones, Music, Package } from 'lucide-react';
+import { BarChart3, Headphones, Music, Package, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -205,6 +205,7 @@ export function DashboardContent({
     { id: number; brand: string; model: string }[]
   >([]);
   const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
+  const [summaryRefreshing, setSummaryRefreshing] = useState(false);
 
   const openAlbumById = useCallback(async (albumId: number) => {
     const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
@@ -481,13 +482,34 @@ export function DashboardContent({
     }
   }, [viewingAlbum, isAuthenticated]);
 
+  const handleSummaryRefresh = () => {
+    setSummaryRefreshing(true);
+    router.refresh();
+    window.setTimeout(() => setSummaryRefreshing(false), 600);
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 min-h-screen" style={{ color: 'var(--foreground)' }}>
-      <h1 className="section-title text-[28px] mb-4 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+      <h1
+        className="section-title mb-4 flex items-center justify-between gap-3 border-b pb-2 text-[28px]"
+        style={{ borderColor: 'var(--border)' }}
+      >
         <span className="flex items-center gap-2">
           <BarChart3 className="size-5 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Summary
         </span>
+        <button
+          type="button"
+          onClick={handleSummaryRefresh}
+          className="shrink-0 rounded-lg p-1 opacity-60 transition-opacity hover:opacity-100"
+          aria-label="새로고침"
+          title="새로고침"
+        >
+          <RefreshCw
+            className={`size-4 ${summaryRefreshing ? 'animate-spin' : ''}`}
+            strokeWidth={2}
+          />
+        </button>
       </h1>
 
       <div

@@ -47,14 +47,26 @@ export function BoardCollage({ albums }: { albums: Album[] }) {
 export function BoardExpandedAlbumGrid({
   albums,
   onAlbumClick,
+  popularAlbumId = null,
+  hideCoverBadges = false,
+  subtitle = 'artist',
 }: {
   albums: Album[];
   onAlbumClick: (album: Album) => void;
+  popularAlbumId?: number | null;
+  hideCoverBadges?: boolean;
+  subtitle?: 'artist' | 'releaseDate';
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
       {albums.map((item) => {
-        const badges = albumCoverBadges(item);
+        const badges = hideCoverBadges ? [] : albumCoverBadges(item);
+        const subtitleText =
+          subtitle === 'releaseDate'
+            ? item.release_date?.trim()
+              ? item.release_date.slice(0, 10)
+              : '발매일 미상'
+            : (item.artist ?? '');
         return (
         <button
           key={item.id}
@@ -79,6 +91,15 @@ export function BoardExpandedAlbumGrid({
                 ))}
               </div>
             ) : null}
+            {popularAlbumId === item.id ? (
+              <span
+                className="absolute right-2 top-2 z-10 rounded-full px-2 py-1 text-[11px] font-semibold leading-none"
+                style={coverBadgeStyle}
+                title="인기 앨범"
+              >
+                🔥
+              </span>
+            ) : null}
             {item.cover_image_url ? (
               <img src={item.cover_image_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -91,7 +112,7 @@ export function BoardExpandedAlbumGrid({
             )}
           </div>
           <p className="font-bold text-sm leading-tight line-clamp-2">{item.album_name}</p>
-          <p className="text-xs opacity-60 truncate mt-0.5">{item.artist ?? ''}</p>
+          <p className="text-xs opacity-60 truncate mt-0.5">{subtitleText}</p>
         </button>
         );
       })}

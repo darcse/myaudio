@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Music } from 'lucide-react';
 import { countryOptions } from '../constants';
 import { getYoutubeId } from '../utils';
@@ -69,7 +70,16 @@ export function AlbumInfoHeroSection({ viewingItem }: Pick<AlbumInfoSectionProps
             <div className="min-w-0 flex-1">
               <h2 className="text-xl font-bold text-white leading-snug line-clamp-2">{viewingItem.album_name}</h2>
               <p className="text-sm text-white/70 mt-0.5 truncate">
-                {viewingItem.artist}{' '}
+                {viewingItem.artist ? (
+                  <Link
+                    href={`/artists?artist=${encodeURIComponent(viewingItem.artist)}`}
+                    className="transition-colors hover:text-white hover:underline"
+                  >
+                    {viewingItem.artist}
+                  </Link>
+                ) : (
+                  '—'
+                )}{' '}
                 {viewingItem.artist_type && `(${viewingItem.artist_type})`}
                 {viewingItem.country && (
                   <span className="ml-1.5">

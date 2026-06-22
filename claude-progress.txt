@@ -83,3 +83,23 @@
 [2026-06-08] [Cursor] fix: 헤드파이 모달 오픈 시 페이지 스크롤 top 이동 방지 (앨범 화면과 동일) | passes: 변경 없음
 [2026-06-08] [Cursor] fix: headfi-album-recommend reason에 album_id 노출 방지 프롬프트·album_name 목록 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 아카이브 월별 감상앨범 카드에 DAC/AMP·헤드폰 모델 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-011 Phase1 Artists 페이지 기본 골격 (목록/상세·필터·모달) | passes: 변경 없음
+[2026-06-08] [Cursor] fix: Artists 앨범 모달 오픈 시 aiRecommendedHeadphones 기본값 무한 렌더 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-011 Phase2 Artists bio·Wikipedia·외부링크·/api/artist-bio | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-011 Phase3 Artists 인기앨범·관련아티스트·청취 통계 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: Artists 상세 프로필 이미지 표시·URL 편집 저장 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 상세 기본정보 레이아웃 (프로필 132px·통계 하단 정렬) | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 프로필 이미지 hover 오버레이·모바일 탭 편집 UX | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 외부 링크 아이콘을 국적·타입 라인 우측으로 이동 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 외부 링크 원형 버튼·surface-elevated 배경 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 링크 편집 버튼을 이름 라인 우측·아이콘만 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 관련 아티스트 카드·등록앨범 하단 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 등록앨범 연도배지 제거·발매일 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 유사한 아티스트 가로 스크롤·세로 원형 레이아웃 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 좌측 필터 pill 2x2·정렬 옵션 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: Artists 유사 아티스트 genre1/2·타입 스코어링 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: Artists 유사 아티스트 스코어링 country +1점 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: Artists 앨범 모달 내 수정 폼 연동 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 앨범 모달 아티스트명 → Artists 페이지 딥링크 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 대시보드 Summary 타이틀 새로고침 버튼 | passes: 변경 없음
+[2026-06-08] [Cursor] chore: 작업 완료 후 dev 재시작 금지·build만 확인 규칙 반영 | passes: 변경 없음

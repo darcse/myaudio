@@ -63,10 +63,17 @@ function tabButtonClass(active: boolean): string {
   }`;
 }
 
+const EMPTY_AI_RECOMMENDED_HEADPHONES: {
+  id: number;
+  brand: string;
+  model: string;
+  image_url?: string | null;
+}[] = [];
+
 export function AlbumDetailModal({
   viewingItem,
   recommendedHeadphones,
-  aiRecommendedHeadphones = [],
+  aiRecommendedHeadphones = EMPTY_AI_RECOMMENDED_HEADPHONES,
   albumIntro,
   audioTags,
   albumIntroLoading,
