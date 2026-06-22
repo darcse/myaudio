@@ -2,7 +2,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { LayoutGrid, LayoutList, Music } from 'lucide-react';
+import { Crown, LayoutGrid, LayoutList, Music } from 'lucide-react';
 import type { Album } from '../types';
 import { albumHasAllTimeYear, releaseYearFromAlbum } from '../utils';
 import { getMoodGradientPair, hexToRgba } from '../moodGradient';
@@ -14,6 +14,12 @@ const coverBadgeStyle = {
   color: '#EAEAF0',
   boxShadow: '0 6px 18px rgba(0, 0, 0, 0.18)',
 } as const;
+
+const allTimeCrownBadgeStyle = {
+  background: '#1A1A1A',
+  color: '#F5F5F7',
+  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.28)',
+} as const satisfies CSSProperties;
 
 export function albumCoverBadges(album: Album): string[] {
   const badges: string[] = [];
@@ -58,8 +64,9 @@ export function BoardExpandedAlbumGrid({
   subtitle?: 'artist' | 'releaseDate';
 }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+    <div className="grid grid-cols-2 items-start gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {albums.map((item) => {
+        const isAllTime = albumHasAllTimeYear(item.year);
         const badges = hideCoverBadges ? [] : albumCoverBadges(item);
         const subtitleText =
           subtitle === 'releaseDate'
@@ -71,13 +78,22 @@ export function BoardExpandedAlbumGrid({
         <button
           key={item.id}
           type="button"
-          className="group text-left w-full"
+          className="group flex w-full flex-col text-left"
           onClick={() => onAlbumClick(item)}
         >
           <div
-            className="relative aspect-square mb-2 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
+            className="relative mb-2 aspect-square shrink-0 overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
             style={{ boxShadow: 'var(--shadow)' }}
           >
+            {hideCoverBadges && isAllTime ? (
+              <span
+                className="absolute left-2 top-2 z-10 inline-flex items-center justify-center rounded-full p-1.5"
+                style={allTimeCrownBadgeStyle}
+                title="All Time"
+              >
+                <Crown className="size-3.5" strokeWidth={2.25} aria-hidden />
+              </span>
+            ) : null}
             {badges.length > 0 ? (
               <div className="absolute left-2 top-2 z-10 flex flex-wrap items-center gap-1.5">
                 {badges.map((label) => (
@@ -111,7 +127,7 @@ export function BoardExpandedAlbumGrid({
               </div>
             )}
           </div>
-          <p className="font-bold text-sm leading-tight line-clamp-2">{item.album_name}</p>
+          <p className="min-h-[2.5rem] line-clamp-2 text-sm font-bold leading-tight">{item.album_name}</p>
           <p className="text-xs opacity-60 truncate mt-0.5">{subtitleText}</p>
         </button>
         );

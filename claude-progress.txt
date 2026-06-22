@@ -104,3 +104,7 @@
 [2026-06-08] [Cursor] feat: 대시보드 Summary 타이틀 새로고침 버튼 | passes: 변경 없음
 [2026-06-08] [Cursor] chore: 작업 완료 후 dev 재시작 금지·build만 확인 규칙 반영 | passes: 변경 없음
 [2026-06-08] [Cursor] style: Artists 외부 링크 브랜드 SVG·순서 변경 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 등록 앨범 2줄 제목 시 썸네일 정렬 어긋남 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 등록 앨범 All Time 커버 왕관 배지 | passes: 변경 없음
+[2026-06-08] [Cursor] style: All Time 왕관 배지 오렌지 배경 | passes: 변경 없음
+[2026-06-08] [Cursor] style: All Time 왕관 배지 검정 배경 | passes: 변경 없음
