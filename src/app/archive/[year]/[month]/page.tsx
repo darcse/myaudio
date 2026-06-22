@@ -30,7 +30,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
   const endExclusive = `${m === 12 ? y + 1 : y}-${pad(m === 12 ? 1 : m + 1)}-01`;
   const { data: histRows } = await supabase
     .from('album_listen_history')
-    .select('id, listened_at, impression, album_id')
+    .select('id, listened_at, impression, album_id, dac_amp_id, headphone_id')
     .gte('listened_at', start)
     .lt('listened_at', endExclusive)
     .order('listened_at', { ascending: false });
@@ -38,29 +38,50 @@ export default async function ArchiveMonthPage({ params }: Props) {
   let initialListenRows: ListenAlbumCard[] = [];
   if (list.length > 0) {
     const albumIds = [...new Set(list.map((r) => r.album_id as number).filter((id) => id != null))];
+    const gearIds = new Set<number>();
+    for (const r of list) {
+      const dacId = r.dac_amp_id as number | null;
+      const hpId = r.headphone_id as number | null;
+      if (dacId != null) gearIds.add(dacId);
+      if (hpId != null) gearIds.add(hpId);
+    }
+    const gearMap = new Map<number, { id: number; brand: string; model: string }>();
+    if (gearIds.size > 0) {
+      const { data: gearRows } = await supabase
+        .from('headfi')
+        .select('id, brand, model')
+        .in('id', [...gearIds]);
+      for (const g of gearRows ?? []) {
+        gearMap.set(g.id, { id: g.id, brand: g.brand || '', model: g.model || '' });
+      }
+    }
     if (albumIds.length > 0) {
       const { data: albumData } = await supabase.from('album').select('*').in('id', albumIds);
       const albumMap = new Map<number, Album>();
       for (const a of (albumData ?? []) as Album[]) {
         if (a.id != null) albumMap.set(a.id, a);
       }
-      initialListenRows = list
-        .map((r) => {
+      initialListenRows = list.flatMap((r) => {
           const aid = r.album_id as number | null;
-          if (aid == null) return null;
+          if (aid == null) return [];
           const al = albumMap.get(aid);
-          if (!al) return null;
+          if (!al) return [];
           const listenId = r.id as number | null;
-          if (!listenId) return null;
+          if (!listenId) return [];
           const imp = r.impression as string | null;
-          return {
-            listenId,
-            listened_at: (r.listened_at as string).slice(0, 10),
-            impression: typeof imp === 'string' && imp.trim() !== '' ? imp : null,
-            album: al,
-          };
-        })
-        .filter((x): x is ListenAlbumCard => x != null);
+          const dacId = r.dac_amp_id as number | null;
+          const hpId = r.headphone_id as number | null;
+          return [
+            {
+              listenId,
+              listened_at: (r.listened_at as string).slice(0, 10),
+              impression: typeof imp === 'string' && imp.trim() !== '' ? imp : null,
+              album: al,
+              dac_amp: dacId != null ? gearMap.get(dacId) ?? null : null,
+              headphone: hpId != null ? gearMap.get(hpId) ?? null : null,
+            },
+          ];
+        });
     }
   }
 

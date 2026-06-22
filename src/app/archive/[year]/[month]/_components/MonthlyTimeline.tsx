@@ -33,11 +33,19 @@ type MatchedAlbum = {
   release_date?: string | null;
 };
 
+export type ListenGearSummary = {
+  id: number;
+  brand: string;
+  model: string;
+};
+
 export type ListenAlbumCard = {
   listenId: number;
   listened_at: string;
   impression: string | null;
   album: Album;
+  dac_amp?: ListenGearSummary | null;
+  headphone?: ListenGearSummary | null;
 };
 
 type Props = {
@@ -223,6 +231,39 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
     setViewingHeadfi(data as Headfi);
   };
 
+  const renderListenGearLine = (row: ListenAlbumCard) => {
+    const parts: { id: number; name: string }[] = [];
+    if (row.dac_amp) {
+      const name = `${row.dac_amp.brand} ${row.dac_amp.model}`.trim() || '—';
+      parts.push({ id: row.dac_amp.id, name });
+    }
+    if (row.headphone) {
+      const name = `${row.headphone.brand} ${row.headphone.model}`.trim() || '—';
+      parts.push({ id: row.headphone.id, name });
+    }
+    if (parts.length === 0) return null;
+
+    return (
+      <p className="mt-2 text-xs opacity-80">
+        {parts.map((part, idx) => (
+          <span key={part.id}>
+            {idx > 0 ? <span className="opacity-50"> / </span> : null}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void openHeadfiById(part.id);
+              }}
+              className="underline-offset-2 transition-opacity hover:opacity-100 hover:underline"
+            >
+              {part.name}
+            </button>
+          </span>
+        ))}
+      </p>
+    );
+  };
+
   const openLyricsById = async (id: number) => {
     const { data, error } = await createClient().from('lyrics').select('*').eq('id', id).maybeSingle();
     if (error || !data) {
@@ -307,15 +348,15 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
         <h2 className="mb-3 text-sm font-semibold opacity-90">🎵 감상 앨범</h2>
         <div className={bookGridClass}>
           {listenRows.map((row, idx) => (
-            <button
+            <div
               key={`${row.listenId}-${row.listened_at}-${row.album.id}-${idx}`}
-              type="button"
-              onClick={() => setViewingAlbum(row.album)}
-              className="card-apple flex items-start gap-4 p-4 text-left transition-opacity hover:opacity-95"
+              className="card-apple flex items-start gap-4 p-4 text-left"
               style={{ color: 'var(--foreground)' }}
             >
-              <div
-                className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-xl sm:w-36"
+              <button
+                type="button"
+                onClick={() => setViewingAlbum(row.album)}
+                className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-xl transition-opacity hover:opacity-95 sm:w-36"
                 style={{ border: '1px solid var(--border)' }}
               >
                 {row.album.cover_image_url ? (
@@ -328,16 +369,23 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
                     No Image
                   </div>
                 )}
-              </div>
+              </button>
               <div className="min-w-0 flex-1 overflow-hidden pt-1">
-                <h3 className="truncate text-base font-bold leading-tight tracking-tight">{row.album.artist ?? '—'}</h3>
-                <p className="mb-2 truncate text-sm font-medium opacity-85">{row.album.album_name}</p>
-                <p className="mt-2 text-xs tabular-nums opacity-75">감상일 {row.listened_at}</p>
-                {row.impression?.trim() ? (
-                  <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-xs opacity-80">{row.impression}</p>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setViewingAlbum(row.album)}
+                  className="w-full text-left transition-opacity hover:opacity-95"
+                >
+                  <h3 className="truncate text-base font-bold leading-tight tracking-tight">{row.album.artist ?? '—'}</h3>
+                  <p className="mb-2 truncate text-sm font-medium opacity-85">{row.album.album_name}</p>
+                  <p className="mt-2 text-xs tabular-nums opacity-75">감상일 {row.listened_at}</p>
+                  {row.impression?.trim() ? (
+                    <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-xs opacity-80">{row.impression}</p>
+                  ) : null}
+                </button>
+                {renderListenGearLine(row)}
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </section>
