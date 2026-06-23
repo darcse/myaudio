@@ -6,6 +6,17 @@ export { parseFrInterpretationSummary };
 
 export type HeadfiMatchScoreMode = 'dac_amp' | 'headphone';
 
+export const DAC_AMP_DAP_CATEGORIES = ['DAC/AMP', 'DAP'] as const;
+export const WIRED_HP_IEM_CATEGORIES = ['헤드폰', '이어폰'] as const;
+
+export function isDacAmpDapCategory(category: string | null | undefined): boolean {
+  return category === 'DAC/AMP' || category === 'DAP';
+}
+
+export function isWiredHeadphoneEarphoneCategory(category: string | null | undefined): boolean {
+  return category === '헤드폰' || category === '이어폰';
+}
+
 export type CompressedCandidate = {
   id: number;
   name: string;
@@ -42,11 +53,9 @@ export function formatGenres(genres: string[] | null | undefined, max = 3): stri
 }
 
 export function compressCandidateRow(item: Headfi): CompressedCandidate {
-  const isWired =
-    item.category === '헤드폰' || item.category === '이어폰';
+  const isWired = isWiredHeadphoneEarphoneCategory(item.category);
   const bands = isWired ? compressHeadfiAudioBands(item) : null;
-  const impedance =
-    item.category === 'DAC/AMP'
+  const impedance = isDacAmpDapCategory(item.category)
       ? item.output_impedance != null && Number.isFinite(Number(item.output_impedance))
         ? String(item.output_impedance)
         : '-'

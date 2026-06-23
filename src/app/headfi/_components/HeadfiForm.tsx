@@ -78,7 +78,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
   const isEarphoneType = cat === '이어폰' || cat === '무선 이어폰';
 
   const dacAmpIds = dacAmpList.map((d) => String(d.id));
-  // 매칭(DAC/AMP)은 유선 헤드폰/이어폰에만 사용 (무선 기기는 비활성)
+  // 매칭(DAC/AMP/DAP)은 유선 헤드폰/이어폰에만 사용 (무선 기기는 비활성)
   const canSelectMatching = cat === '헤드폰' || cat === '이어폰';
   const isMatchingCustom = canSelectMatching && !dacAmpIds.includes(formData.matching) && formData.matching !== '' && formData.matching !== ' ';
   const matchingSelectVal = canSelectMatching
@@ -273,7 +273,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
           {canSelectMatching ? (
             <>
               <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP)</label>
+                <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
                 <select
                   className="select-apple px-3 py-2 w-full h-[42px]"
                   value={matchingSelectVal}

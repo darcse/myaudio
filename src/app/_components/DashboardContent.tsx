@@ -18,6 +18,7 @@ import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
+import { DAC_AMP_DAP_CATEGORIES } from '@/lib/headfiMatchScore';
 import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
 
 export type MonthlyListenAlbum = {
@@ -348,7 +349,7 @@ export function DashboardContent({
     client
       .from('headfi')
       .select('id,brand,model')
-      .eq('category', 'DAC/AMP')
+      .in('category', [...DAC_AMP_DAP_CATEGORIES])
       .eq('status2', '보유중')
       .order('brand')
       .order('model')

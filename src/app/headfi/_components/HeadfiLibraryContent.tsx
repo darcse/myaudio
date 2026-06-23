@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
+import { DAC_AMP_DAP_CATEGORIES } from '@/lib/headfiMatchScore';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -149,7 +150,7 @@ export function HeadfiLibraryContent() {
     client
       .from('headfi')
       .select('id,brand,model')
-      .eq('category', 'DAC/AMP')
+      .in('category', [...DAC_AMP_DAP_CATEGORIES])
       .eq('status2', '보유중')
       .order('brand')
       .order('model')

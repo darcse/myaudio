@@ -7,6 +7,8 @@ import {
   parseFrInterpretationSummary,
   pickCandidates,
   type HeadfiMatchScoreMode,
+  isDacAmpDapCategory,
+  isWiredHeadphoneEarphoneCategory,
 } from '@/lib/headfiMatchScore';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
@@ -130,11 +132,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '보유중인 기기만 분석할 수 있습니다.' }, { status: 400 });
     }
 
-    if (mode === 'dac_amp' && baseRow.category !== 'DAC/AMP') {
-      return NextResponse.json({ error: 'DAC/AMP 기준 모드입니다.' }, { status: 400 });
+    if (mode === 'dac_amp' && !isDacAmpDapCategory(baseRow.category)) {
+      return NextResponse.json({ error: 'DAC/AMP/DAP 기준 모드입니다.' }, { status: 400 });
     }
-    if (mode === 'headphone' && baseRow.category !== '헤드폰') {
-      return NextResponse.json({ error: '헤드폰 기준 모드입니다.' }, { status: 400 });
+    if (mode === 'headphone' && !isWiredHeadphoneEarphoneCategory(baseRow.category)) {
+      return NextResponse.json({ error: '헤드폰/이어폰 기준 모드입니다.' }, { status: 400 });
     }
 
     const { data: allGear, error: listError } = await supabase
@@ -149,9 +151,9 @@ export async function POST(req: NextRequest) {
     const pool = (allGear ?? []).filter((item) => {
       if (item.id === baseGearId) return false;
       if (mode === 'dac_amp') {
-        return item.category === '헤드폰';
+        return isWiredHeadphoneEarphoneCategory(item.category);
       }
-      return item.category === 'DAC/AMP';
+      return isDacAmpDapCategory(item.category);
     });
 
     if (pool.length === 0) {
@@ -175,8 +177,8 @@ export async function POST(req: NextRequest) {
       .filter((row) => {
         const gear = gearById.get(row.target_gear_id);
         if (!gear) return false;
-        if (mode === 'dac_amp') return gear.category === '헤드폰';
-        return gear.category === 'DAC/AMP';
+        if (mode === 'dac_amp') return isWiredHeadphoneEarphoneCategory(gear.category);
+        return isDacAmpDapCategory(gear.category);
       });
 
     if (!force && cachedScores.length > 0) {

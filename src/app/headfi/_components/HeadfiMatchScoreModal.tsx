@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Headfi } from '../types';
-import type { HeadfiMatchScoreMode } from '@/lib/headfiMatchScore';
+import {
+  isDacAmpDapCategory,
+  isWiredHeadphoneEarphoneCategory,
+  type HeadfiMatchScoreMode,
+} from '@/lib/headfiMatchScore';
 
 type ScoreResult = {
   gear_id: number;
@@ -55,9 +59,9 @@ export function HeadfiMatchScoreModal({ open, onClose, library }: HeadfiMatchSco
 
   const baseOptions = useMemo(() => {
     if (mode === 'dac_amp') {
-      return owned.filter((item) => item.category === 'DAC/AMP');
+      return owned.filter((item) => isDacAmpDapCategory(item.category));
     }
-    return owned.filter((item) => item.category === '헤드폰');
+    return owned.filter((item) => isWiredHeadphoneEarphoneCategory(item.category));
   }, [owned, mode]);
 
   useEffect(() => {
@@ -157,7 +161,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library }: HeadfiMatchSco
             }}
             onClick={() => setMode('dac_amp')}
           >
-            DAC/AMP 기준
+            DAC/AMP/DAP 기준
           </button>
           <button
             type="button"
@@ -169,7 +173,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library }: HeadfiMatchSco
             }}
             onClick={() => setMode('headphone')}
           >
-            헤드폰 기준
+            헤드폰/이어폰 기준
           </button>
         </div>
 

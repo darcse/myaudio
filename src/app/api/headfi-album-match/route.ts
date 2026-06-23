@@ -4,6 +4,7 @@ import {
   parseFrInterpretationSummary,
   selectAlbumsForHeadfiMatch,
 } from '@/lib/headfiAlbumMatch';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 const WIRED_CATEGORIES = new Set(['헤드폰', '이어폰']);
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     if (dacRes.error || !dacRes.data) {
-      return NextResponse.json({ error: 'DAC/AMP not found' }, { status: 404 });
+      return NextResponse.json({ error: 'DAC/AMP/DAP not found' }, { status: 404 });
     }
     if (hpRes.error || !hpRes.data) {
       return NextResponse.json({ error: 'Headphone not found' }, { status: 404 });
@@ -66,8 +67,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: albumsRes.error.message }, { status: 500 });
     }
 
-    if (dacRes.data.category !== 'DAC/AMP') {
-      return NextResponse.json({ error: 'DAC/AMP 기기를 선택해 주세요.' }, { status: 400 });
+    if (!isDacAmpDapCategory(dacRes.data.category)) {
+      return NextResponse.json({ error: 'DAC/AMP/DAP 기기를 선택해 주세요.' }, { status: 400 });
     }
     if (!WIRED_CATEGORIES.has(hpRes.data.category)) {
       return NextResponse.json({ error: '유선 헤드폰·이어폰을 선택해 주세요.' }, { status: 400 });

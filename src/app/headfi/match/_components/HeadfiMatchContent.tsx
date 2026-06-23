@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Disc3, Headphones, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
@@ -141,7 +142,7 @@ export function HeadfiMatchContent() {
 
   const ownedDacAmps = useMemo(
     () =>
-      library.filter((item) => item.category === 'DAC/AMP' && item.status2 === '보유중') as MatchDevice[],
+      library.filter((item) => isDacAmpDapCategory(item.category) && item.status2 === '보유중') as MatchDevice[],
     [library],
   );
 
@@ -315,8 +316,8 @@ export function HeadfiMatchContent() {
           <div className="mb-6">
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <DeviceSelectColumn
-                title="DAC / AMP"
-                emptyMessage="보유중인 DAC/AMP가 없습니다."
+                title="DAC / AMP / DAP"
+                emptyMessage="보유중인 DAC/AMP/DAP가 없습니다."
                 items={ownedDacAmps}
                 selectedId={selectedDacAmpId}
                 onSelect={(id) => {
