@@ -89,6 +89,7 @@ const initialHeadfiFormData = {
   status2: '',
   cable: '',
   cable_price: '',
+  unit: '',
   etc: '',
   matching: '',
   gain: '',

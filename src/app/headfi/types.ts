@@ -25,6 +25,7 @@ export interface Headfi {
   status2: string | null;
   cable: string | null;
   cable_price: number | null;
+  unit: string | null;
   etc: string | null;
   matching: string | null;
   gain: string | null;
@@ -88,6 +89,7 @@ export interface HeadfiFormData {
   status2: string;
   cable: string;
   cable_price: string;
+  unit: string;
   etc: string;
   matching: string;
   gain: string;

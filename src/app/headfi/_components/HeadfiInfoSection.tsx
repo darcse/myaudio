@@ -164,6 +164,9 @@ export function HeadfiInfoSection({
                     ? ` (${Number(viewingItem.cable_price).toLocaleString()}원)`
                     : ''}
                 </p>
+                <p>
+                  <strong>유닛:</strong> {viewingItem.unit || '-'}
+                </p>
               </>
             ) : null}
             {viewingItem.category === 'DAC/AMP' ? (

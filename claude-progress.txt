@@ -113,3 +113,5 @@
 [2026-06-08] [Cursor] feat: 헤드파이 상세 청음 평가 탭 유선 이어폰 포함 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 등록 앨범 제목·발매일 간격 — min-h 제거 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: Artists 앨범 모달에서 삭제 가능 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 헤드파이 폼·상세 유닛 필드 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 헤드파이 폼 유닛·기타 행을 케이블 아래로 이동 | passes: 변경 없음

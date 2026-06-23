@@ -20,6 +20,7 @@ type FormData = {
   status2: string;
   cable: string;
   cable_price: string;
+  unit: string;
   etc: string;
   matching: string;
   gain: string;
@@ -73,6 +74,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
   const isHeadphoneOrEarphone = cat === '헤드폰' || cat === '이어폰';
   const type1Enabled = ['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(cat);
   const type2Enabled = ['헤드폰', '이어폰', '무선 헤드폰'].includes(cat);
+  const isUnitFieldCategory = type1Enabled;
   const isEarphoneType = cat === '이어폰' || cat === '무선 이어폰';
 
   const dacAmpIds = dacAmpList.map((d) => String(d.id));
@@ -310,6 +312,21 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
           )}
           {renderInput('케이블', 'cable', 'text', isHeadphoneOrEarphone)}
           {renderInput('케이블 가격', 'cable_price', 'number', isHeadphoneOrEarphone)}
+          {isUnitFieldCategory ? (
+            <>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
+                <input
+                  type="text"
+                  className={inputBaseClass}
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="유닛 (예: 1DD, 2BA+1DD)"
+                />
+              </div>
+              {renderInput('기타', 'etc')}
+            </>
+          ) : null}
           {renderInput('구입일', 'purchase_date', 'date')}
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">보유 상태</label>
@@ -333,9 +350,9 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
               <option value="반품 상">반품 상</option>
             </select>
           </div>
-          <div className="col-span-2">
-            {renderInput('기타', 'etc')}
-          </div>
+          {!isUnitFieldCategory ? (
+            <div className="col-span-2">{renderInput('기타', 'etc')}</div>
+          ) : null}
           {isHeadphoneOrEarphone && (
             <div className="col-span-2">
               <div className="border-t pt-4 mt-2" style={{ borderColor: 'var(--border)' }}>
