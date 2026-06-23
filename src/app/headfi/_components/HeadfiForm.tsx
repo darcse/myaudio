@@ -211,61 +211,65 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
               </div>
             </>
           )}
-          <div className="col-span-2">
-            {renderInput('임피던스 (Ω)', 'impedance', 'number', isHeadphoneOrEarphone)}
+          <div className="col-span-2 grid grid-cols-4 gap-x-6">
+            <div className="col-span-2">
+              {renderInput('임피던스 (Ω)', 'impedance', 'number', isHeadphoneOrEarphone)}
+            </div>
+            {renderInput('db SPL/V', 'db1', 'number', isHeadphoneOrEarphone)}
+            {renderInput('db/mW', 'db2', 'number', isHeadphoneOrEarphone)}
           </div>
-          {renderInput('db SPL/V', 'db1', 'number', isHeadphoneOrEarphone)}
-          {renderInput('db/mW', 'db2', 'number', isHeadphoneOrEarphone)}
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
-            <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })} disabled={!isHeadphone}>
-              <option value="">선택</option>
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
+          <div className="col-span-2 grid grid-cols-4 gap-x-6">
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
+              <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })} disabled={!isHeadphone}>
+                <option value="">선택</option>
+                <option value="S">S</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
+              <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })} disabled={!isHeadphone}>
+                <option value="">선택</option>
+                <option value="전압형">전압형</option>
+                <option value="전류형">전류형</option>
+                <option value="혼합형">혼합형</option>
+              </select>
+            </div>
+            {!isDacAmp ? (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
+                  <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
+                    <option value="">선택</option>
+                    <option value="매우 따뜻함">매우 따뜻함</option>
+                    <option value="따뜻함">따뜻함</option>
+                    <option value="조금 따뜻함">조금 따뜻함</option>
+                    <option value="중립">중립</option>
+                    <option value="조금 차가움">조금 차가움</option>
+                    <option value="차가움">차가움</option>
+                    <option value="매우 차가움">매우 차가움</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
+                  <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
+                    <option value="">선택</option>
+                    <option value="매우 밝음">매우 밝음</option>
+                    <option value="밝음">밝음</option>
+                    <option value="조금 밝음">조금 밝음</option>
+                    <option value="중립">중립</option>
+                    <option value="조금 어두움">조금 어두움</option>
+                    <option value="어두움">어두움</option>
+                    <option value="매우 어두움">매우 어두움</option>
+                  </select>
+                </div>
+              </>
+            ) : null}
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
-            <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })} disabled={!isHeadphone}>
-              <option value="">선택</option>
-              <option value="전압형">전압형</option>
-              <option value="전류형">전류형</option>
-              <option value="혼합형">혼합형</option>
-            </select>
-          </div>
-          {!isDacAmp && (
-            <>
-              <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
-                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
-                  <option value="">선택</option>
-                  <option value="매우 따뜻함">매우 따뜻함</option>
-                  <option value="따뜻함">따뜻함</option>
-                  <option value="조금 따뜻함">조금 따뜻함</option>
-                  <option value="중립">중립</option>
-                  <option value="조금 차가움">조금 차가움</option>
-                  <option value="차가움">차가움</option>
-                  <option value="매우 차가움">매우 차가움</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
-                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
-                  <option value="">선택</option>
-                  <option value="매우 밝음">매우 밝음</option>
-                  <option value="밝음">밝음</option>
-                  <option value="조금 밝음">조금 밝음</option>
-                  <option value="중립">중립</option>
-                  <option value="조금 어두움">조금 어두움</option>
-                  <option value="어두움">어두움</option>
-                  <option value="매우 어두움">매우 어두움</option>
-                </select>
-              </div>
-            </>
-          )}
           {canSelectMatching ? (
             <>
               <div>
