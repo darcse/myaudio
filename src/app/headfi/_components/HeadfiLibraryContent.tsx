@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Headphones, Music, Shuffle } from 'lucide-react';
+import { BarChart2, Headphones, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
@@ -13,6 +13,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { Headfi, SelectedHeadfi } from '../types';
 import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
+import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiForm } from './HeadfiForm';
 import { HeadfiDetailModal } from './HeadfiDetailModal';
 import { HeadfiList } from './HeadfiList';
@@ -100,6 +101,7 @@ export function HeadfiLibraryContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
+  const [spendingModalOpen, setSpendingModalOpen] = useState(false);
 
   const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
@@ -489,6 +491,16 @@ export function HeadfiLibraryContent() {
           <Headphones className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Head-fi
         </h1>
         <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+              onClick={() => setSpendingModalOpen(true)}
+            >
+              <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+              <span className="hidden sm:inline">소비 통계</span>
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
@@ -570,6 +582,12 @@ export function HeadfiLibraryContent() {
       <HeadfiMatchScoreModal
         open={scoreModalOpen}
         onClose={() => setScoreModalOpen(false)}
+        library={library}
+      />
+
+      <HeadfiSpendingStatsModal
+        open={spendingModalOpen}
+        onClose={() => setSpendingModalOpen(false)}
         library={library}
       />
 
