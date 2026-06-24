@@ -18,6 +18,7 @@ import {
   buildListenHistoryIndex,
   findArtistWikiUrl,
   getArtistStats,
+  getPrimaryGenre1,
   getPopularAlbumId,
   getRelatedArtists,
 } from '../utils';
@@ -54,6 +55,7 @@ function albumFormDataFromArtist(artist: ArtistSummary): AlbumFormData {
     artist: artist.name,
     artist_type: artist.artistType ?? '',
     country: artist.country ?? '',
+    genre1: getPrimaryGenre1(artist) ?? '',
     wiki_url: findArtistWikiUrl(artist.albums) ?? '',
   };
 }
@@ -558,10 +560,17 @@ export function ArtistsLibraryContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <h1 className="page-title mb-6 flex items-center gap-2">
-        <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
-        Artists
-      </h1>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h1 className="page-title flex items-center gap-2">
+          <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
+          Artists
+        </h1>
+        {!isLoading ? (
+          <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums">
+            {filteredArtists.length}명
+          </span>
+        ) : null}
+      </div>
 
       {isLoading ? (
         <div className="flex min-h-[16rem] items-center justify-center text-sm opacity-70">로딩 중...</div>
@@ -569,33 +578,6 @@ export function ArtistsLibraryContent() {
         <p className="text-sm opacity-70">등록된 앨범이 없어 아티스트를 표시할 수 없습니다.</p>
       ) : (
         <>
-          <div className="mb-4 flex gap-2 lg:hidden">
-            <button
-              type="button"
-              onClick={() => setMobileTab('list')}
-              className="flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-opacity"
-              style={{
-                borderColor: 'var(--border)',
-                background: mobileTab === 'list' ? 'var(--badge-bg)' : 'var(--card-bg)',
-                opacity: mobileTab === 'list' ? 1 : 0.75,
-              }}
-            >
-              목록
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileTab('detail')}
-              className="flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-opacity"
-              style={{
-                borderColor: 'var(--border)',
-                background: mobileTab === 'detail' ? 'var(--badge-bg)' : 'var(--card-bg)',
-                opacity: mobileTab === 'detail' ? 1 : 0.75,
-              }}
-            >
-              상세
-            </button>
-          </div>
-
           <div className="hidden min-h-[calc(100dvh-12rem)] gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
             <div className="sticky top-[4.5rem] max-h-[calc(100dvh-6rem)] min-h-0">{sidebar}</div>
             {detail}

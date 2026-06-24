@@ -133,3 +133,6 @@
 [2026-06-08] [Cursor] fix: 무선 헤드폰/이어폰 매칭 ID→브랜드+모델명 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 스피커 타입2 선택항목 '스마트' 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: Artists 등록 앨범 섹션 앨범 등록(+버튼·AlbumForm) | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 타이틀 라인 필터링된 아티스트 수 뱃지 | passes: 변경 없음
+[2026-06-08] [Cursor] style: Artists 모바일·태블릿 목록/상세 탭 숨김 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: Artists 앨범 등록 폼 초기값에 장르1 추가 | passes: 변경 없음
