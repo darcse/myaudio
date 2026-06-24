@@ -132,3 +132,4 @@
 [2026-06-08] [Cursor] style: 무선 헤드폰/이어폰 상세 유닛 필드 전체 너비 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 무선 헤드폰/이어폰 매칭 ID→브랜드+모델명 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 스피커 타입2 선택항목 '스마트' 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: Artists 등록 앨범 섹션 앨범 등록(+버튼·AlbumForm) | passes: 변경 없음

@@ -8,22 +8,55 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
-import { deleteAlbumFromDB, updateAlbumInDB } from '@/app/albums/actions';
-import type { Album, AlbumFormData } from '@/app/albums/types';
+import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
+import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import {
   buildArtistSummaries,
   buildListenHistoryIndex,
+  findArtistWikiUrl,
   getArtistStats,
   getPopularAlbumId,
   getRelatedArtists,
 } from '../utils';
-import type { ArtistMobileTab, ArtistRecord, ListenHistoryEntry } from '../types';
+import type { ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
+
+const initialAlbumFormData: AlbumFormData = {
+  artist: '',
+  artist_type: '',
+  country: '',
+  album_name: '',
+  album_type: '',
+  year: ['2026'],
+  release_date: '',
+  genre1: '',
+  genre2: '',
+  cover_image_url: '',
+  matching1: '',
+  matching2: '',
+  title_song_url: '',
+  wiki_url: '',
+  album_intro: '',
+  recommended_hp1: '',
+  recommended_hp2: '',
+  recommended_hp3: '',
+  mood_names: [],
+};
+
+function albumFormDataFromArtist(artist: ArtistSummary): AlbumFormData {
+  return {
+    ...initialAlbumFormData,
+    artist: artist.name,
+    artist_type: artist.artistType ?? '',
+    country: artist.country ?? '',
+    wiki_url: findArtistWikiUrl(artist.albums) ?? '',
+  };
+}
 
 export function ArtistsLibraryContent() {
   const searchParams = useSearchParams();
@@ -48,28 +81,8 @@ export function ArtistsLibraryContent() {
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
-  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
-  const [albumFormData, setAlbumFormData] = useState<AlbumFormData>({
-    artist: '',
-    artist_type: '',
-    country: '',
-    album_name: '',
-    album_type: '',
-    year: ['2026'],
-    release_date: '',
-    genre1: '',
-    genre2: '',
-    cover_image_url: '',
-    matching1: '',
-    matching2: '',
-    title_song_url: '',
-    wiki_url: '',
-    album_intro: '',
-    recommended_hp1: '',
-    recommended_hp2: '',
-    recommended_hp3: '',
-    mood_names: [],
-  });
+  const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
+  const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
@@ -338,6 +351,16 @@ export function ArtistsLibraryContent() {
     }
   };
 
+  const handleAlbumAddClick = () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    if (!selectedArtist) return;
+    setAlbumFormItem({ isManual: true });
+    setAlbumFormData(albumFormDataFromArtist(selectedArtist));
+  };
+
   const handleAlbumEditClick = () => {
     if (!viewingAlbum) return;
     if (isAuthenticated === false) {
@@ -346,7 +369,7 @@ export function ArtistsLibraryContent() {
     }
     const item = viewingAlbum;
     setViewingAlbum(null);
-    setEditingAlbum(item);
+    setAlbumFormItem(item);
     setAlbumFormData(
       albumToFormData(item, {
         album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
@@ -364,10 +387,11 @@ export function ArtistsLibraryContent() {
   };
 
   const handleAlbumSave = async () => {
-    if (!editingAlbum || isAuthenticated !== true) {
+    if (isAuthenticated !== true) {
       toast.error('로그인이 필요합니다.');
       return;
     }
+    if (!albumFormItem) return;
     setIsSaving(true);
     try {
       const data = {
@@ -375,21 +399,47 @@ export function ArtistsLibraryContent() {
         matching1: albumFormData.matching1 === ' ' ? '' : albumFormData.matching1,
         matching2: albumFormData.matching2 === ' ' ? '' : albumFormData.matching2,
       };
-      const savedId = editingAlbum.id;
-      await updateAlbumInDB(savedId, data);
-      const { data: updatedRow } = await createClient()
-        .from('album')
-        .select('*')
-        .eq('id', savedId)
-        .single();
-      if (updatedRow) {
-        const updated = updatedRow as Album;
-        setAlbums((prev) => prev.map((a) => (a.id === savedId ? updated : a)));
-        setViewingAlbum(updated);
-        setAudioTags(updated.audio_tags ?? []);
+      const updateId =
+        'id' in albumFormItem && typeof albumFormItem.id === 'number' ? albumFormItem.id : null;
+      if (updateId != null) {
+        await updateAlbumInDB(updateId, data);
+        const { data: updatedRow } = await createClient()
+          .from('album')
+          .select('*')
+          .eq('id', updateId)
+          .single();
+        if (updatedRow) {
+          const updated = updatedRow as Album;
+          setAlbums((prev) => prev.map((a) => (a.id === updateId ? updated : a)));
+          setViewingAlbum(updated);
+          setAudioTags(updated.audio_tags ?? []);
+        }
+        toast.success('앨범 정보가 수정되었습니다.');
+      } else {
+        const saved = await saveAlbumToDB(data);
+        const savedId =
+          saved && typeof saved === 'object' && 'id' in saved ? (saved as { id: number }).id : null;
+        if (savedId != null) {
+          const { data: newRow } = await createClient()
+            .from('album')
+            .select('*')
+            .eq('id', savedId)
+            .single();
+          if (newRow) {
+            const created = newRow as Album;
+            setAlbums((prev) => {
+              const next = [...prev, created];
+              next.sort(
+                (a, b) =>
+                  new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+              );
+              return next;
+            });
+          }
+        }
+        toast.success('앨범이 등록되었습니다.');
       }
-      toast.success('앨범 정보가 수정되었습니다.');
-      setEditingAlbum(null);
+      setAlbumFormItem(null);
     } catch (e) {
       const message =
         e instanceof Error && e.message === 'Unauthorized'
@@ -414,7 +464,9 @@ export function ArtistsLibraryContent() {
       await deleteAlbumFromDB(deletedId);
       toast.success('앨범이 삭제되었습니다.');
       setViewingAlbum(null);
-      setEditingAlbum((prev) => (prev?.id === deletedId ? null : prev));
+      setAlbumFormItem((prev) =>
+        prev && 'id' in prev && prev.id === deletedId ? null : prev,
+      );
       setAlbums((prev) => prev.filter((a) => a.id !== deletedId));
       setListenHistoryIndex((prev) => {
         const next = new Map(prev);
@@ -496,6 +548,7 @@ export function ArtistsLibraryContent() {
       showMobileBack={mobileTab === 'detail'}
       onMobileBack={() => setMobileTab('list')}
       onAlbumClick={setViewingAlbum}
+      onAddAlbum={handleAlbumAddClick}
       onSelectArtist={handleSelectArtist}
       onRefreshBio={() => void handleRefreshBio()}
       onSaveLinks={handleSaveLinks}
@@ -578,13 +631,13 @@ export function ArtistsLibraryContent() {
         />
       ) : null}
 
-      {editingAlbum ? (
+      {albumFormItem ? (
         <AlbumForm
-          selectedItem={editingAlbum}
+          selectedItem={albumFormItem}
           formData={albumFormData}
           setFormData={setAlbumFormData}
           headfiOwnedHeadphones={headfiOwnedHeadphones}
-          onClose={() => setEditingAlbum(null)}
+          onClose={() => setAlbumFormItem(null)}
           onSave={() => void handleAlbumSave()}
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}

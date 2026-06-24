@@ -27,6 +27,7 @@ type ArtistDetailPanelProps = {
   showMobileBack?: boolean;
   onMobileBack?: () => void;
   onAlbumClick: (album: Album) => void;
+  onAddAlbum?: () => void;
   onSelectArtist: (name: string) => void;
   onRefreshBio: () => void;
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
@@ -46,6 +47,7 @@ export function ArtistDetailPanel({
   showMobileBack = false,
   onMobileBack,
   onAlbumClick,
+  onAddAlbum,
   onSelectArtist,
   onRefreshBio,
   onSaveLinks,
@@ -153,7 +155,19 @@ export function ArtistDetailPanel({
         <ArtistWikiSection wikiUrl={wikiUrl} artistName={artist.name} />
 
         <div className="pt-6">
-          <h3 className="mb-4 text-sm font-semibold opacity-90">등록 앨범</h3>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold opacity-90">등록 앨범</h3>
+            {isAuthenticated === true && onAddAlbum ? (
+              <button
+                type="button"
+                onClick={onAddAlbum}
+                className="btn-apple btn-apple-secondary flex size-8 shrink-0 items-center justify-center"
+                aria-label="앨범 등록"
+              >
+                <span className="text-lg leading-none">＋</span>
+              </button>
+            ) : null}
+          </div>
           {artist.albums.length > 0 ? (
             <BoardExpandedAlbumGrid
               albums={artist.albums}
