@@ -22,6 +22,10 @@ type FormData = {
   cable_price: string;
   unit: string;
   etc: string;
+  speaker_type1: string;
+  speaker_type2: string;
+  dap_spec: string;
+  dap_output: string;
   matching: string;
   gain: string;
   temp: string;
@@ -57,6 +61,7 @@ type HeadfiFormProps = {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   dacAmpList: { id: number; brand: string; model: string }[];
+  wirelessMatchingList: { id: number; brand: string; model: string }[];
   onClose: () => void;
   onSave: () => void;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -67,27 +72,31 @@ type HeadfiFormProps = {
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
 const disabledClass = 'opacity-60 cursor-not-allowed';
 
-export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, onClose, onSave, onImageUpload, onFrGraphFileChange, isSaving = false }: HeadfiFormProps) {
+export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wirelessMatchingList, onClose, onSave, onImageUpload, onFrGraphFileChange, isSaving = false }: HeadfiFormProps) {
   const cat = formData.category;
+  const hasCategory = cat !== '';
+  const isWired = cat === '헤드폰' || cat === '이어폰';
+  const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
+  const isSpeaker = cat === '스피커';
   const isDacAmp = cat === 'DAC/AMP';
+  const isDap = cat === 'DAP';
+  const isSourceOrEtc = cat === 'Source' || cat === '기타';
   const isHeadphone = cat === '헤드폰';
-  const isHeadphoneOrEarphone = cat === '헤드폰' || cat === '이어폰';
-  const type1Enabled = ['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(cat);
-  const type2Enabled = ['헤드폰', '이어폰', '무선 헤드폰'].includes(cat);
-  const isUnitFieldCategory = type1Enabled;
   const isEarphoneType = cat === '이어폰' || cat === '무선 이어폰';
 
   const dacAmpIds = dacAmpList.map((d) => String(d.id));
-  // 매칭(DAC/AMP/DAP)은 유선 헤드폰/이어폰에만 사용 (무선 기기는 비활성)
-  const canSelectMatching = cat === '헤드폰' || cat === '이어폰';
-  const isMatchingCustom = canSelectMatching && !dacAmpIds.includes(formData.matching) && formData.matching !== '' && formData.matching !== ' ';
-  const matchingSelectVal = canSelectMatching
+  const wirelessMatchingIds = wirelessMatchingList.map((d) => String(d.id));
+  const isMatchingCustom = isWired && !dacAmpIds.includes(formData.matching) && formData.matching !== '' && formData.matching !== ' ';
+  const matchingSelectVal = isWired
     ? dacAmpIds.includes(formData.matching)
       ? formData.matching
       : isMatchingCustom
         ? '__custom__'
         : ''
     : formData.matching;
+  const wirelessMatchingSelectVal = wirelessMatchingIds.includes(formData.matching)
+    ? formData.matching
+    : '';
 
   const renderInput = (label: string, field: keyof FormData, type: string = 'text', isActive: boolean = true) => (
     <div>
@@ -100,6 +109,46 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
         disabled={!isActive}
         placeholder={!isActive ? '해당 없음' : ''}
       />
+    </div>
+  );
+
+  const purchaseStatusRow = (
+    <>
+      {renderInput('구입일', 'purchase_date', 'date')}
+      <div>
+        <label className="block text-sm font-semibold mb-1 opacity-90">보유 상태</label>
+        <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.status2} onChange={(e) => setFormData({ ...formData, status2: e.target.value })}>
+          <option value="">선택</option>
+          <option value="보유중">보유중</option>
+          <option value="방출">방출</option>
+        </select>
+      </div>
+    </>
+  );
+
+  const priceStatusRow = (
+    <>
+      {renderInput('구매가', 'price', 'number')}
+      <div>
+        <label className="block text-sm font-semibold mb-1 opacity-90">구매 형태</label>
+        <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.status1} onChange={(e) => setFormData({ ...formData, status1: e.target.value })}>
+          <option value="">선택</option>
+          <option value="신품">신품</option>
+          <option value="미개봉">미개봉</option>
+          <option value="중고">중고</option>
+          <option value="중고2차">중고2차</option>
+          <option value="중고3차">중고3차</option>
+          <option value="반품 최상">반품 최상</option>
+          <option value="반품 상">반품 상</option>
+        </select>
+      </div>
+    </>
+  );
+
+  const memoField = (
+    <div className="col-span-2">
+      <label className="block text-sm font-semibold mb-1 opacity-90">특징</label>
+      <textarea className="input-apple px-3 py-2 w-full rounded-xl min-h-[80px]" rows={3} value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} />
     </div>
   );
 
@@ -125,16 +174,17 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
           <div className="col-span-2">
             <label className="block text-sm font-semibold mb-1 opacity-90">카테고리</label>
             <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-              {['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰', '스피커', 'DAC/AMP', 'DAP', 'Source', '기타'].map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              <option value="">선택</option>
+              {['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰', '스피커', 'DAC/AMP', 'DAP', 'Source', '기타'].map((categoryOption) => (
+                <option key={categoryOption} value={categoryOption}>{categoryOption}</option>
               ))}
             </select>
           </div>
-          {!isDacAmp && (
+          {hasCategory && isWired && (
             <>
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">타입1</label>
-                <select className={`select-apple px-3 py-2 w-full h-[42px] ${!type1Enabled ? disabledClass : ''}`} value={formData.type1} onChange={(e) => setFormData({ ...formData, type1: e.target.value })} disabled={!type1Enabled}>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.type1} onChange={(e) => setFormData({ ...formData, type1: e.target.value })}>
                   <option value="">선택</option>
                   {isEarphoneType ? (
                     <>
@@ -152,7 +202,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">타입2</label>
-                <select className={`select-apple px-3 py-2 w-full h-[42px] ${!type2Enabled ? disabledClass : ''}`} value={formData.type2} onChange={(e) => setFormData({ ...formData, type2: e.target.value })} disabled={!type2Enabled}>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.type2} onChange={(e) => setFormData({ ...formData, type2: e.target.value })}>
                   <option value="">선택</option>
                   {cat === '이어폰' ? (
                     <>
@@ -169,78 +219,34 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
                   )}
                 </select>
               </div>
-            </>
-          )}
-          {isDacAmp && (
-            <>
-              <div className="col-span-2">
-                <p className="text-xs font-semibold opacity-75 mb-2">DAC/AMP 스펙</p>
+              <div className="col-span-2 grid grid-cols-4 gap-x-6">
+                <div className="col-span-2">
+                  {renderInput('임피던스 (Ω)', 'impedance', 'number')}
+                </div>
+                {renderInput('db SPL/V', 'db1', 'number')}
+                {renderInput('db/mW', 'db2', 'number')}
               </div>
-              {renderInput('앰프 타입', 'amp_type')}
-              {renderInput('Rk (Ω)', 'output_impedance', 'number')}
-              <div className="col-span-2">
-                <label className="block text-sm font-semibold mb-1 opacity-90">Chipset</label>
-                <input
-                  type="text"
-                  className={inputBaseClass}
-                  value={formData.chipset}
-                  onChange={(e) => setFormData({ ...formData, chipset: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (BAL)</label>
-                <input
-                  type="number"
-                  step="any"
-                  className={inputBaseClass}
-                  placeholder="32Ω 기준 (예: 15.5)"
-                  value={formData.vrms_bal}
-                  onChange={(e) => setFormData({ ...formData, vrms_bal: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (Single)</label>
-                <input
-                  type="number"
-                  step="any"
-                  className={inputBaseClass}
-                  placeholder="32Ω 기준 (예: 12)"
-                  value={formData.vrms_single}
-                  onChange={(e) => setFormData({ ...formData, vrms_single: e.target.value })}
-                />
-              </div>
-            </>
-          )}
-          <div className="col-span-2 grid grid-cols-4 gap-x-6">
-            <div className="col-span-2">
-              {renderInput('임피던스 (Ω)', 'impedance', 'number', isHeadphoneOrEarphone)}
-            </div>
-            {renderInput('db SPL/V', 'db1', 'number', isHeadphoneOrEarphone)}
-            {renderInput('db/mW', 'db2', 'number', isHeadphoneOrEarphone)}
-          </div>
-          <div className="col-span-2 grid grid-cols-4 gap-x-6">
-            <div>
-              <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
-              <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })} disabled={!isHeadphone}>
-                <option value="">선택</option>
-                <option value="S">S</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
-              <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })} disabled={!isHeadphone}>
-                <option value="">선택</option>
-                <option value="전압형">전압형</option>
-                <option value="전류형">전류형</option>
-                <option value="혼합형">혼합형</option>
-              </select>
-            </div>
-            {!isDacAmp ? (
-              <>
+              <div className="col-span-2 grid grid-cols-4 gap-x-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
+                  <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })} disabled={!isHeadphone}>
+                    <option value="">선택</option>
+                    <option value="S">S</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
+                  <select className={`select-apple px-3 py-2 w-full h-[42px] ${!isHeadphone ? disabledClass : ''}`} value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })} disabled={!isHeadphone}>
+                    <option value="">선택</option>
+                    <option value="전압형">전압형</option>
+                    <option value="전류형">전류형</option>
+                    <option value="혼합형">혼합형</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
                   <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
@@ -267,11 +273,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
                     <option value="매우 어두움">매우 어두움</option>
                   </select>
                 </div>
-              </>
-            ) : null}
-          </div>
-          {canSelectMatching ? (
-            <>
+              </div>
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
                 <select
@@ -310,14 +312,8 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
                   onChange={(e) => setFormData({ ...formData, gain: e.target.value })}
                 />
               </div>
-            </>
-          ) : (
-            renderInput('매칭', 'matching', 'text', isHeadphoneOrEarphone)
-          )}
-          {renderInput('케이블', 'cable', 'text', isHeadphoneOrEarphone)}
-          {renderInput('케이블 가격', 'cable_price', 'number', isHeadphoneOrEarphone)}
-          {isUnitFieldCategory ? (
-            <>
+              {renderInput('케이블', 'cable', 'text')}
+              {renderInput('케이블 가격', 'cable_price', 'number')}
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
                 <input
@@ -329,35 +325,8 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
                 />
               </div>
               {renderInput('기타', 'etc')}
-            </>
-          ) : null}
-          {renderInput('구입일', 'purchase_date', 'date')}
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">보유 상태</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.status2} onChange={(e) => setFormData({ ...formData, status2: e.target.value })}>
-              <option value="">선택</option>
-              <option value="보유중">보유중</option>
-              <option value="방출">방출</option>
-            </select>
-          </div>
-          {renderInput('구매가', 'price', 'number')}
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">구매 형태</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.status1} onChange={(e) => setFormData({ ...formData, status1: e.target.value })}>
-              <option value="">선택</option>
-              <option value="신품">신품</option>
-              <option value="미개봉">미개봉</option>
-              <option value="중고">중고</option>
-              <option value="중고2차">중고2차</option>
-              <option value="중고3차">중고3차</option>
-              <option value="반품 최상">반품 최상</option>
-              <option value="반품 상">반품 상</option>
-            </select>
-          </div>
-          {!isUnitFieldCategory ? (
-            <div className="col-span-2">{renderInput('기타', 'etc')}</div>
-          ) : null}
-          {isHeadphoneOrEarphone && (
+              {purchaseStatusRow}
+              {priceStatusRow}
             <div className="col-span-2">
               <div className="border-t pt-4 mt-2" style={{ borderColor: 'var(--border)' }}>
                 <h3 className="text-sm font-semibold opacity-90 mb-3">청음 평가 (1~10, 선택)</h3>
@@ -445,47 +414,208 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, on
                 </div>
               </div>
             </div>
+              <div className="col-span-2 p-4 rounded-xl space-y-3" style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">FR 그래프 (주파수 응답)</label>
+                  <p className="text-[11px] opacity-65 mb-2">
+                    측정 그래프 이미지를 업로드하거나, 이미 호스팅된 이미지 URL을 붙여 넣으세요.
+                  </p>
+                  <input
+                    type="url"
+                    placeholder="https://… (외부 이미지 직접 링크)"
+                    className={`${inputBaseClass} w-full`}
+                    value={formData.fr_graph_url}
+                    onChange={(e) => setFormData({ ...formData, fr_graph_url: e.target.value })}
+                  />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
+                  {onFrGraphFileChange ? (
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={onFrGraphFileChange}
+                      className="input-apple p-2 w-full sm:w-auto file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:opacity-90"
+                    />
+                  ) : null}
+                  {formData.fr_graph_url ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium opacity-80 hover:opacity-100 underline py-2"
+                      onClick={() => setFormData({ ...formData, fr_graph_url: '' })}
+                    >
+                      FR 그래프 URL/업로드 지우기
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {memoField}
+            </>
           )}
-          {isHeadphoneOrEarphone ? (
-            <div className="col-span-2 p-4 rounded-xl space-y-3" style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}>
+          {hasCategory && isWireless && (
+            <>
               <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">FR 그래프 (주파수 응답)</label>
-                <p className="text-[11px] opacity-65 mb-2">
-                  측정 그래프 이미지를 업로드하거나, 이미 호스팅된 이미지 URL을 붙여 넣으세요. 무선 헤드폰·이어폰 카테고리에서는 이 항목이 표시되지 않습니다.
-                </p>
+                <label className="block text-sm font-semibold mb-1 opacity-90">타입1</label>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.type1} onChange={(e) => setFormData({ ...formData, type1: e.target.value })}>
+                  <option value="">선택</option>
+                  {isEarphoneType ? (
+                    <>
+                      <option value="오픈형">오픈형</option>
+                      <option value="세미 오픈">세미 오픈</option>
+                      <option value="커널형">커널형</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="오픈형">오픈형</option>
+                      <option value="밀폐형">밀폐형</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">타입2</label>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.type2} onChange={(e) => setFormData({ ...formData, type2: e.target.value })}>
+                  <option value="">선택</option>
+                  {cat === '무선 이어폰' ? (
+                    <>
+                      <option value="Over-ear">Over-ear</option>
+                      <option value="Under-ear">Under-ear</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="다이내믹">다이내믹</option>
+                      <option value="평판형">평판형</option>
+                      <option value="정전형">정전형</option>
+                      <option value="기타">기타</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-semibold mb-1 opacity-90">매칭</label>
+                <select
+                  className="select-apple px-3 py-2 w-full h-[42px]"
+                  value={wirelessMatchingSelectVal}
+                  onChange={(e) => setFormData({ ...formData, matching: e.target.value })}
+                >
+                  <option value="">선택 안 함</option>
+                  {wirelessMatchingList.map((d) => (
+                    <option key={d.id} value={String(d.id)}>{d.brand} {d.model}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
                 <input
-                  type="url"
-                  placeholder="https://… (외부 이미지 직접 링크)"
-                  className={`${inputBaseClass} w-full`}
-                  value={formData.fr_graph_url}
-                  onChange={(e) => setFormData({ ...formData, fr_graph_url: e.target.value })}
+                  type="text"
+                  className={inputBaseClass}
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="유닛 (예: 1DD, 2BA+1DD)"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
-                {onFrGraphFileChange ? (
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={onFrGraphFileChange}
-                    className="input-apple p-2 w-full sm:w-auto file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:opacity-90"
-                  />
-                ) : null}
-                {formData.fr_graph_url ? (
-                  <button
-                    type="button"
-                    className="text-xs font-medium opacity-80 hover:opacity-100 underline py-2"
-                    onClick={() => setFormData({ ...formData, fr_graph_url: '' })}
-                  >
-                    FR 그래프 URL/업로드 지우기
-                  </button>
-                ) : null}
+              {renderInput('기타', 'etc')}
+              {purchaseStatusRow}
+              {priceStatusRow}
+              {memoField}
+            </>
+          )}
+          {hasCategory && isSpeaker && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">타입1</label>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.speaker_type1} onChange={(e) => setFormData({ ...formData, speaker_type1: e.target.value })}>
+                  <option value="">선택</option>
+                  <option value="액티브">액티브</option>
+                  <option value="패시브">패시브</option>
+                </select>
               </div>
-            </div>
-          ) : null}
-          <div className="col-span-2">
-            <label className="block text-sm font-semibold mb-1 opacity-90">특징 (메모)</label>
-            <textarea className="input-apple px-3 py-2 w-full rounded-xl min-h-[80px]" rows={3} value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} />
-          </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">타입2</label>
+                <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.speaker_type2} onChange={(e) => setFormData({ ...formData, speaker_type2: e.target.value })}>
+                  <option value="">선택</option>
+                  <option value="북쉘프">북쉘프</option>
+                  <option value="스탠딩">스탠딩</option>
+                  <option value="사운드바">사운드바</option>
+                  <option value="블루투스">블루투스</option>
+                  <option value="스마트">스마트</option>
+                </select>
+              </div>
+              <div className="col-span-2">{renderInput('기타', 'etc')}</div>
+              {purchaseStatusRow}
+              {priceStatusRow}
+              {memoField}
+            </>
+          )}
+          {hasCategory && isDacAmp && (
+            <>
+              {renderInput('앰프 타입', 'amp_type')}
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">Chipset</label>
+                <input
+                  type="text"
+                  className={inputBaseClass}
+                  value={formData.chipset}
+                  onChange={(e) => setFormData({ ...formData, chipset: e.target.value })}
+                />
+              </div>
+              {renderInput('출력 임피던스 (Rk Ω)', 'output_impedance', 'number')}
+              <div className="grid grid-cols-2 gap-x-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (BAL)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputBaseClass}
+                    placeholder="32Ω 기준 (예: 15.5)"
+                    value={formData.vrms_bal}
+                    onChange={(e) => setFormData({ ...formData, vrms_bal: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (Single)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inputBaseClass}
+                    placeholder="32Ω 기준 (예: 12)"
+                    value={formData.vrms_single}
+                    onChange={(e) => setFormData({ ...formData, vrms_single: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="col-span-2">{renderInput('기타', 'etc')}</div>
+              {purchaseStatusRow}
+              {priceStatusRow}
+              {memoField}
+            </>
+          )}
+          {hasCategory && isDap && (
+            <>
+              <div className="col-span-2">{renderInput('스펙', 'dap_spec')}</div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">Chipset</label>
+                <input
+                  type="text"
+                  className={inputBaseClass}
+                  value={formData.chipset}
+                  onChange={(e) => setFormData({ ...formData, chipset: e.target.value })}
+                />
+              </div>
+              {renderInput('출력', 'dap_output')}
+              <div className="col-span-2">{renderInput('기타', 'etc')}</div>
+              {purchaseStatusRow}
+              {priceStatusRow}
+              {memoField}
+            </>
+          )}
+          {hasCategory && isSourceOrEtc && (
+            <>
+              <div className="col-span-2">{renderInput('기타', 'etc')}</div>
+              {purchaseStatusRow}
+              {priceStatusRow}
+              {memoField}
+            </>
+          )}
         </div>
         <button
           type="button"

@@ -126,3 +126,9 @@
 [2026-06-08] [Cursor] style: 소비 통계 모달 연도 차트 제거·월별 차트 확대 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 소비 통계 버튼 로그인 시에만 노출 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 소비 통계 모달 열림 시 배경 스크롤 잠금 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: HeadfiForm 카테고리별 필드 분기(스피커/DAP/무선매칭 등) | passes: 변경 없음
+[2026-06-08] [Cursor] style: DAC/AMP 폼 Vrms(BAL/Single) 한 줄 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: HeadfiInfoSection 카테고리별 상세 스펙·특징 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 무선 헤드폰/이어폰 상세 유닛 필드 전체 너비 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 무선 헤드폰/이어폰 매칭 ID→브랜드+모델명 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 스피커 타입2 선택항목 '스마트' 추가 | passes: 변경 없음

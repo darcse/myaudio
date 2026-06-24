@@ -27,6 +27,10 @@ export interface Headfi {
   cable_price: number | null;
   unit: string | null;
   etc: string | null;
+  speaker_type1?: string | null;
+  speaker_type2?: string | null;
+  dap_spec?: string | null;
+  dap_output?: string | null;
   matching: string | null;
   gain: string | null;
   temp: string | null;
@@ -91,6 +95,10 @@ export interface HeadfiFormData {
   cable_price: string;
   unit: string;
   etc: string;
+  speaker_type1: string;
+  speaker_type2: string;
+  dap_spec: string;
+  dap_output: string;
   matching: string;
   gain: string;
   temp: string;

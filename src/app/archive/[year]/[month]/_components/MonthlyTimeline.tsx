@@ -178,7 +178,10 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   }, [viewingHeadfi?.id]);
 
   useEffect(() => {
-    if (!viewingHeadfi || (viewingHeadfi.category !== '헤드폰' && viewingHeadfi.category !== '이어폰')) {
+    if (
+      !viewingHeadfi ||
+      !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
+    ) {
       setMatchedMatchingDevice(null);
       return;
     }

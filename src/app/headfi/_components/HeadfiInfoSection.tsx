@@ -47,11 +47,36 @@ export function HeadfiInfoSection({
   matchedHeadphones,
   variant = 'default',
 }: HeadfiInfoSectionProps) {
-  const [specOpen, setSpecOpen] = useState(() => variant === 'tab' || viewingItem.category === 'DAC/AMP');
+  const cat = viewingItem.category;
+  const isWired = cat === '헤드폰' || cat === '이어폰';
+  const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
+  const isSpeaker = cat === '스피커';
+  const isDacAmp = cat === 'DAC/AMP';
+  const isDap = cat === 'DAP';
+  const isSourceOrEtc = cat === 'Source' || cat === '기타';
+
+  const renderMatchingLink = (withGain = false) => (
+    <>
+      {viewingItem.matching && viewingItem.matching !== ' ' ? (
+        matchedMatchingDevice ? (
+          <Link href={`/headfi?view=${matchedMatchingDevice.id}`} className="link-apple">
+            {matchedMatchingDevice.brand} {matchedMatchingDevice.model}
+          </Link>
+        ) : (
+          <span>{viewingItem.matching}</span>
+        )
+      ) : (
+        '-'
+      )}
+      {withGain && viewingItem.gain ? ` / ${viewingItem.gain}` : ''}
+    </>
+  );
+
+  const [specOpen, setSpecOpen] = useState(() => variant === 'tab' || isDacAmp || isDap);
 
   useEffect(() => {
-    setSpecOpen(variant === 'tab' || viewingItem.category === 'DAC/AMP');
-  }, [viewingItem.id, viewingItem.category, variant]);
+    setSpecOpen(variant === 'tab' || isDacAmp || isDap);
+  }, [viewingItem.id, cat, variant, isDacAmp, isDap]);
 
   return (
     <>
@@ -100,35 +125,24 @@ export function HeadfiInfoSection({
         </button>
         {specOpen ? (
           <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm mb-4 opacity-90">
-            {['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingItem.category) ? (
+            {isWired ? (
               <>
-                {(viewingItem.category === '헤드폰' ||
-                  viewingItem.category === '이어폰' ||
-                  viewingItem.category === '무선 헤드폰') && (
-                  <p className="col-span-2">
-                    <strong>타입:</strong> {viewingItem.type1 || '-'} / {viewingItem.type2 || '-'}
+                <p className="col-span-2">
+                  <strong>타입:</strong> {viewingItem.type1 || '-'} / {viewingItem.type2 || '-'}
+                </p>
+                <div className="col-span-2 grid grid-cols-[3fr_7fr] gap-x-6">
+                  <p className="min-w-0">
+                    <strong>임피던스:</strong>{' '}
+                    {viewingItem.impedance ? `${viewingItem.impedance} Ω` : '-'}
                   </p>
-                )}
-                {viewingItem.category === '무선 이어폰' ? (
-                  <p className="col-span-2">
-                    <strong>타입:</strong> {viewingItem.type1 || '-'}
+                  <p className="min-w-0">
+                    <strong>감도:</strong>{' '}
+                    {viewingItem.db1 != null ? `${String(viewingItem.db1)} dB/SPL V` : '-'}{' '}
+                    {viewingItem.db1 != null && viewingItem.db2 != null && '·'}{' '}
+                    {viewingItem.db2 != null ? `${String(viewingItem.db2)} dB/mW` : ''}
                   </p>
-                ) : null}
-                {(viewingItem.category === '헤드폰' || viewingItem.category === '이어폰') && (
-                  <div className="col-span-2 grid grid-cols-[3fr_7fr] gap-x-6">
-                    <p className="min-w-0">
-                      <strong>임피던스:</strong>{' '}
-                      {viewingItem.impedance ? `${viewingItem.impedance} Ω` : '-'}
-                    </p>
-                    <p className="min-w-0">
-                      <strong>감도:</strong>{' '}
-                      {viewingItem.db1 != null ? `${String(viewingItem.db1)} dB/SPL V` : '-'}{' '}
-                      {viewingItem.db1 != null && viewingItem.db2 != null && '·'}{' '}
-                      {viewingItem.db2 != null ? `${String(viewingItem.db2)} dB/mW` : ''}
-                    </p>
-                  </div>
-                )}
-                {viewingItem.category === '헤드폰' ? (
+                </div>
+                {cat === '헤드폰' ? (
                   <div className="col-span-2 grid grid-cols-[3fr_7fr] gap-x-6">
                     <p className="min-w-0">
                       <strong>구동력:</strong> {viewingItem.volume || '-'} / {viewingItem.volume_type || '-'}
@@ -137,26 +151,13 @@ export function HeadfiInfoSection({
                       <strong>음색 (온도/밝기):</strong> {viewingItem.temp || '-'} / {viewingItem.bright || '-'}
                     </p>
                   </div>
-                ) : null}
-                {viewingItem.category === '이어폰' ? (
+                ) : (
                   <p className="col-span-2">
                     <strong>음색 (온도/밝기):</strong> {viewingItem.temp || '-'} / {viewingItem.bright || '-'}
                   </p>
-                ) : null}
+                )}
                 <p className="col-span-2">
-                  <strong>매칭 (매칭 기기 / gain):</strong>{' '}
-                  {viewingItem.matching && viewingItem.matching !== ' ' ? (
-                    matchedMatchingDevice ? (
-                      <Link href={`/headfi?view=${matchedMatchingDevice.id}`} className="link-apple">
-                        {matchedMatchingDevice.brand} {matchedMatchingDevice.model}
-                      </Link>
-                    ) : (
-                      <span>{viewingItem.matching}</span>
-                    )
-                  ) : (
-                    '-'
-                  )}
-                  {viewingItem.category === '헤드폰' && (viewingItem.gain ? ` / ${viewingItem.gain}` : '')}
+                  <strong>매칭 (매칭 기기 / gain):</strong> {renderMatchingLink(cat === '헤드폰')}
                 </p>
                 <p className="col-span-2">
                   <strong>케이블:</strong> {viewingItem.cable || '-'}
@@ -169,50 +170,88 @@ export function HeadfiInfoSection({
                 </p>
               </>
             ) : null}
-            {viewingItem.category === 'DAC/AMP' ? (
+            {isWireless ? (
               <>
                 <p className="col-span-2">
-                  <strong>앰프 타입:</strong> {viewingItem.amp_type || '-'}
+                  <strong>타입:</strong> {viewingItem.type1 || '-'} / {viewingItem.type2 || '-'}
                 </p>
                 <p className="col-span-2">
-                  <strong>Rk (Ω):</strong>{' '}
+                  <strong>유닛:</strong> {viewingItem.unit || '-'}
+                </p>
+                <p className="col-span-2">
+                  <strong>매칭:</strong> {renderMatchingLink()}
+                </p>
+              </>
+            ) : null}
+            {isSpeaker ? (
+              <>
+                <p>
+                  <strong>타입1:</strong> {viewingItem.speaker_type1 || '-'}
+                </p>
+                <p>
+                  <strong>타입2:</strong> {viewingItem.speaker_type2 || '-'}
+                </p>
+              </>
+            ) : null}
+            {isDacAmp ? (
+              <>
+                <p>
+                  <strong>앰프 타입:</strong> {viewingItem.amp_type || '-'}
+                </p>
+                <p>
+                  <strong>Chipset:</strong> {viewingItem.chipset || '-'}
+                </p>
+                <p>
+                  <strong>출력 임피던스 (Rk):</strong>{' '}
                   {viewingItem.output_impedance != null &&
                   Number.isFinite(Number(viewingItem.output_impedance))
                     ? `${viewingItem.output_impedance} Ω`
                     : '-'}
                 </p>
-                <p className="col-span-2">
-                  <strong>Chipset:</strong> {viewingItem.chipset || '-'}
+                <p>
+                  <strong>Vrms (BAL):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_bal) || '-'}
                 </p>
-                {formatVrmsAt32Ohm(viewingItem.vrms_bal) ? (
-                  <p className="col-span-2">
-                    <strong>Vrms (BAL):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_bal)}
-                  </p>
-                ) : null}
-                {formatVrmsAt32Ohm(viewingItem.vrms_single) ? (
-                  <p className="col-span-2">
-                    <strong>Vrms (Single):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_single)}
-                  </p>
-                ) : null}
+                <p className="col-span-2">
+                  <strong>Vrms (Single):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_single) || '-'}
+                </p>
               </>
             ) : null}
-            <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc || '-'}</p>
-            {viewingItem.memo ? (
-              <div className="col-span-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                <strong className="block mb-2">메모</strong>
-                <p
-                  className="p-4 rounded-xl whitespace-pre-wrap leading-relaxed text-sm opacity-90"
-                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-                >
-                  {viewingItem.memo}
+            {isDap ? (
+              <>
+                <p className="col-span-2">
+                  <strong>스펙:</strong> {viewingItem.dap_spec || '-'}
                 </p>
-              </div>
+                <p>
+                  <strong>Chipset:</strong> {viewingItem.chipset || '-'}
+                </p>
+                <p>
+                  <strong>출력:</strong> {viewingItem.dap_output || '-'}
+                </p>
+              </>
+            ) : null}
+            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) ? (
+              <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc || '-'}</p>
+            ) : null}
+            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) ? (
+              viewingItem.memo ? (
+                <div className="col-span-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <strong className="block mb-2">특징</strong>
+                  <p
+                    className="p-4 rounded-xl whitespace-pre-wrap leading-relaxed text-sm opacity-90"
+                    style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                  >
+                    {viewingItem.memo}
+                  </p>
+                </div>
+              ) : (
+                <p className="col-span-2"><strong>특징:</strong> -</p>
+              )
             ) : null}
           </div>
         ) : null}
       </div>
 
-      {viewingItem.category === 'DAC/AMP' ? (
+      {isDacAmp ? (
         <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
           <strong className="block mb-2 flex items-center">
             <Headphones className="size-4 opacity-80 shrink-0 mr-1.5" /> 매칭 모델

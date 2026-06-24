@@ -9,118 +9,185 @@ function optionalFiniteNumber(raw: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function mapHeadfiData(data: HeadfiFormData) {
-  const fr = data.fr_graph_url?.trim() || null;
-  const isDacAmp = data.category === 'DAC/AMP';
+function parseIntOrNull(raw: string | undefined): number | null {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const n = parseInt(String(raw).trim(), 10);
+  return Number.isFinite(n) ? n : null;
+}
 
-  const dacColumns = {
-    amp_type: data.amp_type?.trim() ?? '',
-    output_impedance: optionalFiniteNumber(data.output_impedance),
-    chipset: data.chipset?.trim() ?? '',
-    vrms_bal: optionalFiniteNumber(data.vrms_bal),
-    vrms_single: optionalFiniteNumber(data.vrms_single),
+function parseFloatOrNull(raw: string | undefined): number | null {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const n = parseFloat(String(raw).trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function emptySoundScores() {
+  return {
+    bass_quantity: null as number | null,
+    bass_depth: null as number | null,
+    bass_speed: null as number | null,
+    dynamics_slam: null as number | null,
+    midrange_body: null as number | null,
+    tone_warmth: null as number | null,
+    vocal_position: null as number | null,
+    midrange_clarity: null as number | null,
+    treble_brightness: null as number | null,
+    treble_smoothness: null as number | null,
+    treble_airiness: null as number | null,
+    resolution: null as number | null,
+    separation: null as number | null,
+    soundstage: null as number | null,
+    imaging: null as number | null,
+    timbre: null as number | null,
   };
+}
 
-  /** 비 DAC/AMP 행: DAC 컬럼 비움 (텍스트는 NOT NULL 스키마 대비 '') */
-  const dacColumnsNull = {
+function emptyDacColumns() {
+  return {
     amp_type: '',
     output_impedance: null as number | null,
     chipset: '',
     vrms_bal: null as number | null,
     vrms_single: null as number | null,
   };
+}
 
-  if (isDacAmp) {
-    // 텍스트 컬럼은 스키마에 NOT NULL이 잡혀 있는 경우가 많아 null 대신 ''로 비운다.
+function emptyWiredFields() {
+  return {
+    type1: '',
+    type2: '',
+    impedance: null as number | null,
+    db1: null as number | null,
+    db2: null as number | null,
+    volume: '',
+    volume_type: '',
+    cable: '',
+    cable_price: 0,
+    unit: '',
+    matching: '',
+    gain: null as string | null,
+    temp: '',
+    bright: '',
+    fr_graph_url: '',
+    speaker_type1: '',
+    speaker_type2: '',
+    dap_spec: '',
+    dap_output: '',
+    ...emptySoundScores(),
+    ...emptyDacColumns(),
+  };
+}
+
+function mapHeadfiData(data: HeadfiFormData) {
+  const fr = data.fr_graph_url?.trim() || null;
+  const base = {
+    brand: data.brand,
+    model: data.model,
+    category: data.category,
+    purchase_date: data.purchase_date || null,
+    price: parseInt(data.price, 10) || 0,
+    status1: data.status1,
+    status2: data.status2,
+    etc: data.etc?.trim() ?? '',
+    memo: data.memo,
+    image_url: data.image_url,
+  };
+
+  if (data.category === 'DAC/AMP') {
     return {
-      brand: data.brand,
-      model: data.model,
-      category: data.category,
-      type1: '',
-      type2: '',
-      impedance: null,
-      db1: null,
-      db2: null,
-      volume: '',
-      volume_type: '',
-      purchase_date: data.purchase_date || null,
-      price: parseInt(data.price, 10) || 0,
-      status1: data.status1,
-      status2: data.status2,
-      cable: '',
-      cable_price: 0,
-      unit: '',
-      etc: data.etc,
-      matching: '',
-      gain: '',
-      temp: '',
-      bright: '',
-      bass_quantity: null,
-      bass_depth: null,
-      bass_speed: null,
-      dynamics_slam: null,
-      midrange_body: null,
-      tone_warmth: null,
-      vocal_position: null,
-      midrange_clarity: null,
-      treble_brightness: null,
-      treble_smoothness: null,
-      treble_airiness: null,
-      resolution: null,
-      separation: null,
-      soundstage: null,
-      imaging: null,
-      timbre: null,
-      memo: data.memo,
-      image_url: data.image_url,
-      fr_graph_url: '',
-      ...dacColumns,
+      ...base,
+      ...emptyWiredFields(),
+      etc: data.etc?.trim() ?? '',
+      amp_type: data.amp_type?.trim() ?? '',
+      output_impedance: optionalFiniteNumber(data.output_impedance),
+      chipset: data.chipset?.trim() ?? '',
+      vrms_bal: optionalFiniteNumber(data.vrms_bal),
+      vrms_single: optionalFiniteNumber(data.vrms_single),
+    };
+  }
+
+  if (data.category === 'DAP') {
+    return {
+      ...base,
+      ...emptyWiredFields(),
+      chipset: data.chipset?.trim() ?? '',
+      dap_spec: data.dap_spec?.trim() ?? '',
+      dap_output: data.dap_output?.trim() ?? '',
+    };
+  }
+
+  if (data.category === '스피커') {
+    return {
+      ...base,
+      ...emptyWiredFields(),
+      speaker_type1: data.speaker_type1?.trim() ?? '',
+      speaker_type2: data.speaker_type2?.trim() ?? '',
+    };
+  }
+
+  if (data.category === '무선 헤드폰' || data.category === '무선 이어폰') {
+    return {
+      ...base,
+      ...emptyWiredFields(),
+      type1: data.type1,
+      type2: data.type2,
+      unit: data.unit?.trim() ?? '',
+      matching: data.matching,
+    };
+  }
+
+  if (data.category === 'Source' || data.category === '기타') {
+    return {
+      ...base,
+      ...emptyWiredFields(),
+    };
+  }
+
+  if (data.category === '헤드폰' || data.category === '이어폰') {
+    return {
+      ...base,
+      type1: data.type1,
+      type2: data.type2,
+      impedance: parseIntOrNull(data.impedance),
+      db1: parseFloatOrNull(data.db1),
+      db2: parseFloatOrNull(data.db2),
+      volume: data.volume,
+      volume_type: data.volume_type,
+      cable: data.cable,
+      cable_price: parseInt(data.cable_price, 10) || 0,
+      unit: data.unit?.trim() ?? '',
+      matching: data.matching,
+      gain: data.gain ?? null,
+      temp: data.temp,
+      bright: data.bright,
+      bass_quantity: parseIntOrNull(data.bass_quantity),
+      bass_depth: parseIntOrNull(data.bass_depth),
+      bass_speed: parseIntOrNull(data.bass_speed),
+      dynamics_slam: parseIntOrNull(data.dynamics_slam),
+      midrange_body: parseIntOrNull(data.midrange_body),
+      tone_warmth: parseIntOrNull(data.tone_warmth),
+      vocal_position: parseIntOrNull(data.vocal_position),
+      midrange_clarity: parseIntOrNull(data.midrange_clarity),
+      treble_brightness: parseIntOrNull(data.treble_brightness),
+      treble_smoothness: parseIntOrNull(data.treble_smoothness),
+      treble_airiness: parseIntOrNull(data.treble_airiness),
+      resolution: parseIntOrNull(data.resolution),
+      separation: parseIntOrNull(data.separation),
+      soundstage: parseIntOrNull(data.soundstage),
+      imaging: parseIntOrNull(data.imaging),
+      timbre: parseIntOrNull(data.timbre),
+      fr_graph_url: fr,
+      speaker_type1: '',
+      speaker_type2: '',
+      dap_spec: '',
+      dap_output: '',
+      ...emptyDacColumns(),
     };
   }
 
   return {
-    brand: data.brand,
-    model: data.model,
-    category: data.category,
-    type1: data.type1,
-    type2: data.type2,
-    impedance: parseInt(data.impedance) || null,
-    db1: data.db1 !== undefined && data.db1 !== null && data.db1 !== '' ? parseFloat(data.db1) : null,
-    db2: data.db2 !== undefined && data.db2 !== null && data.db2 !== '' ? parseFloat(data.db2) : null,
-    volume: data.volume,
-    volume_type: data.volume_type,
-    purchase_date: data.purchase_date || null,
-    price: parseInt(data.price) || 0,
-    status1: data.status1,
-    status2: data.status2,
-    cable: data.cable,
-    cable_price: parseInt(data.cable_price) || 0,
-    unit: data.unit?.trim() ?? '',
-    etc: data.etc,
-    matching: data.matching,
-    gain: data.gain ?? null,
-    temp: data.temp,
-    bright: data.bright,
-    bass_quantity: data.bass_quantity !== '' && data.bass_quantity != null ? parseInt(data.bass_quantity) : null,
-    bass_depth: data.bass_depth !== '' && data.bass_depth != null ? parseInt(data.bass_depth) : null,
-    bass_speed: data.bass_speed !== '' && data.bass_speed != null ? parseInt(data.bass_speed) : null,
-    dynamics_slam: data.dynamics_slam !== '' && data.dynamics_slam != null ? parseInt(data.dynamics_slam) : null,
-    midrange_body: data.midrange_body !== '' && data.midrange_body != null ? parseInt(data.midrange_body) : null,
-    tone_warmth: data.tone_warmth !== '' && data.tone_warmth != null ? parseInt(data.tone_warmth) : null,
-    vocal_position: data.vocal_position !== '' && data.vocal_position != null ? parseInt(data.vocal_position) : null,
-    midrange_clarity: data.midrange_clarity !== '' && data.midrange_clarity != null ? parseInt(data.midrange_clarity) : null,
-    treble_brightness: data.treble_brightness !== '' && data.treble_brightness != null ? parseInt(data.treble_brightness) : null,
-    treble_smoothness: data.treble_smoothness !== '' && data.treble_smoothness != null ? parseInt(data.treble_smoothness) : null,
-    treble_airiness: data.treble_airiness !== '' && data.treble_airiness != null ? parseInt(data.treble_airiness) : null,
-    resolution: data.resolution !== '' && data.resolution != null ? parseInt(data.resolution) : null,
-    separation: data.separation !== '' && data.separation != null ? parseInt(data.separation) : null,
-    soundstage: data.soundstage !== '' && data.soundstage != null ? parseInt(data.soundstage) : null,
-    imaging: data.imaging !== '' && data.imaging != null ? parseInt(data.imaging) : null,
-    timbre: data.timbre !== '' && data.timbre != null ? parseInt(data.timbre) : null,
-    memo: data.memo,
-    image_url: data.image_url,
-    fr_graph_url: fr,
-    ...dacColumnsNull,
+    ...base,
+    ...emptyWiredFields(),
   };
 }
 

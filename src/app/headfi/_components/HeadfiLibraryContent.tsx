@@ -22,7 +22,7 @@ import { HeadfiList } from './HeadfiList';
 const initialFormData = {
   brand: '',
   model: '',
-  category: '헤드폰',
+  category: '',
   type1: '',
   type2: '',
   impedance: '',
@@ -38,6 +38,10 @@ const initialFormData = {
   cable_price: '',
   unit: '',
   etc: '',
+  speaker_type1: '',
+  speaker_type2: '',
+  dap_spec: '',
+  dap_output: '',
   matching: '',
   gain: '',
   temp: '',
@@ -108,6 +112,9 @@ export function HeadfiLibraryContent() {
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
   >([]);
   const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
+  const [wirelessMatchingList, setWirelessMatchingList] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
   const [matchedMatchingDevice, setMatchedMatchingDevice] = useState<{ id: number; brand: string; model: string } | null>(
     null,
   );
@@ -156,6 +163,18 @@ export function HeadfiLibraryContent() {
       .order('model')
       .then(({ data }) =>
         setDacAmpList((data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }))),
+      );
+    client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', '기타')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) =>
+        setWirelessMatchingList(
+          (data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
+        ),
       );
   }, [library]);
 
@@ -220,7 +239,10 @@ export function HeadfiLibraryContent() {
   }, [viewingItem?.id]);
 
   useEffect(() => {
-    if (!viewingItem || (viewingItem.category !== '헤드폰' && viewingItem.category !== '이어폰')) {
+    if (
+      !viewingItem ||
+      !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingItem.category)
+    ) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -536,6 +558,7 @@ export function HeadfiLibraryContent() {
           formData={formData}
           setFormData={setFormData}
           dacAmpList={dacAmpList}
+          wirelessMatchingList={wirelessMatchingList}
           onClose={() => setSelectedItem(null)}
           onSave={handleSave}
           onImageUpload={handleImageUpload}

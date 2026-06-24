@@ -76,7 +76,7 @@ const initialAlbumFormData: AlbumFormData = {
 const initialHeadfiFormData = {
   brand: '',
   model: '',
-  category: '헤드폰',
+  category: '',
   type1: '',
   type2: '',
   impedance: '',
@@ -92,6 +92,10 @@ const initialHeadfiFormData = {
   cable_price: '',
   unit: '',
   etc: '',
+  speaker_type1: '',
+  speaker_type2: '',
+  dap_spec: '',
+  dap_output: '',
   matching: '',
   gain: '',
   temp: '',
@@ -208,6 +212,9 @@ export function DashboardContent({
     { id: number; brand: string; model: string }[]
   >([]);
   const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
+  const [wirelessMatchingList, setWirelessMatchingList] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
   const [summaryRefreshing, setSummaryRefreshing] = useState(false);
 
   const openAlbumById = useCallback(async (albumId: number) => {
@@ -249,7 +256,10 @@ export function DashboardContent({
   }, [viewingHeadfi?.id]);
 
   useEffect(() => {
-    if (!viewingHeadfi || (viewingHeadfi.category !== '헤드폰' && viewingHeadfi.category !== '이어폰')) {
+    if (
+      !viewingHeadfi ||
+      !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
+    ) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -355,6 +365,18 @@ export function DashboardContent({
       .order('model')
       .then(({ data }) =>
         setDacAmpList((data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }))),
+      );
+    client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', '기타')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) =>
+        setWirelessMatchingList(
+          (data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
+        ),
       );
   }, [isAuthenticated]);
 
@@ -763,6 +785,7 @@ export function DashboardContent({
           formData={headfiFormData}
           setFormData={setHeadfiFormData}
           dacAmpList={dacAmpList}
+          wirelessMatchingList={wirelessMatchingList}
           onClose={() => setEditingHeadfi(null)}
           onSave={() => void handleHeadfiSave()}
           onImageUpload={handleHeadfiImageUpload}
