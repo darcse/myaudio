@@ -11,12 +11,62 @@ export type SpendingMonthBucket = {
   amount: number;
 };
 
+export type SpendingCategoryBucket = {
+  label: string;
+  amount: number;
+  count: number;
+  countUnit: '개' | '대';
+};
+
 export type HeadfiSpendingStats = {
   total: number;
   unclassified: number;
   yearly: SpendingYearBucket[];
   monthlyByYear: Record<2025 | 2026, SpendingMonthBucket[]>;
+  byCategory: SpendingCategoryBucket[];
+  byAccessory: SpendingYearBucket[];
 };
+
+const SPENDING_CATEGORIES = [
+  '헤드폰',
+  '이어폰',
+  '무선 헤드폰',
+  '무선 이어폰',
+  'DAC/AMP',
+  'DAP',
+  '스피커',
+  'Source',
+  '기타',
+] as const;
+
+const CATEGORY_COUNT_UNITS: Record<(typeof SPENDING_CATEGORIES)[number], '개' | '대'> = {
+  헤드폰: '개',
+  이어폰: '개',
+  '무선 헤드폰': '개',
+  '무선 이어폰': '개',
+  'DAC/AMP': '대',
+  DAP: '대',
+  스피커: '대',
+  Source: '대',
+  기타: '개',
+};
+
+function safeAmount(value: unknown): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function sortSpendingRows(rows: SpendingYearBucket[]): SpendingYearBucket[] {
+  return rows.filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
+}
+
+function sortCategoryRows(rows: SpendingCategoryBucket[]): SpendingCategoryBucket[] {
+  return rows.filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
+}
+
+export function formatCategorySpendingLabel(row: SpendingCategoryBucket): string {
+  return `${row.label} (${row.count}${row.countUnit})`;
+}
 
 export function headfiItemSpending(
   item: Pick<Headfi, 'price' | 'cable_price' | 'eartip_price'>,
@@ -91,6 +141,48 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     yearly.push({ label: '2027+', amount: after2026 });
   }
 
+  const categoryTotals = new Map<string, number>(
+    SPENDING_CATEGORIES.map((category) => [category, 0]),
+  );
+  const categoryCounts = new Map<string, number>(
+    SPENDING_CATEGORIES.map((category) => [category, 0]),
+  );
+  let headphoneCable = 0;
+  let headphoneEartip = 0;
+  let earphoneCable = 0;
+  let earphoneEartip = 0;
+
+  for (const item of library) {
+    const category = item.category?.trim();
+    if (category && categoryTotals.has(category)) {
+      categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + safeAmount(item.price));
+      categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+    }
+    if (category === '헤드폰') {
+      headphoneCable += safeAmount(item.cable_price);
+      headphoneEartip += safeAmount(item.eartip_price);
+    } else if (category === '이어폰') {
+      earphoneCable += safeAmount(item.cable_price);
+      earphoneEartip += safeAmount(item.eartip_price);
+    }
+  }
+
+  const byCategory = sortCategoryRows(
+    SPENDING_CATEGORIES.map((category) => ({
+      label: category,
+      amount: categoryTotals.get(category) ?? 0,
+      count: categoryCounts.get(category) ?? 0,
+      countUnit: CATEGORY_COUNT_UNITS[category],
+    })),
+  );
+
+  const byAccessory = sortSpendingRows([
+    { label: '헤드폰 케이블', amount: headphoneCable },
+    { label: '헤드폰 이어패드', amount: headphoneEartip },
+    { label: '이어폰 케이블', amount: earphoneCable },
+    { label: '이어폰 이어팁', amount: earphoneEartip },
+  ]);
+
   return {
     total,
     unclassified,
@@ -99,6 +191,8 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
       2025: buildMonthlyBuckets(library, 2025),
       2026: buildMonthlyBuckets(library, 2026),
     },
+    byCategory,
+    byAccessory,
   };
 }
 

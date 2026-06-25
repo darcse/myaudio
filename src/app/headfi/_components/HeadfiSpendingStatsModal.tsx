@@ -5,7 +5,9 @@ import { BarChart2 } from 'lucide-react';
 import type { Headfi } from '../types';
 import {
   buildHeadfiSpendingStats,
+  formatCategorySpendingLabel,
   formatKrw,
+  type SpendingCategoryBucket,
   type SpendingMonthBucket,
   type SpendingYearBucket,
 } from '../spendingStats';
@@ -93,14 +95,22 @@ function MonthlyBarChart({ data }: { data: BarDatum[] }) {
   );
 }
 
-function YearlyTable({ rows }: { rows: SpendingYearBucket[] }) {
+function SpendingTable({
+  rows,
+  labelHeader = '항목',
+  amountHeader = '지출',
+}: {
+  rows: SpendingYearBucket[];
+  labelHeader?: string;
+  amountHeader?: string;
+}) {
   return (
     <div className="overflow-hidden rounded-xl border text-sm" style={{ borderColor: 'var(--border)' }}>
       <table className="w-full">
         <thead style={{ background: 'var(--badge-bg)' }}>
           <tr>
-            <th className="px-3 py-2 text-left font-semibold opacity-80">연도</th>
-            <th className="px-3 py-2 text-right font-semibold opacity-80">지출</th>
+            <th className="px-3 py-2 text-left font-semibold opacity-80">{labelHeader}</th>
+            <th className="px-3 py-2 text-right font-semibold opacity-80">{amountHeader}</th>
           </tr>
         </thead>
         <tbody>
@@ -116,7 +126,35 @@ function YearlyTable({ rows }: { rows: SpendingYearBucket[] }) {
   );
 }
 
+function YearlyTable({ rows }: { rows: SpendingYearBucket[] }) {
+  return <SpendingTable rows={rows} labelHeader="연도" amountHeader="지출" />;
+}
+
+function CategorySpendingTable({ rows }: { rows: SpendingCategoryBucket[] }) {
+  return (
+    <div className="overflow-hidden rounded-xl border text-sm" style={{ borderColor: 'var(--border)' }}>
+      <table className="w-full">
+        <thead style={{ background: 'var(--badge-bg)' }}>
+          <tr>
+            <th className="px-3 py-2 text-left font-semibold opacity-80">항목</th>
+            <th className="px-3 py-2 text-right font-semibold opacity-80">지출</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label} className="border-t" style={{ borderColor: 'var(--border)' }}>
+              <td className="px-3 py-2 opacity-90">{formatCategorySpendingLabel(row)}</td>
+              <td className="px-3 py-2 text-right tabular-nums font-medium">{formatKrw(row.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpendingStatsModalProps) {
+  const [statsTab, setStatsTab] = useState<'period' | 'type'>('period');
   const [monthlyYear, setMonthlyYear] = useState<2025 | 2026>(2026);
   const stats = useMemo(() => buildHeadfiSpendingStats(library), [library]);
 
@@ -161,9 +199,31 @@ export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpend
         <section className="mb-6 text-center">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">전체 지출</p>
           <p className="text-3xl font-bold tabular-nums">{formatKrw(stats.total)}</p>
-          <p className="mt-1 text-xs opacity-55">구매가 + 케이블 가격 + 이어팁 가격 (방출 포함)</p>
+          <p className="mt-1 text-xs opacity-55">구매가 + 케이블 가격 + 이어팁·이어패드 가격 (방출 포함)</p>
         </section>
 
+        <div className="mb-5 flex gap-1 rounded-xl p-1" style={{ background: 'var(--badge-bg)' }}>
+          {([
+            { id: 'period' as const, label: '기간별' },
+            { id: 'type' as const, label: '종류별' },
+          ]).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className="btn-apple flex-1 px-3 py-2 text-sm font-medium"
+              style={{
+                background: statsTab === tab.id ? 'var(--foreground)' : 'transparent',
+                color: statsTab === tab.id ? 'var(--background)' : 'var(--foreground)',
+              }}
+              onClick={() => setStatsTab(tab.id)}
+              aria-pressed={statsTab === tab.id}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {statsTab === 'period' ? (
         <section className="space-y-4">
           <h3 className="text-sm font-semibold opacity-90">연도별 지출</h3>
           <YearlyTable rows={stats.yearly} />
@@ -196,6 +256,24 @@ export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpend
           <MonthlyBarChart data={monthlyChartData} />
           <p className="text-xs opacity-55">구매 없는 달은 0원으로 표시됩니다. 바 위 금액은 만·억 단위로 축약 표시됩니다.</p>
         </section>
+        ) : (
+        <section className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold opacity-90">카테고리별 지출</h3>
+            {stats.byCategory.length > 0 ? (
+              <CategorySpendingTable rows={stats.byCategory} />
+            ) : (
+              <p className="text-sm opacity-70">표시할 지출이 없습니다.</p>
+            )}
+          </div>
+          {stats.byAccessory.length > 0 ? (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold opacity-90">액세서리별 지출</h3>
+              <SpendingTable rows={stats.byAccessory} />
+            </div>
+          ) : null}
+        </section>
+        )}
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ export function HeadfiInfoSection({
 }: HeadfiInfoSectionProps) {
   const cat = viewingItem.category;
   const isWired = cat === '헤드폰' || cat === '이어폰';
-  const isEarphone = cat === '이어폰';
+  const isHeadphone = cat === '헤드폰';
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
   const isDacAmp = cat === 'DAC/AMP';
@@ -169,9 +169,9 @@ export function HeadfiInfoSection({
                     ? ` (${Number(viewingItem.cable_price).toLocaleString()}원)`
                     : ''}
                 </p>
-                {isEarphone ? (
+                {isWired ? (
                   <p className="col-span-2">
-                    <strong>이어팁:</strong> {viewingItem.eartip || '-'}
+                    <strong>{isHeadphone ? '이어패드' : '이어팁'}:</strong> {viewingItem.eartip || '-'}
                     {viewingItem.eartip && Number(viewingItem.eartip_price) > 0
                       ? ` (${Number(viewingItem.eartip_price).toLocaleString()}원)`
                       : ''}

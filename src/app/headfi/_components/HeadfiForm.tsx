@@ -392,20 +392,24 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
               ) : null}
               {renderInput('케이블', 'cable', 'text')}
               {renderInput('케이블 가격', 'cable_price', 'number')}
-              {isEarphone ? (
+              {isWired ? (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold mb-1 opacity-90">이어팁</label>
+                    <label className="block text-sm font-semibold mb-1 opacity-90">
+                      {isHeadphone ? '이어패드' : '이어팁'}
+                    </label>
                     <input
                       type="text"
                       className={inputBaseClass}
-                      placeholder="이어팁 (예: SpinFit CP145)"
+                      placeholder={isHeadphone ? '이어패드 (예: Dekoni Choice Suede)' : '이어팁 (예: SpinFit CP145)'}
                       value={formData.eartip}
                       onChange={(e) => setFormData({ ...formData, eartip: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-1 opacity-90">이어팁 가격</label>
+                    <label className="block text-sm font-semibold mb-1 opacity-90">
+                      {isHeadphone ? '이어패드 가격' : '이어팁 가격'}
+                    </label>
                     <input
                       type="number"
                       className={inputBaseClass}
