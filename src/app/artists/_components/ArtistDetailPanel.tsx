@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, Pencil } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
 import type { Album } from '@/app/albums/types';
-import { countryFlag, findArtistWikiUrl } from '../utils';
+import { countryFlag, findArtistWikiUrl, getPrimaryGenre1 } from '../utils';
 import type { ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
 import { ArtistExternalLinksSection, type ArtistLinksPatch } from './ArtistExternalLinksSection';
@@ -72,6 +72,7 @@ export function ArtistDetailPanel({
 
   const flag = countryFlag(artist.country);
   const wikiUrl = findArtistWikiUrl(artist.albums);
+  const primaryGenre1 = getPrimaryGenre1(artist);
 
   return (
     <section
@@ -132,6 +133,11 @@ export function ArtistDetailPanel({
               {artist.artistType ? (
                 <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
                   {artist.artistType}
+                </span>
+              ) : null}
+              {primaryGenre1 ? (
+                <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
+                  {primaryGenre1}
                 </span>
               ) : null}
             </ArtistExternalLinksSection>
