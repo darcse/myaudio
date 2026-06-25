@@ -65,15 +65,17 @@ export function formatCategorySpendingLabel(row: SpendingCategoryBucket): string
 }
 
 export function headfiItemSpending(
-  item: Pick<Headfi, 'price' | 'cable_price' | 'eartip_price'>,
+  item: Pick<Headfi, 'price' | 'cable_price' | 'eartip_price' | 'accessory_price'>,
 ): number {
   const price = item.price ?? 0;
   const cablePrice = item.cable_price ?? 0;
   const eartipPrice = item.eartip_price ?? 0;
+  const accessoryPrice = item.accessory_price ?? 0;
   const safePrice = Number.isFinite(Number(price)) ? Number(price) : 0;
   const safeCable = Number.isFinite(Number(cablePrice)) ? Number(cablePrice) : 0;
   const safeEartip = Number.isFinite(Number(eartipPrice)) ? Number(eartipPrice) : 0;
-  return safePrice + safeCable + safeEartip;
+  const safeAccessory = Number.isFinite(Number(accessoryPrice)) ? Number(accessoryPrice) : 0;
+  return safePrice + safeCable + safeEartip + safeAccessory;
 }
 
 function parsePurchaseYear(purchaseDate: string | null | undefined): number | null {
@@ -151,6 +153,18 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
   let headphoneEartipCount = 0;
   let earphoneCableCount = 0;
   let earphoneEartipCount = 0;
+  let wirelessHeadphoneEartip = 0;
+  let wirelessEarphoneEartip = 0;
+  let wirelessHeadphoneEartipCount = 0;
+  let wirelessEarphoneEartipCount = 0;
+  let dacAmpAccessory = 0;
+  let dapAccessory = 0;
+  let sourceAccessory = 0;
+  let etcAccessory = 0;
+  let dacAmpAccessoryCount = 0;
+  let dapAccessoryCount = 0;
+  let sourceAccessoryCount = 0;
+  let etcAccessoryCount = 0;
 
   for (const item of library) {
     const category = item.category?.trim();
@@ -172,6 +186,30 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
       earphoneEartip += eartipPrice;
       if (cablePrice > 0) earphoneCableCount += 1;
       if (eartipPrice > 0) earphoneEartipCount += 1;
+    } else if (category === '무선 헤드폰') {
+      const eartipPrice = safeAmount(item.eartip_price);
+      wirelessHeadphoneEartip += eartipPrice;
+      if (eartipPrice > 0) wirelessHeadphoneEartipCount += 1;
+    } else if (category === '무선 이어폰') {
+      const eartipPrice = safeAmount(item.eartip_price);
+      wirelessEarphoneEartip += eartipPrice;
+      if (eartipPrice > 0) wirelessEarphoneEartipCount += 1;
+    } else if (category === 'DAC/AMP') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      dacAmpAccessory += accessoryPrice;
+      if (accessoryPrice > 0) dacAmpAccessoryCount += 1;
+    } else if (category === 'DAP') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      dapAccessory += accessoryPrice;
+      if (accessoryPrice > 0) dapAccessoryCount += 1;
+    } else if (category === 'Source') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      sourceAccessory += accessoryPrice;
+      if (accessoryPrice > 0) sourceAccessoryCount += 1;
+    } else if (category === '기타') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      etcAccessory += accessoryPrice;
+      if (accessoryPrice > 0) etcAccessoryCount += 1;
     }
   }
 
@@ -189,6 +227,12 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     { label: '헤드폰 이어패드', amount: headphoneEartip, count: headphoneEartipCount, countUnit: '개' },
     { label: '이어폰 케이블', amount: earphoneCable, count: earphoneCableCount, countUnit: '개' },
     { label: '이어폰 이어팁', amount: earphoneEartip, count: earphoneEartipCount, countUnit: '개' },
+    { label: '무선 헤드폰 이어패드', amount: wirelessHeadphoneEartip, count: wirelessHeadphoneEartipCount, countUnit: '개' },
+    { label: '무선 이어폰 이어팁', amount: wirelessEarphoneEartip, count: wirelessEarphoneEartipCount, countUnit: '개' },
+    { label: 'DAC/AMP 액세서리', amount: dacAmpAccessory, count: dacAmpAccessoryCount, countUnit: '개' },
+    { label: 'DAP 액세서리', amount: dapAccessory, count: dapAccessoryCount, countUnit: '개' },
+    { label: 'Source 액세서리', amount: sourceAccessory, count: sourceAccessoryCount, countUnit: '개' },
+    { label: '기타 액세서리', amount: etcAccessory, count: etcAccessoryCount, countUnit: '개' },
   ]);
 
   return {

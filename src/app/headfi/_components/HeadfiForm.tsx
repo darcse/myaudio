@@ -22,6 +22,8 @@ type FormData = {
   cable_price: string;
   eartip: string;
   eartip_price: string;
+  accessory: string;
+  accessory_price: string;
   unit: string;
   etc: string;
   speaker_type1: string;
@@ -153,6 +155,31 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
       <label className="block text-sm font-semibold mb-1 opacity-90">특징</label>
       <textarea className="input-apple px-3 py-2 w-full rounded-xl min-h-[80px]" rows={3} value={formData.memo} onChange={(e) => setFormData({ ...formData, memo: e.target.value })} />
     </div>
+  );
+
+  const accessoryFieldsRow = (
+    <>
+      <div>
+        <label className="block text-sm font-semibold mb-1 opacity-90">액세서리</label>
+        <input
+          type="text"
+          className={inputBaseClass}
+          placeholder="액세서리 (예: 전원케이블, USB케이블)"
+          value={formData.accessory}
+          onChange={(e) => setFormData({ ...formData, accessory: e.target.value })}
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold mb-1 opacity-90">액세서리 가격</label>
+        <input
+          type="number"
+          className={inputBaseClass}
+          placeholder="가격"
+          value={formData.accessory_price}
+          onChange={(e) => setFormData({ ...formData, accessory_price: e.target.value })}
+        />
+      </div>
+    </>
   );
 
   return (
@@ -610,6 +637,30 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">
+                  {cat === '무선 헤드폰' ? '이어패드' : '이어팁'}
+                </label>
+                <input
+                  type="text"
+                  className={inputBaseClass}
+                  placeholder={cat === '무선 헤드폰' ? '이어패드 (예: Dekoni Choice Suede)' : '이어팁 (예: SpinFit CP145)'}
+                  value={formData.eartip}
+                  onChange={(e) => setFormData({ ...formData, eartip: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">
+                  {cat === '무선 헤드폰' ? '이어패드 가격' : '이어팁 가격'}
+                </label>
+                <input
+                  type="number"
+                  className={inputBaseClass}
+                  placeholder="가격"
+                  value={formData.eartip_price}
+                  onChange={(e) => setFormData({ ...formData, eartip_price: e.target.value })}
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
                 <input
                   type="text"
@@ -689,6 +740,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
                   />
                 </div>
               </div>
+              {accessoryFieldsRow}
               <div className="col-span-2">{renderInput('기타', 'etc')}</div>
               {purchaseStatusRow}
               {priceStatusRow}
@@ -708,6 +760,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
                 />
               </div>
               {renderInput('출력', 'dap_output')}
+              {accessoryFieldsRow}
               <div className="col-span-2">{renderInput('기타', 'etc')}</div>
               {purchaseStatusRow}
               {priceStatusRow}
@@ -716,6 +769,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
           )}
           {hasCategory && isSourceOrEtc && (
             <>
+              {accessoryFieldsRow}
               <div className="col-span-2">{renderInput('기타', 'etc')}</div>
               {purchaseStatusRow}
               {priceStatusRow}

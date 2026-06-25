@@ -188,10 +188,18 @@ export function HeadfiInfoSection({
                   <strong>타입:</strong> {viewingItem.type1 || '-'} / {viewingItem.type2 || '-'}
                 </p>
                 <p className="col-span-2">
-                  <strong>유닛:</strong> {viewingItem.unit || '-'}
-                </p>
-                <p className="col-span-2">
                   <strong>매칭:</strong> {renderMatchingLink()}
+                </p>
+                {viewingItem.eartip?.trim() ? (
+                  <p className="col-span-2">
+                    <strong>{cat === '무선 헤드폰' ? '이어패드' : '이어팁'}:</strong> {viewingItem.eartip.trim()}
+                    {Number(viewingItem.eartip_price) > 0
+                      ? ` (${Number(viewingItem.eartip_price).toLocaleString()}원)`
+                      : ''}
+                  </p>
+                ) : null}
+                <p className="col-span-2">
+                  <strong>유닛:</strong> {viewingItem.unit || '-'}
                 </p>
               </>
             ) : null}
@@ -240,6 +248,14 @@ export function HeadfiInfoSection({
                   <strong>출력:</strong> {viewingItem.dap_output || '-'}
                 </p>
               </>
+            ) : null}
+            {(isDacAmp || isDap || isSourceOrEtc) && viewingItem.accessory?.trim() ? (
+              <p className="col-span-2">
+                <strong>액세서리:</strong> {viewingItem.accessory.trim()}
+                {Number(viewingItem.accessory_price) > 0
+                  ? ` (${Number(viewingItem.accessory_price).toLocaleString()}원)`
+                  : ''}
+              </p>
             ) : null}
             {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) &&
             viewingItem.etc?.trim() ? (

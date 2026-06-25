@@ -52,6 +52,13 @@ function emptyDacColumns() {
   };
 }
 
+function accessoryFields(data: HeadfiFormData) {
+  return {
+    accessory: data.accessory?.trim() ?? '',
+    accessory_price: parseInt(data.accessory_price, 10) || 0,
+  };
+}
+
 function emptyWiredFields() {
   return {
     type1: '',
@@ -65,6 +72,8 @@ function emptyWiredFields() {
     cable_price: 0,
     eartip: '',
     eartip_price: 0,
+    accessory: '',
+    accessory_price: 0,
     unit: '',
     matching: '',
     gain: null as string | null,
@@ -99,6 +108,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
+      ...accessoryFields(data),
       etc: data.etc?.trim() ?? '',
       amp_type: data.amp_type?.trim() ?? '',
       output_impedance: optionalFiniteNumber(data.output_impedance),
@@ -112,6 +122,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
+      ...accessoryFields(data),
       chipset: data.chipset?.trim() ?? '',
       dap_spec: data.dap_spec?.trim() ?? '',
       dap_output: data.dap_output?.trim() ?? '',
@@ -133,6 +144,8 @@ function mapHeadfiData(data: HeadfiFormData) {
       ...emptyWiredFields(),
       type1: data.type1,
       type2: data.type2,
+      eartip: data.eartip?.trim() ?? '',
+      eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
     };
@@ -142,6 +155,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
+      ...accessoryFields(data),
     };
   }
 

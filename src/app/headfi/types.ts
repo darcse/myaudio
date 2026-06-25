@@ -27,6 +27,8 @@ export interface Headfi {
   cable_price: number | null;
   eartip?: string | null;
   eartip_price?: number | null;
+  accessory?: string | null;
+  accessory_price?: number | null;
   unit: string | null;
   etc: string | null;
   speaker_type1?: string | null;
@@ -97,6 +99,8 @@ export interface HeadfiFormData {
   cable_price: string;
   eartip: string;
   eartip_price: string;
+  accessory: string;
+  accessory_price: string;
   unit: string;
   etc: string;
   speaker_type1: string;
