@@ -24,7 +24,7 @@ export type HeadfiSpendingStats = {
   yearly: SpendingYearBucket[];
   monthlyByYear: Record<2025 | 2026, SpendingMonthBucket[]>;
   byCategory: SpendingCategoryBucket[];
-  byAccessory: SpendingYearBucket[];
+  byAccessory: SpendingCategoryBucket[];
 };
 
 const SPENDING_CATEGORIES = [
@@ -54,10 +54,6 @@ const CATEGORY_COUNT_UNITS: Record<(typeof SPENDING_CATEGORIES)[number], '개' |
 function safeAmount(value: unknown): number {
   const amount = Number(value);
   return Number.isFinite(amount) ? amount : 0;
-}
-
-function sortSpendingRows(rows: SpendingYearBucket[]): SpendingYearBucket[] {
-  return rows.filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
 }
 
 function sortCategoryRows(rows: SpendingCategoryBucket[]): SpendingCategoryBucket[] {
@@ -151,6 +147,10 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
   let headphoneEartip = 0;
   let earphoneCable = 0;
   let earphoneEartip = 0;
+  let headphoneCableCount = 0;
+  let headphoneEartipCount = 0;
+  let earphoneCableCount = 0;
+  let earphoneEartipCount = 0;
 
   for (const item of library) {
     const category = item.category?.trim();
@@ -159,11 +159,19 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
       categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
     }
     if (category === '헤드폰') {
-      headphoneCable += safeAmount(item.cable_price);
-      headphoneEartip += safeAmount(item.eartip_price);
+      const cablePrice = safeAmount(item.cable_price);
+      const eartipPrice = safeAmount(item.eartip_price);
+      headphoneCable += cablePrice;
+      headphoneEartip += eartipPrice;
+      if (cablePrice > 0) headphoneCableCount += 1;
+      if (eartipPrice > 0) headphoneEartipCount += 1;
     } else if (category === '이어폰') {
-      earphoneCable += safeAmount(item.cable_price);
-      earphoneEartip += safeAmount(item.eartip_price);
+      const cablePrice = safeAmount(item.cable_price);
+      const eartipPrice = safeAmount(item.eartip_price);
+      earphoneCable += cablePrice;
+      earphoneEartip += eartipPrice;
+      if (cablePrice > 0) earphoneCableCount += 1;
+      if (eartipPrice > 0) earphoneEartipCount += 1;
     }
   }
 
@@ -176,11 +184,11 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     })),
   );
 
-  const byAccessory = sortSpendingRows([
-    { label: '헤드폰 케이블', amount: headphoneCable },
-    { label: '헤드폰 이어패드', amount: headphoneEartip },
-    { label: '이어폰 케이블', amount: earphoneCable },
-    { label: '이어폰 이어팁', amount: earphoneEartip },
+  const byAccessory = sortCategoryRows([
+    { label: '헤드폰 케이블', amount: headphoneCable, count: headphoneCableCount, countUnit: '개' },
+    { label: '헤드폰 이어패드', amount: headphoneEartip, count: headphoneEartipCount, countUnit: '개' },
+    { label: '이어폰 케이블', amount: earphoneCable, count: earphoneCableCount, countUnit: '개' },
+    { label: '이어폰 이어팁', amount: earphoneEartip, count: earphoneEartipCount, countUnit: '개' },
   ]);
 
   return {

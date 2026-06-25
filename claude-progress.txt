@@ -141,4 +141,4 @@
 [2026-06-08] [Cursor] style: Artists 타이틀 라인 필터링된 아티스트 수 뱃지 | passes: 변경 없음
 [2026-06-08] [Cursor] style: Artists 모바일·태블릿 목록/상세 탭 숨김 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: Artists 앨범 등록 폼 초기값에 장르1 추가 | passes: 변경 없음
-[2026-06-08] [Cursor] feat: 소비 통계 종류별 탭 카테고리별 수량 표시 (개/대 단위) | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 소비 통계 액세서리별 지출 수량 표시 (전부 개) | passes: 변경 없음

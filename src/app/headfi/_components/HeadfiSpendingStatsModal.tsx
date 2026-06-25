@@ -269,7 +269,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpend
           {stats.byAccessory.length > 0 ? (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold opacity-90">액세서리별 지출</h3>
-              <SpendingTable rows={stats.byAccessory} />
+              <CategorySpendingTable rows={stats.byAccessory} />
             </div>
           ) : null}
         </section>
