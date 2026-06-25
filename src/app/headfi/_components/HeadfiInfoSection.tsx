@@ -157,7 +157,7 @@ export function HeadfiInfoSection({
                   </p>
                 )}
                 <p className="col-span-2">
-                  <strong>매칭 (매칭 기기 / gain):</strong> {renderMatchingLink(cat === '헤드폰')}
+                  <strong>매칭 (매칭 기기 / gain):</strong> {renderMatchingLink(true)}
                 </p>
                 <p className="col-span-2">
                   <strong>케이블:</strong> {viewingItem.cable || '-'}

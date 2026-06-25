@@ -56,6 +56,7 @@
 [2026-06-12] [Cursor] feat: 기기매칭 DAC/AMP/DAP·헤드폰/이어폰 기준 확장·라벨 변경 | passes: 변경 없음
 [2026-06-12] [Cursor] feat: 앨범 매칭 DAC/AMP/DAP 선택 확장 | passes: 변경 없음
 [2026-06-12] [Cursor] feat: 헤드파이 등록폼 매칭(DAC/AMP/DAP) DAP 포함 | passes: 변경 없음
+[2026-06-12] [Cursor] fix: 헤드파이 모달 유선 이어폰 gain 표시 | passes: 변경 없음
 260612_0954 코드 품질 진단 완료 — feedback.md 작성 (코드 수정 없음)
 [2026-06-09] [Cursor] BUG-001 searchMusicBrainz try/catch·JSON 파싱·User-Agent MUSICBRAINZ_CONTACT_EMAIL env | passes: 변경 없음
 [2026-06-12] [Cursor] BUG-002 albums/headfi/lyrics/headfi/match page.tsx use client 제거·서버 컴포넌트 전환 | passes: 변경 없음
