@@ -49,6 +49,7 @@ export function HeadfiInfoSection({
 }: HeadfiInfoSectionProps) {
   const cat = viewingItem.category;
   const isWired = cat === '헤드폰' || cat === '이어폰';
+  const isEarphone = cat === '이어폰';
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
   const isDacAmp = cat === 'DAC/AMP';
@@ -137,9 +138,12 @@ export function HeadfiInfoSection({
                   </p>
                   <p className="min-w-0">
                     <strong>감도:</strong>{' '}
-                    {viewingItem.db1 != null ? `${String(viewingItem.db1)} dB/SPL V` : '-'}{' '}
-                    {viewingItem.db1 != null && viewingItem.db2 != null && '·'}{' '}
-                    {viewingItem.db2 != null ? `${String(viewingItem.db2)} dB/mW` : ''}
+                    {[
+                      viewingItem.db1 != null ? `${String(viewingItem.db1)} dB/SPL V` : null,
+                      viewingItem.db2 != null ? `${String(viewingItem.db2)} dB/mW` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || '-'}
                   </p>
                 </div>
                 {cat === '헤드폰' ? (
@@ -165,6 +169,14 @@ export function HeadfiInfoSection({
                     ? ` (${Number(viewingItem.cable_price).toLocaleString()}원)`
                     : ''}
                 </p>
+                {isEarphone ? (
+                  <p className="col-span-2">
+                    <strong>이어팁:</strong> {viewingItem.eartip || '-'}
+                    {viewingItem.eartip && Number(viewingItem.eartip_price) > 0
+                      ? ` (${Number(viewingItem.eartip_price).toLocaleString()}원)`
+                      : ''}
+                  </p>
+                ) : null}
                 <p>
                   <strong>유닛:</strong> {viewingItem.unit || '-'}
                 </p>
@@ -229,8 +241,9 @@ export function HeadfiInfoSection({
                 </p>
               </>
             ) : null}
-            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) ? (
-              <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc || '-'}</p>
+            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) &&
+            viewingItem.etc?.trim() ? (
+              <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc.trim()}</p>
             ) : null}
             {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) ? (
               viewingItem.memo ? (

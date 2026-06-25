@@ -63,6 +63,8 @@ function emptyWiredFields() {
     volume_type: '',
     cable: '',
     cable_price: 0,
+    eartip: '',
+    eartip_price: 0,
     unit: '',
     matching: '',
     gain: null as string | null,
@@ -143,7 +145,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     };
   }
 
-  if (data.category === '헤드폰' || data.category === '이어폰') {
+  if (data.category === '헤드폰') {
     return {
       ...base,
       type1: data.type1,
@@ -155,6 +157,52 @@ function mapHeadfiData(data: HeadfiFormData) {
       volume_type: data.volume_type,
       cable: data.cable,
       cable_price: parseInt(data.cable_price, 10) || 0,
+      eartip: '',
+      eartip_price: 0,
+      unit: data.unit?.trim() ?? '',
+      matching: data.matching,
+      gain: data.gain ?? null,
+      temp: data.temp,
+      bright: data.bright,
+      bass_quantity: parseIntOrNull(data.bass_quantity),
+      bass_depth: parseIntOrNull(data.bass_depth),
+      bass_speed: parseIntOrNull(data.bass_speed),
+      dynamics_slam: parseIntOrNull(data.dynamics_slam),
+      midrange_body: parseIntOrNull(data.midrange_body),
+      tone_warmth: parseIntOrNull(data.tone_warmth),
+      vocal_position: parseIntOrNull(data.vocal_position),
+      midrange_clarity: parseIntOrNull(data.midrange_clarity),
+      treble_brightness: parseIntOrNull(data.treble_brightness),
+      treble_smoothness: parseIntOrNull(data.treble_smoothness),
+      treble_airiness: parseIntOrNull(data.treble_airiness),
+      resolution: parseIntOrNull(data.resolution),
+      separation: parseIntOrNull(data.separation),
+      soundstage: parseIntOrNull(data.soundstage),
+      imaging: parseIntOrNull(data.imaging),
+      timbre: parseIntOrNull(data.timbre),
+      fr_graph_url: fr,
+      speaker_type1: '',
+      speaker_type2: '',
+      dap_spec: '',
+      dap_output: '',
+      ...emptyDacColumns(),
+    };
+  }
+
+  if (data.category === '이어폰') {
+    return {
+      ...base,
+      type1: data.type1,
+      type2: data.type2,
+      impedance: parseIntOrNull(data.impedance),
+      db1: parseFloatOrNull(data.db1),
+      db2: parseFloatOrNull(data.db2),
+      volume: '',
+      volume_type: '',
+      cable: data.cable,
+      cable_price: parseInt(data.cable_price, 10) || 0,
+      eartip: data.eartip?.trim() ?? '',
+      eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
       gain: data.gain ?? null,

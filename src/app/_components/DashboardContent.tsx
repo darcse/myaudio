@@ -90,6 +90,8 @@ const initialHeadfiFormData = {
   status2: '',
   cable: '',
   cable_price: '',
+  eartip: '',
+  eartip_price: '',
   unit: '',
   etc: '',
   speaker_type1: '',
