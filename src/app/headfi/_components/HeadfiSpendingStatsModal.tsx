@@ -161,7 +161,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpend
         <section className="mb-6 text-center">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">전체 지출</p>
           <p className="text-3xl font-bold tabular-nums">{formatKrw(stats.total)}</p>
-          <p className="mt-1 text-xs opacity-55">구매가 + 케이블 가격 (방출 포함)</p>
+          <p className="mt-1 text-xs opacity-55">구매가 + 케이블 가격 + 이어팁 가격 (방출 포함)</p>
         </section>
 
         <section className="space-y-4">

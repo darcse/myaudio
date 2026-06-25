@@ -18,12 +18,16 @@ export type HeadfiSpendingStats = {
   monthlyByYear: Record<2025 | 2026, SpendingMonthBucket[]>;
 };
 
-export function headfiItemSpending(item: Pick<Headfi, 'price' | 'cable_price'>): number {
+export function headfiItemSpending(
+  item: Pick<Headfi, 'price' | 'cable_price' | 'eartip_price'>,
+): number {
   const price = item.price ?? 0;
   const cablePrice = item.cable_price ?? 0;
+  const eartipPrice = item.eartip_price ?? 0;
   const safePrice = Number.isFinite(Number(price)) ? Number(price) : 0;
   const safeCable = Number.isFinite(Number(cablePrice)) ? Number(cablePrice) : 0;
-  return safePrice + safeCable;
+  const safeEartip = Number.isFinite(Number(eartipPrice)) ? Number(eartipPrice) : 0;
+  return safePrice + safeCable + safeEartip;
 }
 
 function parsePurchaseYear(purchaseDate: string | null | undefined): number | null {
