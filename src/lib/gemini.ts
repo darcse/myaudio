@@ -181,6 +181,8 @@ export async function generateArtistBio(artist: {
 - 대표작 또는 주요 활동
 - 국내외 평가나 영향력
 
+bio는 반드시 한국어로만 작성해. 영어·일본어 등 다른 언어 사용 금지.
+
 JSON만 응답: {"bio": "소개 내용"}`;
 
   try {
