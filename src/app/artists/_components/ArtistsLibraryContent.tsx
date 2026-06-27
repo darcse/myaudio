@@ -26,6 +26,7 @@ import type { ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry }
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
+import { ArtistTopControlBar } from './ArtistTopControlBar';
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -101,6 +102,10 @@ export function ArtistsLibraryContent() {
     setTypeFilter,
     genreFilter,
     setGenreFilter,
+    genre2Filter,
+    genre2Tags,
+    handleGenre2TagSelect,
+    resetFilters,
     sortOption,
     setSortOption,
     countryOptions,
@@ -519,6 +524,12 @@ export function ArtistsLibraryContent() {
     <ArtistListSidebar
       artists={filteredArtists}
       selectedName={selectedName}
+      onSelect={handleSelectArtist}
+    />
+  );
+
+  const topControlBar = (
+    <ArtistTopControlBar
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}
       countryFilter={countryFilter}
@@ -532,7 +543,10 @@ export function ArtistsLibraryContent() {
       countryOptions={countryOptions}
       typeOptions={typeOptions}
       genreOptions={genreOptions}
-      onSelect={handleSelectArtist}
+      genre2Tags={genre2Tags}
+      genre2Filter={genre2Filter}
+      onGenre2TagSelect={handleGenre2TagSelect}
+      onResetFilters={resetFilters}
     />
   );
 
@@ -560,16 +574,11 @@ export function ArtistsLibraryContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6">
         <h1 className="page-title flex items-center gap-2">
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Artists
         </h1>
-        {!isLoading ? (
-          <span className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums">
-            {filteredArtists.length}명
-          </span>
-        ) : null}
       </div>
 
       {isLoading ? (
@@ -578,14 +587,15 @@ export function ArtistsLibraryContent() {
         <p className="text-sm opacity-70">등록된 앨범이 없어 아티스트를 표시할 수 없습니다.</p>
       ) : (
         <>
-          <div className="hidden min-h-[calc(100dvh-12rem)] gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-            <div className="sticky top-[4.5rem] max-h-[calc(100dvh-6rem)] min-h-0">{sidebar}</div>
+          {topControlBar}
+          <div className="hidden min-h-[calc(100dvh-14rem)] gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+            <div className="sticky top-[4.5rem] max-h-[calc(100dvh-8rem)] min-h-0">{sidebar}</div>
             {detail}
           </div>
 
           <div className="lg:hidden">
             {mobileTab === 'list' ? (
-              <div className="max-h-[calc(100dvh-14rem)] min-h-[20rem]">{sidebar}</div>
+              <div className="max-h-[calc(100dvh-16rem)] min-h-[20rem]">{sidebar}</div>
             ) : (
               detail
             )}
