@@ -61,8 +61,10 @@ export function ArtistTopControlBar({
     dynamicCountries.length > 0
       ? dynamicCountries
       : countryOptions.map((c) => c.name);
-  const typeSelectOptions =
-    dynamicTypes.length > 0 ? dynamicTypes : [...artistTypeOptions];
+  const typeSelectOptions = [
+    ...artistTypeOptions,
+    ...dynamicTypes.filter((type) => !artistTypeOptions.includes(type as (typeof artistTypeOptions)[number])),
+  ];
   const genreSelectOptions =
     dynamicGenres.length > 0 ? dynamicGenres : [...genreOptions];
 

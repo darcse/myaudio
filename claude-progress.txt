@@ -145,3 +145,4 @@
 [2026-06-08] [Cursor] fix: 아티스트 소개 Gemini 응답 한국어 강제 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 앨범 등록 앨범 타입 OST 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 아티스트 구분 '걸스 밴드' 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: Artists 타입 필터 고정 옵션(걸스 밴드 등) 항상 표시 | passes: 변경 없음
