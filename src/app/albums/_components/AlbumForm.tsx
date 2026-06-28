@@ -78,6 +78,7 @@ export function AlbumForm({
               <option value="솔로">솔로</option>
               <option value="아이돌">아이돌</option>
               <option value="밴드">밴드</option>
+              <option value="걸스 밴드">걸스 밴드</option>
               <option value="그룹">그룹</option>
               <option value="기타">기타</option>
             </select>

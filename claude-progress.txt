@@ -144,3 +144,4 @@
 [2026-06-08] [Cursor] fix: Artists 상단 필터 셀렉트 중복 화살표 제거 (▾ 텍스트·appearance-auto) | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 아티스트 소개 Gemini 응답 한국어 강제 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 앨범 등록 앨범 타입 OST 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 아티스트 구분 '걸스 밴드' 추가 | passes: 변경 없음
