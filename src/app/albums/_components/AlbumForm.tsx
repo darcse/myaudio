@@ -99,6 +99,7 @@ export function AlbumForm({
               <option value="EP">EP</option>
               <option value="Single">싱글 (Single)</option>
               <option value="Compilation">컴필레이션</option>
+              <option value="OST">OST</option>
               <option value="Live">라이브</option>
             </select>
           </div>
