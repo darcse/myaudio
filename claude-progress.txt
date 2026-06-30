@@ -141,7 +141,7 @@
 [2026-06-08] [Cursor] style: Artists 타이틀 라인 필터링된 아티스트 수 뱃지 | passes: 변경 없음
 [2026-06-08] [Cursor] style: Artists 모바일·태블릿 목록/상세 탭 숨김 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: Artists 앨범 등록 폼 초기값에 장르1 추가 | passes: 변경 없음
-[2026-06-08] [Cursor] fix: Artists 상단 필터 셀렉트 중복 화살표 제거 (▾ 텍스트·appearance-auto) | passes: 변경 없음
+[2026-06-08] [Cursor] chore: mood_name null 앨범 62건 일괄 무드 분류 마이그레이션 스크립트 실행 완료 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 아티스트 소개 Gemini 응답 한국어 강제 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 앨범 등록 앨범 타입 OST 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 아티스트 구분 '걸스 밴드' 추가 | passes: 변경 없음

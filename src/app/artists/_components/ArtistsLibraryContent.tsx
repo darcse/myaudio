@@ -400,6 +400,7 @@ export function ArtistsLibraryContent() {
     }
     if (!albumFormItem) return;
     setIsSaving(true);
+    let savedNewId: number | undefined;
     try {
       const data = {
         ...albumFormData,
@@ -427,6 +428,7 @@ export function ArtistsLibraryContent() {
         const savedId =
           saved && typeof saved === 'object' && 'id' in saved ? (saved as { id: number }).id : null;
         if (savedId != null) {
+          savedNewId = savedId;
           const { data: newRow } = await createClient()
             .from('album')
             .select('*')
@@ -455,6 +457,35 @@ export function ArtistsLibraryContent() {
       toast.error(message);
     } finally {
       setIsSaving(false);
+    }
+
+    if (savedNewId != null) {
+      const newAlbumId = savedNewId;
+      void fetch('/api/album-intro', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ albumId: newAlbumId }),
+      })
+        .then((res) => {
+          if (!res.ok) {
+            toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
+            return null;
+          }
+          toast.success('앨범 소개와 태그가 생성되었습니다.');
+          return fetch('/api/album-mood-assign', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ albumId: newAlbumId }),
+          });
+        })
+        .then(() => {
+          void fetchLibrary();
+        })
+        .catch(() => {
+          toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
+        });
     }
   };
 
