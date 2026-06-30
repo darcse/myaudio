@@ -149,3 +149,4 @@
 [2026-06-08] [Cursor] feat: 앨범 모달 청취 이력 탭 건수 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 헤드파이 모달 DAP 매칭 모델 표시 (DAC/AMP 동일) | passes: 변경 없음
 [2026-06-08] [Cursor] style: 앨범 모달 청취 이력 탭 건수 badge 태그 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 앨범 연도 셀렉트 구간 필터 (2020~2024, 2010~2019 등) | passes: 변경 없음

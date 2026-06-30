@@ -21,4 +21,12 @@ export const genreOptions = [
   'OST', 'Jazz', 'Classic', '기타',
 ] as const;
 
-export const albumYearOptions = ['All Time', '2024', '2025', '2026'] as const;
+export const albumYearOptions = [
+  '2026',
+  '2025',
+  '2020 ~ 2024',
+  '2010 ~ 2019',
+  '2000 ~ 2009',
+  '~1999',
+  'All Time',
+] as const;

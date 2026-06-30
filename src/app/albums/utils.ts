@@ -33,8 +33,46 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
   };
 }
 
-export const YEAR_GROUP_CUTOFF = 2024;
-export const LEGACY_YEAR_GROUP = '~2023';
+export const INDIVIDUAL_YEAR_FILTERS = ['2026', '2025'] as const;
+
+export const YEAR_RANGE_FILTERS = [
+  { label: '2020 ~ 2024', min: 2020, max: 2024 },
+  { label: '2010 ~ 2019', min: 2010, max: 2019 },
+  { label: '2000 ~ 2009', min: 2000, max: 2009 },
+  { label: '~1999', min: null, max: 1999 },
+] as const;
+
+export const ALL_TIME_YEAR_FILTER = 'All Time';
+export const UNKNOWN_YEAR_FILTER = '날짜 미상';
+
+const YEAR_FILTER_ORDER = [
+  ...INDIVIDUAL_YEAR_FILTERS,
+  ...YEAR_RANGE_FILTERS.map((r) => r.label),
+  ALL_TIME_YEAR_FILTER,
+  UNKNOWN_YEAR_FILTER,
+] as const;
+
+export function isIndividualYearFilter(filter: string): boolean {
+  return (INDIVIDUAL_YEAR_FILTERS as readonly string[]).includes(filter);
+}
+
+function releaseYearMatchesFilter(y: number, filter: string): boolean {
+  if (isIndividualYearFilter(filter)) return String(y) === filter;
+  const range = YEAR_RANGE_FILTERS.find((r) => r.label === filter);
+  if (!range) return false;
+  if (range.label === '~1999') return y <= range.max;
+  return y >= range.min! && y <= range.max;
+}
+
+function classifyReleaseYear(y: number): (typeof YEAR_FILTER_ORDER)[number] | null {
+  if (y === 2026) return '2026';
+  if (y === 2025) return '2025';
+  if (y >= 2020 && y <= 2024) return '2020 ~ 2024';
+  if (y >= 2010 && y <= 2019) return '2010 ~ 2019';
+  if (y >= 2000 && y <= 2009) return '2000 ~ 2009';
+  if (y <= 1999) return '~1999';
+  return null;
+}
 
 export function albumYearIncludesFilter(year: Album['year'], filter: string): boolean {
   if (year == null) return false;
@@ -54,13 +92,10 @@ export function albumHasAllTimeYear(year: Album['year']): boolean {
 
 export function albumMatchesLotteryYearFilter(item: Album, filter: string): boolean {
   if (!filter) return false;
-  if (filter === 'All Time') return albumHasAllTimeYear(item.year);
-  if (filter === LEGACY_YEAR_GROUP) {
-    if (albumYearIncludesFilter(item.year, filter)) return true;
-    const y = releaseYearFromAlbum(item);
-    return y != null && y <= 2023;
-  }
-  return albumYearIncludesFilter(item.year, filter);
+  if (filter === ALL_TIME_YEAR_FILTER) return albumHasAllTimeYear(item.year);
+  if (filter === UNKNOWN_YEAR_FILTER) return !item.release_date;
+  const y = releaseYearFromAlbum(item);
+  return y != null && releaseYearMatchesFilter(y, filter);
 }
 
 export function releaseYearFromAlbum(item: Album): number | null {
@@ -71,13 +106,10 @@ export function releaseYearFromAlbum(item: Album): number | null {
 
 export function albumMatchesYearFilter(item: Album, filter: string): boolean {
   if (!filter) return false;
-  if (filter === 'All Time') return albumYearIncludesFilter(item.year, 'All Time');
-  if (filter === '날짜 미상') return !item.release_date;
-  if (filter === LEGACY_YEAR_GROUP) {
-    const y = releaseYearFromAlbum(item);
-    return y != null && y <= 2023;
-  }
-  return item.release_date?.substring(0, 4) === filter;
+  if (filter === ALL_TIME_YEAR_FILTER) return albumYearIncludesFilter(item.year, ALL_TIME_YEAR_FILTER);
+  if (filter === UNKNOWN_YEAR_FILTER) return !item.release_date;
+  const y = releaseYearFromAlbum(item);
+  return y != null && releaseYearMatchesFilter(y, filter);
 }
 
 export function getYoutubeId(url: string): string | null {
@@ -87,31 +119,19 @@ export function getYoutubeId(url: string): string | null {
 }
 
 export function buildDynamicYearOptions(library: Album[]): string[] {
-  const recentYears = new Set<string>();
-  let hasLegacy = false;
-  let hasAllTime = false;
-  let hasUnknown = false;
+  const available = new Set<(typeof YEAR_FILTER_ORDER)[number]>();
 
   library.forEach((a) => {
-    if (albumHasAllTimeYear(a.year)) hasAllTime = true;
+    if (albumHasAllTimeYear(a.year)) available.add(ALL_TIME_YEAR_FILTER);
     if (!a.release_date) {
-      hasUnknown = true;
+      available.add(UNKNOWN_YEAR_FILTER);
       return;
     }
     const y = releaseYearFromAlbum(a);
     if (y == null) return;
-    if (y >= YEAR_GROUP_CUTOFF) {
-      recentYears.add(String(y));
-    } else {
-      hasLegacy = true;
-    }
+    const bucket = classifyReleaseYear(y);
+    if (bucket) available.add(bucket);
   });
 
-  const sortedRecent = [...recentYears].sort((a, b) => b.localeCompare(a));
-  return [
-    ...sortedRecent,
-    ...(hasLegacy ? [LEGACY_YEAR_GROUP] : []),
-    ...(hasAllTime ? ['All Time'] : []),
-    ...(hasUnknown ? ['날짜 미상'] : []),
-  ];
+  return YEAR_FILTER_ORDER.filter((label) => available.has(label));
 }

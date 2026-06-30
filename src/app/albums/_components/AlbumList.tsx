@@ -6,6 +6,7 @@ import { LayoutGrid, LayoutList, List, Music, Shuffle, X } from 'lucide-react';
 import type { LibraryViewMode } from './albumBoardShared';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
+import { isIndividualYearFilter } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
 
 interface AlbumListProps {
@@ -61,7 +62,7 @@ export function AlbumList({
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const canLottery = lotteryPool.length > 0;
   const defaultYearFilter = yearOptions[0] ?? '';
-  const hideYearTagOnCard = ['2024', '2025', '2026'].includes(listYearFilter);
+  const hideYearTagOnCard = isIndividualYearFilter(listYearFilter);
 
   const activeFilters = [
     defaultYearFilter && listYearFilter !== defaultYearFilter && {
