@@ -146,3 +146,6 @@
 [2026-06-08] [Cursor] feat: 앨범 등록 앨범 타입 OST 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 아티스트 구분 '걸스 밴드' 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: Artists 타입 필터 고정 옵션(걸스 밴드 등) 항상 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 앨범 모달 청취 이력 탭 건수 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 헤드파이 모달 DAP 매칭 모델 표시 (DAC/AMP 동일) | passes: 변경 없음
+[2026-06-08] [Cursor] style: 앨범 모달 청취 이력 탭 건수 badge 태그 표시 | passes: 변경 없음

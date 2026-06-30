@@ -280,7 +280,7 @@ export function HeadfiInfoSection({
         ) : null}
       </div>
 
-      {isDacAmp ? (
+      {(isDacAmp || isDap) ? (
         <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
           <strong className="block mb-2 flex items-center">
             <Headphones className="size-4 opacity-80 shrink-0 mr-1.5" /> 매칭 모델

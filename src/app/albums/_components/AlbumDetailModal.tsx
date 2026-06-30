@@ -56,7 +56,7 @@ const TAB_ITEMS: { id: DetailTab; label: string }[] = [
 ];
 
 function tabButtonClass(active: boolean): string {
-  return `border-b-2 px-1 pb-3 text-sm transition-colors ${
+  return `inline-flex items-center gap-1.5 border-b-2 px-1 pb-3 text-sm transition-colors ${
     active
       ? 'border-[var(--foreground)] font-semibold opacity-100'
       : 'border-transparent opacity-60 hover:opacity-90'
@@ -88,6 +88,7 @@ export function AlbumDetailModal({
   onHeadfiClick,
 }: AlbumDetailModalProps) {
   const [activeTab, setActiveTab] = useState<DetailTab>('info');
+  const [listenHistoryCount, setListenHistoryCount] = useState(0);
   const [localAiHeadphones, setLocalAiHeadphones] = useState(aiRecommendedHeadphones);
   const [localAiReason, setLocalAiReason] = useState<string | null>(
     viewingItem.ai_recommended_headphone_reason?.trim() || null,
@@ -103,6 +104,7 @@ export function AlbumDetailModal({
 
   useEffect(() => {
     setActiveTab('info');
+    setListenHistoryCount(0);
   }, [viewingItem.id]);
 
   useEffect(() => {
@@ -226,6 +228,11 @@ export function AlbumDetailModal({
                     aria-pressed={activeTab === tab.id}
                   >
                     {tab.label}
+                    {tab.id === 'listen' && listenHistoryCount > 0 ? (
+                      <span className="badge-apple inline-flex h-[18px] min-w-[18px] items-center justify-center px-1.5 text-[10px] font-semibold tabular-nums leading-none">
+                        {listenHistoryCount}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -300,6 +307,7 @@ export function AlbumDetailModal({
                     isAuthenticated={isAuthenticated}
                     variant="tab"
                     onHeadfiClick={onHeadfiClick}
+                    onHistoryCountChange={setListenHistoryCount}
                   />
                 </div>
               </div>

@@ -29,6 +29,7 @@ type AlbumListenHistorySectionProps = {
   isAuthenticated: boolean | null;
   variant?: 'accordion' | 'tab';
   onHeadfiClick?: (headfiId: number) => void;
+  onHistoryCountChange?: (count: number) => void;
 };
 
 export function AlbumListenHistorySection({
@@ -36,6 +37,7 @@ export function AlbumListenHistorySection({
   isAuthenticated,
   variant = 'accordion',
   onHeadfiClick,
+  onHistoryCountChange,
 }: AlbumListenHistorySectionProps) {
   const [listenHistory, setListenHistory] = useState<ListenHistoryRow[]>([]);
   const [listenLoading, setListenLoading] = useState(false);
@@ -113,6 +115,10 @@ export function AlbumListenHistorySection({
       cancelled = true;
     };
   }, [isAuthenticated, albumId, loadListenHistory]);
+
+  useEffect(() => {
+    onHistoryCountChange?.(listenHistory.length);
+  }, [listenHistory.length, onHistoryCountChange]);
 
   useEffect(() => {
     if (isAuthenticated !== true) {

@@ -14,6 +14,7 @@ import type { Headfi } from '@/app/headfi/types';
 import type { Lyrics } from '@/app/lyrics/types';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
 function sortCreated<T extends { created_at: string }>(rows: T[]) {
   return [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -204,7 +205,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching]);
 
   useEffect(() => {
-    if (!viewingHeadfi?.id || viewingHeadfi.category !== 'DAC/AMP') {
+    if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
       setMatchedHeadphones([]);
       return;
     }

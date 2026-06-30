@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
-import { DAC_AMP_DAP_CATEGORIES } from '@/lib/headfiMatchScore';
+import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -267,7 +267,7 @@ export function HeadfiLibraryContent() {
   }, [viewingItem?.id, viewingItem?.category, viewingItem?.matching]);
 
   useEffect(() => {
-    if (!viewingItem?.id || viewingItem.category !== 'DAC/AMP') {
+    if (!viewingItem?.id || !isDacAmpDapCategory(viewingItem.category)) {
       setMatchedHeadphones([]);
       return;
     }
