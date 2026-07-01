@@ -15,12 +15,23 @@ type GearSummary = {
 type ListenHistoryRow = {
   id: number;
   listened_at: string;
+  created_at?: string | null;
   impression: string | null;
   dac_amp_id: number | null;
   headphone_id: number | null;
   dac_amp?: GearSummary | null;
   headphone?: GearSummary | null;
 };
+
+function sortListenHistoryRows(rows: ListenHistoryRow[]): ListenHistoryRow[] {
+  return [...rows].sort((a, b) => {
+    const byDate = b.listened_at.localeCompare(a.listened_at);
+    if (byDate !== 0) return byDate;
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : a.id;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : b.id;
+    return bTime - aTime;
+  });
+}
 
 type GearOption = { id: number; brand: string; model: string };
 
@@ -55,15 +66,16 @@ export function AlbumListenHistorySection({
     const supabase = createClient();
     const { data, error } = await supabase
       .from('album_listen_history')
-      .select('id, listened_at, impression, dac_amp_id, headphone_id')
+      .select('id, listened_at, created_at, impression, dac_amp_id, headphone_id')
       .eq('album_id', albumId)
-      .order('listened_at', { ascending: false });
+      .order('listened_at', { ascending: false })
+      .order('created_at', { ascending: false });
     if (error) {
       toast.error(error.message || '청취 이력을 불러오지 못했습니다.');
       setListenHistory([]);
       return;
     }
-    const rows = (data ?? []) as ListenHistoryRow[];
+    const rows = sortListenHistoryRows((data ?? []) as ListenHistoryRow[]);
     const gearIds = new Set<number>();
     for (const row of rows) {
       if (row.dac_amp_id != null) gearIds.add(row.dac_amp_id);
