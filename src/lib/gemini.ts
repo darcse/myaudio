@@ -160,40 +160,77 @@ album_intro 작성 시 반드시 지킬 것:
   }
 }
 
+function looksLikeJapaneseBio(text: string): boolean {
+  const hangul = (text.match(/[\uAC00-\uD7AF]/g) ?? []).length;
+  const kana = (text.match(/[\u3040-\u309F\u30A0-\u30FF]/g) ?? []).length;
+  const scriptChars = (text.match(/[\uAC00-\uD7AF\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g) ?? []).length;
+  if (scriptChars === 0) return false;
+  if (kana >= 3) return hangul < kana * 2;
+  return hangul / scriptChars < 0.35;
+}
+
+function buildArtistBioPrompt(
+  artist: { artist_name: string; country: string; artist_type: string; genre: string },
+  strictKorean: boolean,
+): string {
+  const strictNote = strictKorean
+    ? `\n\n이전 응답이 일본어였습니다. bio는 한글 문장으로만 다시 작성하세요. 히라가나·카타카나·영어 본문 문장은 절대 쓰지 마세요.`
+    : '';
+
+  return `Google Search로 "${artist.artist_name}" 아티스트를 검색해.
+검색 결과가 일본어·영어여도 bio 본문은 반드시 한국어로 번역·서술해.
+아티스트명이 일본어·로마자여도 소개 문장은 한국어로만 작성하고, 일본어·영어 문장을 그대로 쓰지 마.
+
+[아티스트] ${artist.artist_name} | 국적: ${artist.country || '-'} | 타입: ${artist.artist_type || '-'} | 주요 장르: ${artist.genre || '-'}
+
+다음을 포함한 3~4줄 소개를 작성해:
+- 아티스트 활동 시작 시기와 배경
+- 음악적 특징과 대표 사운드
+- 대표작 또는 주요 활동
+- 국내외 평가나 영향력
+
+bio 필드는 한글(한국어) 문장으로만 구성해. 히라가나·카타카나·영어 본문 문장 금지. 아티스트명·앨범명 등 고유명사만 원어 표기 가능.
+
+반드시 아래 JSON 형식으로만 답변해. 다른 텍스트는 절대 포함하지 마.
+{"bio": "소개 내용"}${strictNote}`;
+}
+
+async function requestArtistBio(
+  artist: { artist_name: string; country: string; artist_type: string; genre: string },
+  strictKorean: boolean,
+): Promise<string | null> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    systemInstruction:
+      '당신은 한국어 음악 매거진 에디터입니다. 모든 소개 문장은 한국어(한글)로만 작성합니다.',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+  const prompt = buildArtistBioPrompt(artist, strictKorean);
+  const result = await withRetry(() => model.generateContent(prompt));
+  const text = result.response.text();
+  const jsonRaw = extractJsonObjectFromGeminiText(text);
+  if (!jsonRaw) return null;
+  const parsed = JSON.parse(jsonRaw) as { bio?: unknown };
+  let bio = typeof parsed.bio === 'string' ? parsed.bio.trim() : '';
+  bio = bio.replace(/\\n/g, '\n');
+  return bio || null;
+}
+
 export async function generateArtistBio(artist: {
   artist_name: string;
   country: string;
   artist_type: string;
   genre: string;
 }): Promise<{ bio: string } | null> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3.1-flash-lite',
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
-  const prompt = `너는 음악 전문 에디터야. 아래 아티스트에 대해 실제 검색을 통해 정확한 소개를 작성해줘.
-
-[아티스트] ${artist.artist_name} | 국적: ${artist.country || '-'} | 타입: ${artist.artist_type || '-'} | 주요 장르: ${artist.genre || '-'}
-
-검색을 통해 다음을 포함한 3~4줄 소개를 작성해줘:
-- 아티스트 활동 시작 시기와 배경
-- 음악적 특징과 대표 사운드
-- 대표작 또는 주요 활동
-- 국내외 평가나 영향력
-
-bio는 반드시 한국어로만 작성해. 영어·일본어 등 다른 언어 사용 금지.
-
-JSON만 응답: {"bio": "소개 내용"}`;
-
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
-    if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as { bio?: unknown };
-    let bio = typeof parsed.bio === 'string' ? parsed.bio.trim() : '';
-    bio = bio.replace(/\\n/g, '\n');
+    let bio = await requestArtistBio(artist, false);
     if (!bio) return null;
+    if (looksLikeJapaneseBio(bio)) {
+      const retried = await requestArtistBio(artist, true);
+      if (retried && !looksLikeJapaneseBio(retried)) {
+        bio = retried;
+      }
+    }
     return { bio };
   } catch {
     return null;
