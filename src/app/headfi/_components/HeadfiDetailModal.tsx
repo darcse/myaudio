@@ -15,7 +15,7 @@ import { HeadfiMatchedAlbumsSection } from './HeadfiMatchedAlbumsSection';
 
 type DetailTab = 'info' | 'listen' | 'fr' | 'albums';
 
-const HIDE_ALBUMS_TAB_CATEGORIES = new Set(['스피커', 'DAC/AMP', 'DAP', 'Source', '기타']);
+const HIDE_ALBUMS_TAB_CATEGORIES = new Set(['스피커', 'DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타']);
 
 type HeadfiDetailModalProps = {
   viewingItem: Headfi;

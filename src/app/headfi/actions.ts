@@ -104,7 +104,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     image_url: data.image_url,
   };
 
-  if (data.category === 'DAC/AMP') {
+  if (data.category === 'DAC' || data.category === 'AMP' || data.category === 'DAC/AMP') {
     return {
       ...base,
       ...emptyWiredFields(),

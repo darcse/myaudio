@@ -32,9 +32,11 @@ const SPENDING_CATEGORIES = [
   '이어폰',
   '무선 헤드폰',
   '무선 이어폰',
+  '스피커',
+  'DAC',
+  'AMP',
   'DAC/AMP',
   'DAP',
-  '스피커',
   'Source',
   '기타',
 ] as const;
@@ -44,9 +46,11 @@ const CATEGORY_COUNT_UNITS: Record<(typeof SPENDING_CATEGORIES)[number], '개' |
   이어폰: '개',
   '무선 헤드폰': '개',
   '무선 이어폰': '개',
+  스피커: '대',
+  DAC: '대',
+  AMP: '대',
   'DAC/AMP': '대',
   DAP: '대',
-  스피커: '대',
   Source: '대',
   기타: '개',
 };
@@ -157,10 +161,14 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
   let wirelessEarphoneEartip = 0;
   let wirelessHeadphoneEartipCount = 0;
   let wirelessEarphoneEartipCount = 0;
+  let dacAccessory = 0;
+  let ampAccessory = 0;
   let dacAmpAccessory = 0;
   let dapAccessory = 0;
   let sourceAccessory = 0;
   let etcAccessory = 0;
+  let dacAccessoryCount = 0;
+  let ampAccessoryCount = 0;
   let dacAmpAccessoryCount = 0;
   let dapAccessoryCount = 0;
   let sourceAccessoryCount = 0;
@@ -194,6 +202,14 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
       const eartipPrice = safeAmount(item.eartip_price);
       wirelessEarphoneEartip += eartipPrice;
       if (eartipPrice > 0) wirelessEarphoneEartipCount += 1;
+    } else if (category === 'DAC') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      dacAccessory += accessoryPrice;
+      if (accessoryPrice > 0) dacAccessoryCount += 1;
+    } else if (category === 'AMP') {
+      const accessoryPrice = safeAmount(item.accessory_price);
+      ampAccessory += accessoryPrice;
+      if (accessoryPrice > 0) ampAccessoryCount += 1;
     } else if (category === 'DAC/AMP') {
       const accessoryPrice = safeAmount(item.accessory_price);
       dacAmpAccessory += accessoryPrice;
@@ -229,6 +245,8 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     { label: '이어폰 이어팁', amount: earphoneEartip, count: earphoneEartipCount, countUnit: '개' },
     { label: '무선 헤드폰 이어패드', amount: wirelessHeadphoneEartip, count: wirelessHeadphoneEartipCount, countUnit: '개' },
     { label: '무선 이어폰 이어팁', amount: wirelessEarphoneEartip, count: wirelessEarphoneEartipCount, countUnit: '개' },
+    { label: 'DAC 액세서리', amount: dacAccessory, count: dacAccessoryCount, countUnit: '개' },
+    { label: 'AMP 액세서리', amount: ampAccessory, count: ampAccessoryCount, countUnit: '개' },
     { label: 'DAC/AMP 액세서리', amount: dacAmpAccessory, count: dacAmpAccessoryCount, countUnit: '개' },
     { label: 'DAP 액세서리', amount: dapAccessory, count: dapAccessoryCount, countUnit: '개' },
     { label: 'Source 액세서리', amount: sourceAccessory, count: sourceAccessoryCount, countUnit: '개' },

@@ -131,7 +131,7 @@ export function AlbumListenHistorySection({
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['DAC/AMP', 'DAP', 'Source', '기타'])
+        .in('category', ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타'])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),

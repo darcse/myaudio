@@ -1,6 +1,7 @@
 'use client';
 
 import { SavingLabel } from '@/components/AsyncMutationUi';
+import { HEADFI_CATEGORY_OPTIONS, isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import type { SelectedHeadfi } from '../types';
 
 type FormData = {
@@ -82,7 +83,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
   const isWired = cat === '헤드폰' || cat === '이어폰';
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
-  const isDacAmp = cat === 'DAC/AMP';
+  const isDacAmp = isDacAmpOnlyCategory(cat);
   const isDap = cat === 'DAP';
   const isSourceOrEtc = cat === 'Source' || cat === '기타';
   const isHeadphone = cat === '헤드폰';
@@ -205,7 +206,7 @@ export function HeadfiForm({ selectedItem, formData, setFormData, dacAmpList, wi
             <label className="block text-sm font-semibold mb-1 opacity-90">카테고리</label>
             <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
               <option value="">선택</option>
-              {['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰', '스피커', 'DAC/AMP', 'DAP', 'Source', '기타'].map((categoryOption) => (
+              {HEADFI_CATEGORY_OPTIONS.map((categoryOption) => (
                 <option key={categoryOption} value={categoryOption}>{categoryOption}</option>
               ))}
             </select>

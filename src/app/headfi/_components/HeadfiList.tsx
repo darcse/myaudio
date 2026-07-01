@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { List, X } from 'lucide-react';
+import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
 import type { Headfi } from '../types';
 
 type HeadfiListProps = {
@@ -156,7 +157,7 @@ export function HeadfiList({
             onChange={(e) => setListCategoryFilter(e.target.value)}
           >
             <option value="전체">카테고리: 전체</option>
-            {['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰', '스피커', 'DAC/AMP', 'DAP', 'Source', '기타'].map((cat) => (
+            {HEADFI_CATEGORY_OPTIONS.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>

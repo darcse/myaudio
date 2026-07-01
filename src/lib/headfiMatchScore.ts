@@ -6,11 +6,30 @@ export { parseFrInterpretationSummary };
 
 export type HeadfiMatchScoreMode = 'dac_amp' | 'headphone';
 
-export const DAC_AMP_DAP_CATEGORIES = ['DAC/AMP', 'DAP'] as const;
+export const HEADFI_CATEGORY_OPTIONS = [
+  '헤드폰',
+  '이어폰',
+  '무선 헤드폰',
+  '무선 이어폰',
+  '스피커',
+  'DAC',
+  'AMP',
+  'DAC/AMP',
+  'DAP',
+  'Source',
+  '기타',
+] as const;
+
+export const DAC_AMP_ONLY_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP'] as const;
+export const DAC_AMP_DAP_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP'] as const;
 export const WIRED_HP_IEM_CATEGORIES = ['헤드폰', '이어폰'] as const;
 
+export function isDacAmpOnlyCategory(category: string | null | undefined): boolean {
+  return category === 'DAC' || category === 'AMP' || category === 'DAC/AMP';
+}
+
 export function isDacAmpDapCategory(category: string | null | undefined): boolean {
-  return category === 'DAC/AMP' || category === 'DAP';
+  return category === 'DAC' || category === 'AMP' || category === 'DAC/AMP' || category === 'DAP';
 }
 
 export function isWiredHeadphoneEarphoneCategory(category: string | null | undefined): boolean {

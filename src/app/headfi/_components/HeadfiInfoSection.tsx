@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Headphones, SlidersHorizontal } from 'lucide-react';
+import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import type { Headfi } from '../types';
 import { formatVrmsAt32Ohm } from '../utils';
 
@@ -52,7 +53,7 @@ export function HeadfiInfoSection({
   const isHeadphone = cat === '헤드폰';
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
-  const isDacAmp = cat === 'DAC/AMP';
+  const isDacAmp = isDacAmpOnlyCategory(cat);
   const isDap = cat === 'DAP';
   const isSourceOrEtc = cat === 'Source' || cat === '기타';
 
