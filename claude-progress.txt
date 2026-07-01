@@ -169,3 +169,16 @@
 [2026-06-08] [Cursor] style: /headfi/map 헤더를 /headfi/match와 동일 구성으로 변경 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 헤드파이 목록 헤더 모바일에서 버튼 타이틀 하단 배치 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 포지션맵 범례 맵 우측 하단 오버레이 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 SVG 높이 2배·full width·좌표 스프레드 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 SVG 세로 높이 절반으로 축소 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 포지션맵 경계 패딩·겹침 레이블 오프셋 분리 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 신규 앨범 저장 시 mood-assign을 album-intro와 독립 호출 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 포지션맵 클러스터링·hover 툴팁·클릭 팝오버 전환 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 팝오버 1뎁스·아이콘 액션 레이아웃 통일 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 범례 글씨 크기 소폭 확대 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 포지션맵 툴팁 hover 영역·닫힘 딜레이 개선 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 축 라벨 맵 가장자리에 밀착 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: headfi-position X축 warm↔cool 프롬프트·맵 레이블 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 매칭맵 빈 셀 클릭 시 단일 조합 자동 분석·즉시 반영 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 스코어 4구간(1~199·200~239·240~269·270~300) 셀 색상 구분 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 상위 구간(240~269·270~300) 색상 대비 개선 | passes: 변경 없음

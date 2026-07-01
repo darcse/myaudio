@@ -181,7 +181,23 @@ export async function POST(req: NextRequest) {
         return isDacAmpDapCategory(gear.category);
       });
 
-    if (!force && cachedScores.length > 0) {
+    const targetGearId =
+      typeof body.targetGearId === 'number'
+        ? body.targetGearId
+        : parseInt(String(body.targetGearId ?? ''), 10);
+    const singleTarget = Number.isFinite(targetGearId);
+
+    if (!force && singleTarget) {
+      const cached = cachedScores.find((s) => s.target_gear_id === targetGearId);
+      if (cached) {
+        const results = buildRankedResults([cached], gearById);
+        if (results.length > 0) {
+          return NextResponse.json({ results });
+        }
+      }
+    }
+
+    if (!force && !singleTarget && cachedScores.length > 0) {
       const results = buildRankedResults(cachedScores, gearById);
       if (results.length > 0) {
         return NextResponse.json({ results });
@@ -193,16 +209,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (force) {
-      const { error: deleteError } = await supabase
-        .from('headfi_match_cache')
-        .delete()
-        .eq('base_gear_id', baseGearId);
+      let deleteQuery = supabase.from('headfi_match_cache').delete().eq('base_gear_id', baseGearId);
+      if (singleTarget) {
+        deleteQuery = deleteQuery.eq('target_gear_id', targetGearId);
+      }
+      const { error: deleteError } = await deleteQuery;
       if (deleteError) {
         return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
     }
 
-    const candidates = pickCandidates(pool, 20);
+    let candidates;
+    if (singleTarget) {
+      const targetRow = pool.find((item) => item.id === targetGearId);
+      if (!targetRow) {
+        return NextResponse.json({ error: '대상 기기를 찾을 수 없습니다.' }, { status: 404 });
+      }
+      candidates = [targetRow];
+    } else {
+      candidates = pickCandidates(pool, 20);
+    }
     const candidateLines = candidates.map((item) => candidateLine(compressCandidateRow(item)));
     const candidateIds = candidates.map((c) => c.id);
 

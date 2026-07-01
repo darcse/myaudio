@@ -14,22 +14,29 @@ type PositionMapTabProps = {
 
 const PLOT_W = 560;
 const PLOT_H = 400;
+const PLOT_PAD = 28;
+const VIEW_PAD_TOP = 18;
+const VIEW_PAD_SIDE = 42;
+const VIEW_PAD_BOTTOM = 8;
+const VIEW_W = PLOT_W + VIEW_PAD_SIDE * 2;
+const VIEW_H = PLOT_H + VIEW_PAD_TOP + VIEW_PAD_BOTTOM;
+const COORD_SPREAD = 1.2;
+const TOOLTIP_HIDE_DELAY_MS = 120;
 const AXIS_LABEL_CLASS =
   'pointer-events-none absolute text-[11px] leading-none opacity-70 whitespace-nowrap';
 
 function toPlotX(value: number): number {
-  return ((value + 1) / 2) * PLOT_W;
+  const scaled = Math.max(-1, Math.min(1, value * COORD_SPREAD));
+  return PLOT_PAD + ((scaled + 1) / 2) * (PLOT_W - 2 * PLOT_PAD);
 }
 
 function toPlotY(value: number): number {
-  return ((1 - value) / 2) * PLOT_H;
+  const scaled = Math.max(-1, Math.min(1, value * COORD_SPREAD));
+  return PLOT_PAD + ((1 - scaled) / 2) * (PLOT_H - 2 * PLOT_PAD);
 }
 
-type StatusFilter = '전체' | '보유중' | '방출';
-type CategoryFilter = '전체' | '헤드폰' | '이어폰';
-
-const STATUS_FILTER_OPTIONS: StatusFilter[] = ['전체', '보유중', '방출'];
-const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
+const CLUSTER_THRESHOLD = 30;
+const MIXED_CLUSTER_COLOR = '#888888';
 
 const POSITION_DOT_LEGEND = [
   { label: '오픈형 헤드폰', color: '#57C1FF' },
@@ -46,6 +53,217 @@ function getPositionDotColor(item: Headfi): string {
   if (item.category === '이어폰' && item.type1 === '오픈형') return '#F97316';
   return '#888888';
 }
+
+type PlottedPoint = { item: Headfi; x: number; y: number };
+
+type MapSingleMarker = {
+  kind: 'single';
+  id: string;
+  x: number;
+  y: number;
+  item: Headfi;
+  color: string;
+};
+
+type MapClusterMarker = {
+  kind: 'cluster';
+  id: string;
+  x: number;
+  y: number;
+  items: Headfi[];
+  color: string;
+  count: number;
+};
+
+type MapMarker = MapSingleMarker | MapClusterMarker;
+
+type HoverTooltip = {
+  kind: 'single' | 'cluster';
+  left: number;
+  top: number;
+  placement: 'above' | 'below';
+  item?: Headfi;
+  items?: Headfi[];
+};
+
+type ActivePopover = {
+  left: number;
+  top: number;
+  items: Headfi[];
+};
+
+function clusterPlottedPoints(points: PlottedPoint[]): MapMarker[] {
+  const count = points.length;
+  if (count === 0) return [];
+
+  const parent = points.map((_, index) => index);
+
+  const find = (index: number): number => {
+    let current = index;
+    while (parent[current] !== current) {
+      parent[current] = parent[parent[current]];
+      current = parent[current];
+    }
+    return current;
+  };
+
+  const union = (a: number, b: number) => {
+    const rootA = find(a);
+    const rootB = find(b);
+    if (rootA !== rootB) parent[rootB] = rootA;
+  };
+
+  for (let i = 0; i < count; i++) {
+    for (let j = i + 1; j < count; j++) {
+      if (Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y) <= CLUSTER_THRESHOLD) {
+        union(i, j);
+      }
+    }
+  }
+
+  const groups = new Map<number, PlottedPoint[]>();
+  for (let i = 0; i < count; i++) {
+    const root = find(i);
+    const group = groups.get(root) ?? [];
+    group.push(points[i]);
+    groups.set(root, group);
+  }
+
+  const markers: MapMarker[] = [];
+  let clusterIndex = 0;
+  for (const group of groups.values()) {
+    const x = group.reduce((sum, point) => sum + point.x, 0) / group.length;
+    const y = group.reduce((sum, point) => sum + point.y, 0) / group.length;
+    if (group.length === 1) {
+      const item = group[0].item;
+      markers.push({
+        kind: 'single',
+        id: `single-${item.id}`,
+        x,
+        y,
+        item,
+        color: getPositionDotColor(item),
+      });
+      continue;
+    }
+    const colors = new Set(group.map((point) => getPositionDotColor(point.item)));
+    markers.push({
+      kind: 'cluster',
+      id: `cluster-${clusterIndex}`,
+      x,
+      y,
+      items: group.map((point) => point.item),
+      color: colors.size === 1 ? [...colors][0] : MIXED_CLUSTER_COLOR,
+      count: group.length,
+    });
+    clusterIndex += 1;
+  }
+  return markers;
+}
+
+function deviceDisplayName(item: Headfi): string {
+  return `${item.brand ?? ''} ${item.model ?? ''}`.trim() || '—';
+}
+
+function popoverRowHeight(item: Headfi): number {
+  return item.position_label ? 52 : 36;
+}
+
+function PopoverDeviceRow({
+  item,
+  loading,
+  showDivider,
+  onRefresh,
+  onDelete,
+}: {
+  item: Headfi;
+  loading: boolean;
+  showDivider: boolean;
+  onRefresh: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div
+      className={showDivider ? 'border-t pt-2' : ''}
+      style={showDivider ? { borderColor: 'var(--border)' } : undefined}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 truncate text-[11px] font-semibold leading-snug">
+          {deviceDisplayName(item)}
+        </p>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onRefresh}
+            className="flex size-7 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--badge-bg)' }}
+            aria-label={`${deviceDisplayName(item)} 재분석`}
+          >
+            {loading ? (
+              <Loader2 className="size-3.5 animate-spin" strokeWidth={1.75} />
+            ) : (
+              <RefreshCw className="size-3.5" strokeWidth={1.75} />
+            )}
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onDelete}
+            className="flex size-7 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--badge-bg)' }}
+            aria-label={`${deviceDisplayName(item)} 삭제`}
+          >
+            <Trash2 className="size-3.5" strokeWidth={1.75} />
+          </button>
+        </div>
+      </div>
+      {item.position_label ? (
+        <p className="mt-1 text-[10px] leading-snug opacity-70">{item.position_label}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function clampPopoverPosition(
+  wrap: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+  width: number,
+  height: number,
+): { left: number; top: number } {
+  const rect = wrap.getBoundingClientRect();
+  const left = Math.min(Math.max(clientX - rect.left, 8), rect.width - width - 8);
+  const top = Math.min(Math.max(clientY - rect.top + 8, 8), rect.height - height - 8);
+  return { left, top };
+}
+
+function clampTooltipPosition(
+  wrap: HTMLDivElement,
+  clientX: number,
+  clientY: number,
+  tooltipWidth: number,
+  tooltipHeight: number,
+): { left: number; top: number; placement: 'above' | 'below' } {
+  const rect = wrap.getBoundingClientRect();
+  const relativeX = clientX - rect.left;
+  const relativeY = clientY - rect.top;
+  const left = Math.min(Math.max(relativeX, tooltipWidth / 2 + 8), rect.width - tooltipWidth / 2 - 8);
+  let placement: 'above' | 'below' = 'above';
+  let top = relativeY - 10;
+  if (top - tooltipHeight < 8) {
+    placement = 'below';
+    top = relativeY + 16;
+  }
+  top = Math.min(Math.max(top, 8), rect.height - 8);
+  return { left, top, placement };
+}
+
+type StatusFilter = '전체' | '보유중' | '방출';
+type CategoryFilter = '전체' | '헤드폰' | '이어폰';
+
+const STATUS_FILTER_OPTIONS: StatusFilter[] = ['전체', '보유중', '방출'];
+const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
 function filterToggleStyle(active: boolean): React.CSSProperties {
   return {
@@ -65,11 +283,6 @@ function matchesMapFilters(
   if (statusFilter !== '전체' && item.status2 !== statusFilter) return false;
   if (categoryFilter !== '전체' && item.category !== categoryFilter) return false;
   return true;
-}
-
-function deviceLabel(item: Headfi): string {
-  const name = (item.model ?? '').trim() || (item.brand ?? '').trim();
-  return name.length > 22 ? `${name.slice(0, 20)}…` : name;
 }
 
 function patchItemPosition(
@@ -95,11 +308,33 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
   const [items, setItems] = useState(library);
   const [regenerating, setRegenerating] = useState(false);
   const [loadingIds, setLoadingIds] = useState<Set<number>>(() => new Set());
-  const [activePoint, setActivePoint] = useState<Headfi | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ left: number; top: number } | null>(null);
+  const [activePopover, setActivePopover] = useState<ActivePopover | null>(null);
+  const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('전체');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
   const mapWrapRef = useRef<HTMLDivElement>(null);
+  const tooltipHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelTooltipHide = () => {
+    if (tooltipHideTimerRef.current) {
+      clearTimeout(tooltipHideTimerRef.current);
+      tooltipHideTimerRef.current = null;
+    }
+  };
+
+  const scheduleTooltipHide = () => {
+    cancelTooltipHide();
+    tooltipHideTimerRef.current = setTimeout(() => {
+      setHoverTooltip(null);
+      tooltipHideTimerRef.current = null;
+    }, TOOLTIP_HIDE_DELAY_MS);
+  };
+
+  useEffect(() => {
+    return () => {
+      cancelTooltipHide();
+    };
+  }, []);
 
   useEffect(() => {
     setItems(library);
@@ -116,12 +351,22 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
     return { plotted: plottedItems, unanalyzed: pendingItems };
   }, [filteredItems]);
 
+  const mapMarkers = useMemo(() => {
+    const points = plotted.map((item) => ({
+      item,
+      x: toPlotX(Number(item.position_x)),
+      y: toPlotY(Number(item.position_y)),
+    }));
+    return clusterPlottedPoints(points);
+  }, [plotted]);
+
   useEffect(() => {
-    if (activePoint && !filteredItems.some((item) => item.id === activePoint.id)) {
-      setActivePoint(null);
-      setPopoverPos(null);
-    }
-  }, [activePoint, filteredItems]);
+    if (!activePopover) return;
+    const stillVisible = activePopover.items.every((item) =>
+      filteredItems.some((row) => row.id === item.id),
+    );
+    if (!stillVisible) setActivePopover(null);
+  }, [activePopover, filteredItems]);
 
   const setLoading = (id: number, on: boolean) => {
     setLoadingIds((prev) => {
@@ -134,11 +379,15 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
 
   const applyPositionResult = (id: number, result: { x: number; y: number; label: string }) => {
     setItems((prev) => patchItemPosition(prev, id, result));
-    setActivePoint((prev) =>
-      prev?.id === id
-        ? { ...prev, position_x: result.x, position_y: result.y, position_label: result.label }
-        : prev,
-    );
+    setActivePopover((prev) => {
+      if (!prev) return prev;
+      const nextItems = prev.items.map((item) =>
+        item.id === id
+          ? { ...item, position_x: result.x, position_y: result.y, position_label: result.label }
+          : item,
+      );
+      return { ...prev, items: nextItems };
+    });
   };
 
   const analyzeOne = async (id: number, force = false) => {
@@ -190,8 +439,8 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
         return;
       }
       setItems((prev) => patchItemPosition(prev, id, null));
-      setActivePoint(null);
-      setPopoverPos(null);
+      setActivePopover(null);
+      setHoverTooltip(null);
       toast.success('미분석 기기로 이동했습니다.');
     } catch {
       toast.error('좌표 삭제에 실패했습니다.');
@@ -242,27 +491,45 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
     }
   };
 
-  const openPointPopover = (item: Headfi, event: React.MouseEvent) => {
+  const openMarkerPopover = (marker: MapMarker, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     const wrap = mapWrapRef.current;
     if (!wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const left = Math.min(Math.max(event.clientX - rect.left, 8), rect.width - 168);
-    const top = Math.min(Math.max(event.clientY - rect.top + 8, 8), rect.height - 88);
-    setActivePoint(item);
-    setPopoverPos({ left, top });
+    setHoverTooltip(null);
+    cancelTooltipHide();
+    const popoverItems = marker.kind === 'single' ? [marker.item] : marker.items;
+    const popoverHeight = Math.min(280, 12 + popoverItems.reduce((sum, item) => sum + popoverRowHeight(item), 0));
+    const { left, top } = clampPopoverPosition(wrap, event.clientX, event.clientY, 224, popoverHeight);
+    setActivePopover({
+      left,
+      top,
+      items: popoverItems,
+    });
+  };
+
+  const showMarkerTooltip = (marker: MapMarker, event: React.MouseEvent) => {
+    const wrap = mapWrapRef.current;
+    if (!wrap || activePopover) return;
+    cancelTooltipHide();
+    if (marker.kind === 'single') {
+      const { left, top, placement } = clampTooltipPosition(wrap, event.clientX, event.clientY, 180, 44);
+      setHoverTooltip({ kind: 'single', left, top, placement, item: marker.item });
+      return;
+    }
+    const height = Math.min(140, 24 + marker.items.length * 18);
+    const { left, top, placement } = clampTooltipPosition(wrap, event.clientX, event.clientY, 200, height);
+    setHoverTooltip({ kind: 'cluster', left, top, placement, items: marker.items });
   };
 
   useEffect(() => {
-    if (!activePoint) return;
+    if (!activePopover) return;
     const onDocClick = () => {
-      setActivePoint(null);
-      setPopoverPos(null);
+      setActivePopover(null);
     };
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
-  }, [activePoint]);
+  }, [activePopover]);
 
   return (
     <div className="space-y-6">
@@ -335,13 +602,13 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
             <Loader2 className="size-8 animate-spin opacity-80" strokeWidth={1.75} />
           </div>
         ) : null}
-        <div className="relative mx-auto w-full max-w-3xl pt-7 pb-7 pl-12 pr-12">
-          <span className={`${AXIS_LABEL_CLASS} left-1/2 top-0 -translate-x-1/2`}>분석적</span>
+        <div className="relative w-full pt-3 pb-7 pl-7 pr-7">
+          <span className={`${AXIS_LABEL_CLASS} left-1/2 top-3 -translate-x-1/2 -translate-y-full`}>분석적</span>
           <span className={`${AXIS_LABEL_CLASS} bottom-0 left-1/2 -translate-x-1/2`}>음악적</span>
-          <span className={`${AXIS_LABEL_CLASS} left-0 top-1/2 -translate-y-1/2`}>따뜻함</span>
-          <span className={`${AXIS_LABEL_CLASS} right-0 top-1/2 -translate-y-1/2`}>밝음</span>
+          <span className={`${AXIS_LABEL_CLASS} left-7 top-1/2 -translate-x-full -translate-y-1/2`}>따뜻함</span>
+          <span className={`${AXIS_LABEL_CLASS} right-7 top-1/2 translate-x-full -translate-y-1/2`}>차가움</span>
           <svg
-            viewBox={`0 0 ${PLOT_W} ${PLOT_H}`}
+            viewBox={`${-VIEW_PAD_SIDE} ${-VIEW_PAD_TOP} ${VIEW_W} ${VIEW_H}`}
             className="block w-full"
             role="img"
             aria-label="헤드폰 포지션 맵"
@@ -372,22 +639,30 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
               strokeDasharray="4 4"
             />
 
-          {plotted.map((item) => {
-            const x = toPlotX(Number(item.position_x));
-            const y = toPlotY(Number(item.position_y));
-            const label = deviceLabel(item);
-            const loading = loadingIds.has(item.id) && !regenerating;
+          {mapMarkers.map((marker) => {
+            const { x, y } = marker;
+            const isCluster = marker.kind === 'cluster';
+            const markerItems = isCluster ? marker.items : [marker.item];
+            const loading =
+              !regenerating && markerItems.some((item) => loadingIds.has(item.id));
+            const isActive =
+              activePopover != null &&
+              markerItems.some((item) => activePopover.items.some((row) => row.id === item.id));
+            const radius = isCluster ? 10 : 5;
             return (
-              <g key={item.id}>
+              <g key={marker.id}>
                 <g
                   className="cursor-pointer"
-                  onClick={(e) => openPointPopover(item, e)}
+                  onClick={(e) => openMarkerPopover(marker, e)}
+                  onMouseEnter={(e) => showMarkerTooltip(marker, e)}
+                  onMouseMove={(e) => showMarkerTooltip(marker, e)}
+                  onMouseLeave={scheduleTooltipHide}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      openPointPopover(item, e as unknown as React.MouseEvent);
+                      openMarkerPopover(marker, e as unknown as React.MouseEvent);
                     }
                   }}
                 >
@@ -400,26 +675,28 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
                       </foreignObject>
                     </g>
                   ) : (
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r={5}
-                      fill={getPositionDotColor(item)}
-                      stroke={activePoint?.id === item.id ? 'var(--foreground)' : 'var(--card-bg)'}
-                      strokeWidth={activePoint?.id === item.id ? 2.5 : 2}
-                    />
+                    <>
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={radius}
+                        fill={marker.color}
+                        stroke={isActive ? 'var(--foreground)' : 'var(--card-bg)'}
+                        strokeWidth={isActive ? 2.5 : 2}
+                      />
+                      {isCluster ? (
+                        <text
+                          x={x}
+                          y={y + 3.5}
+                          textAnchor="middle"
+                          className="fill-[var(--card-bg)] text-[9px] pointer-events-none"
+                          style={{ fontWeight: 700 }}
+                        >
+                          {marker.count}
+                        </text>
+                      ) : null}
+                    </>
                   )}
-                  {!loading ? (
-                    <text
-                      x={x}
-                      y={y - 10}
-                      textAnchor="middle"
-                      className="fill-[var(--foreground)] text-[9px] pointer-events-none"
-                      style={{ fontWeight: 600 }}
-                    >
-                      {label}
-                    </text>
-                  ) : null}
                 </g>
               </g>
             );
@@ -445,7 +722,7 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
             aria-label="도트 범례"
           >
             {POSITION_DOT_LEGEND.map((entry) => (
-              <div key={entry.label} className="flex items-center gap-1.5 text-[10px] leading-tight opacity-90">
+              <div key={entry.label} className="flex items-center gap-1.5 text-[11px] leading-tight opacity-90">
                 <span
                   className="size-2 shrink-0 rounded-full"
                   style={{ background: entry.color }}
@@ -457,41 +734,64 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
           </div>
         </div>
 
-        {activePoint && popoverPos && isAuthenticated ? (
+        {hoverTooltip && !activePopover ? (
           <div
-            className="absolute z-20 w-40 rounded-xl p-2 shadow-lg"
+            className={`absolute z-30 max-w-[13rem] -translate-x-1/2 rounded-lg px-2.5 py-2 text-[11px] leading-snug shadow-lg ${
+              hoverTooltip.placement === 'above' ? '-translate-y-full' : 'translate-y-1'
+            }`}
             style={{
-              left: popoverPos.left,
-              top: popoverPos.top,
+              left: hoverTooltip.left,
+              top: hoverTooltip.top,
+              background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)',
+              border: '1px solid var(--border)',
+            }}
+            onMouseEnter={cancelTooltipHide}
+            onMouseLeave={scheduleTooltipHide}
+          >
+            {hoverTooltip.kind === 'single' && hoverTooltip.item ? (
+              <>
+                <p className="font-semibold">{deviceDisplayName(hoverTooltip.item)}</p>
+                {hoverTooltip.item.position_label ? (
+                  <p className="mt-1 opacity-70">{hoverTooltip.item.position_label}</p>
+                ) : null}
+              </>
+            ) : hoverTooltip.items ? (
+              <ul className="space-y-1">
+                {hoverTooltip.items.map((item) => (
+                  <li key={item.id}>
+                    <p className="font-semibold">{deviceDisplayName(item)}</p>
+                    {item.position_label ? (
+                      <p className="opacity-70">{item.position_label}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        {activePopover && isAuthenticated ? (
+          <div
+            className="absolute z-20 w-56 rounded-xl p-2.5 shadow-lg"
+            style={{
+              left: activePopover.left,
+              top: activePopover.top,
               background: 'var(--card-bg)',
               border: '1px solid var(--border)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="mb-2 truncate px-1 text-[11px] font-semibold">
-              {activePoint.brand} {activePoint.model}
-            </p>
-            <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                disabled={loadingIds.has(activePoint.id)}
-                onClick={() => void analyzeOne(activePoint.id, true)}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: 'var(--badge-bg)' }}
-              >
-                <RefreshCw className="size-3.5 shrink-0" strokeWidth={1.75} />
-                새로고침
-              </button>
-              <button
-                type="button"
-                disabled={loadingIds.has(activePoint.id)}
-                onClick={() => void clearPosition(activePoint.id)}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-left text-xs transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: 'var(--badge-bg)' }}
-              >
-                <Trash2 className="size-3.5 shrink-0" strokeWidth={1.75} />
-                삭제(미분석으로)
-              </button>
+            <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+              {activePopover.items.map((item, index) => (
+                <PopoverDeviceRow
+                  key={item.id}
+                  item={item}
+                  loading={loadingIds.has(item.id)}
+                  showDivider={index > 0}
+                  onRefresh={() => void analyzeOne(item.id, true)}
+                  onDelete={() => void clearPosition(item.id)}
+                />
+              ))}
             </div>
           </div>
         ) : null}

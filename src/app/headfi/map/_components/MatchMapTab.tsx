@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Headfi } from '@/app/headfi/types';
 import { isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
 
@@ -17,6 +19,7 @@ type CacheRow = {
 type MatchMapTabProps = {
   library: Headfi[];
   matchCache: CacheRow[];
+  isAuthenticated: boolean | null;
 };
 
 type SelectedCell = {
@@ -65,6 +68,10 @@ function deviceName(brand: string | null | undefined, model: string | null | und
   return `${brand ?? ''} ${model ?? ''}`.trim() || '—';
 }
 
+function cellKey(dacId: number, hpId: number): string {
+  return `${dacId}-${hpId}`;
+}
+
 function findCacheEntry(cache: CacheRow[], dacId: number, hpId: number): CacheRow | null {
   return (
     cache.find(
@@ -75,10 +82,17 @@ function findCacheEntry(cache: CacheRow[], dacId: number, hpId: number): CacheRo
   );
 }
 
-function scoreToMixPercent(total: number): number {
-  const max = 300;
-  const ratio = Math.min(1, Math.max(0, total / max));
-  return Math.round(12 + ratio * 78);
+function scoreCellBackground(total: number): string {
+  if (total >= 270) {
+    return 'color-mix(in srgb, #e5a100 62%, var(--card-bg))';
+  }
+  if (total >= 240) {
+    return 'color-mix(in srgb, var(--link) 50%, var(--card-bg))';
+  }
+  if (total >= 200) {
+    return 'color-mix(in srgb, var(--link) 42%, var(--card-bg))';
+  }
+  return 'color-mix(in srgb, var(--link) 22%, var(--card-bg))';
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
@@ -98,9 +112,87 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function MatchMapTab({ library, matchCache }: MatchMapTabProps) {
+export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTabProps) {
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
+  const [cache, setCache] = useState<CacheRow[]>(matchCache);
+  const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setCache(matchCache);
+  }, [matchCache]);
+
+  const setCellLoading = useCallback((key: string, loading: boolean) => {
+    setLoadingCells((prev) => {
+      const next = new Set(prev);
+      if (loading) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  }, []);
+
+  const analyzeCell = useCallback(
+    async (dac: Headfi, hp: Headfi) => {
+      if (!isAuthenticated) return;
+      const key = cellKey(dac.id, hp.id);
+      setCellLoading(key, true);
+      try {
+        const res = await fetch('/api/headfi-match-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'dac_amp',
+            baseGearId: dac.id,
+            targetGearId: hp.id,
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          results?: {
+            gear_id: number;
+            drive: number;
+            synergy: number;
+            genre: number;
+            comment: string;
+          }[];
+        };
+        if (!res.ok) {
+          toast.error(data.error || '궁합 분석에 실패했습니다.');
+          return;
+        }
+        const result = data.results?.find((row) => row.gear_id === hp.id) ?? data.results?.[0];
+        if (!result) {
+          toast.error('궁합 분석에 실패했습니다.');
+          return;
+        }
+        setCache((prev) => {
+          const filtered = prev.filter(
+            (row) =>
+              !(
+                (row.base_gear_id === dac.id && row.target_gear_id === hp.id) ||
+                (row.base_gear_id === hp.id && row.target_gear_id === dac.id)
+              ),
+          );
+          return [
+            ...filtered,
+            {
+              base_gear_id: dac.id,
+              target_gear_id: hp.id,
+              drive: result.drive,
+              synergy: result.synergy,
+              genre: result.genre,
+              comment: result.comment || '',
+            },
+          ];
+        });
+      } catch {
+        toast.error('궁합 분석에 실패했습니다.');
+      } finally {
+        setCellLoading(key, false);
+      }
+    },
+    [isAuthenticated, setCellLoading],
+  );
 
   useEffect(() => {
     if (!selected) return;
@@ -188,12 +280,14 @@ export function MatchMapTab({ library, matchCache }: MatchMapTabProps) {
                   <span className="line-clamp-2">{hp.model || hp.brand}</span>
                 </th>
                 {dacCols.map((dac) => {
-                  const entry = findCacheEntry(matchCache, dac.id, hp.id);
+                  const entry = findCacheEntry(cache, dac.id, hp.id);
                   const total = entry ? entry.drive + entry.synergy + entry.genre : null;
                   const isSelected = selected?.dacId === dac.id && selected?.hpId === hp.id;
+                  const key = cellKey(dac.id, hp.id);
+                  const isLoading = loadingCells.has(key);
                   const cellStyle = entry
                     ? {
-                        background: `color-mix(in srgb, var(--link) ${scoreToMixPercent(total!)}%, var(--card-bg))`,
+                        background: scoreCellBackground(total!),
                         border: '1px solid var(--border)',
                       }
                     : {
@@ -206,19 +300,22 @@ export function MatchMapTab({ library, matchCache }: MatchMapTabProps) {
                     <td key={dac.id} className="p-0.5 text-center align-middle">
                       <button
                         type="button"
-                        disabled={!entry}
+                        disabled={isLoading}
                         onClick={() => {
-                          if (!entry) return;
-                          setSelected({
-                            dacId: dac.id,
-                            hpId: hp.id,
-                            dacName: deviceName(dac.brand, dac.model),
-                            hpName: deviceName(hp.brand, hp.model),
-                            drive: entry.drive,
-                            synergy: entry.synergy,
-                            genre: entry.genre,
-                            comment: entry.comment,
-                          });
+                          if (entry) {
+                            setSelected({
+                              dacId: dac.id,
+                              hpId: hp.id,
+                              dacName: deviceName(dac.brand, dac.model),
+                              hpName: deviceName(hp.brand, hp.model),
+                              drive: entry.drive,
+                              synergy: entry.synergy,
+                              genre: entry.genre,
+                              comment: entry.comment,
+                            });
+                            return;
+                          }
+                          void analyzeCell(dac, hp);
                         }}
                         className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-90 disabled:cursor-default"
                         style={{
@@ -228,10 +325,18 @@ export function MatchMapTab({ library, matchCache }: MatchMapTabProps) {
                         title={
                           entry
                             ? `합계 ${total} · 드라이브 ${entry.drive} · 시너지 ${entry.synergy} · 장르 ${entry.genre}`
-                            : '캐시 없음'
+                            : isAuthenticated
+                              ? '클릭하여 궁합 분석'
+                              : '캐시 없음'
                         }
                       >
-                        {entry ? total : '—'}
+                        {isLoading ? (
+                          <Loader2 className="size-3.5 animate-spin opacity-70" />
+                        ) : entry ? (
+                          total
+                        ) : (
+                          '—'
+                        )}
                       </button>
                     </td>
                   );

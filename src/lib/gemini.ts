@@ -994,7 +994,7 @@ export async function analyzeHeadfiPosition(input: {
 [AI 분석] ${input.aiSoundAnalysis}
 
 실제 리뷰와 측정 데이터를 검색해서 참고하고 아래 기준으로 -1.0~1.0 사이 좌표를 생성해줘:
-- x축: -1.0(매우 따뜻함) ~ 1.0(매우 밝음)
+- x축: -1.0(매우 따뜻함/warm) ~ 1.0(매우 차가움/cool)
 - y축: -1.0(매우 음악적/감성적) ~ 1.0(매우 분석적/모니터링)
 - position_label: 이 기기의 음색 성향 한 줄 요약 (예: "따뜻하고 분석적인 올라운더")
 

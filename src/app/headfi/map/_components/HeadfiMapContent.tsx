@@ -114,7 +114,7 @@ export function HeadfiMapContent() {
           onRefresh={fetchData}
         />
       ) : (
-        <MatchMapTab library={library} matchCache={matchCache} />
+        <MatchMapTab library={library} matchCache={matchCache} isAuthenticated={isAuthenticated} />
       )}
     </div>
   );
