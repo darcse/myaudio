@@ -962,6 +962,64 @@ JSON만 응답:
   }
 }
 
+export type HeadfiPositionResult = {
+  x: number;
+  y: number;
+  label: string;
+};
+
+export async function analyzeHeadfiPosition(input: {
+  brand: string;
+  model: string;
+  category: string;
+  bass: string;
+  mid: string;
+  treble: string;
+  resolution: string;
+  separation: string;
+  soundstage: string;
+  frSummary: string;
+  aiSoundAnalysis: string;
+}): Promise<HeadfiPositionResult | null> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.1-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+  });
+
+  const prompt = `너는 헤드파이 전문 분석가야. 아래 기기의 음향 특성을 분석해서 포지션맵 좌표를 생성해줘.
+
+[기기] ${input.brand} ${input.model} | 카테고리: ${input.category}
+[청음 평가] 저역:${input.bass} 중역:${input.mid} 고역:${input.treble} 해상력:${input.resolution} 분리도:${input.separation} 음장:${input.soundstage}
+[FR 해석] ${input.frSummary}
+[AI 분석] ${input.aiSoundAnalysis}
+
+실제 리뷰와 측정 데이터를 검색해서 참고하고 아래 기준으로 -1.0~1.0 사이 좌표를 생성해줘:
+- x축: -1.0(매우 따뜻함) ~ 1.0(매우 밝음)
+- y축: -1.0(매우 음악적/감성적) ~ 1.0(매우 분석적/모니터링)
+- position_label: 이 기기의 음색 성향 한 줄 요약 (예: "따뜻하고 분석적인 올라운더")
+
+JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향"}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { x?: unknown; y?: unknown; label?: unknown };
+    const x = typeof parsed.x === 'number' ? parsed.x : null;
+    const y = typeof parsed.y === 'number' ? parsed.y : null;
+    const label = typeof parsed.label === 'string' ? parsed.label.trim() : '';
+    if (x == null || y == null || !label) return null;
+    return {
+      x: Math.min(1, Math.max(-1, Math.round(x * 100) / 100)),
+      y: Math.min(1, Math.max(-1, Math.round(y * 100) / 100)),
+      label,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMonthlyReviewComment(
   year: number,
   month: number,

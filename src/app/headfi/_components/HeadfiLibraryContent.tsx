@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart2, Headphones, Music, Shuffle } from 'lucide-react';
+import { BarChart2, Headphones, Map, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -418,6 +419,7 @@ export function HeadfiLibraryContent() {
     setIsSaving(true);
     try {
       let savedId: number | null = null;
+      const isNew = !('id' in selectedItem && selectedItem.id);
       if ('id' in selectedItem && selectedItem.id) {
         await updateHeadfiInDB(Number(selectedItem.id), formData);
         savedId = Number(selectedItem.id);
@@ -460,6 +462,18 @@ export function HeadfiLibraryContent() {
               })
               .catch(() => {});
           }
+        }
+
+        if (isNew && isPositionMapCategory(formData.category)) {
+          void fetch('/api/headfi-position', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ headfiId: savedId }),
+          })
+            .then((res) => {
+              if (res.ok) void fetchLibrary();
+            })
+            .catch(() => {});
         }
       }
     } catch (e) {
@@ -513,11 +527,11 @@ export function HeadfiLibraryContent() {
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="page-title flex items-center gap-2">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title flex items-center gap-2 shrink-0">
           <Headphones className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Head-fi
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isAuthenticated ? (
             <button
               type="button"
@@ -528,6 +542,13 @@ export function HeadfiLibraryContent() {
               <span className="hidden sm:inline">소비 통계</span>
             </button>
           ) : null}
+          <Link
+            href="/headfi/map"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+          >
+            <Map className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">포지션 맵</span>
+          </Link>
           <button
             type="button"
             className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"

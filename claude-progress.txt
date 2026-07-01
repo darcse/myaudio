@@ -150,3 +150,22 @@
 [2026-06-08] [Cursor] feat: 헤드파이 모달 DAP 매칭 모델 표시 (DAC/AMP 동일) | passes: 변경 없음
 [2026-06-08] [Cursor] style: 앨범 모달 청취 이력 탭 건수 badge 태그 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 앨범 연도 셀렉트 구간 필터 (2020~2024, 2010~2019 등) | passes: 변경 없음
+[2026-06-08] [Cursor] GEAR-013 /headfi/map 포지션맵 SVG·매칭맵 히트맵·/api/headfi-position·신규등록 자동좌표 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 포지션맵 유선만·미분석/점 인터랙션·전체새로고침 plotted만 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 축 레이블 밖 배치·전체새로고침 버튼/오버레이 로딩 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 축 레이블 상하좌우 분리·기기명 모델만 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 포지션맵 보유상태·카테고리 필터 토글 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 축 레이블 absolute 배치 (상하좌우 중앙) | passes: 변경 없음
+[2026-06-08] [Cursor] refactor: 매칭맵 행=헤드폰·열=DAC/DAP 전환 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 높이 제한 제거·셀 상세 모달 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 모달 닫기 버튼 타이틀 상단 우측 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 스코어 모달 상단 여백·닫기 코너 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 테이블 스코어 셀 열 헤더 중앙 정렬 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 매칭맵 헤드폰·이어폰 카테고리 필터 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 테이블 열·행 헤더 sticky 및 배경 분리 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 필터를 맵 카드 내부 상단으로 이동 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 카테고리 필터를 소개 텍스트 우측 정렬 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 도트 type1별 색상 구분 및 범례 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] style: /headfi/map 헤더를 /headfi/match와 동일 구성으로 변경 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 헤드파이 목록 헤더 모바일에서 버튼 타이틀 하단 배치 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 범례 맵 우측 하단 오버레이 배치 | passes: 변경 없음
