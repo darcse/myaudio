@@ -193,4 +193,7 @@
 [2026-06-08] [Cursor] style: 금주 핫앨범 1위 카드 커버·높이 2~5위 열과 균형 조정 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 금주 핫앨범 1위 full-bleed 커버·하단 텍스트 오버레이 레이아웃 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 금주 핫앨범 집계 월~일 고정 → 오늘 기준 롤링 7일 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-013 랭킹/청취 추이 탭 분리·SVG 기간별 청취 그래프 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 청취 추이 차트 flex+CSS 텍스트로 크기 균형 조정 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 앨범 통계 탭 UI 포지션맵 하단 보더 스타일로 통일 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 일본어 아티스트명 소개도 Gemini 한국어 응답 강제·재시도 | passes: 변경 없음

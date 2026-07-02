@@ -30,8 +30,19 @@ import {
   type ListenPeriodFilter,
 } from '../albumListenStats';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
+import { ListenTrendSection } from './ListenTrendSection';
 
 type HistoryRow = { album_id: number | null; listened_at: string | null };
+
+type AlbumStatsTab = 'ranking' | 'trend';
+
+function tabButtonClass(active: boolean): string {
+  return `border-b-2 px-1 pb-3 text-sm transition-colors ${
+    active
+      ? 'border-[var(--foreground)] font-semibold opacity-100'
+      : 'border-transparent opacity-60 hover:opacity-90'
+  }`;
+}
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -187,6 +198,8 @@ export function AlbumStatsContent() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statsTab, setStatsTab] = useState<AlbumStatsTab>('ranking');
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
@@ -206,24 +219,36 @@ export function AlbumStatsContent() {
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const client = createClient();
       const [albumRes, historyRes] = await Promise.all([
         client.from('album').select('*').order('release_date', { ascending: false }),
         client.from('album_listen_history').select('album_id, listened_at'),
       ]);
+      const errors: string[] = [];
       if (albumRes.error) {
-        toast.error('앨범 목록을 불러오지 못했습니다.');
+        errors.push('앨범 목록을 불러오지 못했습니다.');
         setAlbums([]);
       } else {
         setAlbums((albumRes.data ?? []) as Album[]);
       }
       if (historyRes.error) {
-        toast.error('청취 기록을 불러오지 못했습니다.');
+        errors.push('청취 기록을 불러오지 못했습니다.');
         setHistoryRows([]);
       } else {
         setHistoryRows(historyRes.data ?? []);
       }
+      if (errors.length > 0) {
+        setLoadError(errors.join(' '));
+        toast.error(errors[0]);
+      }
+    } catch {
+      const message = '통계 데이터를 불러오지 못했습니다.';
+      setLoadError(message);
+      toast.error(message);
+      setAlbums([]);
+      setHistoryRows([]);
     } finally {
       setIsLoading(false);
     }
@@ -506,6 +531,27 @@ export function AlbumStatsContent() {
         </h1>
       </div>
 
+      <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="-mb-px flex gap-4">
+          <button
+            type="button"
+            onClick={() => setStatsTab('ranking')}
+            className={tabButtonClass(statsTab === 'ranking')}
+            aria-pressed={statsTab === 'ranking'}
+          >
+            랭킹
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatsTab('trend')}
+            className={tabButtonClass(statsTab === 'trend')}
+            aria-pressed={statsTab === 'trend'}
+          >
+            청취 추이
+          </button>
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div
@@ -513,6 +559,8 @@ export function AlbumStatsContent() {
             style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
           />
         </div>
+      ) : statsTab === 'trend' ? (
+        <ListenTrendSection historyRows={historyRows} now={now} loadError={loadError} />
       ) : (
         <>
           <WeeklyHotAlbumsSection
@@ -620,12 +668,6 @@ export function AlbumStatsContent() {
           )}
         </>
       )}
-
-      <section
-        className="mt-10 min-h-[12rem] border-t pt-8"
-        style={{ borderColor: 'var(--border)' }}
-        aria-label="청취 추이"
-      />
 
       {viewingAlbum ? (
         <AlbumDetailModal

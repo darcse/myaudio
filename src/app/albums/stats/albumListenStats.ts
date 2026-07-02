@@ -3,6 +3,15 @@ import { buildListenHistoryIndex } from '@/app/artists/utils';
 
 export const LISTEN_RANKING_LIMIT = 10;
 export const WEEKLY_HOT_ALBUM_LIMIT = 5;
+export const LISTEN_TREND_WEEK_COUNT = 12;
+
+export type ListenTrendUnit = 'year' | 'month' | 'week';
+
+export type ListenTrendPoint = {
+  key: string;
+  label: string;
+  count: number;
+};
 
 export type WeekRange = {
   startMs: number;
@@ -95,6 +104,119 @@ export function filterHistoryByPeriod(
 export function formatPeriodLabel(filter: ListenPeriodFilter): string {
   if (filter.month === 'all') return `${filter.year}년`;
   return `${filter.year}년 ${filter.month}월`;
+}
+
+function parseYearMonthFromListenedAt(listenedAt: string): { year: number; month: number } | null {
+  const trimmed = listenedAt.trim();
+  if (!trimmed) return null;
+  const datePart = trimmed.slice(0, 7);
+  if (datePart.length < 7) return null;
+  const year = parseInt(datePart.slice(0, 4), 10);
+  const month = parseInt(datePart.slice(5, 7), 10);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return null;
+  return { year, month };
+}
+
+function getMondayWeekStart(reference: Date): Date {
+  const start = new Date(reference);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  start.setDate(start.getDate() + diffToMonday);
+  return start;
+}
+
+export function buildYearlyListenTrend(
+  rows: HistoryRow[],
+  reference = new Date(),
+): ListenTrendPoint[] {
+  const maxYear = Math.max(STATS_MIN_YEAR, reference.getFullYear());
+  const counts = new Map<number, number>();
+  for (let year = STATS_MIN_YEAR; year <= maxYear; year += 1) {
+    counts.set(year, 0);
+  }
+
+  for (const row of rows) {
+    const listenedAt = row.listened_at?.trim();
+    if (!listenedAt || row.album_id == null) continue;
+    const parts = parseYearMonthFromListenedAt(listenedAt);
+    if (!parts || parts.year < STATS_MIN_YEAR || !counts.has(parts.year)) continue;
+    counts.set(parts.year, (counts.get(parts.year) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].map(([year, count]) => ({
+    key: String(year),
+    label: String(year),
+    count,
+  }));
+}
+
+export function buildMonthlyListenTrend(rows: HistoryRow[], year: number): ListenTrendPoint[] {
+  const counts = new Map<number, number>();
+  for (let month = 1; month <= 12; month += 1) {
+    counts.set(month, 0);
+  }
+
+  for (const row of rows) {
+    const listenedAt = row.listened_at?.trim();
+    if (!listenedAt || row.album_id == null) continue;
+    const parts = parseYearMonthFromListenedAt(listenedAt);
+    if (!parts || parts.year !== year) continue;
+    counts.set(parts.month, (counts.get(parts.month) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].map(([month, count]) => ({
+    key: `${year}-${month}`,
+    label: String(month),
+    count,
+  }));
+}
+
+export function buildWeeklyListenTrend(
+  rows: HistoryRow[],
+  reference = new Date(),
+  weekCount = LISTEN_TREND_WEEK_COUNT,
+): ListenTrendPoint[] {
+  const currentWeekStart = getMondayWeekStart(reference);
+  const buckets: { startMs: number; endMs: number; label: string }[] = [];
+
+  for (let offset = weekCount - 1; offset >= 0; offset -= 1) {
+    const start = new Date(currentWeekStart);
+    start.setDate(start.getDate() - offset * 7);
+    const endMs = start.getTime() + 7 * 24 * 60 * 60 * 1000 - 1;
+    buckets.push({
+      startMs: start.getTime(),
+      endMs,
+      label: `${start.getMonth() + 1}/${start.getDate()}`,
+    });
+  }
+
+  const counts = buckets.map((bucket) => ({ ...bucket, count: 0 }));
+
+  for (const row of rows) {
+    const listenedAt = row.listened_at?.trim();
+    if (!listenedAt || row.album_id == null) continue;
+    const ms = parseListenedAtMs(listenedAt);
+    if (ms == null) continue;
+    for (const bucket of counts) {
+      if (ms >= bucket.startMs && ms <= bucket.endMs) {
+        bucket.count += 1;
+        break;
+      }
+    }
+  }
+
+  return counts.map((bucket) => ({
+    key: String(bucket.startMs),
+    label: bucket.label,
+    count: bucket.count,
+  }));
+}
+
+export function formatListenTrendUnitLabel(unit: ListenTrendUnit): string {
+  if (unit === 'year') return '연도';
+  if (unit === 'month') return '월';
+  return '주';
 }
 
 function parseListenedAtMs(listenedAt: string): number | null {
