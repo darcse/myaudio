@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Disc, Sparkles } from 'lucide-react';
+import { BarChart3, Disc, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -320,6 +321,16 @@ export function AlbumsLibraryContent() {
     [library],
   );
 
+  const albumParam = searchParams.get('album');
+
+  useEffect(() => {
+    if (!albumParam || isLoading) return;
+    const albumId = parseInt(albumParam, 10);
+    if (!Number.isFinite(albumId)) return;
+    if (viewingItem?.id === albumId) return;
+    void openAlbumById(albumId);
+  }, [albumParam, isLoading, openAlbumById, viewingItem?.id]);
+
   useEffect(() => {
     if (!viewingHeadfi?.id) {
       setRegisteredAlbums([]);
@@ -626,6 +637,13 @@ export function AlbumsLibraryContent() {
           <Disc className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Albums
         </h1>
         <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/albums/stats"
+            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <BarChart3 className="size-4" strokeWidth={1.5} />
+            앨범 통계
+          </Link>
           <button
             type="button"
             onClick={() => setMoodModalOpen(true)}

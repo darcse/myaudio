@@ -8,6 +8,7 @@ import { countryOptions } from '../constants';
 import { getYoutubeId } from '../utils';
 import type { Album } from '../types';
 import { MoodMiniCard } from './albumDetailMoodMiniCard';
+import { AlbumCoverBlurBackdrop } from './AlbumCoverBlurBackdrop';
 
 type AlbumInfoSectionProps = {
   viewingItem: Album;
@@ -24,35 +25,23 @@ export function AlbumInfoHeroSection({ viewingItem }: Pick<AlbumInfoSectionProps
   return (
     <>
       <div className="relative w-full shrink-0 overflow-hidden rounded-t-[var(--radius-lg)]" style={{ height: 300 }}>
+        <AlbumCoverBlurBackdrop coverImageUrl={viewingItem.cover_image_url} />
         {viewingItem.cover_image_url ? (
-          <>
-            <div className="absolute inset-0 overflow-hidden" aria-hidden>
-              <img
-                src={viewingItem.cover_image_url}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover blur-xl scale-110"
-              />
-            </div>
-            <div className="absolute inset-0 z-[1] flex items-center justify-center p-6 pointer-events-none">
-              <img
-                src={viewingItem.cover_image_url}
-                alt="앨범 커버"
-                className="aspect-square max-h-full max-w-full object-contain rounded-xl shadow-2xl"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            </div>
-          </>
+          <div className="absolute inset-0 z-[1] flex items-center justify-center p-6 pointer-events-none">
+            <img
+              src={viewingItem.cover_image_url}
+              alt="앨범 커버"
+              className="aspect-square max-h-full max-w-full object-contain rounded-xl shadow-2xl"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center z-[1]" style={{ background: 'var(--badge-bg)' }}>
+          <div className="absolute inset-0 z-[1] flex items-center justify-center" style={{ background: 'var(--badge-bg)' }}>
             <Music className="size-12 opacity-30" strokeWidth={1.5} />
           </div>
         )}
-        <div
-          className="absolute inset-0 z-[2] pointer-events-none"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 55%, transparent 100%)' }}
-        />
         <div className="absolute bottom-0 left-0 right-0 z-[3] p-5">
           <div className="flex flex-wrap gap-1.5 mb-2">
             {viewingItem.genre1 && (
