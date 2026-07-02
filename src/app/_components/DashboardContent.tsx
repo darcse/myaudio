@@ -11,7 +11,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { updateAlbumInDB } from '@/app/albums/actions';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import type { Album, AlbumFormData } from '@/app/albums/types';
-import { updateHeadfiInDB, uploadHeadfiFrGraphImage } from '@/app/headfi/actions';
+import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
 import type { Headfi } from '@/app/headfi/types';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -418,12 +418,17 @@ export function DashboardContent({
     reader.readAsDataURL(file);
   };
 
-  const handleHeadfiImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeadfiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setHeadfiFormData((prev) => ({ ...prev, image_url: reader.result as string }));
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadHeadfiDeviceImage(file);
+      setHeadfiFormData((prev) => ({ ...prev, image_url: url }));
+      toast.success('기기 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch (err) {
+      toast.error(getClientErrorMessage(err) || '기기 이미지 업로드에 실패했습니다.');
+    }
+    e.target.value = '';
   };
 
   const handleHeadfiFrGraphFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

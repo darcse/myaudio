@@ -89,6 +89,14 @@ function emptyWiredFields() {
   };
 }
 
+function normalizePersistedImageUrl(url: string | undefined): string {
+  const trimmed = url?.trim() ?? '';
+  if (trimmed.startsWith('data:')) {
+    throw new Error('이미지 파일 업로드가 완료되지 않았습니다. 파일을 다시 선택해 주세요.');
+  }
+  return trimmed;
+}
+
 function mapHeadfiData(data: HeadfiFormData) {
   const fr = data.fr_graph_url?.trim() || null;
   const base = {
@@ -101,7 +109,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     status2: data.status2,
     etc: data.etc?.trim() ?? '',
     memo: data.memo,
-    image_url: data.image_url,
+    image_url: normalizePersistedImageUrl(data.image_url),
   };
 
   if (data.category === 'DAC' || data.category === 'AMP' || data.category === 'DAC/AMP') {
@@ -288,14 +296,24 @@ export async function updateHeadfiInDB(id: number, data: HeadfiFormData) {
 }
 
 const FR_GRAPH_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+const DEVICE_IMAGE_EXT = FR_GRAPH_IMAGE_EXT;
+const MAX_HEADFI_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function assertHeadfiImageFile(file: File, label: string): string {
+  if (file.size > MAX_HEADFI_IMAGE_BYTES) {
+    throw new Error(`${label}은(는) 5MB 이하만 업로드할 수 있습니다.`);
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  if (!DEVICE_IMAGE_EXT.has(ext)) {
+    throw new Error(`${label}은(는) png, jpg, jpeg, webp, gif만 업로드할 수 있습니다.`);
+  }
+  return ext;
+}
 
 export async function uploadHeadfiFrGraphImage(file: File) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  if (!FR_GRAPH_IMAGE_EXT.has(ext)) {
-    throw new Error('FR 그래프는 png, jpg, jpeg, webp, gif만 업로드할 수 있습니다.');
-  }
+  const ext = assertHeadfiImageFile(file, 'FR 그래프');
   const supabase = await createClient();
   const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const { data, error } = await supabase.storage.from('headfi-fr').upload(path, file, {
@@ -304,6 +322,23 @@ export async function uploadHeadfiFrGraphImage(file: File) {
   });
   if (error) throw new Error(toSupabaseErrorMessage(error));
   const { data: pub } = supabase.storage.from('headfi-fr').getPublicUrl(data.path);
+  return pub.publicUrl;
+}
+
+const HEADFI_DEVICE_IMAGE_BUCKET = 'lyrics-covers';
+
+export async function uploadHeadfiDeviceImage(file: File) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const ext = assertHeadfiImageFile(file, '기기 이미지');
+  const supabase = await createClient();
+  const path = `${user.id}/headfi-device/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await supabase.storage.from(HEADFI_DEVICE_IMAGE_BUCKET).upload(path, file, {
+    contentType: file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+    upsert: false,
+  });
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  const { data: pub } = supabase.storage.from(HEADFI_DEVICE_IMAGE_BUCKET).getPublicUrl(data.path);
   return pub.publicUrl;
 }
 

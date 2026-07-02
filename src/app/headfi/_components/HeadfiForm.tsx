@@ -43,7 +43,7 @@ export function HeadfiForm({
             <label className="block text-sm font-semibold mb-1 opacity-90">기기 이미지 (URL 또는 직접 업로드)</label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input type="text" placeholder="이미지 URL" className={`${INPUT_BASE_CLASS} flex-1`} value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
-              <input type="file" accept="image/*" onChange={onImageUpload} className="input-apple p-2 w-full sm:w-64 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:opacity-90" />
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onImageUpload} className="input-apple p-2 w-full sm:w-64 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:opacity-90" />
             </div>
           </div>
           <div className="col-span-2">

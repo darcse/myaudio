@@ -7,7 +7,7 @@ import { BarChart2, Headphones, Map, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
-import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage } from '../actions';
+import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '../actions';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
@@ -359,13 +359,17 @@ export function HeadfiLibraryContent() {
     setFormData(initialFormData);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFormData((prev) => ({ ...prev, image_url: reader.result as string }));
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      const url = await uploadHeadfiDeviceImage(file);
+      setFormData((prev) => ({ ...prev, image_url: url }));
+      toast.success('기기 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch (err) {
+      toast.error(getClientErrorMessage(err) || '기기 이미지 업로드에 실패했습니다.');
     }
+    e.target.value = '';
   };
 
   const handleFrGraphFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
