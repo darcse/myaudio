@@ -204,7 +204,7 @@
 [2026-06-08] [Cursor] refactor: 매칭맵 표 박스 내부 스크롤+sticky top-0/left-0 구조 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: BUG-005 스피커 등 부가비용 세부 집계 누락 수정 | passes: 변경 없음
 [2026-06-08] [Cursor] refactor: ALBUM-015 useAlbumMutations 훅으로 앨범 CRUD 중복 제거 | passes: 변경 없음
-[2026-06-08] [Cursor] fix: 기기 이미지 업로드 lyrics-covers 버킷 사용 (headfi-fr 미존재) | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 앨범 통계 최다 청취 아티스트에 프로필 이미지 표시 | passes: 변경 없음
 260612_1326 ALBUM-012~014·GEAR-014·매칭맵 검수 완료 — feedback.md 정리, 빌드 통과, passes 4건 true 유지(코드 수정 없음)
 [2026-06-08] [Cursor] refactor: GEAR-015 PositionMapTab 책임 단위 분리(훅·필터·산점도·미분석 목록) | passes: 변경 없음
 [2026-06-08] [Cursor] refactor: GEAR-016 HeadfiForm 책임 단위 분리(타입·유틸·공통필드·카테고리별 섹션) | passes: 변경 없음

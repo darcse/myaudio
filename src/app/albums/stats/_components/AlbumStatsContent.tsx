@@ -158,10 +158,12 @@ function AlbumRankRow({
 function ArtistRankRow({
   item,
   rank,
+  profileImageUrl,
   onClick,
 }: {
   item: ArtistListenRankItem;
   rank: number;
+  profileImageUrl: string | null;
   onClick: () => void;
 }) {
   return (
@@ -175,9 +177,9 @@ function ArtistRankRow({
         className="relative size-11 shrink-0 overflow-hidden rounded-full"
         style={{ background: 'var(--badge-bg)' }}
       >
-        {item.coverImageUrl ? (
+        {profileImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.coverImageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+          <img src={profileImageUrl} alt="" className="absolute inset-0 size-full object-cover" />
         ) : (
           <div className="flex size-full items-center justify-center opacity-40">
             <Mic2 className="size-4" strokeWidth={1.5} />
@@ -197,6 +199,7 @@ export function AlbumStatsContent() {
   const isAuthenticated = useAuthState();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
+  const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [statsTab, setStatsTab] = useState<AlbumStatsTab>('ranking');
@@ -221,9 +224,10 @@ export function AlbumStatsContent() {
     setLoadError(null);
     try {
       const client = createClient();
-      const [albumRes, historyRes] = await Promise.all([
+      const [albumRes, historyRes, artistsRes] = await Promise.all([
         client.from('album').select('*').order('release_date', { ascending: false }),
         client.from('album_listen_history').select('album_id, listened_at'),
+        client.from('artists').select('artist_name, profile_image_url'),
       ]);
       const errors: string[] = [];
       if (albumRes.error) {
@@ -238,6 +242,20 @@ export function AlbumStatsContent() {
       } else {
         setHistoryRows(historyRes.data ?? []);
       }
+      if (artistsRes.error) {
+        setArtistProfileUrls({});
+      } else {
+        const profiles: Record<string, string | null> = {};
+        for (const row of artistsRes.data ?? []) {
+          const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
+          if (!name) continue;
+          profiles[name] =
+            typeof row.profile_image_url === 'string' && row.profile_image_url.trim()
+              ? row.profile_image_url.trim()
+              : null;
+        }
+        setArtistProfileUrls(profiles);
+      }
       if (errors.length > 0) {
         setLoadError(errors.join(' '));
         toast.error(errors[0]);
@@ -248,6 +266,7 @@ export function AlbumStatsContent() {
       toast.error(message);
       setAlbums([]);
       setHistoryRows([]);
+      setArtistProfileUrls({});
     } finally {
       setIsLoading(false);
     }
@@ -593,6 +612,7 @@ export function AlbumStatsContent() {
                         <ArtistRankRow
                           item={item}
                           rank={index + 1}
+                          profileImageUrl={artistProfileUrls[item.artistName] ?? null}
                           onClick={() => setViewingArtistName(item.artistName)}
                         />
                       </li>
