@@ -107,6 +107,70 @@ function buildMonthlyBuckets(items: Headfi[], year: 2025 | 2026): SpendingMonthB
   }));
 }
 
+type AccessoryContribution = {
+  label: string;
+  amount: number;
+};
+
+function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
+  const category = item.category?.trim();
+  const cable = safeAmount(item.cable_price);
+  const eartip = safeAmount(item.eartip_price);
+  const accessory = safeAmount(item.accessory_price);
+  const out: AccessoryContribution[] = [];
+  const push = (label: string, amount: number) => {
+    if (amount > 0) out.push({ label, amount });
+  };
+
+  switch (category) {
+    case '헤드폰':
+      push('헤드폰 케이블', cable);
+      push('헤드폰 이어패드', eartip);
+      break;
+    case '이어폰':
+      push('이어폰 케이블', cable);
+      push('이어폰 이어팁', eartip);
+      break;
+    case '무선 헤드폰':
+      push('무선 헤드폰 이어패드', eartip);
+      push('무선 헤드폰 부가비용', cable + accessory);
+      break;
+    case '무선 이어폰':
+      push('무선 이어폰 이어팁', eartip);
+      push('무선 이어폰 부가비용', cable + accessory);
+      break;
+    case 'DAC':
+      push('DAC 액세서리', accessory);
+      break;
+    case 'AMP':
+      push('AMP 액세서리', accessory);
+      break;
+    case 'DAC/AMP':
+      push('DAC/AMP 액세서리', accessory);
+      break;
+    case 'DAP':
+      push('DAP 액세서리', accessory);
+      break;
+    case 'Source':
+      push('Source 액세서리', accessory);
+      break;
+    case '기타':
+      push('기타 액세서리', accessory);
+      break;
+    case '스피커':
+      push('스피커 부가비용', cable + eartip + accessory);
+      break;
+    default: {
+      const lump = cable + eartip + accessory;
+      if (lump > 0) {
+        push(category ? `${category} 부가비용` : '기타 부가비용', lump);
+      }
+    }
+  }
+
+  return out;
+}
+
 export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats {
   let total = 0;
   let unclassified = 0;
@@ -149,30 +213,7 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
   const categoryCounts = new Map<string, number>(
     SPENDING_CATEGORIES.map((category) => [category, 0]),
   );
-  let headphoneCable = 0;
-  let headphoneEartip = 0;
-  let earphoneCable = 0;
-  let earphoneEartip = 0;
-  let headphoneCableCount = 0;
-  let headphoneEartipCount = 0;
-  let earphoneCableCount = 0;
-  let earphoneEartipCount = 0;
-  let wirelessHeadphoneEartip = 0;
-  let wirelessEarphoneEartip = 0;
-  let wirelessHeadphoneEartipCount = 0;
-  let wirelessEarphoneEartipCount = 0;
-  let dacAccessory = 0;
-  let ampAccessory = 0;
-  let dacAmpAccessory = 0;
-  let dapAccessory = 0;
-  let sourceAccessory = 0;
-  let etcAccessory = 0;
-  let dacAccessoryCount = 0;
-  let ampAccessoryCount = 0;
-  let dacAmpAccessoryCount = 0;
-  let dapAccessoryCount = 0;
-  let sourceAccessoryCount = 0;
-  let etcAccessoryCount = 0;
+  const accessoryTotals = new Map<string, { amount: number; count: number }>();
 
   for (const item of library) {
     const category = item.category?.trim();
@@ -180,52 +221,12 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
       categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + safeAmount(item.price));
       categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
     }
-    if (category === '헤드폰') {
-      const cablePrice = safeAmount(item.cable_price);
-      const eartipPrice = safeAmount(item.eartip_price);
-      headphoneCable += cablePrice;
-      headphoneEartip += eartipPrice;
-      if (cablePrice > 0) headphoneCableCount += 1;
-      if (eartipPrice > 0) headphoneEartipCount += 1;
-    } else if (category === '이어폰') {
-      const cablePrice = safeAmount(item.cable_price);
-      const eartipPrice = safeAmount(item.eartip_price);
-      earphoneCable += cablePrice;
-      earphoneEartip += eartipPrice;
-      if (cablePrice > 0) earphoneCableCount += 1;
-      if (eartipPrice > 0) earphoneEartipCount += 1;
-    } else if (category === '무선 헤드폰') {
-      const eartipPrice = safeAmount(item.eartip_price);
-      wirelessHeadphoneEartip += eartipPrice;
-      if (eartipPrice > 0) wirelessHeadphoneEartipCount += 1;
-    } else if (category === '무선 이어폰') {
-      const eartipPrice = safeAmount(item.eartip_price);
-      wirelessEarphoneEartip += eartipPrice;
-      if (eartipPrice > 0) wirelessEarphoneEartipCount += 1;
-    } else if (category === 'DAC') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      dacAccessory += accessoryPrice;
-      if (accessoryPrice > 0) dacAccessoryCount += 1;
-    } else if (category === 'AMP') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      ampAccessory += accessoryPrice;
-      if (accessoryPrice > 0) ampAccessoryCount += 1;
-    } else if (category === 'DAC/AMP') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      dacAmpAccessory += accessoryPrice;
-      if (accessoryPrice > 0) dacAmpAccessoryCount += 1;
-    } else if (category === 'DAP') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      dapAccessory += accessoryPrice;
-      if (accessoryPrice > 0) dapAccessoryCount += 1;
-    } else if (category === 'Source') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      sourceAccessory += accessoryPrice;
-      if (accessoryPrice > 0) sourceAccessoryCount += 1;
-    } else if (category === '기타') {
-      const accessoryPrice = safeAmount(item.accessory_price);
-      etcAccessory += accessoryPrice;
-      if (accessoryPrice > 0) etcAccessoryCount += 1;
+    for (const contribution of getAccessoryContributions(item)) {
+      const prev = accessoryTotals.get(contribution.label) ?? { amount: 0, count: 0 };
+      accessoryTotals.set(contribution.label, {
+        amount: prev.amount + contribution.amount,
+        count: prev.count + 1,
+      });
     }
   }
 
@@ -238,20 +239,14 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     })),
   );
 
-  const byAccessory = sortCategoryRows([
-    { label: '헤드폰 케이블', amount: headphoneCable, count: headphoneCableCount, countUnit: '개' },
-    { label: '헤드폰 이어패드', amount: headphoneEartip, count: headphoneEartipCount, countUnit: '개' },
-    { label: '이어폰 케이블', amount: earphoneCable, count: earphoneCableCount, countUnit: '개' },
-    { label: '이어폰 이어팁', amount: earphoneEartip, count: earphoneEartipCount, countUnit: '개' },
-    { label: '무선 헤드폰 이어패드', amount: wirelessHeadphoneEartip, count: wirelessHeadphoneEartipCount, countUnit: '개' },
-    { label: '무선 이어폰 이어팁', amount: wirelessEarphoneEartip, count: wirelessEarphoneEartipCount, countUnit: '개' },
-    { label: 'DAC 액세서리', amount: dacAccessory, count: dacAccessoryCount, countUnit: '개' },
-    { label: 'AMP 액세서리', amount: ampAccessory, count: ampAccessoryCount, countUnit: '개' },
-    { label: 'DAC/AMP 액세서리', amount: dacAmpAccessory, count: dacAmpAccessoryCount, countUnit: '개' },
-    { label: 'DAP 액세서리', amount: dapAccessory, count: dapAccessoryCount, countUnit: '개' },
-    { label: 'Source 액세서리', amount: sourceAccessory, count: sourceAccessoryCount, countUnit: '개' },
-    { label: '기타 액세서리', amount: etcAccessory, count: etcAccessoryCount, countUnit: '개' },
-  ]);
+  const byAccessory = sortCategoryRows(
+    [...accessoryTotals.entries()].map(([label, row]) => ({
+      label,
+      amount: row.amount,
+      count: row.count,
+      countUnit: '개' as const,
+    })),
+  );
 
   return {
     total,

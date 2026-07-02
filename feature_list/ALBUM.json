@@ -215,5 +215,19 @@
           "최근 7일간 청취 기록이 없을 때 빈 상태 UI 노출 확인"
         ],
         "passes": true
+      },
+      {
+        "id": "ALBUM-015",
+        "category": "album",
+        "title": "앨범 CRUD 로직 공용 훅 추출",
+        "description": "AlbumStatsContent.tsx와 AlbumsLibraryContent.tsx에 중복 구현된 앨범 저장·삭제·소개 갱신 CRUD 로직을 공용 훅(useAlbumMutations 등)으로 추출해 양쪽에서 재사용한다.",
+        "steps": [
+          "통계 페이지(AlbumStatsContent)에서 모달을 통해 앨범 저장 시 정상 반영 확인",
+          "앨범 목록 페이지(AlbumsLibraryContent)에서 동일하게 앨범 저장 시 정상 반영 확인",
+          "통계 페이지에서 앨범 삭제 시 목록 페이지에서도 삭제 반영 확인 (같은 훅 사용 검증)",
+          "두 화면 중 한 곳에서 저장 로직 수정 시 다른 화면에도 동일하게 적용되는 구조인지 코드 확인",
+          "저장/삭제 API 실패 시 두 화면 모두 동일한 에러 처리(토스트 등) 노출 확인"
+        ],
+        "passes": true
       }
   ]

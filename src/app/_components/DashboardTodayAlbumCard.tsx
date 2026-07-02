@@ -81,6 +81,7 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
     setMetaVisible(false);
     const id = window.requestAnimationFrame(() => setMetaVisible(true));
     return () => window.cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 추첨 결과 id 변경 시에만 메타 페이드인 재실행, 앨범 객체 전체 deps 시 불필요 재애니메이션
   }, [phase, resultAlbum?.id]);
 
   const displayAlbum = phase === 'spinning' ? spinAlbum : resultAlbum;

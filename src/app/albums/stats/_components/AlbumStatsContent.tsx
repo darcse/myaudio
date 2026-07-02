@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
-import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
+import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
@@ -207,15 +207,14 @@ export function AlbumStatsContent() {
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
-  const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
   const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
   const [now, setNow] = useState(() => new Date());
+  const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
+    useAlbumMutations({ isAuthenticated });
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -407,104 +406,43 @@ export function AlbumStatsContent() {
   };
 
   const handleAlbumSave = async () => {
-    if (isAuthenticated !== true) {
-      toast.error('로그인이 필요합니다.');
-      return;
-    }
     if (!albumFormItem) return;
-    setIsSaving(true);
-    try {
-      const data = {
-        ...albumFormData,
-        matching1: albumFormData.matching1 === ' ' ? '' : albumFormData.matching1,
-        matching2: albumFormData.matching2 === ' ' ? '' : albumFormData.matching2,
-      };
-      const updateId =
-        'id' in albumFormItem && typeof albumFormItem.id === 'number' ? albumFormItem.id : null;
-      if (updateId != null) {
-        await updateAlbumInDB(updateId, data);
-        const { data: updatedRow } = await createClient()
-          .from('album')
-          .select('*')
-          .eq('id', updateId)
-          .single();
-        if (updatedRow) {
-          const updated = updatedRow as Album;
-          setAlbums((prev) => prev.map((album) => (album.id === updateId ? updated : album)));
-          setViewingAlbum(updated);
-          setAudioTags(updated.audio_tags ?? []);
-        }
-        toast.success('앨범 정보가 수정되었습니다.');
-      } else {
-        await saveAlbumToDB(data);
-        toast.success('앨범이 등록되었습니다.');
-        await fetchData();
+    const result = await saveAlbum({ formItem: albumFormItem, formData: albumFormData });
+    if (result.status === 'updated') {
+      if (result.album) {
+        setAlbums((prev) => prev.map((album) => (album.id === result.album!.id ? result.album! : album)));
+        setViewingAlbum(result.album);
+        setAudioTags(result.album.audio_tags ?? []);
       }
       setAlbumFormItem(null);
-    } catch (e) {
-      const message =
-        e instanceof Error && e.message === 'Unauthorized'
-          ? '로그인이 필요합니다.'
-          : '저장 중 오류가 발생했습니다.';
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
+      return;
+    }
+    if (result.status === 'created') {
+      setAlbumFormItem(null);
+      await fetchData();
     }
   };
 
   const handleDeleteFromModal = async () => {
-    if (isAuthenticated === false) {
-      toast.error('로그인이 필요합니다.');
-      return;
-    }
     if (!viewingAlbum) return;
-    if (!confirm('정말 이 앨범을 삭제하시겠습니까?')) return;
     const deletedId = viewingAlbum.id;
-    setIsDeleting(true);
-    try {
-      await deleteAlbumFromDB(deletedId);
-      toast.success('앨범이 삭제되었습니다.');
-      setViewingAlbum(null);
-      setAlbums((prev) => prev.filter((album) => album.id !== deletedId));
-      await refreshHistory();
-    } catch (e) {
-      const message =
-        e instanceof Error && e.message === 'Unauthorized'
-          ? '로그인이 필요합니다.'
-          : '삭제 중 오류가 발생했습니다.';
-      toast.error(message);
-    } finally {
-      setIsDeleting(false);
-    }
+    const deleted = await deleteAlbum({ albumId: deletedId });
+    if (!deleted) return;
+    setViewingAlbum(null);
+    setAlbums((prev) => prev.filter((album) => album.id !== deletedId));
+    await refreshHistory();
   };
 
   const handleRefreshAlbumIntro = async () => {
-    if (!viewingAlbum || isAuthenticated === false) return;
-    setAlbumIntroLoading(true);
-    try {
-      const res = await fetch('/api/album-intro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId: viewingAlbum.id }),
-      });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error);
-      const updated: Album = {
-        ...viewingAlbum,
-        audio_tags: payload.audio_tags ?? [],
-        album_intro: payload.album_intro ?? '',
-        ai_recommended_headphone_ids: null,
-        ai_recommended_headphone_reason: null,
-      };
-      setViewingAlbum(updated);
-      setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
-      setAudioTags((payload.audio_tags as string[]) ?? []);
-      toast.success('앨범 소개와 태그를 갱신했습니다.');
-    } catch {
-      toast.error('앨범 소개 갱신에 실패했습니다.');
-    } finally {
-      setAlbumIntroLoading(false);
-    }
+    if (!viewingAlbum) return;
+    await refreshAlbumIntro({
+      album: viewingAlbum,
+      onUpdated: (updated, tags) => {
+        setViewingAlbum(updated);
+        setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
+        setAudioTags(tags);
+      },
+    });
   };
 
   const handleYearChange = (year: number) => {

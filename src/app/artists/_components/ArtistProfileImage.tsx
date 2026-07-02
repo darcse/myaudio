@@ -32,7 +32,7 @@ export function ArtistProfileImage({
 
   useEffect(() => {
     setEditing(false);
-    setDraft(savedUrl ?? '');
+    setDraft(profileImageUrl?.trim() || '');
     setImageError(false);
   }, [profileImageUrl]);
 

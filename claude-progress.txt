@@ -202,4 +202,11 @@
 [2026-06-08] [Cursor] fix: 매칭맵 thead sticky top-14 제거·헤더 행 위치 복구 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 매칭맵 overflow-y-clip+sticky top-14로 세로 스크롤 헤더 고정 복원 | passes: 변경 없음
 [2026-06-08] [Cursor] refactor: 매칭맵 표 박스 내부 스크롤+sticky top-0/left-0 구조 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: BUG-005 스피커 등 부가비용 세부 집계 누락 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] refactor: ALBUM-015 useAlbumMutations 훅으로 앨범 CRUD 중복 제거 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 일본어 아티스트명 소개도 Gemini 한국어 응답 강제·재시도 | passes: 변경 없음
+260612_1326 ALBUM-012~014·GEAR-014·매칭맵 검수 완료 — feedback.md 정리, 빌드 통과, passes 4건 true 유지(코드 수정 없음)
+[2026-06-08] [Cursor] refactor: GEAR-015 PositionMapTab 책임 단위 분리(훅·필터·산점도·미분석 목록) | passes: 변경 없음
+[2026-06-08] [Cursor] refactor: GEAR-016 HeadfiForm 책임 단위 분리(타입·유틸·공통필드·카테고리별 섹션) | passes: 변경 없음
+[2026-06-08] [Cursor] chore: 미사용 eslint-disable 제거·exhaustive-deps 6건 정리(의도 주석 5건·ArtistProfileImage deps 수정 1건) | passes: 변경 없음
+[2026-06-08] [Cursor] style: 포지션맵 기기선택 팝오버 다크모드 체크 상태 대비 개선 | passes: 변경 없음

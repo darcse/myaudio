@@ -265,6 +265,7 @@ export function HeadfiLibraryContent() {
       .then(({ data }) => {
         setMatchedMatchingDevice(data ? { id: data.id, brand: data.brand || '', model: data.model || '' } : null);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적, 객체 전체 deps 시 상세 모달 필드 병합마다 재조회됨
   }, [viewingItem?.id, viewingItem?.category, viewingItem?.matching]);
 
   useEffect(() => {
