@@ -37,7 +37,10 @@ type CategoryFilter = '전체' | '헤드폰' | '이어폰';
 
 const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
-const STICKY_HEADER_TOP_CLASS = 'top-14';
+const SCORE_COL_WIDTH = '3rem';
+const ROW_LABEL_COL_WIDTH = '8rem';
+
+const HEATMAP_SCROLL_MAX_HEIGHT = 'min(80dvh, 48rem)';
 
 function stickyHeaderCellStyle(border: 'bottom' | 'right' | 'both'): CSSProperties {
   const style: CSSProperties = { background: 'var(--card-bg)' };
@@ -250,21 +253,38 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
         className="rounded-xl p-3"
         style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
       >
-        <table className="w-full min-w-max border-collapse text-xs">
+        <div
+          className="overflow-auto"
+          style={{ maxHeight: HEATMAP_SCROLL_MAX_HEIGHT }}
+        >
+          <table
+            className="w-full table-fixed border-collapse text-xs"
+            style={{
+              minWidth: `max(100%, calc(${ROW_LABEL_COL_WIDTH} + ${dacCols.length} * ${SCORE_COL_WIDTH}))`,
+            }}
+          >
+          <colgroup>
+            <col style={{ width: ROW_LABEL_COL_WIDTH }} />
+            {dacCols.map((dac) => (
+              <col key={dac.id} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th
-                className={`sticky left-0 z-30 min-w-[7rem] px-2 py-2 text-left font-semibold ${STICKY_HEADER_TOP_CLASS}`}
+                className="sticky left-0 top-0 z-40 px-2 py-2 text-left font-semibold"
                 style={stickyHeaderCellStyle('both')}
               />
               {dacCols.map((dac) => (
                 <th
                   key={dac.id}
-                  className={`sticky z-20 max-w-[4.5rem] px-1 py-2 text-center font-medium leading-tight ${STICKY_HEADER_TOP_CLASS}`}
+                  className="sticky top-0 z-20 overflow-hidden px-0.5 py-2 text-center font-medium leading-tight"
                   style={stickyHeaderCellStyle('bottom')}
                   title={deviceName(dac.brand, dac.model)}
                 >
-                  <span className="mx-auto block line-clamp-2 text-center">{dac.model || dac.brand}</span>
+                  <span className="mx-auto block truncate text-center text-[10px] whitespace-nowrap">
+                    {dac.model || dac.brand}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -273,11 +293,11 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
             {hpRows.map((hp) => (
               <tr key={hp.id}>
                 <th
-                  className="sticky left-0 z-10 max-w-[8rem] px-2 py-1.5 text-left font-medium leading-tight"
+                  className="sticky left-0 z-10 overflow-hidden px-2 py-1.5 text-left font-medium leading-tight"
                   style={stickyHeaderCellStyle('right')}
                   title={deviceName(hp.brand, hp.model)}
                 >
-                  <span className="line-clamp-2">{hp.model || hp.brand}</span>
+                  <span className="line-clamp-2 break-words">{hp.model || hp.brand}</span>
                 </th>
                 {dacCols.map((dac) => {
                   const entry = findCacheEntry(cache, dac.id, hp.id);
@@ -297,7 +317,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                       };
 
                   return (
-                    <td key={dac.id} className="p-0.5 text-center align-middle">
+                    <td key={dac.id} className="overflow-hidden p-0.5 text-center align-middle">
                       <button
                         type="button"
                         disabled={isLoading}
@@ -345,6 +365,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {selected

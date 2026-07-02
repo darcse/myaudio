@@ -197,4 +197,9 @@
 [2026-06-08] [Cursor] style: 청취 추이 차트 flex+CSS 텍스트로 크기 균형 조정 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 앨범 통계 탭 UI 포지션맵 하단 보더 스타일로 통일 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: GEAR-014 포지션맵 기기 선택 팝오버·체크박스 필터 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 히트맵 점수 컬럼 균등 폭(table-fixed+colgroup) | passes: 변경 없음
+[2026-06-08] [Cursor] style: 매칭맵 히트맵 w-full·점수컬럼 균등 분배·minWidth 스크롤 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 매칭맵 thead sticky top-14 제거·헤더 행 위치 복구 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 매칭맵 overflow-y-clip+sticky top-14로 세로 스크롤 헤더 고정 복원 | passes: 변경 없음
+[2026-06-08] [Cursor] refactor: 매칭맵 표 박스 내부 스크롤+sticky top-0/left-0 구조 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 일본어 아티스트명 소개도 Gemini 한국어 응답 강제·재시도 | passes: 변경 없음
