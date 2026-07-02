@@ -196,4 +196,5 @@
 [2026-06-08] [Cursor] feat: ALBUM-013 랭킹/청취 추이 탭 분리·SVG 기간별 청취 그래프 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 청취 추이 차트 flex+CSS 텍스트로 크기 균형 조정 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 앨범 통계 탭 UI 포지션맵 하단 보더 스타일로 통일 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-014 포지션맵 기기 선택 팝오버·체크박스 필터 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 일본어 아티스트명 소개도 Gemini 한국어 응답 강제·재시도 | passes: 변경 없음

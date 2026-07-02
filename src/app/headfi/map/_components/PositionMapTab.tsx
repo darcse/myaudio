@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ChevronDown, ListChecks, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Headfi } from '@/app/headfi/types';
 import { hasPositionCoordinates, isPositionMapCategory } from '@/lib/headfiPosition';
@@ -312,6 +312,9 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('전체');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
+  const [deviceSelection, setDeviceSelection] = useState<Set<number> | 'all'>('all');
+  const [devicePickerOpen, setDevicePickerOpen] = useState(false);
+  const devicePickerRef = useRef<HTMLDivElement>(null);
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const tooltipHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -345,11 +348,34 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
     [items, statusFilter, categoryFilter],
   );
 
+  const selectedDeviceIds = useMemo(() => {
+    if (deviceSelection === 'all') return new Set(filteredItems.map((item) => item.id));
+    return deviceSelection;
+  }, [deviceSelection, filteredItems]);
+
+  const visibleItems = useMemo(
+    () => filteredItems.filter((item) => selectedDeviceIds.has(item.id)),
+    [filteredItems, selectedDeviceIds],
+  );
+
+  const pickerItems = useMemo(
+    () =>
+      [...filteredItems].sort((a, b) =>
+        deviceDisplayName(a).localeCompare(deviceDisplayName(b), 'ko'),
+      ),
+    [filteredItems],
+  );
+
   const { plotted, unanalyzed } = useMemo(() => {
-    const plottedItems = filteredItems.filter((item) => hasPositionCoordinates(item));
-    const pendingItems = filteredItems.filter((item) => !hasPositionCoordinates(item));
+    const plottedItems = visibleItems.filter((item) => hasPositionCoordinates(item));
+    const pendingItems = visibleItems.filter((item) => !hasPositionCoordinates(item));
     return { plotted: plottedItems, unanalyzed: pendingItems };
-  }, [filteredItems]);
+  }, [visibleItems]);
+
+  const filteredPlottedCount = useMemo(
+    () => filteredItems.filter((item) => hasPositionCoordinates(item)).length,
+    [filteredItems],
+  );
 
   const mapMarkers = useMemo(() => {
     const points = plotted.map((item) => ({
@@ -363,10 +389,32 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
   useEffect(() => {
     if (!activePopover) return;
     const stillVisible = activePopover.items.every((item) =>
-      filteredItems.some((row) => row.id === item.id),
+      visibleItems.some((row) => row.id === item.id),
     );
     if (!stillVisible) setActivePopover(null);
-  }, [activePopover, filteredItems]);
+  }, [activePopover, visibleItems]);
+
+  const toggleDeviceSelection = (id: number) => {
+    setDeviceSelection((prev) => {
+      const current =
+        prev === 'all' ? new Set(filteredItems.map((item) => item.id)) : new Set(prev);
+      if (current.has(id)) current.delete(id);
+      else current.add(id);
+      if (current.size === filteredItems.length) return 'all';
+      return current;
+    });
+  };
+
+  const selectAllDevices = () => setDeviceSelection('all');
+
+  const clearAllDevices = () => setDeviceSelection(new Set());
+
+  const devicePickerLabel = useMemo(() => {
+    const selectedCount = visibleItems.length;
+    const totalCount = filteredItems.length;
+    if (selectedCount === totalCount) return '기기 선택';
+    return `기기 선택 (${selectedCount}/${totalCount})`;
+  }, [visibleItems.length, filteredItems.length]);
 
   const setLoading = (id: number, on: boolean) => {
     setLoadingIds((prev) => {
@@ -450,8 +498,15 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
   };
 
   const handleRegenerateAll = async () => {
-    if (plotted.length === 0) {
+    if (filteredPlottedCount === 0) {
       toast.error('새로고침할 기기가 없습니다.');
+      return;
+    }
+    if (
+      !confirm(
+        '모든 기기의 포지션 좌표를 다시 생성합니다. 기존 좌표가 덮어씌워집니다. 계속하시겠습니까?',
+      )
+    ) {
       return;
     }
     setRegenerating(true);
@@ -531,6 +586,16 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
     return () => document.removeEventListener('click', onDocClick);
   }, [activePopover]);
 
+  useEffect(() => {
+    if (!devicePickerOpen) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (devicePickerRef.current?.contains(event.target as Node)) return;
+      setDevicePickerOpen(false);
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [devicePickerOpen]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -541,7 +606,7 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
         {isAuthenticated ? (
           <button
             type="button"
-            disabled={regenerating || plotted.length === 0}
+            disabled={regenerating || filteredPlottedCount === 0}
             onClick={() => void handleRegenerateAll()}
             className="btn-apple btn-apple-secondary flex h-[38px] min-w-[7.5rem] items-center justify-center gap-1.5 px-3 text-sm disabled:opacity-50"
           >
@@ -592,6 +657,85 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
                 {option}
               </button>
             ))}
+          </div>
+          <div className="relative" ref={devicePickerRef}>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setDevicePickerOpen((open) => !open);
+              }}
+              className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-colors"
+              style={filterToggleStyle(devicePickerOpen || visibleItems.length !== filteredItems.length)}
+              aria-expanded={devicePickerOpen}
+              aria-haspopup="listbox"
+            >
+              <ListChecks className="size-3.5 opacity-80" strokeWidth={1.75} />
+              {devicePickerLabel}
+              <ChevronDown
+                className={`size-3.5 opacity-60 transition-transform ${devicePickerOpen ? 'rotate-180' : ''}`}
+                strokeWidth={1.75}
+              />
+            </button>
+            {devicePickerOpen ? (
+              <div
+                className="absolute left-0 top-full z-40 mt-2 w-72 rounded-xl p-3 shadow-lg md:w-[36rem]"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+                onClick={(event) => event.stopPropagation()}
+                role="listbox"
+                aria-label="기기 선택"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold opacity-70">표시할 기기</span>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={selectAllDevices}
+                      className="opacity-70 transition-opacity hover:opacity-100"
+                    >
+                      전체 선택
+                    </button>
+                    <span className="opacity-30">|</span>
+                    <button
+                      type="button"
+                      onClick={clearAllDevices}
+                      className="opacity-70 transition-opacity hover:opacity-100"
+                    >
+                      전체 해제
+                    </button>
+                  </div>
+                </div>
+                {pickerItems.length === 0 ? (
+                  <p className="py-4 text-center text-xs opacity-60">표시할 기기가 없습니다.</p>
+                ) : (
+                  <div className="grid max-h-64 grid-cols-1 gap-x-1 gap-y-0.5 overflow-y-auto md:grid-cols-2">
+                    {pickerItems.map((item) => {
+                      const checked = selectedDeviceIds.has(item.id);
+                      return (
+                        <label
+                          key={item.id}
+                          className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 transition-colors hover:opacity-90"
+                          style={{ background: checked ? 'var(--badge-bg)' : 'transparent' }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleDeviceSelection(item.id)}
+                            className="mt-0.5 size-3.5 shrink-0 accent-[var(--foreground)]"
+                          />
+                          <span className="min-w-0 text-xs leading-snug">
+                            <span className="font-semibold">{deviceDisplayName(item)}</span>
+                            {!hasPositionCoordinates(item) ? (
+                              <span className="mt-0.5 block text-[10px] opacity-50">미분석</span>
+                            ) : null}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
         {regenerating ? (
@@ -702,7 +846,16 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
             );
           })}
 
-          {plotted.length === 0 ? (
+          {selectedDeviceIds.size === 0 ? (
+            <text
+              x={PLOT_W / 2}
+              y={PLOT_H / 2 - 8}
+              textAnchor="middle"
+              className="fill-[var(--foreground)] text-sm font-medium opacity-70"
+            >
+              선택된 기기가 없습니다
+            </text>
+          ) : plotted.length === 0 ? (
             <text
               x={PLOT_W / 2}
               y={PLOT_H / 2}
