@@ -40,7 +40,7 @@ export type GearListenHistoryRow = HistoryRow & {
   headphone_id: number | null;
 };
 
-export type GearCategoryFilter = 'all' | '헤드폰' | '이어폰';
+export type GearCategoryFilter = 'all' | '헤드폰' | '이어폰' | '무선 헤드폰' | '무선 이어폰';
 
 export type GearSummary = {
   id: number;
@@ -59,10 +59,18 @@ export type GearListenRankItem = {
   listenCount: number;
 };
 
-export const GEAR_CATEGORY_FILTER_OPTIONS: GearCategoryFilter[] = ['all', '헤드폰', '이어폰'];
+export const GEAR_CATEGORY_FILTER_OPTIONS: GearCategoryFilter[] = [
+  'all',
+  '헤드폰',
+  '이어폰',
+  '무선 헤드폰',
+  '무선 이어폰',
+];
 
 export function gearCategoryFilterLabel(filter: GearCategoryFilter): string {
   if (filter === 'all') return '전체';
+  if (filter === '무선 헤드폰') return '무선헤드폰';
+  if (filter === '무선 이어폰') return '무선이어폰';
   return filter;
 }
 
@@ -76,9 +84,15 @@ function matchesGearCategoryFilter(category: string, filter: GearCategoryFilter)
     );
   }
   if (filter === '헤드폰') {
-    return category === '헤드폰' || category === '무선 헤드폰';
+    return category === '헤드폰';
   }
-  return category === '이어폰' || category === '무선 이어폰';
+  if (filter === '이어폰') {
+    return category === '이어폰';
+  }
+  if (filter === '무선 헤드폰') {
+    return category === '무선 헤드폰';
+  }
+  return category === '무선 이어폰';
 }
 
 export function filterGearHistoryByPeriod(
