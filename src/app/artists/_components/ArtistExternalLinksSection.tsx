@@ -156,7 +156,7 @@ export function ArtistExternalLinksSection({
   }
 
   return (
-    <div className="mt-2">
+    <div>
       {showLinksToolbar ? (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           {children ? (

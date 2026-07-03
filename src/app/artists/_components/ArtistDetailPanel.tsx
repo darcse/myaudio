@@ -99,22 +99,32 @@ export function ArtistDetailPanel({
             목록
           </button>
         ) : null}
-        <div className="flex items-start gap-4 sm:gap-5">
-          <ArtistProfileImage
-            profileImageUrl={artistRecord?.profile_image_url ?? null}
-            artistName={artist.name}
-            isAuthenticated={isAuthenticated}
-            saving={profileSaving}
-            onSave={onSaveProfileImage}
-          />
-          <div className="flex min-h-[132px] min-w-0 flex-1 flex-col">
+        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4 sm:gap-x-5">
+          <div className="row-start-1 col-start-1 self-start">
+            <ArtistProfileImage
+              profileImageUrl={artistRecord?.profile_image_url ?? null}
+              artistName={artist.name}
+              isAuthenticated={isAuthenticated}
+              saving={profileSaving}
+              onSave={onSaveProfileImage}
+            />
+          </div>
+          <div className="row-start-1 col-start-2 min-w-0 self-center sm:self-start">
             <div className="flex min-w-0 items-start gap-2">
-              <h2 className="min-w-0 text-2xl font-bold tracking-tight">
-                {artist.name}
+              <div className="min-w-0">
+                <h2 className="min-w-0 text-2xl font-bold tracking-tight">
+                  {artist.name}
+                  {nameAltDisplay ? (
+                    <span className="hidden text-base font-medium opacity-60 sm:inline">
+                      {' '}
+                      ({nameAltDisplay})
+                    </span>
+                  ) : null}
+                </h2>
                 {nameAltDisplay ? (
-                  <span className="text-base font-medium opacity-60"> ({nameAltDisplay})</span>
+                  <p className="mt-0.5 text-base font-medium opacity-60 sm:hidden">{nameAltDisplay}</p>
                 ) : null}
-              </h2>
+              </div>
               <ArtistNameEditPopover
                 artistName={artist.name}
                 nameAlt={nameAlt}
@@ -123,6 +133,8 @@ export function ArtistDetailPanel({
                 onSave={onSaveNames}
               />
             </div>
+          </div>
+          <div className="col-span-2 row-start-2 flex min-w-0 flex-col gap-4 sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:min-h-[calc(132px-2.5rem)] sm:justify-between">
             <ArtistExternalLinksSection
               artistRecord={artistRecord}
               linksSaving={linksSaving}
@@ -149,7 +161,7 @@ export function ArtistDetailPanel({
               ) : null}
             </ArtistExternalLinksSection>
             {artistStats ? (
-              <div className="mt-auto pt-4">
+              <div className="sm:pt-4">
                 <ArtistStatsSection stats={artistStats} />
               </div>
             ) : null}

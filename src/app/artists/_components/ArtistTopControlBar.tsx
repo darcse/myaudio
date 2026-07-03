@@ -33,7 +33,10 @@ type ArtistTopControlBarProps = {
 const artistTypeOptions = ['솔로', '아이돌', '밴드', '걸스 밴드', '그룹', '기타'] as const;
 
 const filterSelectClassName =
-  'select-apple h-9 min-w-0 max-w-[8.5rem] shrink-0 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium';
+  'select-apple h-9 min-w-0 flex-1 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium sm:max-w-[8.5rem] sm:flex-none sm:shrink-0';
+
+const sortSelectClassName =
+  'select-apple h-9 min-w-0 flex-1 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium sm:max-w-[8.5rem] sm:flex-none sm:shrink-0';
 
 export function ArtistTopControlBar({
   searchQuery,
@@ -96,8 +99,8 @@ export function ArtistTopControlBar({
   };
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <div className="relative min-w-[10rem] flex-1 basis-[12rem]">
+    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative w-full sm:min-w-[10rem] sm:flex-1 sm:basis-[12rem]">
         <input
           className="input-apple h-9 w-full px-3 py-1.5 pr-8 text-sm"
           placeholder="아티스트·앨범명 검색..."
@@ -115,116 +118,120 @@ export function ArtistTopControlBar({
           </button>
         ) : null}
       </div>
-      <select
-        className={filterSelectClassName}
-        style={{ background: 'var(--surface-elevated)' }}
-        value={countryFilter}
-        onChange={(e) => setCountryFilter(e.target.value)}
-        aria-label="국적 필터"
-        title={countryFilter === '전체' ? '국가 전체' : countryFilter}
-      >
-        <option value="전체">국적</option>
-        {countrySelectOptions.map((name) => (
-          <option key={name} value={name}>
-            {countryOptions.find((c) => c.name === name)?.flag ?? ''} {name}
-          </option>
-        ))}
-      </select>
-      <select
-        className={filterSelectClassName}
-        style={{ background: 'var(--surface-elevated)' }}
-        value={typeFilter}
-        onChange={(e) => setTypeFilter(e.target.value)}
-        aria-label="아티스트 타입 필터"
-        title={typeFilter === '전체' ? '타입 전체' : typeFilter}
-      >
-        <option value="전체">타입</option>
-        {typeSelectOptions.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
-      <select
-        className={filterSelectClassName}
-        style={{ background: 'var(--surface-elevated)' }}
-        value={genreFilter}
-        onChange={(e) => setGenreFilter(e.target.value)}
-        aria-label="장르 필터"
-        title={genreFilter === '전체' ? '장르 전체' : genreFilter}
-      >
-        <option value="전체">장르</option>
-        {genreSelectOptions.map((genre) => (
-          <option key={genre} value={genre}>
-            {genre}
-          </option>
-        ))}
-      </select>
-      <select
-        className={filterSelectClassName}
-        style={{ background: 'var(--surface-elevated)' }}
-        value={sortOption}
-        onChange={(e) => setSortOption(e.target.value as ArtistSortOption)}
-        aria-label="정렬"
-        title={ARTIST_SORT_OPTIONS.find((item) => item.value === sortOption)?.label}
-      >
-        {ARTIST_SORT_OPTIONS.map(({ value, label }) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
-      {genre2Tags.length > 0 ? (
-        <div className="relative shrink-0" ref={tagPopoverRef}>
-          <button
-            type="button"
-            onClick={() => setTagOpen((open) => !open)}
-            className="btn-apple flex h-9 items-center gap-1 rounded-full px-3 text-xs font-medium"
-            style={{
-              background: tagActive ? 'var(--foreground)' : 'var(--surface-elevated)',
-              color: tagActive ? 'var(--background)' : 'var(--foreground)',
-              border: '1px solid var(--border)',
-            }}
-            aria-label="genre2 태그 필터"
-            aria-expanded={tagOpen}
-            aria-haspopup="true"
-          >
-            <Tag className="size-3.5" strokeWidth={2} aria-hidden />
-            태그
-          </button>
-          {tagOpen ? (
-            <div
-              className="absolute right-0 top-full z-30 mt-1.5 w-[min(31.25rem,calc(100vw-2rem))] overflow-hidden rounded-xl border shadow-lg"
+      <div className="flex w-full items-center gap-2 sm:contents">
+        <select
+          className={filterSelectClassName}
+          style={{ background: 'var(--surface-elevated)' }}
+          value={countryFilter}
+          onChange={(e) => setCountryFilter(e.target.value)}
+          aria-label="국적 필터"
+          title={countryFilter === '전체' ? '국가 전체' : countryFilter}
+        >
+          <option value="전체">국적</option>
+          {countrySelectOptions.map((name) => (
+            <option key={name} value={name}>
+              {countryOptions.find((c) => c.name === name)?.flag ?? ''} {name}
+            </option>
+          ))}
+        </select>
+        <select
+          className={filterSelectClassName}
+          style={{ background: 'var(--surface-elevated)' }}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          aria-label="아티스트 타입 필터"
+          title={typeFilter === '전체' ? '타입 전체' : typeFilter}
+        >
+          <option value="전체">타입</option>
+          {typeSelectOptions.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+        <select
+          className={filterSelectClassName}
+          style={{ background: 'var(--surface-elevated)' }}
+          value={genreFilter}
+          onChange={(e) => setGenreFilter(e.target.value)}
+          aria-label="장르 필터"
+          title={genreFilter === '전체' ? '장르 전체' : genreFilter}
+        >
+          <option value="전체">장르</option>
+          {genreSelectOptions.map((genre) => (
+            <option key={genre} value={genre}>
+              {genre}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex w-full items-center gap-2 sm:contents">
+        <select
+          className={sortSelectClassName}
+          style={{ background: 'var(--surface-elevated)' }}
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as ArtistSortOption)}
+          aria-label="정렬"
+          title={ARTIST_SORT_OPTIONS.find((item) => item.value === sortOption)?.label}
+        >
+          {ARTIST_SORT_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {genre2Tags.length > 0 ? (
+          <div className="relative shrink-0" ref={tagPopoverRef}>
+            <button
+              type="button"
+              onClick={() => setTagOpen((open) => !open)}
+              className="btn-apple flex h-9 items-center gap-1 rounded-full px-3 text-xs font-medium"
               style={{
-                borderColor: 'var(--border)',
-                background: 'var(--card-bg)',
+                background: tagActive ? 'var(--foreground)' : 'var(--surface-elevated)',
+                color: tagActive ? 'var(--background)' : 'var(--foreground)',
+                border: '1px solid var(--border)',
               }}
+              aria-label="genre2 태그 필터"
+              aria-expanded={tagOpen}
+              aria-haspopup="true"
             >
-              <div className="max-h-[500px] overflow-y-auto p-3">
-                <ArtistGenre2TagCloud
-                  tags={genre2Tags}
-                  selected={genre2Filter}
-                  onSelect={onGenre2TagSelect}
-                />
+              <Tag className="size-3.5" strokeWidth={2} aria-hidden />
+              태그
+            </button>
+            {tagOpen ? (
+              <div
+                className="absolute right-0 top-full z-30 mt-1.5 w-[min(31.25rem,calc(100vw-2rem))] overflow-hidden rounded-xl border shadow-lg"
+                style={{
+                  borderColor: 'var(--border)',
+                  background: 'var(--card-bg)',
+                }}
+              >
+                <div className="max-h-[500px] overflow-y-auto p-3">
+                  <ArtistGenre2TagCloud
+                    tags={genre2Tags}
+                    selected={genre2Filter}
+                    onSelect={onGenre2TagSelect}
+                  />
+                </div>
               </div>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      <button
-        type="button"
-        onClick={handleReset}
-        className="btn-apple flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-        style={{
-          background: 'var(--surface-elevated)',
-          color: 'var(--foreground)',
-          border: '1px solid var(--border)',
-        }}
-        aria-label="검색·필터·정렬 초기화"
-        title="초기화"
-      >
-        <RotateCcw className="size-3.5" strokeWidth={2} aria-hidden />
-      </button>
+            ) : null}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          onClick={handleReset}
+          className="btn-apple flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+          style={{
+            background: 'var(--surface-elevated)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--border)',
+          }}
+          aria-label="검색·필터·정렬 초기화"
+          title="초기화"
+        >
+          <RotateCcw className="size-3.5" strokeWidth={2} aria-hidden />
+        </button>
+      </div>
     </div>
   );
 }

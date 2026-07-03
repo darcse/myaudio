@@ -222,3 +222,6 @@
 [2026-06-08] [Cursor] fix: 이름1 중복 시 안내 메시지·artists/album 이름 기준 분리 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 이름1 NFKC 정규화 비교·중복검사 id 타입 안전 처리 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 이름1 변경 시 기존 artists 레코드와 병합·앨범 artist 일괄 갱신 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 아티스트 상세 모바일 헤더·통계 1행 레이아웃 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 아티스트 상세 모바일 이름2를 이름1 다음 줄에 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 아티스트 목록 상단 필터 모바일 3줄 레이아웃 | passes: 변경 없음
