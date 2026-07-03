@@ -80,6 +80,77 @@ export function ArtistDetailPanel({
   const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
   const nameAltDisplay = nameAlt?.trim() || null;
 
+  const profileImage = (
+    <ArtistProfileImage
+      profileImageUrl={artistRecord?.profile_image_url ?? null}
+      artistName={artist.name}
+      isAuthenticated={isAuthenticated}
+      saving={profileSaving}
+      onSave={onSaveProfileImage}
+    />
+  );
+
+  const nameBlock = (
+    <div className="flex min-w-0 items-start gap-2">
+      <div className="min-w-0">
+        <h2 className="min-w-0 text-2xl font-bold tracking-tight">
+          {artist.name}
+          {nameAltDisplay ? (
+            <span className="hidden text-base font-medium opacity-60 sm:inline">
+              {' '}
+              ({nameAltDisplay})
+            </span>
+          ) : null}
+        </h2>
+        {nameAltDisplay ? (
+          <p className="mt-0.5 text-base font-medium opacity-60 sm:hidden">{nameAltDisplay}</p>
+        ) : null}
+      </div>
+      <ArtistNameEditPopover
+        artistName={artist.name}
+        nameAlt={nameAlt}
+        saving={nameSaving}
+        isAuthenticated={isAuthenticated}
+        onSave={onSaveNames}
+      />
+    </div>
+  );
+
+  const metaBlock = (
+    <>
+      <ArtistExternalLinksSection
+        artistRecord={artistRecord}
+        linksSaving={linksSaving}
+        editing={linksEditing}
+        isAuthenticated={isAuthenticated}
+        onEditingChange={setLinksEditing}
+        onSaveLinks={onSaveLinks}
+      >
+        {artist.country ? (
+          <span>
+            {flag ? `${flag} ` : ''}
+            {artist.country}
+          </span>
+        ) : null}
+        {artist.artistType ? (
+          <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
+            {artist.artistType}
+          </span>
+        ) : null}
+        {primaryGenre1 ? (
+          <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
+            {primaryGenre1}
+          </span>
+        ) : null}
+      </ArtistExternalLinksSection>
+      {artistStats ? (
+        <div className="sm:pt-4">
+          <ArtistStatsSection stats={artistStats} />
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <section
       className="flex min-h-0 flex-1 flex-col rounded-xl border"
@@ -99,72 +170,16 @@ export function ArtistDetailPanel({
             목록
           </button>
         ) : null}
-        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4 sm:gap-x-5">
-          <div className="row-start-1 col-start-1 self-start">
-            <ArtistProfileImage
-              profileImageUrl={artistRecord?.profile_image_url ?? null}
-              artistName={artist.name}
-              isAuthenticated={isAuthenticated}
-              saving={profileSaving}
-              onSave={onSaveProfileImage}
-            />
-          </div>
-          <div className="row-start-1 col-start-2 min-w-0 self-center sm:self-start">
-            <div className="flex min-w-0 items-start gap-2">
-              <div className="min-w-0">
-                <h2 className="min-w-0 text-2xl font-bold tracking-tight">
-                  {artist.name}
-                  {nameAltDisplay ? (
-                    <span className="hidden text-base font-medium opacity-60 sm:inline">
-                      {' '}
-                      ({nameAltDisplay})
-                    </span>
-                  ) : null}
-                </h2>
-                {nameAltDisplay ? (
-                  <p className="mt-0.5 text-base font-medium opacity-60 sm:hidden">{nameAltDisplay}</p>
-                ) : null}
-              </div>
-              <ArtistNameEditPopover
-                artistName={artist.name}
-                nameAlt={nameAlt}
-                saving={nameSaving}
-                isAuthenticated={isAuthenticated}
-                onSave={onSaveNames}
-              />
-            </div>
-          </div>
-          <div className="col-span-2 row-start-2 flex min-w-0 flex-col gap-4 sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:min-h-[calc(132px-2.5rem)] sm:justify-between">
-            <ArtistExternalLinksSection
-              artistRecord={artistRecord}
-              linksSaving={linksSaving}
-              editing={linksEditing}
-              isAuthenticated={isAuthenticated}
-              onEditingChange={setLinksEditing}
-              onSaveLinks={onSaveLinks}
-            >
-              {artist.country ? (
-                <span>
-                  {flag ? `${flag} ` : ''}
-                  {artist.country}
-                </span>
-              ) : null}
-              {artist.artistType ? (
-                <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
-                  {artist.artistType}
-                </span>
-              ) : null}
-              {primaryGenre1 ? (
-                <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
-                  {primaryGenre1}
-                </span>
-              ) : null}
-            </ArtistExternalLinksSection>
-            {artistStats ? (
-              <div className="sm:pt-4">
-                <ArtistStatsSection stats={artistStats} />
-              </div>
-            ) : null}
+        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4 sm:hidden">
+          <div className="row-start-1 col-start-1 self-start">{profileImage}</div>
+          <div className="row-start-1 col-start-2 min-w-0 self-center">{nameBlock}</div>
+          <div className="col-span-2 row-start-2 flex min-w-0 flex-col gap-4">{metaBlock}</div>
+        </div>
+        <div className="hidden items-start gap-5 sm:flex">
+          {profileImage}
+          <div className="flex min-h-[132px] min-w-0 flex-1 flex-col">
+            {nameBlock}
+            <div className="mt-2 flex flex-1 flex-col justify-between gap-4">{metaBlock}</div>
           </div>
         </div>
       </div>
