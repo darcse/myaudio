@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { Pencil } from 'lucide-react';
 import type { ArtistRecord } from '../types';
 
 export type ArtistLinksPatch = {
@@ -80,6 +81,7 @@ type ArtistExternalLinksSectionProps = {
   artistRecord: ArtistRecord | null;
   linksSaving: boolean;
   editing: boolean;
+  isAuthenticated: boolean | null;
   onEditingChange: (editing: boolean) => void;
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
 };
@@ -107,6 +109,7 @@ export function ArtistExternalLinksSection({
   artistRecord,
   linksSaving,
   editing,
+  isAuthenticated,
   onEditingChange,
   onSaveLinks,
 }: ArtistExternalLinksSectionProps) {
@@ -146,40 +149,55 @@ export function ArtistExternalLinksSection({
   };
 
   const showLinkIcons = !editing && registered.length > 0;
+  const showLinksToolbar = Boolean(children) || showLinkIcons || isAuthenticated === true;
 
-  if (!children && !editing && !showLinkIcons) {
+  if (!showLinksToolbar && !editing) {
     return null;
   }
 
   return (
     <div className="mt-2">
-      {children || showLinkIcons ? (
+      {showLinksToolbar ? (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           {children ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm opacity-80">{children}</div>
           ) : (
             <div />
           )}
-          {showLinkIcons ? (
+          {!editing && (showLinkIcons || isAuthenticated === true) ? (
             <div className="flex shrink-0 items-center gap-1.5">
-              {registered.map(({ key, label, background, Icon }) => {
-                const href = saved[key];
-                if (!href) return null;
-                return (
-                  <a
-                    key={key}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={linkIconButtonClassName}
-                    style={{ background }}
-                    title={label}
-                    aria-label={label}
-                  >
-                    <Icon className="size-3.5 shrink-0" />
-                  </a>
-                );
-              })}
+              {showLinkIcons
+                ? registered.map(({ key, label, background, Icon }) => {
+                    const href = saved[key];
+                    if (!href) return null;
+                    return (
+                      <a
+                        key={key}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={linkIconButtonClassName}
+                        style={{ background }}
+                        title={label}
+                        aria-label={label}
+                      >
+                        <Icon className="size-3.5 shrink-0" />
+                      </a>
+                    );
+                  })
+                : null}
+              {isAuthenticated === true ? (
+                <button
+                  type="button"
+                  onClick={() => onEditingChange(true)}
+                  disabled={linksSaving}
+                  className="rounded-lg p-1 opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
+                  title="링크 편집"
+                  aria-label="링크 편집"
+                >
+                  <Pencil className="size-4" strokeWidth={2} />
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

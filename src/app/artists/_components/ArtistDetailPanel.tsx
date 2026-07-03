@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronLeft, Pencil } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
 import type { Album } from '@/app/albums/types';
 import { countryFlag, findArtistWikiUrl, getPrimaryGenre1 } from '../utils';
 import type { ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
 import { ArtistExternalLinksSection, type ArtistLinksPatch } from './ArtistExternalLinksSection';
+import { ArtistNameEditPopover } from './ArtistNameEditPopover';
 import { ArtistProfileImage } from './ArtistProfileImage';
 import { ArtistRelatedSection } from './ArtistRelatedSection';
 import { ArtistStatsSection } from './ArtistStatsSection';
@@ -22,6 +23,7 @@ type ArtistDetailPanelProps = {
   bioLoading: boolean;
   linksSaving: boolean;
   profileSaving: boolean;
+  nameSaving: boolean;
   isAuthenticated: boolean | null;
   showMobileBack?: boolean;
   onMobileBack?: () => void;
@@ -31,6 +33,7 @@ type ArtistDetailPanelProps = {
   onRefreshBio: () => void;
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
   onSaveProfileImage: (profileImageUrl: string | null) => Promise<boolean>;
+  onSaveNames: (patch: { name: string; nameAlt: string | null }) => Promise<boolean>;
 };
 
 export function ArtistDetailPanel({
@@ -42,6 +45,7 @@ export function ArtistDetailPanel({
   bioLoading,
   linksSaving,
   profileSaving,
+  nameSaving,
   isAuthenticated,
   showMobileBack = false,
   onMobileBack,
@@ -51,6 +55,7 @@ export function ArtistDetailPanel({
   onRefreshBio,
   onSaveLinks,
   onSaveProfileImage,
+  onSaveNames,
 }: ArtistDetailPanelProps) {
   const [linksEditing, setLinksEditing] = useState(false);
 
@@ -72,6 +77,8 @@ export function ArtistDetailPanel({
   const flag = countryFlag(artist.country);
   const wikiUrl = findArtistWikiUrl(artist.albums);
   const primaryGenre1 = getPrimaryGenre1(artist);
+  const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
+  const nameAltDisplay = nameAlt?.trim() || null;
 
   return (
     <section
@@ -101,25 +108,26 @@ export function ArtistDetailPanel({
             onSave={onSaveProfileImage}
           />
           <div className="flex min-h-[132px] min-w-0 flex-1 flex-col">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-2xl font-bold tracking-tight">{artist.name}</h2>
-              {isAuthenticated === true ? (
-                <button
-                  type="button"
-                  onClick={() => setLinksEditing((v) => !v)}
-                  disabled={linksSaving}
-                  className="shrink-0 rounded-lg p-1 opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
-                  title={linksEditing ? '편집 닫기' : '링크 편집'}
-                  aria-label={linksEditing ? '편집 닫기' : '링크 편집'}
-                >
-                  <Pencil className="size-4" strokeWidth={2} />
-                </button>
-              ) : null}
+            <div className="flex min-w-0 items-start gap-2">
+              <h2 className="min-w-0 text-2xl font-bold tracking-tight">
+                {artist.name}
+                {nameAltDisplay ? (
+                  <span className="text-base font-medium opacity-60"> ({nameAltDisplay})</span>
+                ) : null}
+              </h2>
+              <ArtistNameEditPopover
+                artistName={artist.name}
+                nameAlt={nameAlt}
+                saving={nameSaving}
+                isAuthenticated={isAuthenticated}
+                onSave={onSaveNames}
+              />
             </div>
             <ArtistExternalLinksSection
               artistRecord={artistRecord}
               linksSaving={linksSaving}
               editing={linksEditing}
+              isAuthenticated={isAuthenticated}
               onEditingChange={setLinksEditing}
               onSaveLinks={onSaveLinks}
             >

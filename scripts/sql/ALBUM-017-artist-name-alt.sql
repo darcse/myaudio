@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS artists_backup_album017 AS
+SELECT * FROM artists;
+
+ALTER TABLE artists
+ADD COLUMN IF NOT EXISTS name_alt TEXT NULL;

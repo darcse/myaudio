@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import type { ArtistSummary } from '../types';
+import { matchesArtistNameSearch } from '../utils';
 
 export type ArtistSortOption = 'nameAsc' | 'nameDesc' | 'albumDesc' | 'albumAsc';
 
@@ -116,7 +117,7 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
         if (!hasGenre2) return false;
       }
       if (!q) return true;
-      if (artist.name.toLowerCase().includes(q)) return true;
+      if (matchesArtistNameSearch(q, artist.name, artist.nameAlt)) return true;
       return artist.albums.some(
         (album) =>
           album.album_name?.toLowerCase().includes(q) ||

@@ -6,13 +6,18 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
+import { updateArtistNames, shouldRetargetAlbumArtist } from '../lib/updateArtistNames';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import {
   buildArtistSummaries,
+  buildArtistNameAltMap,
+  applyArtistNameAltMap,
   getArtistStats,
   getPopularAlbumId,
   getRelatedArtists,
+  isSameArtistName,
+  normalizeArtistNameAlt,
 } from '../utils';
 import type { ArtistRecord, ListenHistoryEntry } from '../types';
 
@@ -24,6 +29,12 @@ type ArtistDetailModalProps = {
   onClose: () => void;
   onAlbumClick: (album: Album) => void;
   onSelectArtist: (name: string) => void;
+  onArtistNamesUpdated?: (context: {
+    albumArtistName: string;
+    recordArtistName: string;
+    newName: string;
+    nameAlt: string | null;
+  }) => void;
 };
 
 export function ArtistDetailModal({
@@ -34,12 +45,15 @@ export function ArtistDetailModal({
   onClose,
   onAlbumClick,
   onSelectArtist,
+  onArtistNamesUpdated,
 }: ArtistDetailModalProps) {
   const [artistRecord, setArtistRecord] = useState<ArtistRecord | null>(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [linksSaving, setLinksSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
+  const [artistNameAltByName, setArtistNameAltByName] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -61,7 +75,7 @@ export function ArtistDetailModal({
   useEffect(() => {
     void createClient()
       .from('artists')
-      .select('artist_name, profile_image_url')
+      .select('artist_name, profile_image_url, name_alt')
       .then(({ data }) => {
         const profiles: Record<string, string | null> = {};
         for (const row of data ?? []) {
@@ -73,10 +87,14 @@ export function ArtistDetailModal({
               : null;
         }
         setArtistProfileUrls(profiles);
+        setArtistNameAltByName(buildArtistNameAltMap(data ?? []));
       });
   }, []);
 
-  const summaries = useMemo(() => buildArtistSummaries(albums), [albums]);
+  const summaries = useMemo(
+    () => applyArtistNameAltMap(buildArtistSummaries(albums), artistNameAltByName),
+    [albums, artistNameAltByName],
+  );
   const artist = useMemo(
     () => summaries.find((item) => item.name === artistName) ?? null,
     [summaries, artistName],
@@ -165,6 +183,94 @@ export function ArtistDetailModal({
     }
   };
 
+  const handleSaveNames = async (patch: {
+    name: string;
+    nameAlt: string | null;
+  }): Promise<boolean> => {
+    if (!artistRecord?.id || isAuthenticated !== true) return false;
+    const albumArtistName = artist?.name ?? artistName;
+    const recordArtistName = artistRecord.artist_name.trim();
+    const newName = patch.name.trim();
+    if (!newName) {
+      toast.error('이름1을 입력해 주세요.');
+      return false;
+    }
+    const normalizedAlt = normalizeArtistNameAlt(patch.nameAlt);
+    setNameSaving(true);
+    try {
+      const result = await updateArtistNames(createClient(), artistRecord.id, {
+        recordArtistName,
+        albumArtistName,
+        name: newName,
+        nameAlt: normalizedAlt,
+      });
+      if (result.error) {
+        toast.error(result.error || '이름 저장에 실패했습니다.');
+        return false;
+      }
+
+      const nameChanged = !isSameArtistName(newName, albumArtistName);
+      if (result.mergedArtistId) {
+        const { data } = await createClient()
+          .from('artists')
+          .select('*')
+          .eq('id', result.mergedArtistId)
+          .maybeSingle();
+        if (data) {
+          setArtistRecord(data as ArtistRecord);
+        } else {
+          setArtistRecord((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  artist_name: newName,
+                  name_alt: normalizedAlt,
+                }
+              : prev,
+          );
+        }
+      } else {
+        setArtistRecord((prev) =>
+          prev
+            ? {
+                ...prev,
+                artist_name: newName,
+                name_alt: normalizedAlt,
+              }
+            : prev,
+        );
+      }
+      setArtistNameAltByName((prev) => {
+        const next = { ...prev };
+        if (nameChanged || result.mergedArtistId) {
+          for (const key of [albumArtistName, recordArtistName]) {
+            if (key !== newName) delete next[key];
+          }
+          next[newName] = normalizedAlt;
+        } else {
+          next[albumArtistName] = normalizedAlt;
+        }
+        return next;
+      });
+      onArtistNamesUpdated?.({
+        albumArtistName,
+        recordArtistName,
+        newName,
+        nameAlt: normalizedAlt,
+      });
+      if (nameChanged || result.mergedArtistId) {
+        onSelectArtist(newName);
+      }
+      toast.success('아티스트 이름을 저장했습니다.');
+      return true;
+    } catch {
+      toast.error('이름 저장에 실패했습니다.');
+      return false;
+    } finally {
+      setNameSaving(false);
+    }
+  };
+
   const modalTree = (
     <div
       className="modal-overlay-apple fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -193,12 +299,14 @@ export function ArtistDetailModal({
             bioLoading={bioLoading}
             linksSaving={linksSaving}
             profileSaving={profileSaving}
+            nameSaving={nameSaving}
             isAuthenticated={isAuthenticated}
             onAlbumClick={onAlbumClick}
             onSelectArtist={onSelectArtist}
             onRefreshBio={() => void handleRefreshBio()}
             onSaveLinks={handleSaveLinks}
             onSaveProfileImage={handleSaveProfileImage}
+            onSaveNames={handleSaveNames}
           />
         </div>
       </div>

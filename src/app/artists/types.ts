@@ -3,6 +3,7 @@ import type { Album } from '@/app/albums/types';
 export interface ArtistRecord {
   id: string;
   artist_name: string;
+  name_alt: string | null;
   bio: string | null;
   profile_image_url: string | null;
   apple_music_url: string | null;
@@ -15,6 +16,7 @@ export interface ArtistRecord {
 
 export interface ArtistSummary {
   name: string;
+  nameAlt: string | null;
   albumCount: number;
   country: string | null;
   artistType: string | null;

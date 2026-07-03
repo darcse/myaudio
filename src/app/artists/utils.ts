@@ -2,6 +2,53 @@ import { countryOptions } from '@/app/albums/constants';
 import type { Album } from '@/app/albums/types';
 import type { ArtistStats, ArtistSummary, ListenHistoryEntry, RelatedArtist } from './types';
 
+export function normalizeArtistNameAlt(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  return trimmed || null;
+}
+
+export function normalizeArtistNameForCompare(name: string): string {
+  return name.trim().normalize('NFKC');
+}
+
+export function isSameArtistName(a: string, b: string): boolean {
+  return normalizeArtistNameForCompare(a) === normalizeArtistNameForCompare(b);
+}
+
+export function matchesArtistNameSearch(
+  query: string,
+  artistName: string,
+  nameAlt?: string | null,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  if (artistName.toLowerCase().includes(q)) return true;
+  const alt = nameAlt?.trim();
+  return !!alt && alt.toLowerCase().includes(q);
+}
+
+export function buildArtistNameAltMap(
+  rows: { artist_name: string | null; name_alt?: string | null }[],
+): Record<string, string | null> {
+  const map: Record<string, string | null> = {};
+  for (const row of rows) {
+    const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
+    if (!name) continue;
+    map[name] = normalizeArtistNameAlt(row.name_alt);
+  }
+  return map;
+}
+
+export function applyArtistNameAltMap(
+  summaries: ArtistSummary[],
+  nameAltByName: Record<string, string | null>,
+): ArtistSummary[] {
+  return summaries.map((summary) => ({
+    ...summary,
+    nameAlt: nameAltByName[summary.name] ?? null,
+  }));
+}
+
 function pickMostCommon(values: string[]): string | null {
   const counts = new Map<string, number>();
   for (const value of values) {
@@ -50,6 +97,7 @@ export function buildArtistSummaries(albums: Album[]): ArtistSummary[] {
     ].sort((a, b) => a.localeCompare(b, 'ko'));
     summaries.push({
       name,
+      nameAlt: null,
       albumCount: artistAlbums.length,
       country: pickMostCommon(artistAlbums.map((a) => a.country ?? '')),
       artistType: pickMostCommon(artistAlbums.map((a) => a.artist_type ?? '')),

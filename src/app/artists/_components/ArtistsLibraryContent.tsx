@@ -13,14 +13,19 @@ import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
+import { updateArtistNames, shouldRetargetAlbumArtist } from '../lib/updateArtistNames';
 import {
+  applyArtistNameAltMap,
   buildArtistSummaries,
+  buildArtistNameAltMap,
   buildListenHistoryIndex,
   findArtistWikiUrl,
   getArtistStats,
   getPrimaryGenre1,
   getPopularAlbumId,
   getRelatedArtists,
+  isSameArtistName,
+  normalizeArtistNameAlt,
 } from '../utils';
 import type { ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
@@ -76,6 +81,7 @@ export function ArtistsLibraryContent() {
   const [bioLoading, setBioLoading] = useState(false);
   const [linksSaving, setLinksSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
   const [mobileTab, setMobileTab] = useState<ArtistMobileTab>('list');
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
@@ -84,6 +90,7 @@ export function ArtistsLibraryContent() {
   const [audioTags, setAudioTags] = useState<string[]>([]);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
+  const [artistNameAltByName, setArtistNameAltByName] = useState<Record<string, string | null>>({});
   const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
   const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
   const [isSaving, setIsSaving] = useState(false);
@@ -92,7 +99,10 @@ export function ArtistsLibraryContent() {
     { id: number; brand: string; model: string }[]
   >([]);
 
-  const summaries = useMemo(() => buildArtistSummaries(albums), [albums]);
+  const summaries = useMemo(
+    () => applyArtistNameAltMap(buildArtistSummaries(albums), artistNameAltByName),
+    [albums, artistNameAltByName],
+  );
   const {
     searchQuery,
     setSearchQuery,
@@ -144,7 +154,7 @@ export function ArtistsLibraryContent() {
       const [albumRes, historyRes, artistsRes] = await Promise.all([
         client.from('album').select('*').order('release_date', { ascending: false }),
         client.from('album_listen_history').select('album_id, listened_at'),
-        client.from('artists').select('artist_name, profile_image_url'),
+        client.from('artists').select('artist_name, profile_image_url, name_alt'),
       ]);
       if (albumRes.error) {
         toast.error('앨범 목록을 불러오지 못했습니다.');
@@ -159,6 +169,7 @@ export function ArtistsLibraryContent() {
       }
       if (artistsRes.error) {
         setArtistProfileUrls({});
+        setArtistNameAltByName({});
       } else {
         const profiles: Record<string, string | null> = {};
         for (const row of artistsRes.data ?? []) {
@@ -170,6 +181,7 @@ export function ArtistsLibraryContent() {
               : null;
         }
         setArtistProfileUrls(profiles);
+        setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
       }
     } finally {
       setIsLoading(false);
@@ -355,6 +367,104 @@ export function ArtistsLibraryContent() {
       return false;
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleSaveNames = async (patch: {
+    name: string;
+    nameAlt: string | null;
+  }): Promise<boolean> => {
+    if (!selectedName || !artistRecord?.id || isAuthenticated !== true) return false;
+    const albumArtistName = selectedName;
+    const recordArtistName = artistRecord.artist_name.trim();
+    const newName = patch.name.trim();
+    if (!newName) {
+      toast.error('이름1을 입력해 주세요.');
+      return false;
+    }
+    const normalizedAlt = normalizeArtistNameAlt(patch.nameAlt);
+    setNameSaving(true);
+    try {
+      const result = await updateArtistNames(createClient(), artistRecord.id, {
+        recordArtistName,
+        albumArtistName,
+        name: newName,
+        nameAlt: normalizedAlt,
+      });
+      if (result.error) {
+        toast.error(result.error || '이름 저장에 실패했습니다.');
+        return false;
+      }
+
+      const nameChanged = !isSameArtistName(newName, albumArtistName);
+      setAlbums((prev) =>
+        prev.map((album) =>
+          shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
+            ? { ...album, artist: newName }
+            : album,
+        ),
+      );
+
+      if (nameChanged || result.mergedArtistId) {
+        setArtistProfileUrls((prev) => {
+          const next = { ...prev };
+          const sourceKey = albumArtistName in next ? albumArtistName : recordArtistName;
+          if (sourceKey in next) {
+            next[newName] = next[sourceKey];
+            if (sourceKey !== newName) delete next[sourceKey];
+          }
+          return next;
+        });
+        setArtistNameAltByName((prev) => {
+          const next = { ...prev };
+          for (const key of [albumArtistName, recordArtistName]) {
+            if (key !== newName) delete next[key];
+          }
+          next[newName] = normalizedAlt;
+          return next;
+        });
+        setSelectedName(newName);
+      } else {
+        setArtistNameAltByName((prev) => ({ ...prev, [albumArtistName]: normalizedAlt }));
+      }
+
+      if (result.mergedArtistId) {
+        const { data } = await createClient()
+          .from('artists')
+          .select('*')
+          .eq('id', result.mergedArtistId)
+          .maybeSingle();
+        if (data) {
+          setArtistRecord(data as ArtistRecord);
+        } else {
+          setArtistRecord((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  artist_name: newName,
+                  name_alt: normalizedAlt,
+                }
+              : prev,
+          );
+        }
+      } else {
+        setArtistRecord((prev) =>
+          prev
+            ? {
+                ...prev,
+                artist_name: newName,
+                name_alt: normalizedAlt,
+              }
+            : prev,
+        );
+      }
+      toast.success('아티스트 이름을 저장했습니다.');
+      return true;
+    } catch {
+      toast.error('이름 저장에 실패했습니다.');
+      return false;
+    } finally {
+      setNameSaving(false);
     }
   };
 
@@ -591,6 +701,7 @@ export function ArtistsLibraryContent() {
       bioLoading={bioLoading}
       linksSaving={linksSaving}
       profileSaving={profileSaving}
+      nameSaving={nameSaving}
       isAuthenticated={isAuthenticated}
       showMobileBack={mobileTab === 'detail'}
       onMobileBack={() => setMobileTab('list')}
@@ -600,6 +711,7 @@ export function ArtistsLibraryContent() {
       onRefreshBio={() => void handleRefreshBio()}
       onSaveLinks={handleSaveLinks}
       onSaveProfileImage={handleSaveProfileImage}
+      onSaveNames={handleSaveNames}
     />
   );
 

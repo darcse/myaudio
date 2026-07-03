@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Album } from '../types';
+import { matchesArtistNameSearch } from '@/app/artists/utils';
 import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
 
 const ITEMS_PER_PAGE = 20;
 
-export function useAlbumFilters(library: Album[]) {
+export function useAlbumFilters(
+  library: Album[],
+  artistNameAltByName: Record<string, string | null> = {},
+) {
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
@@ -37,14 +41,16 @@ export function useAlbumFilters(library: Album[]) {
       const matchesGenre = listGenreFilter === '전체' || item.genre1 === listGenreFilter;
       const matchesCountry = listCountryFilter === '전체' || item.country === listCountryFilter;
       const lowerQuery = listSearchQuery.toLowerCase().trim();
+      const artistName = item.artist?.trim() ?? '';
+      const nameAlt = artistName ? (artistNameAltByName[artistName] ?? null) : null;
       const matchesSearch =
         !lowerQuery ||
         (item.album_name && item.album_name.toLowerCase().includes(lowerQuery)) ||
-        (item.artist && item.artist.toLowerCase().includes(lowerQuery)) ||
+        matchesArtistNameSearch(lowerQuery, artistName, nameAlt) ||
         (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery));
       return matchesGenre && matchesCountry && matchesSearch;
     },
-    [listGenreFilter, listCountryFilter, listSearchQuery],
+    [listGenreFilter, listCountryFilter, listSearchQuery, artistNameAltByName],
   );
 
   const filteredLibrary = useMemo(

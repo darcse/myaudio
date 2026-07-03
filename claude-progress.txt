@@ -216,3 +216,9 @@
 [2026-06-08] [Cursor] feat: 앨범 통계 최다 청취 기기 모달에서 HeadfiForm 인라인 수정 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 최다 청취 기기 카테고리 필터에 무선헤드폰·무선이어폰 옵션 추가 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 최다 청취 기기 헤드폰·이어폰 필터를 유선 카테고리만 집계하도록 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-017 아티스트 이름2(artist_name_alt) 필드·검색·저장 구현 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: ALBUM-017 DB 컬럼명 artist_name_alt → name_alt 반영 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-017 아티스트 이름 편집 팝오버 UX·이름1 앨범 일괄 갱신 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 이름1 중복 시 안내 메시지·artists/album 이름 기준 분리 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 이름1 NFKC 정규화 비교·중복검사 id 타입 안전 처리 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: 이름1 변경 시 기존 artists 레코드와 병합·앨범 artist 일괄 갱신 | passes: 변경 없음

@@ -24,6 +24,7 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
+import { buildArtistNameAltMap } from '@/app/artists/utils';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -65,6 +66,7 @@ export function AlbumsLibraryContent() {
     useAlbumMutations({ isAuthenticated });
   const [libraryViewMode, setLibraryViewMode] = useState<LibraryViewMode>('list');
   const [library, setLibrary] = useState<Album[]>([]);
+  const [artistNameAltByName, setArtistNameAltByName] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const {
     listSearchQuery,
@@ -84,7 +86,7 @@ export function AlbumsLibraryContent() {
     paginatedLibrary,
     totalFilteredCount,
     listTotalPages,
-  } = useAlbumFilters(library);
+  } = useAlbumFilters(library, artistNameAltByName);
 
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MusicBrainzSearchItem[]>([]);
@@ -118,8 +120,16 @@ export function AlbumsLibraryContent() {
     if (!silent) setIsLoading(true);
     try {
       const client = createClient();
-      const { data } = await client.from('album').select('*').order('created_at', { ascending: false });
-      setLibrary((data as Album[]) || []);
+      const [albumRes, artistsRes] = await Promise.all([
+        client.from('album').select('*').order('created_at', { ascending: false }),
+        client.from('artists').select('artist_name, name_alt'),
+      ]);
+      setLibrary((albumRes.data as Album[]) || []);
+      if (artistsRes.error) {
+        setArtistNameAltByName({});
+      } else {
+        setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
+      }
     } finally {
       if (!silent) setIsLoading(false);
     }
