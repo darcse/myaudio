@@ -6,18 +6,27 @@ import { BarChart3, ChevronLeft, Disc, Mic2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
+import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
+import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
+import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
+import type { Headfi, HeadfiFormData, SelectedHeadfi } from '@/app/headfi/types';
+import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
+import { DAC_AMP_DAP_CATEGORIES } from '@/lib/headfiMatchScore';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildAlbumListenRankings,
   buildArtistListenRankings,
+  buildGearListenRankings,
   buildWeeklyHotAlbumRankings,
   clampListenPeriodFilter,
+  filterGearHistoryByPeriod,
   filterHistoryByPeriod,
   formatPeriodLabel,
   getRollingSevenDayRange,
@@ -27,12 +36,16 @@ import {
   listStatsYears,
   type AlbumListenRankItem,
   type ArtistListenRankItem,
+  type GearCategoryFilter,
+  type GearListenHistoryRow,
+  type GearSummary,
   type ListenPeriodFilter,
 } from '../albumListenStats';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
+import { TopGearListenSection } from './TopGearListenSection';
 
-type HistoryRow = { album_id: number | null; listened_at: string | null };
+type HistoryRow = GearListenHistoryRow;
 
 type AlbumStatsTab = 'ranking' | 'trend';
 
@@ -204,8 +217,16 @@ export function AlbumStatsContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [statsTab, setStatsTab] = useState<AlbumStatsTab>('ranking');
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
+  const [gearCategoryFilter, setGearCategoryFilter] = useState<GearCategoryFilter>('all');
+  const [gearById, setGearById] = useState<Map<number, GearSummary>>(() => new Map());
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
+  const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
+  const [headfiFormItem, setHeadfiFormItem] = useState<SelectedHeadfi | null>(null);
+  const [headfiFormData, setHeadfiFormData] = useState<HeadfiFormData>(emptyHeadfiFormData);
+  const [isSavingHeadfi, setIsSavingHeadfi] = useState(false);
+  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
+  const [wirelessMatchingList, setWirelessMatchingList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
@@ -224,10 +245,11 @@ export function AlbumStatsContent() {
     setLoadError(null);
     try {
       const client = createClient();
-      const [albumRes, historyRes, artistsRes] = await Promise.all([
+      const [albumRes, historyRes, artistsRes, headfiRes] = await Promise.all([
         client.from('album').select('*').order('release_date', { ascending: false }),
-        client.from('album_listen_history').select('album_id, listened_at'),
+        client.from('album_listen_history').select('album_id, listened_at, headphone_id'),
         client.from('artists').select('artist_name, profile_image_url'),
+        client.from('headfi').select('id, brand, model, category, image_url'),
       ]);
       const errors: string[] = [];
       if (albumRes.error) {
@@ -256,6 +278,21 @@ export function AlbumStatsContent() {
         }
         setArtistProfileUrls(profiles);
       }
+      if (headfiRes.error) {
+        setGearById(new Map());
+      } else {
+        const map = new Map<number, GearSummary>();
+        for (const row of headfiRes.data ?? []) {
+          map.set(row.id, {
+            id: row.id,
+            brand: row.brand || '',
+            model: row.model || '',
+            category: row.category || '',
+            image_url: row.image_url ?? null,
+          });
+        }
+        setGearById(map);
+      }
       if (errors.length > 0) {
         setLoadError(errors.join(' '));
         toast.error(errors[0]);
@@ -267,6 +304,7 @@ export function AlbumStatsContent() {
       setAlbums([]);
       setHistoryRows([]);
       setArtistProfileUrls({});
+      setGearById(new Map());
     } finally {
       setIsLoading(false);
     }
@@ -275,7 +313,7 @@ export function AlbumStatsContent() {
   const refreshHistory = useCallback(async () => {
     const { data, error } = await createClient()
       .from('album_listen_history')
-      .select('album_id, listened_at');
+      .select('album_id, listened_at, headphone_id');
     if (error) {
       toast.error('청취 기록을 불러오지 못했습니다.');
       return;
@@ -311,6 +349,46 @@ export function AlbumStatsContent() {
           })),
         );
       });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated !== true) {
+      setDacAmpList([]);
+      setWirelessMatchingList([]);
+      return;
+    }
+    const client = createClient();
+    void Promise.all([
+      client
+        .from('headfi')
+        .select('id,brand,model')
+        .in('category', [...DAC_AMP_DAP_CATEGORIES])
+        .eq('status2', '보유중')
+        .order('brand')
+        .order('model'),
+      client
+        .from('headfi')
+        .select('id,brand,model')
+        .eq('category', '기타')
+        .eq('status2', '보유중')
+        .order('brand')
+        .order('model'),
+    ]).then(([dacRes, wirelessRes]) => {
+      setDacAmpList(
+        (dacRes.data ?? []).map((row) => ({
+          id: row.id,
+          brand: row.brand || '',
+          model: row.model || '',
+        })),
+      );
+      setWirelessMatchingList(
+        (wirelessRes.data ?? []).map((row) => ({
+          id: row.id,
+          brand: row.brand || '',
+          model: row.model || '',
+        })),
+      );
+    });
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -351,6 +429,10 @@ export function AlbumStatsContent() {
     () => filterHistoryByPeriod(historyRows, periodFilter),
     [historyRows, periodFilter],
   );
+  const filteredGearHistoryRows = useMemo(
+    () => filterGearHistoryByPeriod(historyRows, periodFilter),
+    [historyRows, periodFilter],
+  );
   const listenHistoryIndex = useMemo(
     () => buildListenHistoryIndex(filteredHistoryRows),
     [filteredHistoryRows],
@@ -363,6 +445,10 @@ export function AlbumStatsContent() {
     () => buildArtistListenRankings(albums, filteredHistoryRows),
     [albums, filteredHistoryRows],
   );
+  const gearRanking = useMemo(
+    () => buildGearListenRankings(gearById, filteredGearHistoryRows, gearCategoryFilter),
+    [gearById, filteredGearHistoryRows, gearCategoryFilter],
+  );
   const weekRange = useMemo(() => getRollingSevenDayRange(now), [now]);
   const weeklyHotAlbums = useMemo(
     () => buildWeeklyHotAlbumRankings(albums, historyRows, now),
@@ -370,6 +456,15 @@ export function AlbumStatsContent() {
   );
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = albumRanking.length > 0 || artistRanking.length > 0;
+
+  const openHeadfiById = useCallback(async (id: number) => {
+    const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
+    if (error || !data) {
+      toast.error('기기 정보를 불러오지 못했습니다.');
+      return;
+    }
+    setViewingHeadfi(data as Headfi);
+  }, []);
 
   const openAlbum = useCallback(
     (albumId: number) => {
@@ -472,6 +567,82 @@ export function AlbumStatsContent() {
     setPeriodFilter((prev) => clampListenPeriodFilter({ ...prev, month }));
   };
 
+  const refreshGearEntry = useCallback(async (id: number) => {
+    const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return null;
+    const row = data as Headfi;
+    setGearById((prev) => {
+      const next = new Map(prev);
+      next.set(row.id, {
+        id: row.id,
+        brand: row.brand || '',
+        model: row.model || '',
+        category: row.category || '',
+        image_url: row.image_url ?? null,
+      });
+      return next;
+    });
+    return row;
+  }, []);
+
+  const handleHeadfiEditClick = () => {
+    if (!viewingHeadfi) return;
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setHeadfiFormItem(viewingHeadfi);
+    setHeadfiFormData(headfiToFormData(viewingHeadfi));
+    setViewingHeadfi(null);
+  };
+
+  const handleHeadfiImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadHeadfiDeviceImage(file);
+      setHeadfiFormData((prev) => ({ ...prev, image_url: url }));
+      toast.success('기기 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch (err) {
+      toast.error(getClientErrorMessage(err) || '기기 이미지 업로드에 실패했습니다.');
+    }
+    e.target.value = '';
+  };
+
+  const handleHeadfiFrGraphFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadHeadfiFrGraphImage(file);
+      setHeadfiFormData((prev) => ({ ...prev, fr_graph_url: url }));
+      toast.success('FR 그래프 이미지를 업로드했습니다. 저장하면 반영됩니다.');
+    } catch {
+      toast.error('FR 그래프 업로드에 실패했습니다. Storage 버킷 headfi-fr 설정을 확인해 주세요.');
+    }
+    e.target.value = '';
+  };
+
+  const handleHeadfiSave = async () => {
+    if (!headfiFormItem || !('id' in headfiFormItem && headfiFormItem.id)) return;
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setIsSavingHeadfi(true);
+    try {
+      const id = Number(headfiFormItem.id);
+      await updateHeadfiInDB(id, headfiFormData);
+      toast.success('기기 정보가 수정되었습니다.');
+      setHeadfiFormItem(null);
+      const updated = await refreshGearEntry(id);
+      if (updated) setViewingHeadfi(updated);
+    } catch (err) {
+      toast.error(getClientErrorMessage(err));
+    } finally {
+      setIsSavingHeadfi(false);
+    }
+  };
+
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <div className="mb-6">
@@ -569,60 +740,72 @@ export function AlbumStatsContent() {
                 앨범을 재생하거나 청취 이력을 기록하면 랭킹이 표시됩니다.
               </p>
             </div>
-          ) : !hasPeriodListenData ? (
-            <div
-              className="rounded-xl border px-6 py-16 text-center"
-              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
-            >
-              <p className="text-sm font-medium opacity-80">
-                {formatPeriodLabel(periodFilter)}에 청취 기록이 없습니다.
-              </p>
-              <p className="mt-2 text-sm opacity-60">다른 연도나 월을 선택해 보세요.</p>
-            </div>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
-              <RankingPanel
-                title={`최다 청취 앨범 TOP ${LISTEN_RANKING_LIMIT}`}
-                icon={<Disc className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
-              >
-                {albumRanking.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {albumRanking.map((item, index) => (
-                      <li key={item.albumId}>
-                        <AlbumRankRow
-                          item={item}
-                          rank={index + 1}
-                          onClick={() => openAlbum(item.albumId)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-2 py-8 text-center text-sm opacity-60">청취 기록이 있는 앨범이 없습니다.</p>
-                )}
-              </RankingPanel>
-              <RankingPanel
-                title={`최다 청취 아티스트 TOP ${LISTEN_RANKING_LIMIT}`}
-                icon={<Mic2 className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
-              >
-                {artistRanking.length > 0 ? (
-                  <ul className="space-y-0.5">
-                    {artistRanking.map((item, index) => (
-                      <li key={item.artistName}>
-                        <ArtistRankRow
-                          item={item}
-                          rank={index + 1}
-                          profileImageUrl={artistProfileUrls[item.artistName] ?? null}
-                          onClick={() => setViewingArtistName(item.artistName)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="px-2 py-8 text-center text-sm opacity-60">청취 기록이 있는 아티스트가 없습니다.</p>
-                )}
-              </RankingPanel>
-            </div>
+            <>
+              {!hasPeriodListenData ? (
+                <div
+                  className="rounded-xl border px-6 py-16 text-center"
+                  style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+                >
+                  <p className="text-sm font-medium opacity-80">
+                    {formatPeriodLabel(periodFilter)}에 청취 기록이 없습니다.
+                  </p>
+                  <p className="mt-2 text-sm opacity-60">다른 연도나 월을 선택해 보세요.</p>
+                </div>
+              ) : (
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <RankingPanel
+                    title={`최다 청취 앨범 TOP ${LISTEN_RANKING_LIMIT}`}
+                    icon={<Disc className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+                  >
+                    {albumRanking.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {albumRanking.map((item, index) => (
+                          <li key={item.albumId}>
+                            <AlbumRankRow
+                              item={item}
+                              rank={index + 1}
+                              onClick={() => openAlbum(item.albumId)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="px-2 py-8 text-center text-sm opacity-60">청취 기록이 있는 앨범이 없습니다.</p>
+                    )}
+                  </RankingPanel>
+                  <RankingPanel
+                    title={`최다 청취 아티스트 TOP ${LISTEN_RANKING_LIMIT}`}
+                    icon={<Mic2 className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+                  >
+                    {artistRanking.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {artistRanking.map((item, index) => (
+                          <li key={item.artistName}>
+                            <ArtistRankRow
+                              item={item}
+                              rank={index + 1}
+                              profileImageUrl={artistProfileUrls[item.artistName] ?? null}
+                              onClick={() => setViewingArtistName(item.artistName)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="px-2 py-8 text-center text-sm opacity-60">청취 기록이 있는 아티스트가 없습니다.</p>
+                    )}
+                  </RankingPanel>
+                </div>
+              )}
+
+              <TopGearListenSection
+                items={gearRanking}
+                periodFilter={periodFilter}
+                categoryFilter={gearCategoryFilter}
+                onCategoryFilterChange={setGearCategoryFilter}
+                onGearClick={(id) => void openHeadfiById(id)}
+              />
+            </>
           )}
         </>
       )}
@@ -675,6 +858,39 @@ export function AlbumStatsContent() {
           onSave={() => void handleAlbumSave()}
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}
+        />
+      ) : null}
+
+      {viewingHeadfi ? (
+        <HeadfiDetailModal
+          viewingItem={viewingHeadfi}
+          registeredAlbums={[]}
+          matchedMatchingDevice={null}
+          matchedHeadphones={[]}
+          onClose={() => setViewingHeadfi(null)}
+          onEdit={handleHeadfiEditClick}
+          onDelete={() => toast.info('삭제는 헤드파이 화면에서 진행해 주세요.')}
+          onHeadfiPatch={(patch) => setViewingHeadfi((v) => (v ? { ...v, ...patch } : null))}
+          onAlbumClick={(albumId) => {
+            setViewingHeadfi(null);
+            openAlbum(albumId);
+          }}
+          isAuthenticated={isAuthenticated}
+        />
+      ) : null}
+
+      {headfiFormItem ? (
+        <HeadfiForm
+          selectedItem={headfiFormItem}
+          formData={headfiFormData}
+          setFormData={setHeadfiFormData}
+          dacAmpList={dacAmpList}
+          wirelessMatchingList={wirelessMatchingList}
+          onClose={() => setHeadfiFormItem(null)}
+          onSave={() => void handleHeadfiSave()}
+          onImageUpload={(e) => void handleHeadfiImageUpload(e)}
+          onFrGraphFileChange={(e) => void handleHeadfiFrGraphFileChange(e)}
+          isSaving={isSavingHeadfi}
         />
       ) : null}
     </div>

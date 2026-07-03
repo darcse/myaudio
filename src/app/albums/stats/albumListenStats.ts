@@ -2,6 +2,7 @@ import type { Album } from '@/app/albums/types';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 
 export const LISTEN_RANKING_LIMIT = 10;
+export const GEAR_LISTEN_RANKING_LIMIT = 20;
 export const WEEKLY_HOT_ALBUM_LIMIT = 5;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
@@ -34,6 +35,99 @@ export type ArtistListenRankItem = {
 };
 
 type HistoryRow = { album_id: number | null; listened_at: string | null };
+
+export type GearListenHistoryRow = HistoryRow & {
+  headphone_id: number | null;
+};
+
+export type GearCategoryFilter = 'all' | '헤드폰' | '이어폰';
+
+export type GearSummary = {
+  id: number;
+  brand: string;
+  model: string;
+  category: string;
+  image_url: string | null;
+};
+
+export type GearListenRankItem = {
+  headfiId: number;
+  brand: string;
+  model: string;
+  category: string;
+  imageUrl: string | null;
+  listenCount: number;
+};
+
+export const GEAR_CATEGORY_FILTER_OPTIONS: GearCategoryFilter[] = ['all', '헤드폰', '이어폰'];
+
+export function gearCategoryFilterLabel(filter: GearCategoryFilter): string {
+  if (filter === 'all') return '전체';
+  return filter;
+}
+
+function matchesGearCategoryFilter(category: string, filter: GearCategoryFilter): boolean {
+  if (filter === 'all') {
+    return (
+      category === '헤드폰' ||
+      category === '이어폰' ||
+      category === '무선 헤드폰' ||
+      category === '무선 이어폰'
+    );
+  }
+  if (filter === '헤드폰') {
+    return category === '헤드폰' || category === '무선 헤드폰';
+  }
+  return category === '이어폰' || category === '무선 이어폰';
+}
+
+export function filterGearHistoryByPeriod(
+  rows: GearListenHistoryRow[],
+  filter: ListenPeriodFilter,
+): GearListenHistoryRow[] {
+  return filterHistoryByPeriod(rows, filter);
+}
+
+export function buildGearListenRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  categoryFilter: GearCategoryFilter,
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  const counts = new Map<number, number>();
+
+  for (const row of historyRows) {
+    const headfiId = row.headphone_id;
+    if (headfiId == null) continue;
+    const gear = gearById.get(headfiId);
+    if (!gear || !matchesGearCategoryFilter(gear.category, categoryFilter)) continue;
+    counts.set(headfiId, (counts.get(headfiId) ?? 0) + 1);
+  }
+
+  const items: GearListenRankItem[] = [];
+  for (const [headfiId, listenCount] of counts.entries()) {
+    const gear = gearById.get(headfiId);
+    if (!gear) continue;
+    items.push({
+      headfiId,
+      brand: gear.brand,
+      model: gear.model,
+      category: gear.category,
+      imageUrl: gear.image_url,
+      listenCount,
+    });
+  }
+
+  return items
+    .sort((a, b) => {
+      const byCount = b.listenCount - a.listenCount;
+      if (byCount !== 0) return byCount;
+      const byBrand = a.brand.localeCompare(b.brand, 'ko');
+      if (byBrand !== 0) return byBrand;
+      return a.model.localeCompare(b.model, 'ko') || a.headfiId - b.headfiId;
+    })
+    .slice(0, limit);
+}
 
 export const STATS_MIN_YEAR = 2026;
 export const STATS_MIN_MONTH = 6;
@@ -83,10 +177,10 @@ export function clampListenPeriodFilter(filter: ListenPeriodFilter): ListenPerio
   return { year, month };
 }
 
-export function filterHistoryByPeriod(
-  rows: HistoryRow[],
+export function filterHistoryByPeriod<T extends HistoryRow>(
+  rows: T[],
   filter: ListenPeriodFilter,
-): HistoryRow[] {
+): T[] {
   return rows.filter((row) => {
     const listenedAt = row.listened_at?.trim();
     if (!listenedAt || row.album_id == null) return false;
