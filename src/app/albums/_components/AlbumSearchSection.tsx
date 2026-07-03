@@ -18,7 +18,6 @@ interface AlbumSearchSectionProps {
   mbTotalPages: number;
   onSearch: (page?: number) => void;
   onClearSearch: () => void;
-  onManualRegister: () => void;
   onSelectAlbum: (album: MusicBrainzSearchItem) => void;
   isAuthenticated: boolean | null;
   inputBaseClass: string;
@@ -35,7 +34,6 @@ export function AlbumSearchSection({
   mbTotalPages,
   onSearch,
   onClearSearch,
-  onManualRegister,
   onSelectAlbum,
   isAuthenticated,
   inputBaseClass,
@@ -70,16 +68,6 @@ export function AlbumSearchSection({
           <Search className="size-4 sm:mr-1" strokeWidth={2} />
           <span className="hidden sm:inline">검색</span>
         </button>
-        {isAuthenticated && (
-          <button
-            type="button"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center"
-            onClick={onManualRegister}
-          >
-            <span className="text-lg leading-none sm:mr-1">＋</span>
-            <span className="hidden sm:inline">직접 등록하기</span>
-          </button>
-        )}
       </div>
       {isSearching && (
         <div className="flex items-center gap-2 mb-4 text-sm opacity-80">

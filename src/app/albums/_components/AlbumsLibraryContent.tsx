@@ -509,34 +509,47 @@ export function AlbumsLibraryContent() {
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="page-title flex items-center gap-2">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title flex items-center gap-2 shrink-0">
           <Disc className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Albums
         </h1>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/albums/stats"
-            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+            aria-label="앨범 통계"
           >
-            <BarChart3 className="size-4" strokeWidth={1.5} />
-            앨범 통계
+            <BarChart3 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">앨범 통계</span>
           </Link>
           <button
             type="button"
             onClick={() => setMoodModalOpen(true)}
-            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+            aria-label="기분 추천"
           >
-            <span>🎵</span>
-            기분 추천
+            <span className="text-base leading-none">🎵</span>
+            <span className="hidden sm:inline">기분 추천</span>
           </button>
           <button
             type="button"
             onClick={() => void handleAnalyzeTaste()}
-            className="btn-apple btn-apple-secondary flex items-center gap-2 px-4 py-2 text-sm"
+            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
+            aria-label="취향 분석"
           >
-            <Sparkles className="size-4" strokeWidth={1.5} />
-            취향 분석
+            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">취향 분석</span>
           </button>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary flex h-[42px] w-[42px] items-center justify-center"
+              onClick={handleManualRegister}
+              aria-label="앨범 직접 등록하기"
+            >
+              <span className="text-lg leading-none">＋</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -553,7 +566,6 @@ export function AlbumsLibraryContent() {
           mbTotalPages={mbTotalPages}
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
-          onManualRegister={handleManualRegister}
           onSelectAlbum={handleSelectAlbum}
           isAuthenticated={isAuthenticated}
           inputBaseClass={inputBaseClass}

@@ -121,7 +121,7 @@ export function AlbumForm({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">발매연도 (YYYY-MM-DD)</label>
+            <label className="block text-sm font-semibold mb-1 opacity-90">발매연도</label>
             <input
               type="date"
               className={`${inputBaseClass} ${releaseDateReadOnly ? readonlyClass : ''}`}

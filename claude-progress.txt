@@ -210,3 +210,5 @@
 [2026-06-08] [Cursor] refactor: GEAR-016 HeadfiForm 책임 단위 분리(타입·유틸·공통필드·카테고리별 섹션) | passes: 변경 없음
 [2026-06-08] [Cursor] chore: 미사용 eslint-disable 제거·exhaustive-deps 6건 정리(의도 주석 5건·ArtistProfileImage deps 수정 1건) | passes: 변경 없음
 [2026-06-08] [Cursor] style: 포지션맵 기기선택 팝오버 다크모드 체크 상태 대비 개선 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 앨범 메뉴 상단 버튼 모바일 레이아웃 헤드파이 패턴 적용 | passes: 변경 없음
+[2026-06-08] [Cursor] style: 앨범 직접등록(+) 버튼 타이틀 아래 버튼 행으로 이동 | passes: 변경 없음

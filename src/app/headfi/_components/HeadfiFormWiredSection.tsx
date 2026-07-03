@@ -72,113 +72,123 @@ export function HeadfiFormWiredSection({
           )}
         </select>
       </div>
-      <div className="col-span-2 grid grid-cols-4 gap-x-6">
-        <div className="col-span-2">
+      <div className="col-span-2 flex flex-col gap-4 sm:grid sm:grid-cols-4 sm:gap-x-6">
+        <div className="sm:col-span-2">
           <HeadfiFormTextInput label="임피던스 (Ω)" field="impedance" type="number" formData={formData} setFormData={setFormData} />
         </div>
-        <HeadfiFormTextInput label="db SPL/V" field="db1" type="number" formData={formData} setFormData={setFormData} />
-        <HeadfiFormTextInput label="db/mW" field="db2" type="number" formData={formData} setFormData={setFormData} />
+        <div className="grid grid-cols-2 gap-x-6 sm:contents">
+          <HeadfiFormTextInput label="db SPL/V" field="db1" type="number" formData={formData} setFormData={setFormData} />
+          <HeadfiFormTextInput label="db/mW" field="db2" type="number" formData={formData} setFormData={setFormData} />
+        </div>
       </div>
       {isHeadphone ? (
-        <div className="col-span-2 grid grid-cols-4 gap-x-6">
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })}>
-              <option value="">선택</option>
-              <option value="S">S</option>
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
-            </select>
+        <div className="col-span-2 flex flex-col gap-4 sm:grid sm:grid-cols-4 sm:gap-x-6">
+          <div className="grid grid-cols-2 gap-x-6 sm:contents">
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">볼륨 구동력</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.volume} onChange={(e) => setFormData({ ...formData, volume: e.target.value })}>
+                <option value="">선택</option>
+                <option value="S">S</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })}>
+                <option value="">선택</option>
+                <option value="전압형">전압형</option>
+                <option value="전류형">전류형</option>
+                <option value="혼합형">혼합형</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">구동 타입</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.volume_type} onChange={(e) => setFormData({ ...formData, volume_type: e.target.value })}>
-              <option value="">선택</option>
-              <option value="전압형">전압형</option>
-              <option value="전류형">전류형</option>
-              <option value="혼합형">혼합형</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
-              <option value="">선택</option>
-              <option value="매우 따뜻함">매우 따뜻함</option>
-              <option value="따뜻함">따뜻함</option>
-              <option value="조금 따뜻함">조금 따뜻함</option>
-              <option value="중립">중립</option>
-              <option value="조금 차가움">조금 차가움</option>
-              <option value="차가움">차가움</option>
-              <option value="매우 차가움">매우 차가움</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
-              <option value="">선택</option>
-              <option value="매우 밝음">매우 밝음</option>
-              <option value="밝음">밝음</option>
-              <option value="조금 밝음">조금 밝음</option>
-              <option value="중립">중립</option>
-              <option value="조금 어두움">조금 어두움</option>
-              <option value="어두움">어두움</option>
-              <option value="매우 어두움">매우 어두움</option>
-            </select>
+          <div className="grid grid-cols-2 gap-x-6 sm:contents">
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
+                <option value="">선택</option>
+                <option value="매우 따뜻함">매우 따뜻함</option>
+                <option value="따뜻함">따뜻함</option>
+                <option value="조금 따뜻함">조금 따뜻함</option>
+                <option value="중립">중립</option>
+                <option value="조금 차가움">조금 차가움</option>
+                <option value="차가움">차가움</option>
+                <option value="매우 차가움">매우 차가움</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
+                <option value="">선택</option>
+                <option value="매우 밝음">매우 밝음</option>
+                <option value="밝음">밝음</option>
+                <option value="조금 밝음">조금 밝음</option>
+                <option value="중립">중립</option>
+                <option value="조금 어두움">조금 어두움</option>
+                <option value="어두움">어두움</option>
+                <option value="매우 어두움">매우 어두움</option>
+              </select>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="col-span-2 grid grid-cols-4 gap-x-6">
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
-              <option value="">선택</option>
-              <option value="매우 따뜻함">매우 따뜻함</option>
-              <option value="따뜻함">따뜻함</option>
-              <option value="조금 따뜻함">조금 따뜻함</option>
-              <option value="중립">중립</option>
-              <option value="조금 차가움">조금 차가움</option>
-              <option value="차가움">차가움</option>
-              <option value="매우 차가움">매우 차가움</option>
-            </select>
+        <div className="col-span-2 flex flex-col gap-4 sm:grid sm:grid-cols-4 sm:gap-x-6">
+          <div className="grid grid-cols-2 gap-x-6 sm:contents">
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">온도</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.temp} onChange={(e) => setFormData({ ...formData, temp: e.target.value })}>
+                <option value="">선택</option>
+                <option value="매우 따뜻함">매우 따뜻함</option>
+                <option value="따뜻함">따뜻함</option>
+                <option value="조금 따뜻함">조금 따뜻함</option>
+                <option value="중립">중립</option>
+                <option value="조금 차가움">조금 차가움</option>
+                <option value="차가움">차가움</option>
+                <option value="매우 차가움">매우 차가움</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
+                <option value="">선택</option>
+                <option value="매우 밝음">매우 밝음</option>
+                <option value="밝음">밝음</option>
+                <option value="조금 밝음">조금 밝음</option>
+                <option value="중립">중립</option>
+                <option value="조금 어두움">조금 어두움</option>
+                <option value="어두움">어두움</option>
+                <option value="매우 어두움">매우 어두움</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">밝기</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.bright} onChange={(e) => setFormData({ ...formData, bright: e.target.value })}>
-              <option value="">선택</option>
-              <option value="매우 밝음">매우 밝음</option>
-              <option value="밝음">밝음</option>
-              <option value="조금 밝음">조금 밝음</option>
-              <option value="중립">중립</option>
-              <option value="조금 어두움">조금 어두움</option>
-              <option value="어두움">어두움</option>
-              <option value="매우 어두움">매우 어두움</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
-            <select
-              className="select-apple px-3 py-2 w-full h-[42px]"
-              value={matchingSelectVal}
-              onChange={(e) => handleMatchingChange(e.target.value)}
-            >
-              <option value="">선택 안 함</option>
-              {dacAmpList.map((d) => (
-                <option key={d.id} value={String(d.id)}>{d.brand} {d.model}</option>
-              ))}
-              <option value="__custom__">기타 (직접 입력)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">Gain</label>
-            <input
-              type="text"
-              className={INPUT_BASE_CLASS}
-              placeholder="예: Low, High"
-              value={formData.gain}
-              onChange={(e) => setFormData({ ...formData, gain: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-x-6 sm:contents">
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
+              <select
+                className="select-apple px-3 py-2 w-full h-[42px]"
+                value={matchingSelectVal}
+                onChange={(e) => handleMatchingChange(e.target.value)}
+              >
+                <option value="">선택 안 함</option>
+                {dacAmpList.map((d) => (
+                  <option key={d.id} value={String(d.id)}>{d.brand} {d.model}</option>
+                ))}
+                <option value="__custom__">기타 (직접 입력)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">Gain</label>
+              <input
+                type="text"
+                className={INPUT_BASE_CLASS}
+                placeholder="예: Low, High"
+                value={formData.gain}
+                onChange={(e) => setFormData({ ...formData, gain: e.target.value })}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -23,29 +23,31 @@ export function HeadfiFormDacAmpSection({ formData, setFormData }: HeadfiFormSec
           onChange={(e) => setFormData({ ...formData, chipset: e.target.value })}
         />
       </div>
-      <HeadfiFormTextInput label="출력 임피던스 (Rk Ω)" field="output_impedance" type="number" formData={formData} setFormData={setFormData} />
-      <div className="grid grid-cols-2 gap-x-6">
-        <div>
-          <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (BAL)</label>
-          <input
-            type="number"
-            step="any"
-            className={INPUT_BASE_CLASS}
-            placeholder="32Ω 기준 (예: 15.5)"
-            value={formData.vrms_bal}
-            onChange={(e) => setFormData({ ...formData, vrms_bal: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (Single)</label>
-          <input
-            type="number"
-            step="any"
-            className={INPUT_BASE_CLASS}
-            placeholder="32Ω 기준 (예: 12)"
-            value={formData.vrms_single}
-            onChange={(e) => setFormData({ ...formData, vrms_single: e.target.value })}
-          />
+      <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-6">
+        <HeadfiFormTextInput label="출력 임피던스 (Rk Ω)" field="output_impedance" type="number" formData={formData} setFormData={setFormData} />
+        <div className="grid grid-cols-2 gap-x-6">
+          <div>
+            <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (BAL)</label>
+            <input
+              type="number"
+              step="any"
+              className={INPUT_BASE_CLASS}
+              placeholder="32Ω 기준 (예: 15.5)"
+              value={formData.vrms_bal}
+              onChange={(e) => setFormData({ ...formData, vrms_bal: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1 opacity-90">Vrms (Single)</label>
+            <input
+              type="number"
+              step="any"
+              className={INPUT_BASE_CLASS}
+              placeholder="32Ω 기준 (예: 12)"
+              value={formData.vrms_single}
+              onChange={(e) => setFormData({ ...formData, vrms_single: e.target.value })}
+            />
+          </div>
         </div>
       </div>
       <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
