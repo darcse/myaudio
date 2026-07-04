@@ -226,3 +226,4 @@
 [2026-06-08] [Cursor] style: 아티스트 상세 모바일 이름2를 이름1 다음 줄에 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 아티스트 목록 상단 필터 모바일 3줄 레이아웃 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 아티스트 상세 데스크톱 이름-태그 간격 회귀 수정 | passes: 변경 없음
+[2026-06-08] [Cursor] fix: BUG-007 대시보드 전체앨범 fetch 제거·청취 join·모달 lazy load | passes: 변경 없음

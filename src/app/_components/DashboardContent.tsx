@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,17 +10,30 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { updateAlbumInDB } from '@/app/albums/actions';
-import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import type { Album, AlbumFormData } from '@/app/albums/types';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
-import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
 import type { Headfi } from '@/app/headfi/types';
 import { getClientErrorMessage } from '@/lib/supabase-error';
-import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
-import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
+
+const AlbumDetailModal = dynamic(
+  () => import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
+  { ssr: false },
+);
+const HeadfiDetailModal = dynamic(
+  () => import('@/app/headfi/_components/HeadfiDetailModal').then((m) => ({ default: m.HeadfiDetailModal })),
+  { ssr: false },
+);
+const AlbumForm = dynamic(
+  () => import('@/app/albums/_components/AlbumForm').then((m) => ({ default: m.AlbumForm })),
+  { ssr: false },
+);
+const HeadfiForm = dynamic(
+  () => import('@/app/headfi/_components/HeadfiForm').then((m) => ({ default: m.HeadfiForm })),
+  { ssr: false },
+);
 
 export type MonthlyListenAlbum = {
   id: number;
@@ -43,7 +57,6 @@ type DashboardContentProps = {
   monthlyListens: number;
   headfiCategoryRows: Pick<Headfi, 'category'>[];
   monthlyListenAlbums: MonthlyListenAlbum[];
-  lotteryPool: Album[];
   recentAlbums: Album[];
   recentHeadfi: Headfi[];
 };
@@ -177,7 +190,6 @@ export function DashboardContent({
   monthlyListens,
   headfiCategoryRows,
   monthlyListenAlbums,
-  lotteryPool,
   recentAlbums,
   recentHeadfi,
 }: DashboardContentProps) {
@@ -656,7 +668,7 @@ export function DashboardContent({
         </div>
 
         <DashboardTodayAlbumCard
-          lotteryPool={lotteryPool}
+          totalAlbums={totalAlbums}
           onAlbumClick={(album) => void openAlbumById(album.id)}
         />
       </div>

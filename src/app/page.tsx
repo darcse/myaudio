@@ -15,29 +15,47 @@ function monthListenRange(): { start: string; endExclusive: string } {
   return { start, endExclusive };
 }
 
+type MonthlyListenJoinRow = {
+  album_id: number | null;
+  listened_at: string | null;
+  album:
+    | {
+        id: number;
+        album_name: string;
+        artist: string | null;
+        cover_image_url: string | null;
+      }
+    | {
+        id: number;
+        album_name: string;
+        artist: string | null;
+        cover_image_url: string | null;
+      }[]
+    | null;
+};
+
+function resolveJoinedAlbum(
+  album: MonthlyListenJoinRow['album'],
+): { id: number; album_name: string; artist: string | null; cover_image_url: string | null } | null {
+  if (!album) return null;
+  if (Array.isArray(album)) return album[0] ?? null;
+  return album;
+}
+
 export default async function Home() {
   const supabase = await createClient();
   const { start, endExclusive } = monthListenRange();
 
-  const [albumsCountRes, headfiCountRes, listensCountRes, headfiCatsRes, monthlyListenRes, lotteryPoolRes, recentAlbumsRes, recentHeadfiRes] =
+  const [albumsCountRes, headfiCountRes, headfiCatsRes, monthlyListenRes, recentAlbumsRes, recentHeadfiRes] =
     await Promise.all([
       supabase.from('album').select('*', { count: 'exact', head: true }),
       supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
-      supabase
-        .from('album_listen_history')
-        .select('*', { count: 'exact', head: true })
-        .gte('listened_at', start)
-        .lt('listened_at', endExclusive),
       supabase.from('headfi').select('category, status2').neq('status2', '방출'),
       supabase
         .from('album_listen_history')
-        .select('album_id, listened_at')
+        .select('album_id, listened_at, album:album_id(id, album_name, artist, cover_image_url)')
         .gte('listened_at', start)
         .lt('listened_at', endExclusive),
-      supabase
-        .from('album')
-        .select('id,album_name,artist,country,release_date,genre1,genre2,cover_image_url,created_at')
-        .order('created_at', { ascending: false }),
       supabase
         .from('album')
         .select('id,album_name,artist,cover_image_url,created_at')
@@ -50,54 +68,53 @@ export default async function Home() {
         .limit(5),
     ]);
 
-  const albumListenMeta = new Map<number, { count: number; latestListenedAt: string }>();
-  for (const row of monthlyListenRes.data ?? []) {
-    const id = row.album_id as number;
-    const listenedAt = String(row.listened_at ?? '');
-    if (!Number.isInteger(id) || !listenedAt) continue;
+  const monthlyListenRows = (monthlyListenRes.data ?? []) as MonthlyListenJoinRow[];
+  const monthlyListens = monthlyListenRows.length;
+
+  const albumListenMeta = new Map<
+    number,
+    {
+      count: number;
+      latestListenedAt: string;
+      album: NonNullable<ReturnType<typeof resolveJoinedAlbum>>;
+    }
+  >();
+
+  for (const row of monthlyListenRows) {
+    const listenedAt = row.listened_at?.trim() ?? '';
+    const album = resolveJoinedAlbum(row.album);
+    if (!album || !listenedAt) continue;
+    const id = album.id;
+    if (!Number.isInteger(id)) continue;
     const prev = albumListenMeta.get(id);
     if (!prev) {
-      albumListenMeta.set(id, { count: 1, latestListenedAt: listenedAt });
+      albumListenMeta.set(id, { count: 1, latestListenedAt: listenedAt, album });
       continue;
     }
     albumListenMeta.set(id, {
       count: prev.count + 1,
       latestListenedAt: listenedAt > prev.latestListenedAt ? listenedAt : prev.latestListenedAt,
+      album: prev.album,
     });
   }
-  const sortedListenIds = [...albumListenMeta.entries()]
+
+  const monthlyListenAlbums = [...albumListenMeta.entries()]
     .sort((a, b) => b[1].latestListenedAt.localeCompare(a[1].latestListenedAt))
-    .map(([id]) => id);
-  let monthlyListenAlbums: { id: number; album_name: string; artist: string | null; cover_image_url: string | null; listenCount: number }[] = [];
-  if (sortedListenIds.length > 0) {
-    const { data: listenAlbumRows } = await supabase
-      .from('album')
-      .select('id,album_name,artist,cover_image_url')
-      .in('id', sortedListenIds);
-    const albumMap = new Map((listenAlbumRows ?? []).map((a) => [a.id as number, a]));
-    monthlyListenAlbums = sortedListenIds
-      .map((id) => {
-        const al = albumMap.get(id);
-        if (!al) return null;
-        return {
-          id: al.id as number,
-          album_name: String(al.album_name ?? ''),
-          artist: (al.artist as string | null) ?? null,
-          cover_image_url: (al.cover_image_url as string | null) ?? null,
-          listenCount: albumListenMeta.get(id)?.count ?? 0,
-        };
-      })
-      .filter((x): x is NonNullable<typeof x> => x != null);
-  }
+    .map(([, data]) => ({
+      id: data.album.id,
+      album_name: String(data.album.album_name ?? ''),
+      artist: data.album.artist ?? null,
+      cover_image_url: data.album.cover_image_url ?? null,
+      listenCount: data.count,
+    }));
 
   return (
     <DashboardContent
       totalAlbums={albumsCountRes.count ?? 0}
       totalHeadfi={headfiCountRes.count ?? 0}
-      monthlyListens={listensCountRes.count ?? 0}
+      monthlyListens={monthlyListens}
       headfiCategoryRows={(headfiCatsRes.data ?? []) as Pick<Headfi, 'category'>[]}
       monthlyListenAlbums={monthlyListenAlbums}
-      lotteryPool={(lotteryPoolRes.data ?? []) as Album[]}
       recentAlbums={(recentAlbumsRes.data ?? []) as Album[]}
       recentHeadfi={(recentHeadfiRes.data ?? []) as Headfi[]}
     />

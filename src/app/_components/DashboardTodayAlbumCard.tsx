@@ -3,12 +3,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Disc, Music, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
 import { extractCoverDominantGradient } from './cover-dominant-gradient';
 
-function pickRandomAlbum(pool: Album[], exclude: Album | null = null): Album {
+type LotteryAlbum = Pick<Album, 'id' | 'album_name' | 'artist' | 'genre1' | 'genre2' | 'cover_image_url'>;
+
+function pickRandomAlbum(pool: LotteryAlbum[], exclude: LotteryAlbum | null = null): LotteryAlbum {
   if (pool.length === 1) return pool[0];
-  let next: Album;
+  let next: LotteryAlbum;
   let guard = 0;
   do {
     next = pool[Math.floor(Math.random() * pool.length)];
@@ -17,28 +21,55 @@ function pickRandomAlbum(pool: Album[], exclude: Album | null = null): Album {
   return next;
 }
 
-type LotteryPhase = 'idle' | 'spinning' | 'result';
+type LotteryPhase = 'idle' | 'loading' | 'spinning' | 'result';
 
 type DashboardTodayAlbumCardProps = {
-  lotteryPool: Album[];
+  totalAlbums: number;
   onAlbumClick: (album: Album) => void;
 };
 
-export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: DashboardTodayAlbumCardProps) {
+export function DashboardTodayAlbumCard({ totalAlbums, onAlbumClick }: DashboardTodayAlbumCardProps) {
   const [phase, setPhase] = useState<LotteryPhase>('idle');
-  const [spinAlbum, setSpinAlbum] = useState<Album | null>(null);
-  const [resultAlbum, setResultAlbum] = useState<Album | null>(null);
+  const [lotteryPool, setLotteryPool] = useState<LotteryAlbum[]>([]);
+  const [spinAlbum, setSpinAlbum] = useState<LotteryAlbum | null>(null);
+  const [resultAlbum, setResultAlbum] = useState<LotteryAlbum | null>(null);
   const [metaVisible, setMetaVisible] = useState(false);
   const [bgGradient, setBgGradient] = useState<string | null>(null);
   const spinTimersRef = useRef<number[]>([]);
+  const poolFetchRef = useRef<Promise<LotteryAlbum[] | null> | null>(null);
 
   const clearSpinTimers = useCallback(() => {
     spinTimersRef.current.forEach((id) => window.clearTimeout(id));
     spinTimersRef.current = [];
   }, []);
 
+  const fetchLotteryPool = useCallback(async (): Promise<LotteryAlbum[] | null> => {
+    if (lotteryPool.length > 0) return lotteryPool;
+    if (poolFetchRef.current) return poolFetchRef.current;
+
+    const pending = (async () => {
+      const { data, error } = await createClient()
+        .from('album')
+        .select('id, album_name, artist, genre1, genre2, cover_image_url');
+      if (error) {
+        toast.error('추천 앨범 목록을 불러오지 못했습니다.');
+        return null;
+      }
+      const pool = (data ?? []) as LotteryAlbum[];
+      setLotteryPool(pool);
+      return pool;
+    })();
+
+    poolFetchRef.current = pending;
+    try {
+      return await pending;
+    } finally {
+      poolFetchRef.current = null;
+    }
+  }, [lotteryPool]);
+
   const runSpinAnimation = useCallback(
-    (pool: Album[], exclude: Album | null) => {
+    (pool: LotteryAlbum[], exclude: LotteryAlbum | null) => {
       clearSpinTimers();
       setPhase('spinning');
       setMetaVisible(false);
@@ -67,11 +98,17 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
   );
 
   const startLottery = useCallback(
-    (exclude: Album | null) => {
-      if (lotteryPool.length === 0) return;
-      runSpinAnimation(lotteryPool, exclude);
+    async (exclude: LotteryAlbum | null) => {
+      if (totalAlbums === 0) return;
+      setPhase('loading');
+      const pool = await fetchLotteryPool();
+      if (!pool || pool.length === 0) {
+        setPhase('idle');
+        return;
+      }
+      runSpinAnimation(pool, exclude);
     },
-    [lotteryPool, runSpinAnimation],
+    [totalAlbums, fetchLotteryPool, runSpinAnimation],
   );
 
   useEffect(() => () => clearSpinTimers(), [clearSpinTimers]);
@@ -103,7 +140,7 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
 
   return (
     <div className="card-apple flex h-72 max-h-72 min-h-72 flex-col overflow-hidden p-0">
-      {lotteryPool.length === 0 ? (
+      {totalAlbums === 0 ? (
         <div className="flex h-full flex-col p-4">
           <h2 className="mb-2 flex items-center gap-2 text-[15px] font-semibold opacity-80">
             <Disc className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
@@ -111,7 +148,7 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
           </h2>
           <p className="text-sm opacity-60">등록된 앨범이 없습니다.</p>
         </div>
-      ) : phase === 'idle' ? (
+      ) : phase === 'idle' || phase === 'loading' ? (
         <div className="flex h-full flex-col p-4">
           <h2 className="mb-2 flex items-center gap-2 text-[15px] font-semibold opacity-80">
             <Disc className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
@@ -121,11 +158,12 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
             <p className="text-center text-sm opacity-70">전체 컬렉션에서 랜덤으로 한 장을 추천해 드립니다.</p>
             <button
               type="button"
-              onClick={() => startLottery(null)}
-              className="btn-apple btn-apple-secondary inline-flex items-center gap-2 px-4 py-2 text-sm"
+              onClick={() => void startLottery(null)}
+              disabled={phase === 'loading'}
+              className="btn-apple btn-apple-secondary inline-flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-50"
             >
               <span>🎰</span>
-              추천 받기
+              {phase === 'loading' ? '불러오는 중…' : '추천 받기'}
             </button>
           </div>
         </div>
@@ -137,11 +175,11 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
             if (phase !== 'result' || !resultAlbum) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              onAlbumClick(resultAlbum);
+              onAlbumClick(resultAlbum as Album);
             }
           }}
           onClick={() => {
-            if (phase === 'result' && resultAlbum) onAlbumClick(resultAlbum);
+            if (phase === 'result' && resultAlbum) onAlbumClick(resultAlbum as Album);
           }}
           className={`relative h-full w-full overflow-hidden text-left ${
             phase === 'result' ? 'cursor-pointer hover:opacity-95' : 'cursor-default'
@@ -200,7 +238,7 @@ export function DashboardTodayAlbumCard({ lotteryPool, onAlbumClick }: Dashboard
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  startLottery(resultAlbum);
+                  void startLottery(resultAlbum);
                 }}
                 className="shrink-0 rounded-lg p-1.5 text-white/90 transition-transform duration-300 hover:rotate-180 hover:bg-white/15"
                 aria-label="다시 추천"
