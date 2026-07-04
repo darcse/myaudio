@@ -4,6 +4,7 @@ import type { Headfi } from '@/app/headfi/types';
 import { DashboardContent } from './_components/DashboardContent';
 
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'icn1';
 
 function monthListenRange(): { start: string; endExclusive: string } {
   const now = new Date();
