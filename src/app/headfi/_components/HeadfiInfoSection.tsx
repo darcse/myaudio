@@ -6,7 +6,12 @@ import Link from 'next/link';
 import { Headphones, SlidersHorizontal } from 'lucide-react';
 import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import type { Headfi } from '../types';
-import { formatVrmsAt32Ohm } from '../utils';
+import {
+  HEADFI_DAC_AMP_LABELS,
+  formatAmpTypeDisplay,
+  formatRkDisplay,
+  formatVrms,
+} from '../dacAmpSpec';
 
 type HeadfiInfoSectionProps = {
   viewingItem: Headfi;
@@ -217,37 +222,44 @@ export function HeadfiInfoSection({
             {isDacAmp ? (
               <>
                 <p>
-                  <strong>앰프 타입:</strong> {viewingItem.amp_type || '-'}
+                  <strong>{HEADFI_DAC_AMP_LABELS.ampType}:</strong> {formatAmpTypeDisplay(viewingItem.amp_type)}
                 </p>
                 <p>
-                  <strong>Chipset:</strong> {viewingItem.chipset || '-'}
+                  <strong>{HEADFI_DAC_AMP_LABELS.chipset}:</strong> {viewingItem.chipset?.trim() || '-'}
                 </p>
-                <p>
-                  <strong>출력 임피던스 (Rk):</strong>{' '}
-                  {viewingItem.output_impedance != null &&
-                  Number.isFinite(Number(viewingItem.output_impedance))
-                    ? `${viewingItem.output_impedance} Ω`
-                    : '-'}
-                </p>
-                <p>
-                  <strong>Vrms (BAL):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_bal) || '-'}
-                </p>
-                <p className="col-span-2">
-                  <strong>Vrms (Single):</strong> {formatVrmsAt32Ohm(viewingItem.vrms_single) || '-'}
-                </p>
+                <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-6">
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.rk}:</strong> {formatRkDisplay(viewingItem.output_impedance)}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-6">
+                    <p>
+                      <strong>{HEADFI_DAC_AMP_LABELS.vrms32}:</strong> {formatVrms(viewingItem.vrms_bal) || '-'}
+                    </p>
+                    <p>
+                      <strong>{HEADFI_DAC_AMP_LABELS.vrms300}:</strong> {formatVrms(viewingItem.vrms_single) || '-'}
+                    </p>
+                  </div>
+                </div>
               </>
             ) : null}
             {isDap ? (
               <>
-                <p className="col-span-2">
-                  <strong>스펙:</strong> {viewingItem.dap_spec || '-'}
-                </p>
-                <p>
-                  <strong>Chipset:</strong> {viewingItem.chipset || '-'}
-                </p>
-                <p>
-                  <strong>출력:</strong> {viewingItem.dap_output || '-'}
-                </p>
+                <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-6">
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.chipset}:</strong> {viewingItem.chipset?.trim() || '-'}
+                  </p>
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.rk}:</strong> {formatRkDisplay(viewingItem.output_impedance)}
+                  </p>
+                </div>
+                <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-6">
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.vrms32}:</strong> {formatVrms(viewingItem.vrms_bal) || '-'}
+                  </p>
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.vrms300}:</strong> {formatVrms(viewingItem.vrms_single) || '-'}
+                  </p>
+                </div>
               </>
             ) : null}
             {(isDacAmp || isDap || isSourceOrEtc) && viewingItem.accessory?.trim() ? (

@@ -1,6 +1,8 @@
 import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import type { HeadfiFormData } from '../types';
 
+export { AMP_TYPE_OPTIONS } from '../dacAmpSpec';
+
 export const INPUT_BASE_CLASS = 'input-apple px-3 py-2 w-full h-[42px]';
 export const DISABLED_CLASS = 'opacity-60 cursor-not-allowed';
 

@@ -1,8 +1,9 @@
 'use client';
 
+import { HEADFI_DAC_AMP_LABELS } from '../dacAmpSpec';
 import type { HeadfiFormData } from '../types';
 import type { HeadfiFormSectionProps } from './headfiFormTypes';
-import { DISABLED_CLASS, INPUT_BASE_CLASS } from './headfiFormUtils';
+import { AMP_TYPE_OPTIONS, DISABLED_CLASS, INPUT_BASE_CLASS } from './headfiFormUtils';
 
 type HeadfiFormTextInputProps = HeadfiFormSectionProps & {
   label: string;
@@ -30,6 +31,58 @@ export function HeadfiFormTextInput({
         disabled={!isActive}
         placeholder={!isActive ? '해당 없음' : ''}
       />
+    </div>
+  );
+}
+
+type HeadfiFormVrmsFieldProps = HeadfiFormSectionProps & {
+  label: string;
+  field: 'vrms_bal' | 'vrms_single';
+};
+
+export function HeadfiFormVrmsField({ label, field, formData, setFormData }: HeadfiFormVrmsFieldProps) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold mb-1 opacity-90">{label}</label>
+      <div className="relative">
+        <input
+          type="number"
+          step="any"
+          className={`${INPUT_BASE_CLASS} pr-8`}
+          placeholder="예: 1.5"
+          value={formData[field]}
+          onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60">V</span>
+      </div>
+    </div>
+  );
+}
+
+export function HeadfiFormAmpTypeSelect({ formData, setFormData }: HeadfiFormSectionProps) {
+  const legacyValue =
+    formData.amp_type && !(AMP_TYPE_OPTIONS as readonly string[]).includes(formData.amp_type)
+      ? formData.amp_type
+      : null;
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold mb-1 opacity-90">{HEADFI_DAC_AMP_LABELS.ampType}</label>
+      <select
+        className="select-apple px-3 py-2 w-full h-[42px]"
+        value={formData.amp_type}
+        onChange={(e) => setFormData({ ...formData, amp_type: e.target.value })}
+      >
+        <option value="">선택</option>
+        {legacyValue ? (
+          <option value={legacyValue}>기존: {legacyValue}</option>
+        ) : null}
+        {AMP_TYPE_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

@@ -228,3 +228,5 @@
 [2026-06-08] [Cursor] fix: 아티스트 상세 데스크톱 이름-태그 간격 회귀 수정 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: BUG-007 대시보드 전체앨범 fetch 제거·청취 join·모달 lazy load | passes: 변경 없음
 [2026-06-08] [Cursor] fix: BUG-007 prod 진단 — Vercel iad1↔한국 icn1 불일치, PWA SW 없음, vercel.json icn1 고정 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-017 DAC/AMP/DAP 폼 라벨·Vrms V단위·앰프타입 셀렉트·DAP Rk/Vrms 재사용 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-017 상세조회 HeadfiInfoSection 라벨·DAP 필드·dacAmpSpec 공용 추출 | passes: 변경 없음

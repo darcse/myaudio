@@ -132,6 +132,9 @@ function mapHeadfiData(data: HeadfiFormData) {
       ...emptyWiredFields(),
       ...accessoryFields(data),
       chipset: data.chipset?.trim() ?? '',
+      output_impedance: optionalFiniteNumber(data.output_impedance),
+      vrms_bal: optionalFiniteNumber(data.vrms_bal),
+      vrms_single: optionalFiniteNumber(data.vrms_single),
       dap_spec: data.dap_spec?.trim() ?? '',
       dap_output: data.dap_output?.trim() ?? '',
     };
