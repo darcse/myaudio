@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Mic2 } from 'lucide-react';
+import { Mic2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -31,6 +31,7 @@ import type { ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry }
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
+import { ArtistLotteryModal } from './ArtistLotteryModal';
 import { ArtistTopControlBar } from './ArtistTopControlBar';
 
 const initialAlbumFormData: AlbumFormData = {
@@ -98,10 +99,27 @@ export function ArtistsLibraryContent() {
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
+  const [artistLotteryOpen, setArtistLotteryOpen] = useState(false);
 
   const summaries = useMemo(
     () => applyArtistNameAltMap(buildArtistSummaries(albums), artistNameAltByName),
     [albums, artistNameAltByName],
+  );
+  const artistLotteryPool = useMemo(
+    () =>
+      summaries.map((artist) => {
+        const stats = getArtistStats(artist, listenHistoryIndex);
+        return {
+          name: artist.name,
+          profileImageUrl: artistProfileUrls[artist.name] ?? null,
+          country: artist.country,
+          artistType: artist.artistType,
+          genre1: getPrimaryGenre1(artist),
+          albumCount: stats.totalAlbums,
+          totalListenCount: stats.totalListenCount,
+        };
+      }),
+    [summaries, artistProfileUrls, listenHistoryIndex],
   );
   const {
     searchQuery,
@@ -728,11 +746,21 @@ export function ArtistsLibraryContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6">
-        <h1 className="page-title flex items-center gap-2">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title flex items-center gap-2 shrink-0">
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Artists
         </h1>
+        <button
+          type="button"
+          disabled={summaries.length === 0}
+          onClick={() => setArtistLotteryOpen(true)}
+          className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="추천 아티스트"
+        >
+          <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+          <span className="hidden sm:inline">추천 아티스트</span>
+        </button>
       </div>
 
       {isLoading ? (
@@ -789,6 +817,13 @@ export function ArtistsLibraryContent() {
           isSaving={isSaving}
         />
       ) : null}
+
+      <ArtistLotteryModal
+        open={artistLotteryOpen}
+        onClose={() => setArtistLotteryOpen(false)}
+        lotteryPool={artistLotteryPool}
+        onArtistClick={handleSelectArtist}
+      />
     </div>
   );
 }

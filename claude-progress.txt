@@ -244,3 +244,4 @@
 [2026-06-08] [Cursor] feat: ALBUM-020 금주의 핫앨범 타이틀·랭킹 콘텐츠 카드 분리 | passes: 변경 없음
 [2026-06-08] [Cursor] style: 앨범통계 핫앨범·청취랭킹 헤더 영역 badge-bg 틴트 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 아카이브 월별 앨범·기기 모달 수정 시 인라인 폼·저장 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-021 아티스트 빠칭코 추천 모달·헤더 버튼 | passes: 변경 없음
