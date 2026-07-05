@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  HeadfiFormAccessoryFieldsRow,
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
   HeadfiFormPurchaseStatusRow,
@@ -98,6 +99,7 @@ export function HeadfiFormWirelessSection({
           onChange={(e) => setFormData({ ...formData, eartip_price: e.target.value })}
         />
       </div>
+      <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
       <div>
         <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
         <input

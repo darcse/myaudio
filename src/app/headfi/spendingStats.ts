@@ -133,11 +133,13 @@ function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
       break;
     case '무선 헤드폰':
       push('무선 헤드폰 이어패드', eartip);
-      push('무선 헤드폰 부가비용', cable + accessory);
+      push('무선 헤드폰 액세서리', accessory);
+      push('무선 헤드폰 부가비용', cable);
       break;
     case '무선 이어폰':
       push('무선 이어폰 이어팁', eartip);
-      push('무선 이어폰 부가비용', cable + accessory);
+      push('무선 이어폰 액세서리', accessory);
+      push('무선 이어폰 부가비용', cable);
       break;
     case 'DAC':
       push('DAC 액세서리', accessory);
@@ -158,7 +160,8 @@ function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
       push('기타 액세서리', accessory);
       break;
     case '스피커':
-      push('스피커 부가비용', cable + eartip + accessory);
+      push('스피커 액세서리', accessory);
+      push('스피커 부가비용', cable + eartip);
       break;
     default: {
       const lump = cable + eartip + accessory;

@@ -144,6 +144,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
+      ...accessoryFields(data),
       speaker_type1: data.speaker_type1?.trim() ?? '',
       speaker_type2: data.speaker_type2?.trim() ?? '',
     };
@@ -153,6 +154,7 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
+      ...accessoryFields(data),
       type1: data.type1,
       type2: data.type2,
       eartip: data.eartip?.trim() ?? '',

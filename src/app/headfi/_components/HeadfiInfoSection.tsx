@@ -260,7 +260,7 @@ export function HeadfiInfoSection({
                 </div>
               </>
             ) : null}
-            {(isDacAmp || isDap || isSourceOrEtc) && viewingItem.accessory?.trim() ? (
+            {(isDacAmp || isDap || isSourceOrEtc || isWireless || isSpeaker) && viewingItem.accessory?.trim() ? (
               <p className="col-span-2">
                 <strong>액세서리:</strong> {viewingItem.accessory.trim()}
                 {Number(viewingItem.accessory_price) > 0

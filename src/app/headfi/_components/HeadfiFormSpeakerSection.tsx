@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  HeadfiFormAccessoryFieldsRow,
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
   HeadfiFormPurchaseStatusRow,
@@ -33,6 +34,7 @@ export function HeadfiFormSpeakerSection({ formData, setFormData }: HeadfiFormSe
       <div className="col-span-2">
         <HeadfiFormTextInput label="기타" field="etc" formData={formData} setFormData={setFormData} />
       </div>
+      <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
       <HeadfiFormPurchaseStatusRow formData={formData} setFormData={setFormData} />
       <HeadfiFormPriceStatusRow formData={formData} setFormData={setFormData} />
       <HeadfiFormMemoField formData={formData} setFormData={setFormData} />
