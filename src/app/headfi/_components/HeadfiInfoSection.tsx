@@ -222,23 +222,21 @@ export function HeadfiInfoSection({
             {isDacAmp ? (
               <>
                 <p>
-                  <strong>{HEADFI_DAC_AMP_LABELS.ampType}:</strong> {formatAmpTypeDisplay(viewingItem.amp_type)}
+                  <strong>{HEADFI_DAC_AMP_LABELS.driveGrade}:</strong> {formatAmpTypeDisplay(viewingItem.amp_type)}
                 </p>
                 <p>
                   <strong>{HEADFI_DAC_AMP_LABELS.chipset}:</strong> {viewingItem.chipset?.trim() || '-'}
                 </p>
+                <p className="col-span-2">
+                  <strong>{HEADFI_DAC_AMP_LABELS.rk}:</strong> {formatRkDisplay(viewingItem.output_impedance)}
+                </p>
                 <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-x-6">
                   <p>
-                    <strong>{HEADFI_DAC_AMP_LABELS.rk}:</strong> {formatRkDisplay(viewingItem.output_impedance)}
+                    <strong>{HEADFI_DAC_AMP_LABELS.vrms32}:</strong> {formatVrms(viewingItem.vrms_bal) || '-'}
                   </p>
-                  <div className="grid grid-cols-2 gap-x-6">
-                    <p>
-                      <strong>{HEADFI_DAC_AMP_LABELS.vrms32}:</strong> {formatVrms(viewingItem.vrms_bal) || '-'}
-                    </p>
-                    <p>
-                      <strong>{HEADFI_DAC_AMP_LABELS.vrms300}:</strong> {formatVrms(viewingItem.vrms_single) || '-'}
-                    </p>
-                  </div>
+                  <p>
+                    <strong>{HEADFI_DAC_AMP_LABELS.vrms300}:</strong> {formatVrms(viewingItem.vrms_single) || '-'}
+                  </p>
                 </div>
               </>
             ) : null}

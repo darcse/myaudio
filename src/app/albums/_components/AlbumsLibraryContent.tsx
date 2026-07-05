@@ -1,9 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart3, Disc, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -18,6 +16,7 @@ import type { LibraryViewMode } from './albumBoardShared';
 import { MoodRecommendModal } from './MoodRecommendModal';
 import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
+import { AlbumPageHeader } from './AlbumPageHeader';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
@@ -144,6 +143,11 @@ export function AlbumsLibraryContent() {
     const g = searchParams.get('genre');
     if (m?.trim()) setLibraryViewMode('moodboard');
     else if (g?.trim()) setLibraryViewMode('genreboard');
+  }, [searchParams]);
+
+  useEffect(() => {
+    const panel = searchParams.get('panel');
+    if (panel === 'mood') setMoodModalOpen(true);
   }, [searchParams]);
 
   useEffect(() => {
@@ -509,6 +513,11 @@ export function AlbumsLibraryContent() {
     }
   };
 
+  useEffect(() => {
+    const panel = searchParams.get('panel');
+    if (panel === 'taste') void handleAnalyzeTaste();
+  }, [searchParams]);
+
   const handleDeleteFromModal = async () => {
     if (!viewingItem) return;
     const deleted = await deleteAlbum({ albumId: viewingItem.id });
@@ -519,49 +528,13 @@ export function AlbumsLibraryContent() {
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="page-title flex items-center gap-2 shrink-0">
-          <Disc className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Albums
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/albums/stats"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-            aria-label="앨범 통계"
-          >
-            <BarChart3 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">앨범 통계</span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMoodModalOpen(true)}
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-            aria-label="기분 추천"
-          >
-            <span className="text-base leading-none">🎵</span>
-            <span className="hidden sm:inline">기분 추천</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleAnalyzeTaste()}
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-            aria-label="취향 분석"
-          >
-            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">취향 분석</span>
-          </button>
-          {isAuthenticated ? (
-            <button
-              type="button"
-              className="btn-apple btn-apple-secondary flex h-[42px] w-[42px] items-center justify-center"
-              onClick={handleManualRegister}
-              aria-label="앨범 직접 등록하기"
-            >
-              <span className="text-lg leading-none">＋</span>
-            </button>
-          ) : null}
-        </div>
-      </div>
+      <AlbumPageHeader
+        isAuthenticated={isAuthenticated}
+        showRegister
+        onMoodClick={() => setMoodModalOpen(true)}
+        onTasteClick={() => void handleAnalyzeTaste()}
+        onRegisterClick={handleManualRegister}
+      />
 
       {isAuthenticated && (
         <AlbumSearchSection

@@ -15,7 +15,13 @@ import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } f
 import type { Headfi } from '@/app/headfi/types';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
+import {
+  triggerHeadfiDacAmpMatchReanalysis,
+  triggerHeadfiDacAmpPositionAnalysis,
+  triggerHeadfiMatchCacheClear,
+  useHeadfiDacAmpMapLazyAnalysis,
+} from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
 
 const AlbumDetailModal = dynamic(
@@ -317,6 +323,10 @@ export function DashboardContent({
       );
   }, [viewingHeadfi?.id, viewingHeadfi?.category]);
 
+  useHeadfiDacAmpMapLazyAnalysis(viewingHeadfi, (patch) => {
+    setViewingHeadfi((v) => (v ? { ...v, ...patch } : null));
+  });
+
   useEffect(() => {
     if (!viewingAlbum?.id) {
       setRecommendedHeadphones([]);
@@ -492,6 +502,13 @@ export function DashboardContent({
     try {
       await updateHeadfiInDB(editingHeadfi.id, headfiFormData);
       toast.success('기기 정보가 수정되었습니다.');
+      if (isDacAmpDapCategory(headfiFormData.category)) {
+        triggerHeadfiDacAmpMatchReanalysis(editingHeadfi.id);
+        triggerHeadfiDacAmpPositionAnalysis(editingHeadfi.id, true);
+      }
+      if (isWiredHeadphoneEarphoneCategory(headfiFormData.category)) {
+        triggerHeadfiMatchCacheClear(editingHeadfi.id);
+      }
       setEditingHeadfi(null);
       router.refresh();
     } catch (e) {

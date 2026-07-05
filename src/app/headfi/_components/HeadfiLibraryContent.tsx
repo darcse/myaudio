@@ -1,14 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BarChart2, Headphones, Map, Music, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { saveHeadfiToDB, updateHeadfiInDB, deleteHeadfiFromDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '../actions';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -19,6 +17,13 @@ import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiForm } from './HeadfiForm';
 import { HeadfiDetailModal } from './HeadfiDetailModal';
 import { HeadfiList } from './HeadfiList';
+import { HeadfiPageHeader } from './HeadfiPageHeader';
+import {
+  triggerHeadfiDacAmpMatchReanalysis,
+  triggerHeadfiDacAmpPositionAnalysis,
+  triggerHeadfiMatchCacheClear,
+  useHeadfiDacAmpMapLazyAnalysis,
+} from '../useHeadfiDacAmpMapLazyAnalysis';
 
 const initialFormData = {
   brand: '',
@@ -200,6 +205,12 @@ export function HeadfiLibraryContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    const panel = searchParams.get('panel');
+    if (panel === 'stats') setSpendingModalOpen(true);
+    if (panel === 'device-match') setScoreModalOpen(true);
+  }, [searchParams]);
+
+  useEffect(() => {
     setListCurrentPage(1);
     if (listCategoryFilter !== '헤드폰') {
       setListType1Filter('전체');
@@ -284,6 +295,15 @@ export function HeadfiLibraryContent() {
       .order('model')
       .then(({ data }) => setMatchedHeadphones(data || []));
   }, [viewingItem?.id, viewingItem?.category]);
+
+  useHeadfiDacAmpMapLazyAnalysis(viewingItem, (patch) => {
+    setViewingItem((v) => (v ? { ...v, ...patch } : null));
+    if (typeof patch.id === 'number') {
+      setLibrary((prev) =>
+        prev.map((item) => (item.id === patch.id ? { ...item, ...patch } : item)),
+      );
+    }
+  });
 
   useEffect(() => {
     if (!viewingAlbum?.id) {
@@ -480,6 +500,15 @@ export function HeadfiLibraryContent() {
             })
             .catch(() => {});
         }
+
+        if (isDacAmpDapCategory(formData.category)) {
+          triggerHeadfiDacAmpMatchReanalysis(savedId);
+          triggerHeadfiDacAmpPositionAnalysis(savedId, !isNew);
+        }
+
+        if (isWiredHeadphoneEarphoneCategory(formData.category)) {
+          triggerHeadfiMatchCacheClear(savedId);
+        }
       }
     } catch (e) {
       toast.error(getClientErrorMessage(e));
@@ -532,55 +561,13 @@ export function HeadfiLibraryContent() {
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="page-title flex items-center gap-2 shrink-0">
-          <Headphones className="size-7 opacity-80 shrink-0" strokeWidth={1.5} /> Head-fi
-        </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {isAuthenticated ? (
-            <button
-              type="button"
-              className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-              onClick={() => setSpendingModalOpen(true)}
-            >
-              <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-              <span className="hidden sm:inline">소비 통계</span>
-            </button>
-          ) : null}
-          <Link
-            href="/headfi/map"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-          >
-            <Map className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">포지션 맵</span>
-          </Link>
-          <button
-            type="button"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-            onClick={() => setScoreModalOpen(true)}
-          >
-            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">기기 매칭</span>
-          </button>
-          <Link
-            href="/headfi/match"
-            className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5"
-          >
-            <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">앨범 매칭</span>
-          </Link>
-          {isAuthenticated ? (
-            <button
-              type="button"
-              className="btn-apple btn-apple-secondary flex h-[42px] w-[42px] items-center justify-center"
-              onClick={handleManualRegister}
-              aria-label="기기 등록하기"
-            >
-              <span className="text-lg leading-none">＋</span>
-            </button>
-          ) : null}
-        </div>
-      </div>
+      <HeadfiPageHeader
+        isAuthenticated={isAuthenticated}
+        showRegister
+        onStatsClick={() => setSpendingModalOpen(true)}
+        onDeviceMatchClick={() => setScoreModalOpen(true)}
+        onRegisterClick={handleManualRegister}
+      />
 
       {selectedItem ? (
         <HeadfiForm

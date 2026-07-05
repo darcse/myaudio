@@ -1,9 +1,13 @@
 'use client';
 
-import { HEADFI_DAC_AMP_LABELS } from '../dacAmpSpec';
+import {
+  AMP_DRIVE_GRADE_OPTIONS,
+  HEADFI_DAC_AMP_LABELS,
+  isLegacyAmpTypeValue,
+} from '../dacAmpSpec';
 import type { HeadfiFormData } from '../types';
 import type { HeadfiFormSectionProps } from './headfiFormTypes';
-import { AMP_TYPE_OPTIONS, DISABLED_CLASS, INPUT_BASE_CLASS } from './headfiFormUtils';
+import { DISABLED_CLASS, INPUT_BASE_CLASS } from './headfiFormUtils';
 
 type HeadfiFormTextInputProps = HeadfiFormSectionProps & {
   label: string;
@@ -61,13 +65,11 @@ export function HeadfiFormVrmsField({ label, field, formData, setFormData }: Hea
 
 export function HeadfiFormAmpTypeSelect({ formData, setFormData }: HeadfiFormSectionProps) {
   const legacyValue =
-    formData.amp_type && !(AMP_TYPE_OPTIONS as readonly string[]).includes(formData.amp_type)
-      ? formData.amp_type
-      : null;
+    formData.amp_type && isLegacyAmpTypeValue(formData.amp_type) ? formData.amp_type : null;
 
   return (
     <div>
-      <label className="block text-sm font-semibold mb-1 opacity-90">{HEADFI_DAC_AMP_LABELS.ampType}</label>
+      <label className="block text-sm font-semibold mb-1 opacity-90">{HEADFI_DAC_AMP_LABELS.driveGrade}</label>
       <select
         className="select-apple px-3 py-2 w-full h-[42px]"
         value={formData.amp_type}
@@ -77,7 +79,7 @@ export function HeadfiFormAmpTypeSelect({ formData, setFormData }: HeadfiFormSec
         {legacyValue ? (
           <option value={legacyValue}>기존: {legacyValue}</option>
         ) : null}
-        {AMP_TYPE_OPTIONS.map((option) => (
+        {AMP_DRIVE_GRADE_OPTIONS.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>

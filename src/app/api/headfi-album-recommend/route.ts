@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { recommendHeadfiAlbums } from '@/lib/gemini';
-import { parseFrInterpretationSummary, selectAlbumsForHeadfiMatch } from '@/lib/headfiAlbumMatch';
+import { buildHeadfiSoundScoresPromptBlock, recommendHeadfiAlbums } from '@/lib/gemini';
+import { formatFrInterpretationForPrompt, selectAlbumsForHeadfiMatch } from '@/lib/headfiAlbumMatch';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+
+const HEADFI_ALBUM_RECOMMEND_SELECT =
+  'id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre';
+
+function isWiredHeadphoneEarphone(category: string | null | undefined): boolean {
+  return category === '헤드폰' || category === '이어폰';
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,11 +30,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
 
     const [headfiRes, albumsRes] = await Promise.all([
-      supabase
-        .from('headfi')
-        .select('id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis')
-        .eq('id', headfiId)
-        .single(),
+      supabase.from('headfi').select(HEADFI_ALBUM_RECOMMEND_SELECT).eq('id', headfiId).single(),
       supabase.from('album').select('id, artist, album_name, genre1, genre2, audio_tags'),
     ]);
 
@@ -44,10 +47,35 @@ export async function POST(req: NextRequest) {
     }
 
     const row = headfiRes.data;
+    const wired = isWiredHeadphoneEarphone(row.category);
     const aiSoundAnalysis =
-      row.category === '헤드폰' && typeof row.ai_sound_analysis === 'string'
+      wired && typeof row.ai_sound_analysis === 'string'
         ? row.ai_sound_analysis.trim() || null
         : null;
+    const soundScoresBlock = wired
+      ? buildHeadfiSoundScoresPromptBlock({
+          brand: row.brand || '',
+          model: row.model || '',
+          category: row.category || '',
+          bass_quantity: row.bass_quantity,
+          bass_depth: row.bass_depth,
+          bass_speed: row.bass_speed,
+          dynamics_slam: row.dynamics_slam,
+          midrange_body: row.midrange_body,
+          tone_warmth: row.tone_warmth,
+          vocal_position: row.vocal_position,
+          midrange_clarity: row.midrange_clarity,
+          treble_brightness: row.treble_brightness,
+          treble_smoothness: row.treble_smoothness,
+          treble_airiness: row.treble_airiness,
+          resolution: row.resolution,
+          separation: row.separation,
+          soundstage: row.soundstage,
+          imaging: row.imaging,
+          timbre: row.timbre,
+        })
+      : null;
+    const frInterpretationBlock = wired ? formatFrInterpretationForPrompt(row.fr_interpretation) : null;
     const candidates = selectAlbumsForHeadfiMatch(
       albums,
       Array.isArray(row.recommended_genres) ? row.recommended_genres : [],
@@ -61,8 +89,9 @@ export async function POST(req: NextRequest) {
         recommended_genres: Array.isArray(row.recommended_genres)
           ? row.recommended_genres.join(', ') || '-'
           : '-',
-        fr_summary: parseFrInterpretationSummary(row.fr_interpretation),
+        sound_scores_block: soundScoresBlock,
         ai_sound_analysis: aiSoundAnalysis,
+        fr_interpretation_block: frInterpretationBlock,
       },
       candidates,
     );

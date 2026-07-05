@@ -347,10 +347,15 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   const timelineItemsCount = t != null ? t.headfi.length + t.lyrics.length : 0;
   const displayHasAny = listenRows.length > 0 || loading || timelineItemsCount > 0;
 
+  const listenCount = listenRows.length;
+  const uniqueAlbumCount = new Set(listenRows.map((row) => row.album.id)).size;
+
   const listenAlbumSection =
     listenRows.length > 0 ? (
       <section>
-        <h2 className="mb-3 text-sm font-semibold opacity-90">🎵 감상 앨범</h2>
+        <h2 className="mb-3 text-sm font-semibold opacity-90">
+          🎵 감상 앨범 (총 청취 앨범 {uniqueAlbumCount}장, {listenCount}회 청취)
+        </h2>
         <div className={bookGridClass}>
           {listenRows.map((row, idx) => (
             <div

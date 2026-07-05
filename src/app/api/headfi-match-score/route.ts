@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeHeadfiMatchScore } from '@/lib/gemini';
 import {
+  buildHeadphoneBaseListeningContext,
+  buildHeadphoneListeningContextSections,
   candidateLine,
   compressCandidateRow,
   formatGenres,
-  parseFrInterpretationSummary,
   pickCandidates,
   type HeadfiMatchScoreMode,
   isDacAmpDapCategory,
   isWiredHeadphoneEarphoneCategory,
 } from '@/lib/headfiMatchScore';
+import { formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec';
+import type { Headfi } from '@/app/headfi/types';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 type CacheScoreRow = {
@@ -104,6 +107,26 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const clearCacheForGearId =
+      typeof body.clearCacheForGearId === 'number'
+        ? body.clearCacheForGearId
+        : parseInt(String(body.clearCacheForGearId ?? ''), 10);
+
+    const supabase = await createClient();
+
+    if (Number.isFinite(clearCacheForGearId)) {
+      const { error: deleteError } = await supabase
+        .from('headfi_match_cache')
+        .delete()
+        .or(`base_gear_id.eq.${clearCacheForGearId},target_gear_id.eq.${clearCacheForGearId}`);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ cleared: true, gearId: clearCacheForGearId });
+    }
+
     const force = body.force === true;
     const cacheOnly = body.cacheOnly === true;
     const mode: HeadfiMatchScoreMode =
@@ -117,7 +140,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'baseGearId required' }, { status: 400 });
     }
 
-    const supabase = await createClient();
     const { data: baseRow, error: baseError } = await supabase
       .from('headfi')
       .select('*')
@@ -229,30 +251,41 @@ export async function POST(req: NextRequest) {
     } else {
       candidates = pickCandidates(pool, 20);
     }
-    const candidateLines = candidates.map((item) => candidateLine(compressCandidateRow(item)));
-    const candidateIds = candidates.map((c) => c.id);
+    const candidateHeadfiRows = candidates as Headfi[];
+    const candidateLines = candidateHeadfiRows.map((item) => candidateLine(compressCandidateRow(item)));
+    const candidateIds = candidateHeadfiRows.map((c) => c.id);
 
-    const genres =
-      mode === 'headphone'
-        ? formatGenres(
-            Array.isArray(baseRow.recommended_genres) ? baseRow.recommended_genres : [],
-            3,
-          )
-        : '-';
-    const frSummary =
-      mode === 'headphone'
-        ? parseFrInterpretationSummary(baseRow.fr_interpretation)
-        : '-';
+    const dacSpecs = mode === 'dac_amp' ? formatDacAmpSpecsForPrompt(baseRow) : null;
+    const hpBaseContext =
+      mode === 'headphone' ? buildHeadphoneBaseListeningContext(baseRow as Headfi) : null;
+    const candidateContext =
+      mode === 'dac_amp' ? buildHeadphoneListeningContextSections(candidateHeadfiRows) : null;
 
     const scores = await analyzeHeadfiMatchScore(
       {
         name: deviceName(baseRow.brand, baseRow.model),
         temp: baseRow.temp?.trim() || '-',
-        genres,
-        fr_summary: frSummary,
+        genres:
+          mode === 'headphone'
+            ? formatGenres(
+                Array.isArray(baseRow.recommended_genres) ? baseRow.recommended_genres : [],
+                3,
+              )
+            : '-',
+        ...(dacSpecs
+          ? {
+              drive_grade: dacSpecs.driveGrade,
+              rk: dacSpecs.rk,
+              vrms32: dacSpecs.vrms32,
+              vrms300: dacSpecs.vrms300,
+              chipset: dacSpecs.chipset,
+            }
+          : {}),
+        ...(hpBaseContext ?? {}),
       },
       candidateLines,
       candidateIds,
+      candidateContext,
     );
 
     if (!scores || scores.length === 0) {

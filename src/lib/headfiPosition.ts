@@ -1,4 +1,6 @@
 import type { Headfi, HeadfiFrInterpretation } from '@/app/headfi/types';
+import { formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
 export const POSITION_MAP_CATEGORIES = ['헤드폰', '이어폰'] as const;
 
@@ -42,6 +44,35 @@ function avgScore(...values: (number | null | undefined)[]): number {
   return Math.round((nums.reduce((acc, v) => acc + Number(v), 0) / nums.length) * 10) / 10;
 }
 
+export function buildDacAmpPositionPromptInput(
+  item: Pick<
+    Headfi,
+    | 'brand'
+    | 'model'
+    | 'category'
+    | 'amp_type'
+    | 'chipset'
+    | 'output_impedance'
+    | 'vrms_bal'
+    | 'vrms_single'
+    | 'memo'
+  >,
+) {
+  const specs = formatDacAmpSpecsForPrompt(item);
+  return {
+    profile: 'dac_amp' as const,
+    brand: item.brand || '',
+    model: item.model || '',
+    category: item.category || '',
+    ...specs,
+    memo: item.memo?.trim() || '-',
+  };
+}
+
+export function isPositionAnalyzableCategory(category: string | null | undefined): boolean {
+  return isPositionMapCategory(category) || isDacAmpDapCategory(category);
+}
+
 export function buildPositionPromptInput(
   item: Pick<
     Headfi,
@@ -73,6 +104,7 @@ export function buildPositionPromptInput(
   const treble = avgScore(item.treble_brightness, item.treble_airiness);
   const fr = parseFrInterpretationFields(item.fr_interpretation);
   return {
+    profile: 'wired' as const,
     brand: item.brand || '',
     model: item.model || '',
     category: item.category || '',

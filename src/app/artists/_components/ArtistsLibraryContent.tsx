@@ -125,8 +125,8 @@ export function ArtistsLibraryContent() {
   } = useArtistFilters(summaries);
 
   const selectedArtist = useMemo(
-    () => filteredArtists.find((artist) => artist.name === selectedName) ?? null,
-    [filteredArtists, selectedName],
+    () => summaries.find((artist) => artist.name === selectedName) ?? null,
+    [summaries, selectedName],
   );
 
   const selectedArtistStats = useMemo(
@@ -212,12 +212,23 @@ export function ArtistsLibraryContent() {
       return;
     }
     if (filteredArtists.length === 0) {
+      if (selectedName && summaries.some((artist) => artist.name === selectedName)) {
+        return;
+      }
       setSelectedName(null);
       return;
     }
-    if (!selectedName || !filteredArtists.some((artist) => artist.name === selectedName)) {
+    if (!selectedName) {
       setSelectedName(filteredArtists[0].name);
+      return;
     }
+    if (filteredArtists.some((artist) => artist.name === selectedName)) {
+      return;
+    }
+    if (summaries.some((artist) => artist.name === selectedName)) {
+      return;
+    }
+    setSelectedName(filteredArtists[0].name);
   }, [filteredArtists, selectedName, initialSelectionReady, artistQuery, summaries]);
 
   useEffect(() => {

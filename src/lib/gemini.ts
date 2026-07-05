@@ -665,8 +665,9 @@ export async function recommendHeadfiAlbums(
     model: string;
     temp: string;
     recommended_genres: string;
-    fr_summary: string;
+    sound_scores_block?: string | null;
     ai_sound_analysis?: string | null;
+    fr_interpretation_block?: string | null;
   },
   albums: {
     id: number;
@@ -688,15 +689,22 @@ export async function recommendHeadfiAlbums(
     })
     .join('\n');
 
+  const soundScoresBlock = headfi.sound_scores_block?.trim()
+    ? `\n${headfi.sound_scores_block.trim()}\n`
+    : '';
   const soundAnalysis = headfi.ai_sound_analysis?.trim() || '';
-  const analysisBlock = soundAnalysis ? `\n[음색 성향 분석] ${soundAnalysis}\n` : '';
-  const recommendInstruction = soundAnalysis
-    ? `위 기기의 음색 성향 분석을 핵심 근거로 삼아, 이 기기로 들었을 때 가장 잘 어울리는 
+  const analysisBlock = soundAnalysis ? `\n[청음 평가 AI 분석] ${soundAnalysis}\n` : '';
+  const frBlock = headfi.fr_interpretation_block?.trim()
+    ? `\n[FR 그래프 분석] ${headfi.fr_interpretation_block.trim()}\n`
+    : '';
+  const hasListeningContext = Boolean(soundScoresBlock || analysisBlock || frBlock);
+  const recommendInstruction = hasListeningContext
+    ? `위 청음 평가 점수·AI 분석·FR 그래프 분석(있는 항목)을 근거로 삼아, 이 기기로 들었을 때 가장 잘 어울리는 
 앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`
     : `이 기기로 들었을 때 가장 잘 어울리는 앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`;
 
   const prompt = `너는 헤드파이 전문가이자 음악 큐레이터야.
-[기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres} | FR요약:${headfi.fr_summary}${analysisBlock}
+[기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres}${soundScoresBlock}${analysisBlock}${frBlock}
 [보유 앨범 목록] id|artist|album_name|genre1|genre2|audio_tags
 ${list}
 
@@ -767,6 +775,15 @@ export type HeadfiSoundScores = {
 function formatSoundScore(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(Number(value))) return '-';
   return String(value);
+}
+
+export function buildHeadfiSoundScoresPromptBlock(headfi: HeadfiSoundScores): string | null {
+  if (!headfiHasSoundScores(headfi)) return null;
+  return `[청음 평가 점수 (10점 만점)]
+저역 - 양감:${formatSoundScore(headfi.bass_quantity)} 깊이:${formatSoundScore(headfi.bass_depth)} 속도:${formatSoundScore(headfi.bass_speed)}
+중역 - 다이내믹스:${formatSoundScore(headfi.dynamics_slam)} 두께감:${formatSoundScore(headfi.midrange_body)} 온기:${formatSoundScore(headfi.tone_warmth)} 보컬위치:${formatSoundScore(headfi.vocal_position)} 명료도:${formatSoundScore(headfi.midrange_clarity)}
+고역 - 밝기:${formatSoundScore(headfi.treble_brightness)} 부드러움:${formatSoundScore(headfi.treble_smoothness)} 공기감:${formatSoundScore(headfi.treble_airiness)}
+기술 - 해상력:${formatSoundScore(headfi.resolution)} 분리도:${formatSoundScore(headfi.separation)} 음장:${formatSoundScore(headfi.soundstage)} 이미징:${formatSoundScore(headfi.imaging)} 음색:${formatSoundScore(headfi.timbre)}`;
 }
 
 export function headfiHasSoundScores(scores: HeadfiSoundScores): boolean {
@@ -924,32 +941,55 @@ export async function analyzeHeadfiMatchScore(
     name: string;
     temp: string;
     genres: string;
-    fr_summary: string;
+    drive_grade?: string;
+    rk?: string;
+    vrms32?: string;
+    vrms300?: string;
+    chipset?: string;
+    sound_scores_block?: string | null;
+    ai_sound_analysis?: string | null;
+    fr_interpretation_block?: string | null;
   },
   candidateLines: string[],
   validGearIds: number[],
+  candidateContext?: string | null,
 ): Promise<HeadfiMatchScoreResult[] | null> {
   const model = genAI.getGenerativeModel({
     model: 'gemini-3.1-flash-lite',
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
   const list = candidateLines.join('\n');
+  const dacBaseSpecs =
+    base.drive_grade != null
+      ? ` | 구동방식/등급:${base.drive_grade} | Chipset:${base.chipset ?? '-'} | 정합임피던스(Rk):${base.rk ?? '-'} | Vrms@32Ω:${base.vrms32 ?? '-'} | Vrms@300Ω:${base.vrms300 ?? '-'}`
+      : '';
+  const baseListeningBlocks = [
+    base.sound_scores_block?.trim() ? `\n${base.sound_scores_block.trim()}\n` : '',
+    base.ai_sound_analysis?.trim() ? `\n[청음 평가 AI 분석] ${base.ai_sound_analysis.trim()}\n` : '',
+    base.fr_interpretation_block?.trim()
+      ? `\n[FR 그래프 분석] ${base.fr_interpretation_block.trim()}\n`
+      : '',
+  ].join('');
+  const candidateSection = candidateContext?.trim()
+    ? `\n${candidateContext.trim()}\n`
+    : '';
+  const hasHpListeningContext = Boolean(baseListeningBlocks || candidateSection);
   const prompt = `너는 헤드파이 전문 리뷰어이자 오디오 엔지니어야.
 실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
 
-[기준 기기] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres} | FR요약:${base.fr_summary}
-
+[기준 기기] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
 [후보 기기 목록]
-id|기기명|음색|임피던스|감도|저역|중역|고역
+id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역
 ${list}
 
 각 후보 기기와의 조합을 아래 기준으로 100점 만점 평가:
-- drive: 해당 DAC/AMP가 헤드폰을 충분히 구동할 수 있는지 (임피던스, 감도, 출력 매칭)
-- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지
+- drive: 해당 DAC/AMP/DAP가 헤드폰을 충분히 구동할 수 있는지 (정합 임피던스 Rk, Vrms@32Ω·Vrms@300Ω, 헤드폰 임피던스·감도 매칭)
+- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지 (청음 평가 점수·AI 분석·FR 분석이 있으면 반드시 참고)
 - genre: 조합이 특정 장르에서 강점을 보이는지
 
 평가 시 주의사항:
-- 임피던스/감도 수치를 반드시 고려해서 drive 점수 산정
+- 정합 임피던스(Rk), Vrms@32Ω, Vrms@300Ω, 헤드폰 임피던스/감도 수치를 반드시 고려해서 drive 점수 산정 (값이 '-'이면 해당 항목 없이 판단)
+- 헤드폰/이어폰의 청음 평가 점수·AI 분석·FR 그래프 분석${hasHpListeningContext ? '을 위 컨텍스트에서' : '이 있으면'} synergy·genre 판단에 반영
 - 음색이 겹치면 synergy 낮게, 상호 보완이면 높게
 - 실제 측정/리뷰 데이터 검색 후 반영
 
@@ -1005,7 +1045,8 @@ export type HeadfiPositionResult = {
   label: string;
 };
 
-export async function analyzeHeadfiPosition(input: {
+type HeadfiWiredPositionInput = {
+  profile: 'wired';
   brand: string;
   model: string;
   category: string;
@@ -1017,13 +1058,44 @@ export async function analyzeHeadfiPosition(input: {
   soundstage: string;
   frSummary: string;
   aiSoundAnalysis: string;
-}): Promise<HeadfiPositionResult | null> {
+};
+
+type HeadfiDacAmpPositionInput = {
+  profile: 'dac_amp';
+  brand: string;
+  model: string;
+  category: string;
+  driveGrade: string;
+  chipset: string;
+  rk: string;
+  vrms32: string;
+  vrms300: string;
+  memo: string;
+};
+
+export type HeadfiPositionInput = HeadfiWiredPositionInput | HeadfiDacAmpPositionInput;
+
+export async function analyzeHeadfiPosition(input: HeadfiPositionInput): Promise<HeadfiPositionResult | null> {
   const model = genAI.getGenerativeModel({
     model: 'gemini-3.1-flash-lite',
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
 
-  const prompt = `너는 헤드파이 전문 분석가야. 아래 기기의 음향 특성을 분석해서 포지션맵 좌표를 생성해줘.
+  const prompt =
+    input.profile === 'dac_amp'
+      ? `너는 헤드파이 전문 분석가야. 아래 DAC/AMP/DAP의 출력 스펙과 실제 리뷰·측정 데이터를 분석해서 포지션맵 좌표를 생성해줘.
+
+[기기] ${input.brand} ${input.model} | 카테고리: ${input.category}
+[출력 스펙] 구동방식/등급:${input.driveGrade} | Chipset:${input.chipset} | 정합 임피던스(Rk):${input.rk} | Vrms@32Ω:${input.vrms32} | Vrms@300Ω:${input.vrms300}
+[특징] ${input.memo}
+
+실제 리뷰와 측정 데이터를 검색해서 참고하고, 정합 임피던스(Rk)와 Vrms 출력 특성을 반영해 아래 기준으로 -1.0~1.0 사이 좌표를 생성해줘 (스펙 값이 '-'이면 해당 항목 없이 판단):
+- x축: -1.0(매우 따뜻함/warm) ~ 1.0(매우 차가움/cool)
+- y축: -1.0(매우 음악적/감성적) ~ 1.0(매우 분석적/모니터링)
+- position_label: 이 기기의 음색·출력 성향 한 줄 요약
+
+JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향"}`
+      : `너는 헤드파이 전문 분석가야. 아래 기기의 음향 특성을 분석해서 포지션맵 좌표를 생성해줘.
 
 [기기] ${input.brand} ${input.model} | 카테고리: ${input.category}
 [청음 평가] 저역:${input.bass} 중역:${input.mid} 고역:${input.treble} 해상력:${input.resolution} 분리도:${input.separation} 음장:${input.soundstage}

@@ -2,14 +2,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Disc3, Headphones, Sparkles } from 'lucide-react';
+import { Disc3, Headphones, Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import type { Album } from '@/app/albums/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
+import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import type { Headfi } from '../../types';
@@ -289,20 +289,9 @@ export function HeadfiMatchContent() {
 
   return (
     <div className="relative mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6">
-        <Link
-          href="/headfi"
-          className="mb-4 inline-flex items-center gap-1 text-sm opacity-70 transition-opacity hover:opacity-100"
-        >
-          <ChevronLeft className="size-5" strokeWidth={1.75} />
-          Head-fi
-        </Link>
-        <h1 className="page-title flex items-center gap-2">
-          <Sparkles className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
-          매칭 앨범 추천
-        </h1>
-        <p className="mt-2 text-sm opacity-70">보유 기기 조합으로 최적의 앨범을 찾아드립니다</p>
-      </div>
+      <HeadfiPageHeader activeNav="album-match" isAuthenticated={isAuthenticated} showDivider />
+      <HeadfiSubHeader icon={Music} title="앨범매칭" />
+      <p className="mb-6 text-sm opacity-70">보유 기기 조합으로 최적의 앨범을 찾아드립니다</p>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">

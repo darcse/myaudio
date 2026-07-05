@@ -71,6 +71,14 @@ function deviceName(brand: string | null | undefined, model: string | null | und
   return `${brand ?? ''} ${model ?? ''}`.trim() || '—';
 }
 
+function hpModelLabel(item: Headfi): string {
+  return (item.model || item.brand || '').trim();
+}
+
+function compareHpModelNames(a: Headfi, b: Headfi): number {
+  return hpModelLabel(a).localeCompare(hpModelLabel(b), 'en', { numeric: true, sensitivity: 'base' });
+}
+
 function cellKey(dacId: number, hpId: number): string {
   return `${dacId}-${hpId}`;
 }
@@ -214,8 +222,9 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
   }, [library]);
 
   const hpRows = useMemo(() => {
-    if (categoryFilter === '전체') return allHpRows;
-    return allHpRows.filter((item) => item.category === categoryFilter);
+    const filtered =
+      categoryFilter === '전체' ? allHpRows : allHpRows.filter((item) => item.category === categoryFilter);
+    return [...filtered].sort(compareHpModelNames);
   }, [allHpRows, categoryFilter]);
 
   if (allHpRows.length === 0 || dacCols.length === 0) {

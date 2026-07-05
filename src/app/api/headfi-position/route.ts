@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeHeadfiPosition } from '@/lib/gemini';
 import {
+  buildDacAmpPositionPromptInput,
   buildPositionPromptInput,
   clampPositionCoord,
   hasPositionCoordinates,
-  isPositionMapCategory,
+  isPositionAnalyzableCategory,
   POSITION_MAP_CATEGORIES,
 } from '@/lib/headfiPosition';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 type HeadfiPositionRow = {
@@ -35,23 +37,39 @@ type HeadfiPositionRow = {
   timbre: number | null;
   fr_interpretation: string | null;
   ai_sound_analysis: string | null;
+  amp_type: string | null;
+  chipset: string | null;
+  output_impedance: number | null;
+  vrms_bal: number | null;
+  vrms_single: number | null;
+  memo: string | null;
 };
 
 const POSITION_SELECT =
-  'id, brand, model, category, position_x, position_y, position_label, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre, fr_interpretation, ai_sound_analysis';
+  'id, brand, model, category, position_x, position_y, position_label, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre, fr_interpretation, ai_sound_analysis, amp_type, chipset, output_impedance, vrms_bal, vrms_single, memo';
+
+function buildAnalyzeInput(row: HeadfiPositionRow) {
+  if (isDacAmpDapCategory(row.category)) {
+    return buildDacAmpPositionPromptInput({
+      ...row,
+      brand: row.brand ?? '',
+      model: row.model ?? '',
+      category: row.category ?? '',
+    });
+  }
+  return buildPositionPromptInput({
+    ...row,
+    brand: row.brand ?? '',
+    model: row.model ?? '',
+    category: row.category ?? '',
+  });
+}
 
 async function analyzeAndSavePosition(
   supabase: Awaited<ReturnType<typeof createClient>>,
   row: HeadfiPositionRow,
 ): Promise<{ id: number; x: number; y: number; label: string } | null> {
-  const generated = await analyzeHeadfiPosition(
-    buildPositionPromptInput({
-      ...row,
-      brand: row.brand ?? '',
-      model: row.model ?? '',
-      category: row.category ?? '',
-    }),
-  );
+  const generated = await analyzeHeadfiPosition(buildAnalyzeInput(row));
   if (!generated) return null;
 
   const position_x = clampPositionCoord(generated.x);
@@ -123,8 +141,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Headfi not found' }, { status: 404 });
       }
 
-      if (!isPositionMapCategory(row.category)) {
-        return NextResponse.json({ error: '헤드폰·이어폰만 처리할 수 있습니다.' }, { status: 400 });
+      if (!isPositionAnalyzableCategory(row.category)) {
+        return NextResponse.json({ error: '포지션 분석 대상 카테고리가 아닙니다.' }, { status: 400 });
       }
 
       const { error: updateError } = await supabase
@@ -149,8 +167,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Headfi not found' }, { status: 404 });
     }
 
-    if (!isPositionMapCategory(row.category)) {
-      return NextResponse.json({ error: '헤드폰·이어폰만 분석할 수 있습니다.' }, { status: 400 });
+    if (!isPositionAnalyzableCategory(row.category)) {
+      return NextResponse.json({ error: '포지션 분석 대상 카테고리가 아닙니다.' }, { status: 400 });
     }
 
     if (!force && hasPositionCoordinates(row)) {

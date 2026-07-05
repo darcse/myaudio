@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
-import Link from 'next/link';
-import { BarChart3, ChevronLeft, Disc, Mic2 } from 'lucide-react';
+import { BarChart3, Disc, Mic2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
+import { AlbumPageHeader, AlbumSubHeader } from '@/app/albums/_components/AlbumPageHeader';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
@@ -646,19 +646,8 @@ export function AlbumStatsContent() {
 
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6">
-        <Link
-          href="/albums"
-          className="mb-4 inline-flex items-center gap-1 text-sm opacity-70 transition-opacity hover:opacity-100"
-        >
-          <ChevronLeft className="size-5" strokeWidth={1.75} />
-          Albums
-        </Link>
-        <h1 className="page-title flex items-center gap-2">
-          <BarChart3 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
-          앨범 통계
-        </h1>
-      </div>
+      <AlbumPageHeader activeNav="stats" isAuthenticated={isAuthenticated} showDivider />
+      <AlbumSubHeader icon={BarChart3} title="앨범 통계" />
 
       <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="-mb-px flex gap-4">

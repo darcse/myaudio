@@ -230,3 +230,10 @@
 [2026-06-08] [Cursor] fix: BUG-007 prod 진단 — Vercel iad1↔한국 icn1 불일치, PWA SW 없음, vercel.json icn1 고정 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: GEAR-017 DAC/AMP/DAP 폼 라벨·Vrms V단위·앰프타입 셀렉트·DAP Rk/Vrms 재사용 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: GEAR-017 상세조회 HeadfiInfoSection 라벨·DAP 필드·dacAmpSpec 공용 추출 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-017 앰프타입→구동방식/등급 9조합 셀렉트·레거시 등급-only 보존 표시 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-018 DAC/AMP/DAP 매칭맵 캐시 SQL·Rk/Vrms Gemini 프롬프트·지연 재분석 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-019 추천앨범 Gemini 프롬프트에 청음원점수·AI분석·FR전체 반영 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-018 확장 매칭맵 HP 청음·AI·FR 프롬프트·캐시초기화 SQL·저장시 무효화 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: GEAR-020 HeadfiPageHeader 공통화·포지션맵/앨범매칭 서브헤더 추가 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-018 AlbumPageHeader 공통화·앨범통계 서브헤더·헤더 유지 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: 아카이브 월별 감상앨범 타이틀에 고유앨범수·총청취회수 표시 | passes: 변경 없음

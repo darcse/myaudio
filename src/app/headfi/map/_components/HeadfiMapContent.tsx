@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ChevronLeft, Map } from 'lucide-react';
+import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
 import type { Headfi } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
 import { PositionMapTab } from './PositionMapTab';
@@ -65,19 +65,8 @@ export function HeadfiMapContent() {
 
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <div className="mb-6">
-        <Link
-          href="/headfi"
-          className="mb-4 inline-flex items-center gap-1 text-sm opacity-70 transition-opacity hover:opacity-100"
-        >
-          <ChevronLeft className="size-5" strokeWidth={1.75} />
-          Head-fi
-        </Link>
-        <h1 className="page-title flex items-center gap-2">
-          <Map className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
-          포지션 맵
-        </h1>
-      </div>
+      <HeadfiPageHeader activeNav="position" isAuthenticated={isAuthenticated} showDivider />
+      <HeadfiSubHeader icon={Map} title="포지션맵" />
 
       <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
         <div className="-mb-px flex gap-4">

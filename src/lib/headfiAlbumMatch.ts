@@ -67,3 +67,24 @@ export function parseFrInterpretationSummary(raw: string | null | undefined): st
   }
   return '-';
 }
+
+export function formatFrInterpretationForPrompt(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw) as {
+      bass?: unknown;
+      mid?: unknown;
+      treble?: unknown;
+      summary?: unknown;
+    };
+    const parts = [
+      typeof parsed.bass === 'string' && parsed.bass.trim() ? `저역: ${parsed.bass.trim()}` : null,
+      typeof parsed.mid === 'string' && parsed.mid.trim() ? `중역: ${parsed.mid.trim()}` : null,
+      typeof parsed.treble === 'string' && parsed.treble.trim() ? `고역: ${parsed.treble.trim()}` : null,
+      typeof parsed.summary === 'string' && parsed.summary.trim() ? `요약: ${parsed.summary.trim()}` : null,
+    ].filter((part): part is string => Boolean(part));
+    return parts.length > 0 ? parts.join(' | ') : null;
+  } catch {
+    return null;
+  }
+}
