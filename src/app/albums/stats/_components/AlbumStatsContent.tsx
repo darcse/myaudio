@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
-import { BarChart3, Disc, Mic2 } from 'lucide-react';
+import { BarChart3, Disc, Mic2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -458,6 +458,26 @@ export function AlbumStatsContent() {
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = albumRanking.length > 0 || artistRanking.length > 0;
 
+  const periodListenSummary = useMemo(() => {
+    const listenCount = filteredHistoryRows.length;
+    const albumIds = new Set(
+      filteredHistoryRows
+        .map((row) => row.album_id)
+        .filter((id): id is number => id != null),
+    );
+    const albumById = new Map(albums.map((album) => [album.id, album]));
+    const uniqueArtistCount = new Set(
+      [...albumIds]
+        .map((id) => albumById.get(id)?.artist?.trim())
+        .filter((name): name is string => Boolean(name)),
+    ).size;
+    return {
+      listenCount,
+      uniqueAlbumCount: albumIds.size,
+      uniqueArtistCount,
+    };
+  }, [albums, filteredHistoryRows]);
+
   const openHeadfiById = useCallback(async (id: number) => {
     const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
     if (error || !data) {
@@ -687,38 +707,68 @@ export function AlbumStatsContent() {
             onAlbumClick={openAlbum}
           />
 
-          <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="shrink-0 text-xs font-semibold opacity-60">연도</span>
-              {yearOptions.map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  onClick={() => handleYearChange(year)}
-                  className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-                  style={filterToggleStyle(periodFilter.year === year)}
-                  aria-pressed={periodFilter.year === year}
-                >
-                  {year}년
-                </button>
-              ))}
+          <div
+            className="border-t"
+            style={{ borderColor: 'var(--border)' }}
+            aria-hidden
+          />
+
+          <section
+            className="mb-6 mt-8 rounded-xl border"
+            style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+          >
+            <div
+              className="rounded-t-xl border-b px-4 py-3 sm:px-5"
+              style={{ borderColor: 'var(--border)', background: 'var(--badge-bg)' }}
+            >
+              <h2 className="flex items-center gap-2 text-sm font-semibold sm:text-base">
+                <Trophy className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+                청취 랭킹
+              </h2>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="shrink-0 text-xs font-semibold opacity-60">월</span>
-              {monthOptions.map((month) => (
-                <button
-                  key={month === 'all' ? 'all' : month}
-                  type="button"
-                  onClick={() => handleMonthChange(month)}
-                  className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-                  style={filterToggleStyle(periodFilter.month === month)}
-                  aria-pressed={periodFilter.month === month}
-                >
-                  {month === 'all' ? '전체' : `${month}월`}
-                </button>
-              ))}
+
+            <div className="space-y-3 px-4 py-3 sm:px-5 sm:py-4">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="shrink-0 text-xs font-semibold opacity-60">연도</span>
+                  {yearOptions.map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => handleYearChange(year)}
+                      className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+                      style={filterToggleStyle(periodFilter.year === year)}
+                      aria-pressed={periodFilter.year === year}
+                    >
+                      {year}년
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="shrink-0 text-xs font-semibold opacity-60">월</span>
+                  {monthOptions.map((month) => (
+                    <button
+                      key={month === 'all' ? 'all' : month}
+                      type="button"
+                      onClick={() => handleMonthChange(month)}
+                      className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+                      style={filterToggleStyle(periodFilter.month === month)}
+                      aria-pressed={periodFilter.month === month}
+                    >
+                      {month === 'all' ? '전체' : `${month}월`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {hasAnyListenData ? (
+                <p className="text-sm font-semibold opacity-90">
+                  총 청취 아티스트 {periodListenSummary.uniqueArtistCount}명, 앨범{' '}
+                  {periodListenSummary.uniqueAlbumCount}장, {periodListenSummary.listenCount}회 청취
+                </p>
+              ) : null}
             </div>
-          </div>
+          </section>
 
           {!hasAnyListenData ? (
             <div

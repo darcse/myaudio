@@ -126,49 +126,53 @@ export function WeeklyHotAlbumsSection({
   const rest = items.slice(1);
 
   return (
-    <section
-      className="mb-8 rounded-xl border"
-      style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
-    >
-      <div
-        className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 sm:px-5"
-        style={{ borderColor: 'var(--border)' }}
+    <>
+      <section
+        className="mb-4 rounded-xl border"
+        style={{ borderColor: 'var(--border)', background: 'var(--badge-bg)' }}
       >
-        <h2 className="flex items-center gap-2 text-sm font-semibold sm:text-base">
-          <Flame className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
-          금주의 핫 앨범
-        </h2>
-        <p className="text-xs opacity-60 sm:text-sm">{formatWeekRangeLabel(weekRange)}</p>
-      </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
+          <h2 className="flex items-center gap-2 text-sm font-semibold sm:text-base">
+            <Flame className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+            금주의 핫 앨범
+          </h2>
+          <p className="text-xs opacity-60 sm:text-sm">{formatWeekRangeLabel(weekRange)}</p>
+        </div>
+      </section>
 
-      {items.length === 0 ? (
-        <div className="px-6 py-12 text-center">
-          <p className="text-sm font-medium opacity-80">최근 7일 청취 기록이 없습니다.</p>
-          <p className="mt-2 text-sm opacity-60">오늘 포함 최근 7일간 청취하면 여기에 표시됩니다.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 p-4 sm:grid-cols-2 sm:items-stretch sm:p-5">
-          {first ? (
-            <WeeklyHotAlbumCard
-              item={first}
-              rank={1}
-              onClick={() => onAlbumClick(first.albumId)}
-            />
-          ) : null}
-          {rest.length > 0 ? (
-            <div className="flex flex-col gap-2">
-              {rest.map((item, index) => (
-                <WeeklyHotAlbumCard
-                  key={item.albumId}
-                  item={item}
-                  rank={index + 2}
-                  onClick={() => onAlbumClick(item.albumId)}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      )}
-    </section>
+      <section
+        className="mb-8 rounded-xl border"
+        style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+      >
+        {items.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <p className="text-sm font-medium opacity-80">최근 7일 청취 기록이 없습니다.</p>
+            <p className="mt-2 text-sm opacity-60">오늘 포함 최근 7일간 청취하면 여기에 표시됩니다.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 p-4 sm:grid-cols-2 sm:items-stretch sm:p-5">
+            {first ? (
+              <WeeklyHotAlbumCard
+                item={first}
+                rank={1}
+                onClick={() => onAlbumClick(first.albumId)}
+              />
+            ) : null}
+            {rest.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {rest.map((item, index) => (
+                  <WeeklyHotAlbumCard
+                    key={item.albumId}
+                    item={item}
+                    rank={index + 2}
+                    onClick={() => onAlbumClick(item.albumId)}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </section>
+    </>
   );
 }
