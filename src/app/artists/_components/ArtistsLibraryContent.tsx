@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mic2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -9,6 +9,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
+import { enqueueNewAlbumIntroGeneration } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
@@ -68,6 +69,7 @@ function albumFormDataFromArtist(artist: ArtistSummary): AlbumFormData {
 }
 
 export function ArtistsLibraryContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const artistQuery = searchParams.get('artist')?.trim() || null;
   const isAuthenticated = useAuthState();
@@ -507,6 +509,13 @@ export function ArtistsLibraryContent() {
     setAlbumFormData(albumFormDataFromArtist(selectedArtist));
   };
 
+  const navigateToMood = (moodName: string) => {
+    setViewingAlbum(null);
+    const sp = new URLSearchParams();
+    sp.set('mood', moodName);
+    router.push(`/albums?${sp.toString()}`);
+  };
+
   const handleAlbumEditClick = () => {
     if (!viewingAlbum) return;
     if (isAuthenticated === false) {
@@ -599,32 +608,9 @@ export function ArtistsLibraryContent() {
     }
 
     if (savedNewId != null) {
-      const newAlbumId = savedNewId;
-      void fetch('/api/album-intro', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId: newAlbumId }),
-      })
-        .then((res) => {
-          if (!res.ok) {
-            toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
-            return;
-          }
-          toast.success('앨범 소개와 태그가 생성되었습니다.');
-        })
-        .catch(() => {
-          toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
-        });
-      void fetch('/api/album-mood-assign', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId: newAlbumId }),
-      })
-        .finally(() => {
-          void fetchLibrary();
-        });
+      enqueueNewAlbumIntroGeneration(savedNewId, () => {
+        void fetchLibrary();
+      });
     }
   };
 
@@ -802,6 +788,7 @@ export function ArtistsLibraryContent() {
             setViewingAlbum(updated);
             setAlbums((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
           }}
+          onNavigateToMood={navigateToMood}
         />
       ) : null}
 
