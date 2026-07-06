@@ -6,6 +6,7 @@ import { ChevronLeft, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Album } from '../types';
 import { getMoodGradientPair, hexToRgba } from '../moodGradient';
+import { AlbumLotteryModal } from './AlbumLotteryModal';
 import {
   BoardCollage,
   BoardExpandedAlbumGrid,
@@ -58,6 +59,15 @@ export function AlbumMoodboard({
   const [groups, setGroups] = useState<AlbumMoodGroupApi[]>([]);
   const [loadState, setLoadState] = useState<'idle' | 'loading'>('idle');
   const [expandedMood, setExpandedMood] = useState<string | null>(null);
+  const [lotteryOpen, setLotteryOpen] = useState(false);
+  const [lotteryMood, setLotteryMood] = useState<string | null>(null);
+  const [lotteryPool, setLotteryPool] = useState<Album[]>([]);
+
+  const openMoodLottery = useCallback((moodName: string, albums: Album[]) => {
+    setLotteryMood(moodName);
+    setLotteryPool(albums);
+    setLotteryOpen(true);
+  }, []);
 
   const loadGroups = useCallback(async () => {
     if (!isAuthenticated) {
@@ -134,9 +144,24 @@ export function AlbumMoodboard({
     );
   }, [expandedMood, groups, library]);
 
+  const moodLotteryModal = (
+    <AlbumLotteryModal
+      key={lotteryMood ?? 'mood-lottery'}
+      open={lotteryOpen}
+      onClose={() => setLotteryOpen(false)}
+      lotteryPool={lotteryPool}
+      title="추천 앨범"
+      subtitle={lotteryMood ? `${lotteryMood} · ${lotteryPool.length}장` : undefined}
+      autoStart={false}
+      emptyMessage="이 무드에 속한 앨범이 없습니다."
+      onAlbumClick={onAlbumClick}
+    />
+  );
+
   if (expandedMood != null) {
     return (
-      <div>
+      <>
+        <div>
         <div className="flex flex-wrap items-center justify-between gap-3 gap-y-3 mb-5 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
@@ -155,13 +180,29 @@ export function AlbumMoodboard({
               {expandedMood}
             </p>
           </div>
-          <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+          <div className="flex items-center gap-2 shrink-0">
+            {expandedAlbums.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => openMoodLottery(expandedMood, expandedAlbums)}
+                className="btn-apple h-[38px] px-3 text-xs font-medium flex items-center gap-1.5"
+                style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+                aria-label="앨범 추천"
+              >
+                <Sparkles className="size-3.5 opacity-80" strokeWidth={1.5} aria-hidden />
+                추천
+              </button>
+            ) : null}
+            <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+          </div>
         </div>
         <BoardExpandedAlbumGrid
           albums={expandedAlbums}
           onAlbumClick={onAlbumClick}
         />
-      </div>
+        </div>
+        {moodLotteryModal}
+      </>
     );
   }
 
@@ -201,25 +242,48 @@ export function AlbumMoodboard({
             const list = resolveAlbums(g.album_ids ?? [], library);
             if (list.length === 0) return null;
             return (
-              <button
+              <div
                 key={g.mood_name}
-                type="button"
-                onClick={() => setExpandedMood(g.mood_name)}
-                className="album-mood-card text-left rounded-2xl p-4 overflow-hidden hover:opacity-95"
+                className="album-mood-card text-left rounded-2xl p-4 overflow-hidden"
                 style={moodCardGlassStyle(g.mood_name)}
               >
-                <BoardCollage albums={list} />
-                <p className="text-sm font-extrabold leading-snug truncate mt-3 tracking-tight" style={{ color: 'var(--foreground)' }}>
-                  {g.mood_name}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setExpandedMood(g.mood_name)}
+                  className="w-full text-left hover:opacity-95"
+                >
+                  <BoardCollage albums={list} />
+                </button>
+                <div className="flex items-center justify-between gap-2 mt-3 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedMood(g.mood_name)}
+                    className="text-sm font-extrabold leading-snug truncate tracking-tight text-left min-w-0 flex-1 hover:opacity-90"
+                    style={{ color: 'var(--foreground)' }}
+                  >
+                    {g.mood_name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openMoodLottery(g.mood_name, list)}
+                    className="shrink-0 btn-apple h-[30px] px-2.5 text-[11px] font-medium flex items-center gap-1"
+                    style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }}
+                    aria-label={`${g.mood_name} 앨범 추천`}
+                  >
+                    <Sparkles className="size-3 opacity-90" strokeWidth={1.5} aria-hidden />
+                    추천
+                  </button>
+                </div>
                 <p className="text-xs font-semibold mt-1.5 tabular-nums" style={{ color: 'var(--foreground)', opacity: 0.9 }}>
                   {list.length}장
                 </p>
-              </button>
+              </div>
             );
           })}
         </div>
       )}
+
+      {moodLotteryModal}
     </div>
   );
 }

@@ -16,13 +16,17 @@ function pickRandomAlbum(pool: Album[], exclude: Album | null = null): Album {
   return next;
 }
 
-type LotteryPhase = 'spinning' | 'result';
+type LotteryPhase = 'idle' | 'spinning' | 'result';
 
 type AlbumLotteryModalProps = {
   open: boolean;
   onClose: () => void;
   lotteryPool: Album[];
-  yearLabel: string;
+  yearLabel?: string;
+  subtitle?: string;
+  title?: string;
+  autoStart?: boolean;
+  emptyMessage?: string;
   onAlbumClick: (album: Album) => void;
 };
 
@@ -31,9 +35,13 @@ export function AlbumLotteryModal({
   onClose,
   lotteryPool,
   yearLabel,
+  subtitle,
+  title = '랜덤 앨범 추천',
+  autoStart = true,
+  emptyMessage = '추천할 앨범이 없습니다.',
   onAlbumClick,
 }: AlbumLotteryModalProps) {
-  const [phase, setPhase] = useState<LotteryPhase>('spinning');
+  const [phase, setPhase] = useState<LotteryPhase>(autoStart ? 'spinning' : 'idle');
   const [spinAlbum, setSpinAlbum] = useState<Album | null>(null);
   const [resultAlbum, setResultAlbum] = useState<Album | null>(null);
   const [metaVisible, setMetaVisible] = useState(false);
@@ -88,15 +96,24 @@ export function AlbumLotteryModal({
   useEffect(() => {
     if (!open) {
       clearSpinTimers();
-      setPhase('spinning');
+      setPhase(autoStart ? 'spinning' : 'idle');
       setSpinAlbum(null);
       setResultAlbum(null);
       setMetaVisible(false);
       return;
     }
     if (lotteryPool.length === 0) return;
-    startLottery(null);
-  }, [open, clearSpinTimers, lotteryPool.length, startLottery]);
+    if (autoStart) {
+      startLottery(null);
+    } else {
+      setPhase('idle');
+      setSpinAlbum(null);
+      setResultAlbum(null);
+      setMetaVisible(false);
+    }
+  }, [open, autoStart, clearSpinTimers, lotteryPool.length, startLottery]);
+
+  const caption = subtitle ?? (yearLabel ? `${yearLabel} 기준` : null);
 
   useEffect(() => {
     if (phase !== 'result' || !resultAlbum) return;
@@ -133,29 +150,51 @@ export function AlbumLotteryModal({
 
         <div className="flex items-center gap-1.5 mb-1 pr-8">
           <h2 id="album-lottery-title" className="section-title text-xl shrink-0">
-            랜덤 앨범 추천
+            {title}
           </h2>
-          {lotteryPool.length > 0 ? (
+          {lotteryPool.length > 0 && (autoStart || phase === 'result') ? (
             <button
               type="button"
               disabled={phase === 'spinning'}
               onClick={() => startLottery(resultAlbum)}
               className="shrink-0 p-1.5 rounded-lg transition-opacity hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none"
               style={{ color: 'var(--foreground)' }}
-              title="다시 추천"
-              aria-label="다시 추천"
+              title="재추천"
+              aria-label="재추천"
             >
               <RefreshCw className={`size-4 ${phase === 'spinning' ? 'animate-spin' : ''}`} strokeWidth={2} />
             </button>
           ) : null}
         </div>
-        <p className="text-sm opacity-70 mb-6">{yearLabel} 기준</p>
+        {caption ? <p className="text-sm opacity-70 mb-6">{caption}</p> : <div className="mb-6" />}
 
         {lotteryPool.length === 0 ? (
-          <p className="text-center text-sm opacity-60 py-12">이 연도에 등록된 앨범이 없습니다.</p>
-        ) : (
+          <p className="text-center text-sm opacity-60 py-12">{emptyMessage}</p>
+        ) : lotteryPool.length === 1 && !autoStart ? (
+          <p className="mb-4 text-center text-xs opacity-60">이 무드에 속한 앨범이 1장입니다.</p>
+        ) : null}
+
+        {lotteryPool.length > 0 ? (
           <>
-            {displayAlbum ? (
+            {phase === 'idle' ? (
+              <div className="flex flex-col items-center gap-6">
+                <div
+                  className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-xl"
+                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', background: 'var(--badge-bg)' }}
+                >
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Music className="size-16 opacity-30" strokeWidth={1.5} aria-hidden />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => startLottery(null)}
+                  className="btn-apple btn-apple-primary h-[44px] min-w-[140px] px-8"
+                >
+                  추천
+                </button>
+              </div>
+            ) : displayAlbum ? (
               <button
                 type="button"
                 disabled={phase === 'spinning'}
@@ -222,7 +261,7 @@ export function AlbumLotteryModal({
               </button>
             ) : null}
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

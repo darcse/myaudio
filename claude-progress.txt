@@ -249,3 +249,4 @@
 [2026-06-08] [Cursor] fix: GEAR-021 액세서리별 지출에 스피커·무선 액세서리 항목 분리 표시 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: BUG-008 신규 앨범 무드분류 — intro 후 assign·누락 경로 추가·기존 분류 보호 | passes: 변경 없음
 [2026-06-08] [Cursor] fix: 아티스트 앨범 모달 무드보드 클릭 시 /albums 무드보드 이동 | passes: 변경 없음
+[2026-06-08] [Cursor] feat: ALBUM-022 무드보드 카드별 앨범 추천·AlbumLotteryModal 재사용 | passes: 변경 없음
