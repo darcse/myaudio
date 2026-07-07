@@ -251,3 +251,10 @@
 [2026-06-08] [Cursor] fix: 아티스트 앨범 모달 무드보드 클릭 시 /albums 무드보드 이동 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: ALBUM-022 무드보드 카드별 앨범 추천·AlbumLotteryModal 재사용 | passes: 변경 없음
 [2026-06-08] [Cursor] feat: 앨범 타입 베스트/스페셜 단일 옵션으로 통합 | passes: 변경 없음
+[2026-07-07] [Cursor] feat: GEAR-022 독립 액세서리 등록 모달·목록·삭제·소비통계 합산 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 독립 액세서리 목록·등록·수정·삭제를 단일 모달로 통합 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 독립 액세서리 모달을 행 기반 인라인 관리로 재구성 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 액세서리 카테고리 라벨 소스 교체·RLS 정책 SQL 파일 작성 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 독립 액세서리 신규 저장 후 입력 행 값 자동 초기화 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 저장된 액세서리 행 상시 편집 가능·수정 아이콘을 저장 아이콘으로 교체 | passes: 변경 없음
+[2026-07-07] [Cursor] fix: GEAR-022 신규 입력 행 상단 배치·미저장 변경 닫기 확인·완료 버튼 제거 | passes: 변경 없음

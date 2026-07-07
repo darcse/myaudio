@@ -1,4 +1,4 @@
-import type { Headfi } from './types';
+import type { Headfi, HeadfiAccessory } from './types';
 
 export type SpendingYearBucket = {
   label: string;
@@ -27,7 +27,7 @@ export type HeadfiSpendingStats = {
   byAccessory: SpendingCategoryBucket[];
 };
 
-const SPENDING_CATEGORIES = [
+export const SPENDING_CATEGORIES = [
   '헤드폰',
   '이어폰',
   '무선 헤드폰',
@@ -39,6 +39,27 @@ const SPENDING_CATEGORIES = [
   'DAP',
   'Source',
   '기타',
+] as const;
+
+export const HEADFI_ACCESSORY_CATEGORY_OPTIONS = [
+  '헤드폰 케이블',
+  '헤드폰 이어패드',
+  '이어폰 케이블',
+  '이어폰 이어팁',
+  '무선 헤드폰 이어패드',
+  '무선 헤드폰 액세서리',
+  '무선 헤드폰 부가비용',
+  '무선 이어폰 이어팁',
+  '무선 이어폰 액세서리',
+  '무선 이어폰 부가비용',
+  'DAC 액세서리',
+  'AMP 액세서리',
+  'DAC/AMP 액세서리',
+  'DAP 액세서리',
+  'Source 액세서리',
+  '스피커 액세서리',
+  '스피커 부가비용',
+  '기타 액세서리',
 ] as const;
 
 const CATEGORY_COUNT_UNITS: Record<(typeof SPENDING_CATEGORIES)[number], '개' | '대'> = {
@@ -89,16 +110,19 @@ function parsePurchaseYear(purchaseDate: string | null | undefined): number | nu
   return Number.isFinite(year) ? year : null;
 }
 
-function buildMonthlyBuckets(items: Headfi[], year: 2025 | 2026): SpendingMonthBucket[] {
+function buildMonthlyBuckets(
+  entries: { purchase_date: string | null | undefined; amount: number }[],
+  year: 2025 | 2026,
+): SpendingMonthBucket[] {
   const amounts = Array.from({ length: 12 }, () => 0);
-  for (const item of items) {
-    const trimmed = item.purchase_date?.trim();
+  for (const entry of entries) {
+    const trimmed = entry.purchase_date?.trim();
     if (!trimmed) continue;
     const itemYear = parsePurchaseYear(trimmed);
     if (itemYear !== year) continue;
     const month = Number.parseInt(trimmed.slice(5, 7), 10);
     if (!Number.isFinite(month) || month < 1 || month > 12) continue;
-    amounts[month - 1] += headfiItemSpending(item);
+    amounts[month - 1] += safeAmount(entry.amount);
   }
   return amounts.map((amount, index) => ({
     month: index + 1,
@@ -174,17 +198,53 @@ function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
   return out;
 }
 
-export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats {
+function headfiAccessorySpending(item: Pick<HeadfiAccessory, 'price'>): number {
+  return safeAmount(item.price);
+}
+
+function getIndependentAccessoryContributions(item: HeadfiAccessory): AccessoryContribution[] {
+  const category = item.category?.trim() || '기타 액세서리';
+  const amount = safeAmount(item.price);
+  if (amount <= 0) return [];
+  return [{ label: category, amount }];
+}
+
+export function buildHeadfiSpendingStats(
+  library: Headfi[],
+  accessories: HeadfiAccessory[] = [],
+): HeadfiSpendingStats {
   let total = 0;
   let unclassified = 0;
   let through2024 = 0;
   let year2025 = 0;
   let year2026 = 0;
   let after2026 = 0;
+  const monthlyEntries: { purchase_date: string | null | undefined; amount: number }[] = [];
 
   for (const item of library) {
     const amount = headfiItemSpending(item);
     total += amount;
+    monthlyEntries.push({ purchase_date: item.purchase_date, amount });
+    const year = parsePurchaseYear(item.purchase_date);
+    if (year == null) {
+      unclassified += amount;
+      continue;
+    }
+    if (year <= 2024) {
+      through2024 += amount;
+    } else if (year === 2025) {
+      year2025 += amount;
+    } else if (year === 2026) {
+      year2026 += amount;
+    } else {
+      after2026 += amount;
+    }
+  }
+
+  for (const item of accessories) {
+    const amount = headfiAccessorySpending(item);
+    total += amount;
+    monthlyEntries.push({ purchase_date: item.purchase_date, amount });
     const year = parsePurchaseYear(item.purchase_date);
     if (year == null) {
       unclassified += amount;
@@ -233,6 +293,16 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     }
   }
 
+  for (const item of accessories) {
+    for (const contribution of getIndependentAccessoryContributions(item)) {
+      const prev = accessoryTotals.get(contribution.label) ?? { amount: 0, count: 0 };
+      accessoryTotals.set(contribution.label, {
+        amount: prev.amount + contribution.amount,
+        count: prev.count + 1,
+      });
+    }
+  }
+
   const byCategory = sortCategoryRows(
     SPENDING_CATEGORIES.map((category) => ({
       label: category,
@@ -256,8 +326,8 @@ export function buildHeadfiSpendingStats(library: Headfi[]): HeadfiSpendingStats
     unclassified,
     yearly,
     monthlyByYear: {
-      2025: buildMonthlyBuckets(library, 2025),
-      2026: buildMonthlyBuckets(library, 2026),
+      2025: buildMonthlyBuckets(monthlyEntries, 2025),
+      2026: buildMonthlyBuckets(monthlyEntries, 2026),
     },
     byCategory,
     byAccessory,

@@ -82,6 +82,22 @@ export interface Headfi {
   [key: string]: unknown;
 }
 
+export interface HeadfiAccessory {
+  id: number;
+  category: string;
+  name: string;
+  price: number | null;
+  purchase_date: string | null;
+  created_at?: string | null;
+}
+
+export interface HeadfiAccessoryFormData {
+  category: string;
+  name: string;
+  price: string;
+  purchase_date: string;
+}
+
 /** 폼에서 액션으로 넘기는 데이터 (모든 필드 문자열) */
 export interface HeadfiFormData {
   brand: string;

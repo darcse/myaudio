@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { List, X } from 'lucide-react';
+import { Cable, List, X } from 'lucide-react';
 import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
 import type { Headfi } from '../types';
 
@@ -25,6 +25,7 @@ type HeadfiListProps = {
   totalFilteredCount: number;
   listTotalPages: number;
   isLibraryEmpty?: boolean;
+  onAccessoryRegisterClick: () => void;
   onItemClick: (item: Headfi) => void;
 };
 
@@ -47,6 +48,7 @@ export function HeadfiList({
   totalFilteredCount,
   listTotalPages,
   isLibraryEmpty = false,
+  onAccessoryRegisterClick,
   onItemClick,
 }: HeadfiListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -90,23 +92,34 @@ export function HeadfiList({
         </div>
         <div className="w-full flex flex-col gap-2 lg:w-auto lg:ml-auto">
           <div className="flex items-center gap-2 justify-between">
-            <div className="relative flex-1 min-w-[140px] md:min-w-[170px] lg:flex-none lg:w-[320px]">
-              <input
-                className="input-apple px-3 py-2 text-sm w-full h-[38px] pr-8"
-                placeholder="브랜드, 모델명 검색..."
-                value={listSearchQuery}
-                onChange={(e) => setListSearchQuery(e.target.value)}
-              />
-              {listSearchQuery ? (
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 transition-opacity p-0.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
-                  onClick={() => setListSearchQuery('')}
-                  title="검색어 지우기"
-                >
-                  <X className="size-4" strokeWidth={2} />
-                </button>
-              ) : null}
+            <div className="flex flex-1 items-center gap-2 min-w-[140px] md:min-w-[170px] lg:flex-none lg:w-[370px]">
+              <button
+                type="button"
+                className="btn-apple btn-apple-secondary inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center"
+                onClick={onAccessoryRegisterClick}
+                aria-label="독립 액세서리 등록"
+                title="독립 액세서리 등록"
+              >
+                <Cable className="size-4" strokeWidth={1.75} />
+              </button>
+              <div className="relative min-w-0 flex-1">
+                <input
+                  className="input-apple h-[38px] w-full px-3 py-2 pr-8 text-sm"
+                  placeholder="브랜드, 모델명 검색..."
+                  value={listSearchQuery}
+                  onChange={(e) => setListSearchQuery(e.target.value)}
+                />
+                {listSearchQuery ? (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 opacity-60 transition-opacity hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/5"
+                    onClick={() => setListSearchQuery('')}
+                    title="검색어 지우기"
+                  >
+                    <X className="size-4" strokeWidth={2} />
+                  </button>
+                ) : null}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button

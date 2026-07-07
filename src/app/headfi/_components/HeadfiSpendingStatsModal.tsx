@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart2 } from 'lucide-react';
-import type { Headfi } from '../types';
+import type { Headfi, HeadfiAccessory } from '../types';
 import {
   buildHeadfiSpendingStats,
   formatCategorySpendingLabel,
@@ -16,6 +16,7 @@ type HeadfiSpendingStatsModalProps = {
   open: boolean;
   onClose: () => void;
   library: Headfi[];
+  accessories: HeadfiAccessory[];
 };
 
 type BarDatum = {
@@ -153,10 +154,10 @@ function CategorySpendingTable({ rows }: { rows: SpendingCategoryBucket[] }) {
   );
 }
 
-export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpendingStatsModalProps) {
+export function HeadfiSpendingStatsModal({ open, onClose, library, accessories }: HeadfiSpendingStatsModalProps) {
   const [statsTab, setStatsTab] = useState<'period' | 'type'>('period');
   const [monthlyYear, setMonthlyYear] = useState<2025 | 2026>(2026);
-  const stats = useMemo(() => buildHeadfiSpendingStats(library), [library]);
+  const stats = useMemo(() => buildHeadfiSpendingStats(library, accessories), [library, accessories]);
 
   const monthlyChartData = useMemo<BarDatum[]>(
     () =>
@@ -199,7 +200,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library }: HeadfiSpend
         <section className="mb-6 text-center">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">전체 지출</p>
           <p className="text-3xl font-bold tabular-nums">{formatKrw(stats.total)}</p>
-          <p className="mt-1 text-xs opacity-55">구매가 + 케이블 + 이어팁·이어패드 + 액세서리 가격 (방출 포함)</p>
+          <p className="mt-1 text-xs opacity-55">기기 구매가 + 부가비용 + 독립 액세서리 가격 (방출 포함)</p>
         </section>
 
         <div className="mb-5 flex gap-1 rounded-xl p-1" style={{ background: 'var(--badge-bg)' }}>

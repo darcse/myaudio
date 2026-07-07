@@ -1,7 +1,7 @@
 'use server'
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiFormData } from './types';
+import type { HeadfiAccessoryFormData, HeadfiFormData } from './types';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
@@ -352,6 +352,55 @@ export async function deleteHeadfiFromDB(id: number) {
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
   const { error } = await supabase.from('headfi').delete().eq('id', id);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return true;
+}
+
+function mapHeadfiAccessoryData(data: HeadfiAccessoryFormData) {
+  const category = data.category.trim();
+  const name = data.name.trim();
+  if (!category) throw new Error('카테고리를 선택해 주세요.');
+  if (!name) throw new Error('액세서리 이름을 입력해 주세요.');
+  return {
+    category,
+    name,
+    price: parseIntOrNull(data.price) ?? 0,
+    purchase_date: data.purchase_date.trim() || null,
+  };
+}
+
+export async function saveHeadfiAccessoryToDB(data: HeadfiAccessoryFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_accessories')
+    .insert([mapHeadfiAccessoryData(data)])
+    .select('id')
+    .single();
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function updateHeadfiAccessoryInDB(id: number, data: HeadfiAccessoryFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_accessories')
+    .update(mapHeadfiAccessoryData(data))
+    .eq('id', id);
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function deleteHeadfiAccessoryFromDB(id: number) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { error } = await supabase.from('headfi_accessories').delete().eq('id', id);
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return true;
 }
