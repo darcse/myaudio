@@ -48,17 +48,14 @@ export const HEADFI_ACCESSORY_CATEGORY_OPTIONS = [
   '이어폰 이어팁',
   '무선 헤드폰 이어패드',
   '무선 헤드폰 액세서리',
-  '무선 헤드폰 부가비용',
   '무선 이어폰 이어팁',
   '무선 이어폰 액세서리',
-  '무선 이어폰 부가비용',
   'DAC 액세서리',
   'AMP 액세서리',
   'DAC/AMP 액세서리',
   'DAP 액세서리',
   'Source 액세서리',
   '스피커 액세서리',
-  '스피커 부가비용',
   '기타 액세서리',
 ] as const;
 
@@ -134,6 +131,7 @@ function buildMonthlyBuckets(
 type AccessoryContribution = {
   label: string;
   amount: number;
+  count: number;
 };
 
 function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
@@ -142,8 +140,8 @@ function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
   const eartip = safeAmount(item.eartip_price);
   const accessory = safeAmount(item.accessory_price);
   const out: AccessoryContribution[] = [];
-  const push = (label: string, amount: number) => {
-    if (amount > 0) out.push({ label, amount });
+  const push = (label: string, amount: number, count = 1) => {
+    if (amount > 0) out.push({ label, amount, count });
   };
 
   switch (category) {
@@ -205,8 +203,7 @@ function headfiAccessorySpending(item: Pick<HeadfiAccessory, 'price'>): number {
 function getIndependentAccessoryContributions(item: HeadfiAccessory): AccessoryContribution[] {
   const category = item.category?.trim() || '기타 액세서리';
   const amount = safeAmount(item.price);
-  if (amount <= 0) return [];
-  return [{ label: category, amount }];
+  return [{ label: category, amount, count: 1 }];
 }
 
 export function buildHeadfiSpendingStats(
@@ -288,7 +285,7 @@ export function buildHeadfiSpendingStats(
       const prev = accessoryTotals.get(contribution.label) ?? { amount: 0, count: 0 };
       accessoryTotals.set(contribution.label, {
         amount: prev.amount + contribution.amount,
-        count: prev.count + 1,
+        count: prev.count + contribution.count,
       });
     }
   }
@@ -298,7 +295,7 @@ export function buildHeadfiSpendingStats(
       const prev = accessoryTotals.get(contribution.label) ?? { amount: 0, count: 0 };
       accessoryTotals.set(contribution.label, {
         amount: prev.amount + contribution.amount,
-        count: prev.count + 1,
+        count: prev.count + contribution.count,
       });
     }
   }
