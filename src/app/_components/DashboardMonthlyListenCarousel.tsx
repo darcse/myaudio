@@ -10,6 +10,9 @@ type DashboardMonthlyListenCarouselProps = {
   onAlbumClick: (albumId: number) => void;
 };
 
+const AUTO_SLIDE_INTERVAL_MS = 3000;
+const MANUAL_PAUSE_MS = 7000;
+
 export function DashboardMonthlyListenCarousel({
   albums,
   onAlbumClick,
@@ -17,16 +20,57 @@ export function DashboardMonthlyListenCarousel({
   const items = albums.slice(0, 6);
   const scrollRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const activeIndexRef = useRef(0);
+  const isHoveringRef = useRef(false);
+  const isTouchingRef = useRef(false);
+  const isPageVisibleRef = useRef(true);
+  const manualPauseUntilRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const canAutoSlide = items.length > 2;
+
   const scrollToIndex = useCallback(
-    (index: number) => {
+    (index: number, options?: { manual?: boolean }) => {
+      if (options?.manual) {
+        manualPauseUntilRef.current = Date.now() + MANUAL_PAUSE_MS;
+      }
       const next = Math.max(0, Math.min(items.length - 1, index));
       slideRefs.current[next]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      activeIndexRef.current = next;
       setActiveIndex(next);
     },
     [items.length],
   );
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      isPageVisibleRef.current = document.visibilityState === 'visible';
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (!canAutoSlide) return;
+
+    const id = window.setInterval(() => {
+      if (!isPageVisibleRef.current) return;
+      if (isHoveringRef.current || isTouchingRef.current) return;
+      if (Date.now() < manualPauseUntilRef.current) return;
+
+      const current = activeIndexRef.current;
+      const next = current >= items.length - 1 ? 0 : current + 1;
+      slideRefs.current[next]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      activeIndexRef.current = next;
+      setActiveIndex(next);
+    }, AUTO_SLIDE_INTERVAL_MS);
+
+    return () => window.clearInterval(id);
+  }, [canAutoSlide, items.length]);
 
   useEffect(() => {
     const root = scrollRef.current;
@@ -42,7 +86,10 @@ export function DashboardMonthlyListenCarousel({
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         if (visible.length === 0) return;
         const index = slides.indexOf(visible[0].target as HTMLButtonElement);
-        if (index >= 0) setActiveIndex(index);
+        if (index >= 0) {
+          activeIndexRef.current = index;
+          setActiveIndex(index);
+        }
       },
       { root, threshold: [0.55, 0.7, 0.85] },
     );
@@ -52,7 +99,24 @@ export function DashboardMonthlyListenCarousel({
   }, [items]);
 
   return (
-    <div className="relative min-h-0 flex-1">
+    <div
+      className="relative min-h-0 flex-1"
+      onMouseEnter={() => {
+        isHoveringRef.current = true;
+      }}
+      onMouseLeave={() => {
+        isHoveringRef.current = false;
+      }}
+      onTouchStart={() => {
+        isTouchingRef.current = true;
+      }}
+      onTouchEnd={() => {
+        isTouchingRef.current = false;
+      }}
+      onTouchCancel={() => {
+        isTouchingRef.current = false;
+      }}
+    >
       <div
         ref={scrollRef}
         className="scrollbar-hide absolute inset-0 flex items-center gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory"
@@ -95,7 +159,7 @@ export function DashboardMonthlyListenCarousel({
         <>
           <button
             type="button"
-            onClick={() => scrollToIndex(activeIndex - 1)}
+            onClick={() => scrollToIndex(activeIndex - 1, { manual: true })}
             disabled={activeIndex === 0}
             className="absolute left-1 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-opacity hover:opacity-100 disabled:pointer-events-none disabled:opacity-0 md:inline-flex"
             style={{
@@ -109,7 +173,7 @@ export function DashboardMonthlyListenCarousel({
           </button>
           <button
             type="button"
-            onClick={() => scrollToIndex(activeIndex + 1)}
+            onClick={() => scrollToIndex(activeIndex + 1, { manual: true })}
             disabled={activeIndex === items.length - 1}
             className="absolute right-1 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-opacity hover:opacity-100 disabled:pointer-events-none disabled:opacity-0 md:inline-flex"
             style={{
