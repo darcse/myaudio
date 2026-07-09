@@ -50,14 +50,6 @@ type HistoryRow = GearListenHistoryRow;
 
 type AlbumStatsTab = 'ranking' | 'trend';
 
-function tabButtonClass(active: boolean): string {
-  return `border-b-2 px-1 pb-3 text-sm transition-colors ${
-    active
-      ? 'border-[var(--foreground)] font-semibold opacity-100'
-      : 'border-transparent opacity-60 hover:opacity-90'
-  }`;
-}
-
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
   artist_type: '',
@@ -734,28 +726,32 @@ export function AlbumStatsContent() {
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <AlbumPageHeader activeNav="stats" isAuthenticated={isAuthenticated} showDivider />
-      <AlbumSubHeader icon={BarChart3} title="앨범 통계" />
-
-      <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="-mb-px flex gap-4">
-          <button
-            type="button"
-            onClick={() => setStatsTab('ranking')}
-            className={tabButtonClass(statsTab === 'ranking')}
-            aria-pressed={statsTab === 'ranking'}
-          >
-            랭킹
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatsTab('trend')}
-            className={tabButtonClass(statsTab === 'trend')}
-            aria-pressed={statsTab === 'trend'}
-          >
-            청취 추이
-          </button>
-        </div>
-      </div>
+      <AlbumSubHeader
+        icon={BarChart3}
+        title="청취 통계"
+        trailing={
+          <>
+            <button
+              type="button"
+              onClick={() => setStatsTab('ranking')}
+              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+              style={filterToggleStyle(statsTab === 'ranking')}
+              aria-pressed={statsTab === 'ranking'}
+            >
+              랭킹
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatsTab('trend')}
+              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+              style={filterToggleStyle(statsTab === 'trend')}
+              aria-pressed={statsTab === 'trend'}
+            >
+              청취 추이
+            </button>
+          </>
+        }
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">

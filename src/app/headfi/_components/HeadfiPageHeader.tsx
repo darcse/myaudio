@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { BarChart2, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
@@ -98,11 +99,12 @@ export function HeadfiPageHeader({
 type HeadfiSubHeaderProps = {
   icon: LucideIcon;
   title: string;
+  trailing?: ReactNode;
 };
 
-export function HeadfiSubHeader({ icon: Icon, title }: HeadfiSubHeaderProps) {
+export function HeadfiSubHeader({ icon: Icon, title, trailing }: HeadfiSubHeaderProps) {
   return (
-    <div className="mb-6 flex items-center gap-2">
+    <div className="mb-6 flex flex-wrap items-center gap-2">
       <Link
         href="/headfi"
         className="inline-flex items-center justify-center rounded-lg p-1 opacity-70 transition-opacity hover:opacity-100"
@@ -112,6 +114,7 @@ export function HeadfiSubHeader({ icon: Icon, title }: HeadfiSubHeaderProps) {
       </Link>
       <Icon className="size-6 shrink-0 opacity-80" strokeWidth={1.5} />
       <h2 className="text-lg font-semibold">{title}</h2>
+      {trailing ? <div className="ml-1 flex flex-wrap items-center gap-1.5">{trailing}</div> : null}
     </div>
   );
 }

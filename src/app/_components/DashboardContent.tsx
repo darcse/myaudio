@@ -23,6 +23,7 @@ import {
   useHeadfiDacAmpMapLazyAnalysis,
 } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
+import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
 
 const AlbumDetailModal = dynamic(
   () => import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
@@ -68,7 +69,7 @@ type DashboardContentProps = {
 };
 
 const recentGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
-const summaryCardClass = 'card-apple flex h-72 min-h-72 flex-col overflow-hidden p-4';
+const summaryCardClass = 'card-apple flex h-[21rem] min-h-[21rem] flex-col overflow-hidden p-4';
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -620,19 +621,19 @@ export function DashboardContent({
             {sortedHeadfiCategories.length === 0 ? (
               <p className="flex flex-1 items-center text-sm opacity-60">보유 중인 기기가 없습니다.</p>
             ) : (
-              <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-3 gap-1.5">
+              <div className="grid min-h-0 flex-1 grid-cols-3 auto-rows-[minmax(3.75rem,1fr)] gap-1.5 overflow-y-auto">
                 {sortedHeadfiCategories.map(([cat, count]) => (
                   <Link
                     key={cat}
                     href={`/headfi?category=${encodeURIComponent(cat)}&status=${encodeURIComponent('보유중')}`}
-                    className="flex min-h-0 flex-col items-center justify-center gap-0.5 rounded-lg p-1.5 transition-opacity hover:opacity-90"
+                    className="flex min-h-[3.75rem] flex-col items-center justify-center gap-0.5 rounded-lg p-1.5 transition-opacity hover:opacity-90"
                     style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
                   >
                     <span className="shrink-0 [&_svg]:size-4" style={{ color: 'var(--foreground)', opacity: 0.7 }}>
                       {HEADFI_CATEGORY_ICON[cat] ?? <Package className="size-4" strokeWidth={1.5} />}
                     </span>
-                    <span className="text-xs font-bold tabular-nums leading-none">{count}</span>
-                    <span className="line-clamp-2 text-center text-[9px] leading-tight opacity-60">{cat}</span>
+                    <span className="shrink-0 text-xs font-bold tabular-nums leading-none">{count}</span>
+                    <span className="shrink-0 line-clamp-2 text-center text-[9px] leading-tight opacity-60">{cat}</span>
                   </Link>
                 ))}
               </div>
@@ -656,31 +657,10 @@ export function DashboardContent({
           {monthlyListenAlbums.length === 0 ? (
             <p className="text-sm opacity-60">이번 달 청취 기록이 없습니다.</p>
           ) : (
-            <div className="grid flex-1 grid-cols-3 gap-1.5">
-              {monthlyListenAlbums.slice(0, 6).map((row) => (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => void openAlbumById(row.id)}
-                  className="group relative aspect-square overflow-hidden rounded-lg transition-opacity hover:opacity-90"
-                  style={{ border: '1px solid var(--border)', background: 'var(--badge-bg)' }}
-                  title={`${row.artist ?? ''} — ${row.album_name} (${row.listenCount}회)`}
-                >
-                  {row.cover_image_url ? (
-                    <img src={row.cover_image_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Music className="size-5 opacity-35" strokeWidth={1.5} aria-hidden />
-                    </div>
-                  )}
-                  {row.listenCount > 1 ? (
-                    <span className="absolute bottom-1 right-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
-                      {row.listenCount}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
+            <DashboardMonthlyListenCarousel
+              albums={monthlyListenAlbums}
+              onAlbumClick={(albumId) => void openAlbumById(albumId)}
+            />
           )}
         </div>
 

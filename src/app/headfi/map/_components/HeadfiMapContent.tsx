@@ -8,16 +8,9 @@ import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageH
 import type { Headfi } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
 import { PositionMapTab } from './PositionMapTab';
+import { filterToggleStyle } from './positionMapUtils';
 
 type MapTab = 'position' | 'match';
-
-function tabButtonClass(active: boolean): string {
-  return `border-b-2 px-1 pb-3 text-sm transition-colors ${
-    active
-      ? 'border-[var(--foreground)] font-semibold opacity-100'
-      : 'border-transparent opacity-60 hover:opacity-90'
-  }`;
-}
 
 export function HeadfiMapContent() {
   const isAuthenticated = useAuthState();
@@ -66,28 +59,32 @@ export function HeadfiMapContent() {
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <HeadfiPageHeader activeNav="position" isAuthenticated={isAuthenticated} showDivider />
-      <HeadfiSubHeader icon={Map} title="포지션맵" />
-
-      <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="-mb-px flex gap-4">
-          <button
-            type="button"
-            onClick={() => setActiveTab('position')}
-            className={tabButtonClass(activeTab === 'position')}
-            aria-pressed={activeTab === 'position'}
-          >
-            포지션맵
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('match')}
-            className={tabButtonClass(activeTab === 'match')}
-            aria-pressed={activeTab === 'match'}
-          >
-            매칭맵
-          </button>
-        </div>
-      </div>
+      <HeadfiSubHeader
+        icon={Map}
+        title="포지션맵"
+        trailing={
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('position')}
+              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+              style={filterToggleStyle(activeTab === 'position')}
+              aria-pressed={activeTab === 'position'}
+            >
+              포지션맵
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('match')}
+              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+              style={filterToggleStyle(activeTab === 'match')}
+              aria-pressed={activeTab === 'match'}
+            >
+              매칭맵
+            </button>
+          </>
+        }
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">

@@ -733,20 +733,22 @@ export function ArtistsLibraryContent() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="page-title flex items-center gap-2 shrink-0">
+        <h1 className="page-title flex shrink-0 items-center gap-2">
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Artists
         </h1>
-        <button
-          type="button"
-          disabled={summaries.length === 0}
-          onClick={() => setArtistLotteryOpen(true)}
-          className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label="추천 아티스트"
-        >
-          <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-          <span className="hidden sm:inline">추천 아티스트</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={summaries.length === 0}
+            onClick={() => setArtistLotteryOpen(true)}
+            className="btn-apple btn-apple-secondary flex h-[42px] items-center justify-center gap-1.5 px-3 disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="추천 아티스트"
+          >
+            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            <span className="hidden sm:inline">추천 아티스트</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
