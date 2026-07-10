@@ -277,3 +277,4 @@
 [2026-07-09] [Cursor] style: 아티스트 화면 모바일 추천 버튼 너비를 앨범 헤더 버튼과 동일하게 조정 | passes: 변경 없음
 [2026-07-09] [Cursor] feat: ALBUM-023 대시보드 이번 달 청취 캐러셀 오토슬라이드 추가 | passes: 변경 없음
 [2026-07-09] [Cursor] style: ALBUM-023 이번 달 청취 캐러셀 오토슬라이드 간격 3초로 조정 | passes: 변경 없음
+[2026-07-10] [Cursor] fix: BUG-008 신규 앨범 intro·무드 분류를 saveAlbumToDB 서버 after()로 이동 | passes: 변경 없음

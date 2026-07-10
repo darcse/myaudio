@@ -9,7 +9,7 @@ import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { AlbumPageHeader, AlbumSubHeader } from '@/app/albums/_components/AlbumPageHeader';
-import { useAlbumMutations, enqueueNewAlbumIntroGeneration } from '@/app/albums/_hooks/useAlbumMutations';
+import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
@@ -601,17 +601,7 @@ export function AlbumStatsContent() {
       return;
     }
     if (result.status === 'created') {
-      let savedNewId: number | undefined;
-      if (result.saved && typeof result.saved === 'object' && 'id' in result.saved) {
-        savedNewId = (result.saved as { id: number }).id;
-      }
-      if (savedNewId != null) {
-        enqueueNewAlbumIntroGeneration(savedNewId, () => {
-          void fetchData();
-        });
-      } else {
-        await fetchData();
-      }
+      await fetchData();
       setAlbumFormItem(null);
       return;
     }

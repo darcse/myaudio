@@ -8,7 +8,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import {
   searchMusicBrainz,
 } from '../actions';
-import { useAlbumMutations, enqueueNewAlbumIntroGeneration } from '../_hooks/useAlbumMutations';
+import { useAlbumMutations } from '../_hooks/useAlbumMutations';
 import { AlbumList } from './AlbumList';
 import { AlbumMoodboard } from './AlbumMoodboard';
 import { AlbumGenreboard } from './AlbumGenreboard';
@@ -455,18 +455,6 @@ export function AlbumsLibraryContent() {
     if (result.status === 'updated' && updateId != null && result.album) {
       setLibrary((prev) => prev.map((a) => (a.id === updateId ? result.album! : a)));
       setViewingItem((prev) => (prev?.id === updateId ? result.album! : prev));
-    }
-
-    if (result.status === 'created') {
-      let savedNewId: number | undefined;
-      if (result.saved && typeof result.saved === 'object' && 'id' in result.saved) {
-        savedNewId = (result.saved as { id: number }).id;
-      }
-      if (savedNewId != null) {
-        enqueueNewAlbumIntroGeneration(savedNewId, () => {
-          void fetchLibrary(true);
-        });
-      }
     }
   };
 

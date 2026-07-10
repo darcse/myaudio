@@ -1,5 +1,7 @@
 'use server';
 
+import { after } from 'next/server';
+import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
 
@@ -189,6 +191,16 @@ export async function saveAlbumToDB(data: AlbumFormData) {
     .single();
 
   if (error) throw error;
+
+  const albumId = (result as { id: number }).id;
+  after(async () => {
+    try {
+      await runNewAlbumEnrichment(albumId);
+    } catch {
+      // background enrichment — ignore
+    }
+  });
+
   return result;
 }
 

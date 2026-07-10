@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pickAlbumMoodGroupName } from '@/lib/gemini';
-import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { runAlbumMoodAssign } from '@/lib/albumEnrichment';
+import { getCurrentUser } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,79 +22,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid albumId' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { data: album, error: albumError } = await supabase
-      .from('album')
-      .select('id, artist, album_name, genre1, genre2, audio_tags, mood_name')
-      .eq('id', idNum)
-      .single();
-    if (albumError || !album) {
-      return NextResponse.json({ error: 'Album not found' }, { status: 404 });
+    const result = await runAlbumMoodAssign(idNum);
+    if (!result.ok) {
+      const status =
+        result.error === 'Album not found'
+          ? 404
+          : result.error === 'Mood classification failed'
+            ? 502
+            : 500;
+      return NextResponse.json({ error: result.error }, { status });
     }
 
-    const { data: moodRows, error: moodError } = await supabase
-      .from('album_mood_groups')
-      .select('id, mood_name, album_ids')
-      .order('id', { ascending: true });
-    if (moodError) {
-      return NextResponse.json({ error: moodError.message }, { status: 500 });
-    }
-
-    const groups = moodRows ?? [];
-
-    const moodNames = groups
-      .map((r) => String((r as { mood_name?: unknown }).mood_name ?? '').trim())
-      .filter(Boolean);
-    if (moodNames.length === 0) {
-      return NextResponse.json({ error: 'Mood groups not found' }, { status: 400 });
-    }
-
-    const existingMood = String((album as { mood_name?: unknown }).mood_name ?? '').trim();
-    const alreadyInGroup = groups.some((g) => {
-      const ids = (g as { album_ids?: unknown }).album_ids;
-      return Array.isArray(ids) && ids.some((id) => Number(id) === idNum);
-    });
-
-    if (existingMood && alreadyInGroup) {
-      return NextResponse.json({ mood_name: existingMood, skipped: true });
-    }
-
-    const mood_name =
-      existingMood && moodNames.includes(existingMood)
-        ? existingMood
-        : await pickAlbumMoodGroupName(album, moodNames);
-    if (!mood_name) {
-      return NextResponse.json({ error: 'Mood classification failed' }, { status: 502 });
-    }
-
-    if (!existingMood) {
-      const { error: moodColErr } = await supabase.from('album').update({ mood_name }).eq('id', idNum);
-      if (moodColErr) {
-        return NextResponse.json({ error: moodColErr.message }, { status: 500 });
-      }
-    }
-
-    const targetGroup = groups.find(
-      (g) => String((g as { mood_name?: unknown }).mood_name ?? '').trim() === mood_name,
-    ) as { id: number; album_ids: (number | string)[] } | undefined;
-
-    if (!targetGroup) {
-      return NextResponse.json({ error: 'Mood group not found' }, { status: 500 });
-    }
-
-    const current = Array.isArray(targetGroup.album_ids) ? targetGroup.album_ids : [];
-    const next = current.some((id) => Number(id) === idNum) ? current : [...current, idNum];
-    if (next.length !== current.length) {
-      const { error: groupErr } = await supabase
-        .from('album_mood_groups')
-        .update({ album_ids: next, updated_at: new Date().toISOString() })
-        .eq('id', targetGroup.id);
-      if (groupErr) {
-        return NextResponse.json({ error: groupErr.message }, { status: 500 });
-      }
-    }
-
-    return NextResponse.json({ mood_name });
+    return NextResponse.json({ mood_name: result.mood_name, skipped: result.skipped });
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }

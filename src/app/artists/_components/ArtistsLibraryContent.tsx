@@ -9,7 +9,6 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
-import { enqueueNewAlbumIntroGeneration } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
@@ -548,7 +547,6 @@ export function ArtistsLibraryContent() {
     }
     if (!albumFormItem) return;
     setIsSaving(true);
-    let savedNewId: number | undefined;
     try {
       const data = {
         ...albumFormData,
@@ -576,7 +574,6 @@ export function ArtistsLibraryContent() {
         const savedId =
           saved && typeof saved === 'object' && 'id' in saved ? (saved as { id: number }).id : null;
         if (savedId != null) {
-          savedNewId = savedId;
           const { data: newRow } = await createClient()
             .from('album')
             .select('*')
@@ -605,12 +602,6 @@ export function ArtistsLibraryContent() {
       toast.error(message);
     } finally {
       setIsSaving(false);
-    }
-
-    if (savedNewId != null) {
-      enqueueNewAlbumIntroGeneration(savedNewId, () => {
-        void fetchLibrary();
-      });
     }
   };
 

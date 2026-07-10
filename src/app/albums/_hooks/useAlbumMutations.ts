@@ -34,51 +34,6 @@ type UseAlbumMutationsOptions = {
   isAuthenticated: boolean | null;
 };
 
-export function enqueueNewAlbumIntroGeneration(albumId: number, onComplete?: () => void) {
-  void fetch('/api/album-intro', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ albumId }),
-  })
-    .then(async (res) => {
-      if (!res.ok) {
-        toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
-        return;
-      }
-      toast.success('앨범 소개와 태그가 생성되었습니다.');
-      try {
-        const assignRes = await fetch('/api/album-mood-assign', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ albumId }),
-        });
-        let assignPayload: { error?: string } = {};
-        try {
-          assignPayload = await assignRes.json();
-        } catch {
-          assignPayload = {};
-        }
-        if (!assignRes.ok) {
-          const message =
-            typeof assignPayload.error === 'string' && assignPayload.error.trim()
-              ? assignPayload.error
-              : '무드보드 분류에 실패했습니다. 무드보드 탭에서 다시 시도할 수 있어요.';
-          toast.error(message);
-        }
-      } catch {
-        toast.error('무드보드 분류에 실패했습니다. 무드보드 탭에서 다시 시도할 수 있어요.');
-      }
-    })
-    .catch(() => {
-      toast.error('앨범 소개 자동 생성에 실패했습니다. 나중에 새로고침으로 다시 시도할 수 있어요.');
-    })
-    .finally(() => {
-      onComplete?.();
-    });
-}
-
 export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions) {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

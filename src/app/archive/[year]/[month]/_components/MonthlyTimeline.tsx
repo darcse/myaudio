@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { MonthlyReviewTimeline } from '@/app/api/monthly-review-comment/route';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
-import { useAlbumMutations, enqueueNewAlbumIntroGeneration } from '@/app/albums/_hooks/useAlbumMutations';
+import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
@@ -479,13 +479,6 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       setAudioTags(result.album.audio_tags ?? []);
       setAlbumFormItem(null);
     } else if (result.status === 'created') {
-      let savedNewId: number | undefined;
-      if (result.saved && typeof result.saved === 'object' && 'id' in result.saved) {
-        savedNewId = (result.saved as { id: number }).id;
-      }
-      if (savedNewId != null) {
-        enqueueNewAlbumIntroGeneration(savedNewId);
-      }
       setAlbumFormItem(null);
     }
   };
