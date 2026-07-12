@@ -144,11 +144,13 @@ export function buildGearListenRankings(
 }
 
 export const STATS_MIN_YEAR = 2026;
-export const STATS_MIN_MONTH = 6;
+export const STATS_EARLY_MONTHS = '1-5' as const;
+
+export type ListenPeriodMonth = number | 'all' | typeof STATS_EARLY_MONTHS;
 
 export type ListenPeriodFilter = {
   year: number;
-  month: number | 'all';
+  month: ListenPeriodMonth;
 };
 
 export function listStatsYears(): number[] {
@@ -160,14 +162,16 @@ export function listStatsYears(): number[] {
   return years;
 }
 
-export function listStatsMonths(year: number): Array<number | 'all'> {
+export function listStatsMonths(year: number): ListenPeriodMonth[] {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const minMonth = year === STATS_MIN_YEAR ? STATS_MIN_MONTH : 1;
   const maxMonth = year === currentYear ? currentMonth : 12;
-  const months: Array<number | 'all'> = ['all'];
-  for (let month = minMonth; month <= maxMonth; month += 1) {
+  const months: ListenPeriodMonth[] = ['all'];
+  if (maxMonth >= 1) {
+    months.push(STATS_EARLY_MONTHS);
+  }
+  for (let month = 6; month <= maxMonth; month += 1) {
     months.push(month);
   }
   return months;
@@ -176,11 +180,9 @@ export function listStatsMonths(year: number): Array<number | 'all'> {
 export function getDefaultListenPeriodFilter(): ListenPeriodFilter {
   const now = new Date();
   const year = Math.max(STATS_MIN_YEAR, now.getFullYear());
-  let month: number | 'all' = now.getMonth() + 1;
-  if (year === STATS_MIN_YEAR && typeof month === 'number' && month < STATS_MIN_MONTH) {
-    month = STATS_MIN_MONTH;
-  }
-  return { year, month };
+  const currentMonth = now.getMonth() + 1;
+  const month: ListenPeriodMonth = currentMonth <= 5 ? STATS_EARLY_MONTHS : currentMonth;
+  return clampListenPeriodFilter({ year, month });
 }
 
 export function clampListenPeriodFilter(filter: ListenPeriodFilter): ListenPeriodFilter {
@@ -204,13 +206,21 @@ export function filterHistoryByPeriod<T extends HistoryRow>(
     const month = parseInt(datePart.slice(5, 7), 10);
     if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
     if (year !== filter.year) return false;
-    if (filter.month !== 'all' && month !== filter.month) return false;
-    return true;
+    if (filter.month === 'all') return true;
+    if (filter.month === STATS_EARLY_MONTHS) return month >= 1 && month <= 5;
+    return month === filter.month;
   });
+}
+
+export function formatStatsMonthOptionLabel(month: ListenPeriodMonth): string {
+  if (month === 'all') return '전체';
+  if (month === STATS_EARLY_MONTHS) return '1~5월';
+  return `${month}월`;
 }
 
 export function formatPeriodLabel(filter: ListenPeriodFilter): string {
   if (filter.month === 'all') return `${filter.year}년`;
+  if (filter.month === STATS_EARLY_MONTHS) return `${filter.year}년 1~5월`;
   return `${filter.year}년 ${filter.month}월`;
 }
 

@@ -3,9 +3,9 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, ChevronLeft, Disc, Sparkles } from 'lucide-react';
+import { BarChart3, BookOpen, ChevronLeft, Disc, Sparkles } from 'lucide-react';
 
-export type AlbumNavId = 'stats';
+export type AlbumNavId = 'stats' | 'diary';
 
 type AlbumPageHeaderProps = {
   activeNav?: AlbumNavId | null;
@@ -45,6 +45,10 @@ export function AlbumPageHeader({
         Albums
       </h1>
       <div className="flex flex-wrap items-center gap-2">
+        <Link href="/albums/diary" className={navButtonClass(activeNav === 'diary')} aria-label="다이어리">
+          <BookOpen className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+          <span className="hidden sm:inline">다이어리</span>
+        </Link>
         <Link href="/albums/stats" className={navButtonClass(activeNav === 'stats')} aria-label="청취 통계">
           <BarChart3 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
           <span className="hidden sm:inline">청취 통계</span>

@@ -280,3 +280,6 @@
 [2026-07-10] [Cursor] fix: BUG-008 신규 앨범 intro·무드 분류를 saveAlbumToDB 서버 after()로 이동 | passes: 변경 없음
 [2026-07-12] [Cursor] style: GNB 외부앱 3개 제거·새로고침 버튼 추가 (location.reload) | passes: 변경 없음
 [2026-07-12] [Cursor] fix: 대시보드 캐러셀 오토슬라이드 시 페이지 스크롤 점프 방지 | passes: 변경 없음
+[2026-07-12] [Cursor] feat: ALBUM-024 음감 다이어리 페이지·날짜 그룹핑·청취기록 수정/삭제 | passes: 변경 없음
+
+[2026-07-12] [Cursor] feat: 청취 기간 필터 1~5월 묶음·6월부터 개별 월 | passes: 변경 없음

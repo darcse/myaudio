@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { countryOptions, genreOptions } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
@@ -32,6 +33,31 @@ export function AlbumForm({
   isSaving = false,
   isDeleting = false,
 }: AlbumFormProps) {
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const { body, documentElement } = document;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      htmlOverflow: documentElement.style.overflow,
+    };
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+    documentElement.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      documentElement.style.overflow = prev.htmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   const isEdit = 'id' in selectedItem && typeof selectedItem.id === 'number';
   const releaseDateReadOnly =
     !isEdit && !('isManual' in selectedItem)

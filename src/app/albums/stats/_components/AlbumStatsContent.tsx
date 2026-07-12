@@ -30,6 +30,7 @@ import {
   filterGearHistoryByPeriod,
   filterHistoryByPeriod,
   formatPeriodLabel,
+  formatStatsMonthOptionLabel,
   getRollingSevenDayRange,
   getDefaultListenPeriodFilter,
   LISTEN_RANKING_LIMIT,
@@ -41,6 +42,7 @@ import {
   type GearListenHistoryRow,
   type GearSummary,
   type ListenPeriodFilter,
+  type ListenPeriodMonth,
 } from '../albumListenStats';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
@@ -633,7 +635,7 @@ export function AlbumStatsContent() {
     setPeriodFilter((prev) => clampListenPeriodFilter({ ...prev, year }));
   };
 
-  const handleMonthChange = (month: number | 'all') => {
+  const handleMonthChange = (month: ListenPeriodMonth) => {
     setPeriodFilter((prev) => clampListenPeriodFilter({ ...prev, month }));
   };
 
@@ -801,14 +803,14 @@ export function AlbumStatsContent() {
                   <span className="shrink-0 text-xs font-semibold opacity-60">월</span>
                   {monthOptions.map((month) => (
                     <button
-                      key={month === 'all' ? 'all' : month}
+                      key={String(month)}
                       type="button"
                       onClick={() => handleMonthChange(month)}
                       className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
                       style={filterToggleStyle(periodFilter.month === month)}
                       aria-pressed={periodFilter.month === month}
                     >
-                      {month === 'all' ? '전체' : `${month}월`}
+                      {formatStatsMonthOptionLabel(month)}
                     </button>
                   ))}
                 </div>
