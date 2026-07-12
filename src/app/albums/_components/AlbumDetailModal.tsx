@@ -56,7 +56,7 @@ const TAB_ITEMS: { id: DetailTab; label: string }[] = [
 ];
 
 function tabButtonClass(active: boolean): string {
-  return `inline-flex items-center gap-1.5 border-b-2 px-1 pb-3 text-sm transition-colors ${
+  return `inline-flex shrink-0 items-center gap-1 whitespace-nowrap border-b-2 px-0.5 pb-3 text-xs transition-colors sm:gap-1.5 sm:px-1 sm:text-sm ${
     active
       ? 'border-[var(--foreground)] font-semibold opacity-100'
       : 'border-transparent opacity-60 hover:opacity-90'
@@ -217,8 +217,8 @@ export function AlbumDetailModal({
           <AlbumInfoHeroSection viewingItem={viewingItem} />
 
           <div className="mt-4 shrink-0 border-b px-6" style={{ borderColor: 'var(--border)' }}>
-            <div className="-mb-px flex items-center justify-between gap-2">
-              <div className="flex min-w-0 gap-4">
+            <div className="-mb-px flex items-center justify-between gap-1.5 sm:gap-2">
+              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto scrollbar-hide sm:gap-4">
                 {TAB_ITEMS.map((tab) => (
                   <button
                     key={tab.id}
@@ -229,7 +229,7 @@ export function AlbumDetailModal({
                   >
                     {tab.label}
                     {tab.id === 'listen' && listenHistoryCount > 0 ? (
-                      <span className="badge-apple inline-flex h-[18px] min-w-[18px] items-center justify-center px-1.5 text-[10px] font-semibold tabular-nums leading-none">
+                      <span className="badge-apple inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-1.5 text-[10px] font-semibold tabular-nums leading-none">
                         {listenHistoryCount}
                       </span>
                     ) : null}

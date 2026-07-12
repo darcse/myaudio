@@ -48,7 +48,7 @@ const modalActionIconClass =
   'flex size-8 shrink-0 items-center justify-center rounded-lg transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40';
 
 function tabButtonClass(active: boolean): string {
-  return `border-b-2 px-1 pb-3 text-sm transition-colors ${
+  return `inline-flex shrink-0 items-center whitespace-nowrap border-b-2 px-0.5 pb-3 text-xs transition-colors sm:px-1 sm:text-sm ${
     active
       ? 'border-[var(--foreground)] font-semibold opacity-100'
       : 'border-transparent opacity-60 hover:opacity-90'
@@ -214,8 +214,8 @@ export function HeadfiDetailModal({
           <HeadfiInfoHeroSection viewingItem={viewingItem} />
 
           <div className="mt-4 shrink-0 border-b px-6" style={{ borderColor: 'var(--border)' }}>
-            <div className="-mb-px flex items-center justify-between gap-2">
-              <div className="flex min-w-0 gap-4">
+            <div className="-mb-px flex items-center justify-between gap-1.5 sm:gap-2">
+              <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto scrollbar-hide sm:gap-4">
                 {tabItems.map((tab) => (
                   <button
                     key={tab.id}

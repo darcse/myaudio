@@ -35,7 +35,17 @@ export function DashboardMonthlyListenCarousel({
         manualPauseUntilRef.current = Date.now() + MANUAL_PAUSE_MS;
       }
       const next = Math.max(0, Math.min(items.length - 1, index));
-      slideRefs.current[next]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const root = scrollRef.current;
+      const slide = slideRefs.current[next];
+      if (root && slide) {
+        const rootRect = root.getBoundingClientRect();
+        const slideRect = slide.getBoundingClientRect();
+        const nextLeft =
+          root.scrollLeft +
+          (slideRect.left - rootRect.left) -
+          (rootRect.width - slideRect.width) / 2;
+        root.scrollTo({ left: Math.max(0, nextLeft), behavior: 'smooth' });
+      }
       activeIndexRef.current = next;
       setActiveIndex(next);
     },
@@ -64,13 +74,11 @@ export function DashboardMonthlyListenCarousel({
 
       const current = activeIndexRef.current;
       const next = current >= items.length - 1 ? 0 : current + 1;
-      slideRefs.current[next]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      activeIndexRef.current = next;
-      setActiveIndex(next);
+      scrollToIndex(next);
     }, AUTO_SLIDE_INTERVAL_MS);
 
     return () => window.clearInterval(id);
-  }, [canAutoSlide, items.length]);
+  }, [canAutoSlide, items.length, scrollToIndex]);
 
   useEffect(() => {
     const root = scrollRef.current;

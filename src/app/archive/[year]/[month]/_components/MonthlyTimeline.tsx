@@ -53,6 +53,7 @@ export type ListenAlbumCard = {
   impression: string | null;
   album: Album;
   dac_amp?: ListenGearSummary | null;
+  dac_amp2?: ListenGearSummary | null;
   headphone?: ListenGearSummary | null;
 };
 
@@ -281,6 +282,10 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       const name = `${row.dac_amp.brand} ${row.dac_amp.model}`.trim() || '—';
       parts.push({ id: row.dac_amp.id, name });
     }
+    if (row.dac_amp2) {
+      const name = `${row.dac_amp2.brand} ${row.dac_amp2.model}`.trim() || '—';
+      parts.push({ id: row.dac_amp2.id, name });
+    }
     if (row.headphone) {
       const name = `${row.headphone.brand} ${row.headphone.model}`.trim() || '—';
       parts.push({ id: row.headphone.id, name });
@@ -416,6 +421,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       prev.map((row) => ({
         ...row,
         dac_amp: row.dac_amp?.id === updated.id ? summary : row.dac_amp,
+        dac_amp2: row.dac_amp2?.id === updated.id ? summary : row.dac_amp2,
         headphone: row.headphone?.id === updated.id ? summary : row.headphone,
       })),
     );

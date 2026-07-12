@@ -30,7 +30,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
   const endExclusive = `${m === 12 ? y + 1 : y}-${pad(m === 12 ? 1 : m + 1)}-01`;
   const { data: histRows } = await supabase
     .from('album_listen_history')
-    .select('id, listened_at, impression, album_id, dac_amp_id, headphone_id')
+    .select('id, listened_at, impression, album_id, dac_amp_id, dac_amp2_id, headphone_id')
     .gte('listened_at', start)
     .lt('listened_at', endExclusive)
     .order('listened_at', { ascending: false });
@@ -41,8 +41,10 @@ export default async function ArchiveMonthPage({ params }: Props) {
     const gearIds = new Set<number>();
     for (const r of list) {
       const dacId = r.dac_amp_id as number | null;
+      const dac2Id = r.dac_amp2_id as number | null;
       const hpId = r.headphone_id as number | null;
       if (dacId != null) gearIds.add(dacId);
+      if (dac2Id != null) gearIds.add(dac2Id);
       if (hpId != null) gearIds.add(hpId);
     }
     const gearMap = new Map<number, { id: number; brand: string; model: string }>();
@@ -70,6 +72,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
           if (!listenId) return [];
           const imp = r.impression as string | null;
           const dacId = r.dac_amp_id as number | null;
+          const dac2Id = r.dac_amp2_id as number | null;
           const hpId = r.headphone_id as number | null;
           return [
             {
@@ -78,6 +81,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
               impression: typeof imp === 'string' && imp.trim() !== '' ? imp : null,
               album: al,
               dac_amp: dacId != null ? gearMap.get(dacId) ?? null : null,
+              dac_amp2: dac2Id != null ? gearMap.get(dac2Id) ?? null : null,
               headphone: hpId != null ? gearMap.get(hpId) ?? null : null,
             },
           ];

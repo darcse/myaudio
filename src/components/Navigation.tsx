@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, Home, Menu, PenLine, TrendingUp, X } from 'lucide-react';
+import { Home, Menu, RefreshCw, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -18,12 +18,10 @@ const navItems: NavItem[] = [
   { name: 'Archive', path: '/archive' },
 ];
 
-const externalLinks = [
-  { name: 'Home', href: 'https://sshlove.com', Icon: Home },
-  { name: 'Books', href: 'https://books.sshlove.com', Icon: BookOpen },
-  { name: 'PenLine', href: 'https://sshwrite.com', Icon: PenLine },
-  { name: 'My Stock', href: 'https://mystock-mu.vercel.app/stocks', Icon: TrendingUp },
-] as const;
+const iconButtonClass =
+  'inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-[var(--badge-bg)]';
+
+const HOME_EXTERNAL_HREF = 'https://sshlove.com';
 
 export function Navigation() {
   const pathname = usePathname();
@@ -49,6 +47,10 @@ export function Navigation() {
     router.push('/');
     router.refresh();
   }, [router]);
+
+  const handleReload = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   const getActive = useCallback(
     (path: string) =>
@@ -97,23 +99,27 @@ export function Navigation() {
 
             <div className="flex items-center gap-4 shrink-0">
               <div className="flex items-center gap-1.5">
-                {externalLinks.map(({ name, href, Icon }) => (
-                  <a
-                    key={name}
-                    href={href}
-                    target="_self"
-                    rel="noreferrer"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-[var(--badge-bg)]"
-                    style={{
-                      borderColor: 'var(--border)',
-                      color: 'var(--foreground)',
-                    }}
-                    aria-label={name}
-                    title={name}
-                  >
-                    <Icon size={16} strokeWidth={2} />
-                  </a>
-                ))}
+                <button
+                  type="button"
+                  onClick={handleReload}
+                  className={iconButtonClass}
+                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  aria-label="새로고침"
+                  title="새로고침"
+                >
+                  <RefreshCw size={16} strokeWidth={2} />
+                </button>
+                <a
+                  href={HOME_EXTERNAL_HREF}
+                  target="_self"
+                  rel="noreferrer"
+                  className={iconButtonClass}
+                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  aria-label="Home"
+                  title="Home"
+                >
+                  <Home size={16} strokeWidth={2} />
+                </a>
               </div>
 
               <ThemeToggle />
@@ -270,21 +276,31 @@ export function Navigation() {
                     외부 앱
                   </p>
                   <div className="px-3 flex items-center gap-2 flex-wrap">
-                    {externalLinks.map(({ name, href, Icon }) => (
-                      <a
-                        key={name}
-                        href={href}
-                        target="_self"
-                        rel="noreferrer"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors hover:bg-[var(--badge-bg)]"
-                        style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                        aria-label={name}
-                        title={name}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Icon size={16} strokeWidth={2} />
-                      </a>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleReload();
+                      }}
+                      className={iconButtonClass}
+                      style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                      aria-label="새로고침"
+                      title="새로고침"
+                    >
+                      <RefreshCw size={16} strokeWidth={2} />
+                    </button>
+                    <a
+                      href={HOME_EXTERNAL_HREF}
+                      target="_self"
+                      rel="noreferrer"
+                      className={iconButtonClass}
+                      style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                      aria-label="Home"
+                      title="Home"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Home size={16} strokeWidth={2} />
+                    </a>
                   </div>
                 </div>
               </div>
