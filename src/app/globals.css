@@ -14,6 +14,8 @@
   --link: #005bc1;
   --lyrics-row-accent: #5c2f36;
   --favorite-heart: #b91c1c;
+  --match-score-gray-strong: color-mix(in srgb, #5c6370 58%, var(--card-bg));
+  --match-score-gray-soft: color-mix(in srgb, #9aa0a8 28%, var(--card-bg));
 }
 
 @theme inline {
@@ -39,6 +41,8 @@
     --link: #2997ff;
     --lyrics-row-accent: #b8a0a6;
     --favorite-heart: #f87171;
+    --match-score-gray-strong: color-mix(in srgb, #000000 42%, var(--card-bg));
+    --match-score-gray-soft: color-mix(in srgb, #d1d1d6 46%, var(--card-bg));
   }
 }
 
@@ -55,6 +59,8 @@
   --link: #005bc1;
   --lyrics-row-accent: #5c2f36;
   --favorite-heart: #b91c1c;
+  --match-score-gray-strong: color-mix(in srgb, #5c6370 58%, var(--card-bg));
+  --match-score-gray-soft: color-mix(in srgb, #9aa0a8 28%, var(--card-bg));
 }
 
 :root.theme-dark {
@@ -69,6 +75,8 @@
   --link: #2997ff;
   --lyrics-row-accent: #b8a0a6;
   --favorite-heart: #f87171;
+  --match-score-gray-strong: color-mix(in srgb, #000000 42%, var(--card-bg));
+  --match-score-gray-soft: color-mix(in srgb, #d1d1d6 46%, var(--card-bg));
 }
 
 body {

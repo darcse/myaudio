@@ -94,16 +94,19 @@ function findCacheEntry(cache: CacheRow[], dacId: number, hpId: number): CacheRo
 }
 
 function scoreCellBackground(total: number): string {
+  if (total >= 285) {
+    return 'color-mix(in srgb, #22a06b 62%, var(--card-bg))';
+  }
   if (total >= 270) {
     return 'color-mix(in srgb, #e5a100 62%, var(--card-bg))';
   }
   if (total >= 240) {
-    return 'color-mix(in srgb, var(--link) 50%, var(--card-bg))';
+    return 'color-mix(in srgb, #5bb8e8 55%, var(--card-bg))';
   }
-  if (total >= 200) {
-    return 'color-mix(in srgb, var(--link) 42%, var(--card-bg))';
+  if (total >= 210) {
+    return 'var(--match-score-gray-strong)';
   }
-  return 'color-mix(in srgb, var(--link) 22%, var(--card-bg))';
+  return 'var(--match-score-gray-soft)';
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {
