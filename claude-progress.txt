@@ -278,6 +278,7 @@
 [2026-07-09] [Cursor] feat: ALBUM-023 대시보드 이번 달 청취 캐러셀 오토슬라이드 추가 | passes: 변경 없음
 [2026-07-09] [Cursor] style: ALBUM-023 이번 달 청취 캐러셀 오토슬라이드 간격 3초로 조정 | passes: 변경 없음
 [2026-07-10] [Cursor] fix: BUG-008 신규 앨범 intro·무드 분류를 saveAlbumToDB 서버 after()로 이동 | passes: 변경 없음
+[2026-07-16] [Cursor] fix: 청취 통계 최다 청취 기기 헤드파이 모달 등록 앨범 미표시 | passes: 변경 없음
 [2026-07-12] [Cursor] style: GNB 외부앱 3개 제거·새로고침 버튼 추가 (location.reload) | passes: 변경 없음
 [2026-07-12] [Cursor] fix: 대시보드 캐러셀 오토슬라이드 시 페이지 스크롤 점프 방지 | passes: 변경 없음
 [2026-07-12] [Cursor] feat: ALBUM-024 음감 다이어리 페이지·날짜 그룹핑·청취기록 수정/삭제 | passes: 변경 없음

@@ -217,6 +217,9 @@ export function AlbumStatsContent() {
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
+  const [registeredAlbums, setRegisteredAlbums] = useState<
+    { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
+  >([]);
   const [matchedMatchingDevice, setMatchedMatchingDevice] = useState<{
     id: number;
     brand: string;
@@ -488,6 +491,25 @@ export function AlbumStatsContent() {
     }
     setViewingHeadfi(data as Headfi);
   }, []);
+
+  useEffect(() => {
+    if (!viewingHeadfi?.id) {
+      setRegisteredAlbums([]);
+      return;
+    }
+    const id = viewingHeadfi.id;
+    void createClient()
+      .from('album')
+      .select('id, album_name, artist, cover_image_url, release_date')
+      .contains('manual_recommended_headphone_ids', [id])
+      .then(({ data }) => {
+        const rows = data || [];
+        rows.sort(
+          (a, b) => new Date(b.release_date || 0).getTime() - new Date(a.release_date || 0).getTime(),
+        );
+        setRegisteredAlbums(rows);
+      });
+  }, [viewingHeadfi?.id]);
 
   useEffect(() => {
     if (
@@ -969,7 +991,7 @@ export function AlbumStatsContent() {
       {viewingHeadfi ? (
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
-          registeredAlbums={[]}
+          registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
