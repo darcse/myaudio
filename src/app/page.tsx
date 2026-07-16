@@ -64,8 +64,8 @@ export default async function Home() {
         .limit(5),
       supabase
         .from('headfi')
-        .select('id,brand,model,image_url,created_at')
-        .order('created_at', { ascending: false })
+        .select('id,brand,model,image_url,purchase_date')
+        .order('purchase_date', { ascending: false, nullsFirst: false })
         .limit(5),
     ]);
 

@@ -713,13 +713,13 @@ export function DashboardContent({
 
       <div className="card-apple mb-8 flex flex-col p-5">
         <div className="mb-5 flex items-center justify-between pt-0.5">
-          <h3 className="text-[15px] font-semibold">최근 등록 기기</h3>
+          <h3 className="text-[15px] font-semibold">최근 구매 기기</h3>
           <Link href="/headfi" className="link-apple text-sm">
             더보기 &rarr;
           </Link>
         </div>
         {recentHeadfi.length === 0 ? (
-          <p className="py-6 text-center text-sm opacity-60">등록된 기기가 없습니다.</p>
+          <p className="py-6 text-center text-sm opacity-60">구매한 기기가 없습니다.</p>
         ) : (
           <div className={recentGridClass}>
             {recentHeadfi.map((headfi) => (
