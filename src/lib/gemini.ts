@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { HeadfiFrInterpretation } from '@/app/headfi/types';
+import {
+  extractJsonArrayFromText,
+  extractJsonObjectFromText,
+  withRetry,
+} from '@/lib/aiRetry';
 import {
   buildAlbumIdCatalog,
   isUuidLike,
@@ -11,49 +15,10 @@ import {
 import { stripHeadphoneIdSuffixes } from '@/lib/utils';
 
 export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRefs';
+export type { HeadfiSoundScores } from '@/lib/headfiSoundScores';
+export { buildHeadfiSoundScoresPromptBlock, headfiHasSoundScores } from '@/lib/headfiSoundScores';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error: unknown) {
-      const err = error as { status?: number; message?: string };
-      const message = err?.message ?? '';
-      const is429 =
-        err?.status === 429 || message.includes('429') || message.includes('Too Many Requests');
-      const is503 =
-        err?.status === 503 || message.includes('503') || message.includes('Service Unavailable');
-      if (is429 && i < retries - 1) {
-        const retryDelayMatch = message.match(/retry in (\d+)s/i);
-        const waitMs = retryDelayMatch ? parseInt(retryDelayMatch[1], 10) * 1000 + 1000 : 60000;
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
-        continue;
-      }
-      if (is503 && i < retries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
-function extractJsonObjectFromGeminiText(text: string): string | null {
-  const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-  if (fenced?.[1]) return fenced[1];
-  const brace = text.match(/\{[\s\S]*\}/);
-  return brace ? brace[0] : null;
-}
-
-function extractJsonArrayFromGeminiText(text: string): string | null {
-  const fenced = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
-  if (fenced?.[1]) return fenced[1];
-  const bracket = text.match(/\[[\s\S]*\]/);
-  return bracket ? bracket[0] : null;
-}
 
 export async function analyzeMusicTaste(albums: {
   genre1: string | null;
@@ -93,7 +58,7 @@ ${albumSummary}
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     return JSON.parse(jsonRaw) as unknown;
   } catch {
@@ -146,7 +111,7 @@ album_intro 작성 시 반드시 지킬 것:
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { audio_tags?: unknown; album_intro?: unknown };
     const tags = Array.isArray(parsed.audio_tags)
@@ -208,7 +173,7 @@ async function requestArtistBio(
   const prompt = buildArtistBioPrompt(artist, strictKorean);
   const result = await withRetry(() => model.generateContent(prompt));
   const text = result.response.text();
-  const jsonRaw = extractJsonObjectFromGeminiText(text);
+  const jsonRaw = extractJsonObjectFromText(text);
   if (!jsonRaw) return null;
   const parsed = JSON.parse(jsonRaw) as { bio?: unknown };
   let bio = typeof parsed.bio === 'string' ? parsed.bio.trim() : '';
@@ -311,7 +276,7 @@ reason 작성 시 헤드폰은 "브랜드 모델명" 형식으로만 언급하�
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as {
       album_id?: unknown;
@@ -332,50 +297,6 @@ reason 작성 시 헤드폰은 "브랜드 모델명" 형식으로만 언급하�
   }
 }
 
-export async function interpretHeadfiFrGraphFromImageBuffer(
-  buffer: Buffer,
-  mimeType: string
-): Promise<HeadfiFrInterpretation | null> {
-  const base64 = buffer.toString('base64');
-
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' });
-  const prompt = `
-이 이미지는 헤드폰/이어폰 주파수 응답(FR) 측정 그래프일 수 있다.
-그래프가 아니거나 판단할 수 없으면 아래 JSON에서 네 필드 모두 "이 이미지에서는 주파수 응답 그래프를 확인하기 어렵습니다." 정도로 짧게 적어.
-
-반드시 아래 JSON 형식으로만 답변해. 다른 텍스트는 절대 포함하지 마.
-모든 문장은 한국어로만.
-
-{
-  "bass": "저음 대역 특성 (1~2문장)",
-  "mid": "중음 대역 특성 (1~2문장)",
-  "treble": "고음 대역 특성 (1~2문장)",
-  "summary": "전체 성향 요약 (2~3문장)"
-}
-  `;
-
-  try {
-    const result = await withRetry(() =>
-      model.generateContent([
-        { inlineData: { mimeType, data: base64 } },
-        { text: prompt },
-      ]),
-    );
-    const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
-    if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as Record<string, unknown>;
-    const bass = typeof parsed.bass === 'string' ? parsed.bass.trim() : '';
-    const mid = typeof parsed.mid === 'string' ? parsed.mid.trim() : '';
-    const treble = typeof parsed.treble === 'string' ? parsed.treble.trim() : '';
-    const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
-    if (!bass && !mid && !treble && !summary) return null;
-    return { bass, mid, treble, summary };
-  } catch (error) {
-    console.error('Gemini FR 그래프 해석 실패:', error);
-    return null;
-  }
-}
 
 export async function recommendHeadfiListeningGenres(headphone: {
   brand: string;
@@ -402,7 +323,7 @@ recommended_genres는 1개 이상, 최대 4개 배열. 항목은 모두 한국�
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { recommended_genres?: unknown };
     const arr = Array.isArray(parsed.recommended_genres)
@@ -450,7 +371,7 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { colors?: unknown; emoji?: unknown };
     if (!Array.isArray(parsed.colors) || parsed.colors.length < 2) return null;
@@ -630,7 +551,7 @@ JSON만 응답:
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { headphone_ids?: unknown; reason?: unknown };
     const validIds = new Set(headphones.map((h) => h.id));
@@ -654,200 +575,6 @@ JSON만 응답:
     if (headphoneIds.length === 0 || !reason) return null;
     if (headphones.length >= 2 && headphoneIds.length < 2) return null;
     return { headphone_ids: headphoneIds, reason };
-  } catch {
-    return null;
-  }
-}
-
-export async function recommendHeadfiAlbums(
-  headfi: {
-    brand: string;
-    model: string;
-    temp: string;
-    recommended_genres: string;
-    sound_scores_block?: string | null;
-    ai_sound_analysis?: string | null;
-    fr_interpretation_block?: string | null;
-  },
-  albums: {
-    id: number;
-    artist: string | null;
-    album_name?: string | null;
-    genre1: string | null;
-    genre2: string | null;
-    audio_tags: string[] | null;
-  }[],
-): Promise<{ album_ids: number[]; reason: string } | null> {
-  if (albums.length === 0) return null;
-
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
-
-  const list = albums
-    .map((a) => {
-      const tags = Array.isArray(a.audio_tags) ? a.audio_tags.join(', ') : '';
-      return `${a.id}|${a.artist || ''}|${a.album_name || ''}|${a.genre1 || ''}|${a.genre2 || ''}|${tags}`;
-    })
-    .join('\n');
-
-  const soundScoresBlock = headfi.sound_scores_block?.trim()
-    ? `\n${headfi.sound_scores_block.trim()}\n`
-    : '';
-  const soundAnalysis = headfi.ai_sound_analysis?.trim() || '';
-  const analysisBlock = soundAnalysis ? `\n[청음 평가 AI 분석] ${soundAnalysis}\n` : '';
-  const frBlock = headfi.fr_interpretation_block?.trim()
-    ? `\n[FR 그래프 분석] ${headfi.fr_interpretation_block.trim()}\n`
-    : '';
-  const hasListeningContext = Boolean(soundScoresBlock || analysisBlock || frBlock);
-  const recommendInstruction = hasListeningContext
-    ? `위 청음 평가 점수·AI 분석·FR 그래프 분석(있는 항목)을 근거로 삼아, 이 기기로 들었을 때 가장 잘 어울리는 
-앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`
-    : `이 기기로 들었을 때 가장 잘 어울리는 앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`;
-
-  const prompt = `너는 헤드파이 전문가이자 음악 큐레이터야.
-[기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres}${soundScoresBlock}${analysisBlock}${frBlock}
-[보유 앨범 목록] id|artist|album_name|genre1|genre2|audio_tags
-${list}
-
-${recommendInstruction}
-album_ids에는 위 목록에 있는 id 숫자만 사용해.
-
-추천 이유(reason) 작성 시 절대 규칙:
-- album_id 숫자를 텍스트에 언급하지 마
-- 반드시 실제 앨범명으로 지칭해 (예: "339번은" → "Clover는")
-- 앨범 목록에 제공된 artist, album_name을 활용해 이름으로 서술
-
-JSON만 응답: {"album_ids":[1,2,3],"reason":"근거 포함 2~3줄 소개"}`;
-
-  try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
-    if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as { album_ids?: unknown; reason?: unknown };
-    const validIds = new Set(albums.map((a) => a.id));
-    let rawIds: unknown[] = [];
-    if (Array.isArray(parsed.album_ids)) {
-      rawIds = parsed.album_ids;
-    } else if (typeof parsed.album_ids === 'number') {
-      rawIds = [parsed.album_ids];
-    }
-    const seen = new Set<number>();
-    const albumIds: number[] = [];
-    for (const item of rawIds) {
-      const id = typeof item === 'number' ? item : parseInt(String(item), 10);
-      if (!Number.isFinite(id) || !validIds.has(id) || seen.has(id)) continue;
-      seen.add(id);
-      albumIds.push(id);
-      if (albumIds.length >= 3) break;
-    }
-    const reasonRaw = typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
-    const reason = stripHeadphoneIdSuffixes(reasonRaw);
-    if (albumIds.length === 0 || !reason) return null;
-    if (albums.length >= 3 && albumIds.length < 3) return null;
-    return { album_ids: albumIds, reason };
-  } catch {
-    return null;
-  }
-}
-
-export type HeadfiSoundScores = {
-  brand: string;
-  model: string;
-  category: string;
-  bass_quantity: number | null | undefined;
-  bass_depth: number | null | undefined;
-  bass_speed: number | null | undefined;
-  dynamics_slam: number | null | undefined;
-  midrange_body: number | null | undefined;
-  tone_warmth: number | null | undefined;
-  vocal_position: number | null | undefined;
-  midrange_clarity: number | null | undefined;
-  treble_brightness: number | null | undefined;
-  treble_smoothness: number | null | undefined;
-  treble_airiness: number | null | undefined;
-  resolution: number | null | undefined;
-  separation: number | null | undefined;
-  soundstage: number | null | undefined;
-  imaging: number | null | undefined;
-  timbre: number | null | undefined;
-};
-
-function formatSoundScore(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(Number(value))) return '-';
-  return String(value);
-}
-
-export function buildHeadfiSoundScoresPromptBlock(headfi: HeadfiSoundScores): string | null {
-  if (!headfiHasSoundScores(headfi)) return null;
-  return `[청음 평가 점수 (10점 만점)]
-저역 - 양감:${formatSoundScore(headfi.bass_quantity)} 깊이:${formatSoundScore(headfi.bass_depth)} 속도:${formatSoundScore(headfi.bass_speed)}
-중역 - 다이내믹스:${formatSoundScore(headfi.dynamics_slam)} 두께감:${formatSoundScore(headfi.midrange_body)} 온기:${formatSoundScore(headfi.tone_warmth)} 보컬위치:${formatSoundScore(headfi.vocal_position)} 명료도:${formatSoundScore(headfi.midrange_clarity)}
-고역 - 밝기:${formatSoundScore(headfi.treble_brightness)} 부드러움:${formatSoundScore(headfi.treble_smoothness)} 공기감:${formatSoundScore(headfi.treble_airiness)}
-기술 - 해상력:${formatSoundScore(headfi.resolution)} 분리도:${formatSoundScore(headfi.separation)} 음장:${formatSoundScore(headfi.soundstage)} 이미징:${formatSoundScore(headfi.imaging)} 음색:${formatSoundScore(headfi.timbre)}`;
-}
-
-export function headfiHasSoundScores(scores: HeadfiSoundScores): boolean {
-  const values = [
-    scores.bass_quantity,
-    scores.bass_depth,
-    scores.bass_speed,
-    scores.dynamics_slam,
-    scores.midrange_body,
-    scores.tone_warmth,
-    scores.vocal_position,
-    scores.midrange_clarity,
-    scores.treble_brightness,
-    scores.treble_smoothness,
-    scores.treble_airiness,
-    scores.resolution,
-    scores.separation,
-    scores.soundstage,
-    scores.imaging,
-    scores.timbre,
-  ];
-  return values.some((v) => v != null && Number(v) > 0);
-}
-
-export async function analyzeHeadfiSound(
-  headfi: HeadfiSoundScores,
-): Promise<{ analysis: string } | null> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3.1-flash-lite',
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
-  const prompt = `너는 헤드파이 전문 리뷰어야. 아래 기기의 청음 평가 점수와 실제 리뷰/측정 데이터를 종합해 
-이 기기의 음색 성향을 상세하게 분석해줘.
-
-[기기] ${headfi.brand} ${headfi.model} | 카테고리: ${headfi.category}
-
-[청음 평가 점수 (10점 만점)]
-저역 - 양감:${formatSoundScore(headfi.bass_quantity)} 깊이:${formatSoundScore(headfi.bass_depth)} 속도:${formatSoundScore(headfi.bass_speed)}
-중역 - 다이내믹스:${formatSoundScore(headfi.dynamics_slam)} 두께감:${formatSoundScore(headfi.midrange_body)} 온기:${formatSoundScore(headfi.tone_warmth)} 보컬위치:${formatSoundScore(headfi.vocal_position)} 명료도:${formatSoundScore(headfi.midrange_clarity)}
-고역 - 밝기:${formatSoundScore(headfi.treble_brightness)} 부드러움:${formatSoundScore(headfi.treble_smoothness)} 공기감:${formatSoundScore(headfi.treble_airiness)}
-기술 - 해상력:${formatSoundScore(headfi.resolution)} 분리도:${formatSoundScore(headfi.separation)} 음장:${formatSoundScore(headfi.soundstage)} 이미징:${formatSoundScore(headfi.imaging)} 음색:${formatSoundScore(headfi.timbre)}
-
-실제 이 모델에 대한 전문 리뷰나 측정 데이터를 검색해서 참고하고, 
-위 점수 패턴과 비교해 다음을 포함한 분석을 작성해줘:
-- 전반적인 음색 성향 (예: 따뜻하고 부드러운, 분석적이고 정교한 등)
-- 저역/중역/고역 밸런스 특징과 그 근거
-- 이 기기가 가장 빛을 발하는 음악적 상황 (장르, 보컬/악기 중심 등)
-- 실측 데이터와 청음 평가 점수가 일치하는지, 다르다면 어떻게 다른지
-
-4~6줄 분량으로 구체적이고 전문적으로 작성. 평이한 설명 금지, 근거 기반 서술.
-
-JSON만 응답:
-{"analysis":"분석 텍스트"}`;
-
-  try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
-    if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as { analysis?: unknown };
-    const analysis = typeof parsed.analysis === 'string' ? parsed.analysis.trim() : '';
-    if (!analysis) return null;
-    return { analysis };
   } catch {
     return null;
   }
@@ -906,7 +633,7 @@ ${albumList}`;
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonArrayFromGeminiText(text);
+    const jsonRaw = extractJsonArrayFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as unknown;
     if (!Array.isArray(parsed)) return null;
@@ -921,117 +648,6 @@ ${albumList}`;
       if (out.some((o) => o.album_id === albumId)) continue;
       out.push({ album_id: albumId, reason });
       if (out.length >= 5) break;
-    }
-    return out.length > 0 ? out : null;
-  } catch {
-    return null;
-  }
-}
-
-export type HeadfiMatchScoreResult = {
-  gear_id: number;
-  drive: number;
-  synergy: number;
-  genre: number;
-  comment: string;
-};
-
-export async function analyzeHeadfiMatchScore(
-  base: {
-    name: string;
-    temp: string;
-    genres: string;
-    drive_grade?: string;
-    rk?: string;
-    vrms32?: string;
-    vrms300?: string;
-    chipset?: string;
-    sound_scores_block?: string | null;
-    ai_sound_analysis?: string | null;
-    fr_interpretation_block?: string | null;
-  },
-  candidateLines: string[],
-  validGearIds: number[],
-  candidateContext?: string | null,
-): Promise<HeadfiMatchScoreResult[] | null> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3.1-flash-lite',
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-  const list = candidateLines.join('\n');
-  const dacBaseSpecs =
-    base.drive_grade != null
-      ? ` | 구동방식/등급:${base.drive_grade} | Chipset:${base.chipset ?? '-'} | 정합임피던스(Rk):${base.rk ?? '-'} | Vrms@32Ω:${base.vrms32 ?? '-'} | Vrms@300Ω:${base.vrms300 ?? '-'}`
-      : '';
-  const baseListeningBlocks = [
-    base.sound_scores_block?.trim() ? `\n${base.sound_scores_block.trim()}\n` : '',
-    base.ai_sound_analysis?.trim() ? `\n[청음 평가 AI 분석] ${base.ai_sound_analysis.trim()}\n` : '',
-    base.fr_interpretation_block?.trim()
-      ? `\n[FR 그래프 분석] ${base.fr_interpretation_block.trim()}\n`
-      : '',
-  ].join('');
-  const candidateSection = candidateContext?.trim()
-    ? `\n${candidateContext.trim()}\n`
-    : '';
-  const hasHpListeningContext = Boolean(baseListeningBlocks || candidateSection);
-  const prompt = `너는 헤드파이 전문 리뷰어이자 오디오 엔지니어야.
-실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
-
-[기준 기기] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
-[후보 기기 목록]
-id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역
-${list}
-
-각 후보 기기와의 조합을 아래 기준으로 100점 만점 평가:
-- drive: 해당 DAC/AMP/DAP가 헤드폰을 충분히 구동할 수 있는지 (정합 임피던스 Rk, Vrms@32Ω·Vrms@300Ω, 헤드폰 임피던스·감도 매칭)
-- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지 (청음 평가 점수·AI 분석·FR 분석이 있으면 반드시 참고)
-- genre: 조합이 특정 장르에서 강점을 보이는지
-
-평가 시 주의사항:
-- 정합 임피던스(Rk), Vrms@32Ω, Vrms@300Ω, 헤드폰 임피던스/감도 수치를 반드시 고려해서 drive 점수 산정 (값이 '-'이면 해당 항목 없이 판단)
-- 헤드폰/이어폰의 청음 평가 점수·AI 분석·FR 그래프 분석${hasHpListeningContext ? '을 위 컨텍스트에서' : '이 있으면'} synergy·genre 판단에 반영
-- 음색이 겹치면 synergy 낮게, 상호 보완이면 높게
-- 실제 측정/리뷰 데이터 검색 후 반영
-
-각 기기에 대해 구체적 근거와 함께 2~3줄 총평 작성.
-
-JSON만 응답:
-[{"gear_id":1,"drive":85,"synergy":90,"genre":80,"comment":"구체적 근거 포함 2~3줄 총평"}]`;
-
-  try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
-    const jsonRaw = extractJsonArrayFromGeminiText(text);
-    if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as unknown;
-    if (!Array.isArray(parsed)) return null;
-    const validIds = new Set(validGearIds);
-    const out: HeadfiMatchScoreResult[] = [];
-    for (const item of parsed) {
-      if (!item || typeof item !== 'object') continue;
-      const row = item as {
-        gear_id?: unknown;
-        drive?: unknown;
-        synergy?: unknown;
-        genre?: unknown;
-        comment?: unknown;
-      };
-      const gearId = typeof row.gear_id === 'number' ? row.gear_id : null;
-      const drive = typeof row.drive === 'number' ? row.drive : null;
-      const synergy = typeof row.synergy === 'number' ? row.synergy : null;
-      const genre = typeof row.genre === 'number' ? row.genre : null;
-      const comment = typeof row.comment === 'string' ? row.comment.trim() : '';
-      if (gearId == null || !validIds.has(gearId) || drive == null || synergy == null || genre == null) {
-        continue;
-      }
-      if (out.some((o) => o.gear_id === gearId)) continue;
-      out.push({
-        gear_id: gearId,
-        drive: Math.min(100, Math.max(0, Math.round(drive))),
-        synergy: Math.min(100, Math.max(0, Math.round(synergy))),
-        genre: Math.min(100, Math.max(0, Math.round(genre))),
-        comment: comment || '-',
-      });
     }
     return out.length > 0 ? out : null;
   } catch {
@@ -1112,7 +728,7 @@ JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향
   try {
     const result = await withRetry(() => model.generateContent(prompt));
     const text = result.response.text();
-    const jsonRaw = extractJsonObjectFromGeminiText(text);
+    const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { x?: unknown; y?: unknown; label?: unknown };
     const x = typeof parsed.x === 'number' ? parsed.x : null;

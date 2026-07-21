@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeHeadfiSound, headfiHasSoundScores } from '@/lib/gemini';
+import { analyzeHeadfiSound } from '@/lib/anthropicHeadfi';
+import { headfiHasSoundScores } from '@/lib/headfiSoundScores';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {

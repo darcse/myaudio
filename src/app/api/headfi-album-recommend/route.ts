@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildHeadfiSoundScoresPromptBlock, recommendHeadfiAlbums } from '@/lib/gemini';
+import { recommendHeadfiAlbums } from '@/lib/anthropicHeadfi';
+import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
 import { formatFrInterpretationForPrompt, selectAlbumsForHeadfiMatch } from '@/lib/headfiAlbumMatch';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 

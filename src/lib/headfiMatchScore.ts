@@ -1,7 +1,7 @@
 import type { Headfi } from '@/app/headfi/types';
 import { formatVrms } from '@/app/headfi/dacAmpSpec';
 import { formatFrInterpretationForPrompt } from '@/lib/headfiAlbumMatch';
-import { buildHeadfiSoundScoresPromptBlock } from '@/lib/gemini';
+import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
 import { shuffleArray } from '@/lib/utils';
 
 export { parseFrInterpretationSummary } from '@/lib/headfiAlbumMatch';

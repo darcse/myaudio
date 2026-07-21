@@ -280,6 +280,7 @@
 [2026-07-10] [Cursor] fix: BUG-008 신규 앨범 intro·무드 분류를 saveAlbumToDB 서버 after()로 이동 | passes: 변경 없음
 [2026-07-16] [Cursor] fix: 청취 통계 최다 청취 기기 헤드파이 모달 등록 앨범 미표시 | passes: 변경 없음
 [2026-07-16] [Cursor] style: 대시보드 최근 등록 기기를 최근 구매 기기(구매일순)로 변경 | passes: 변경 없음
+[2026-07-21] [Cursor] feat: GEAR-026 매칭점수 OpenAI·FR/음색분석 Anthropic 모델 교체 | passes: 변경 없음
 [2026-07-12] [Cursor] style: GNB 외부앱 3개 제거·새로고침 버튼 추가 (location.reload) | passes: 변경 없음
 [2026-07-12] [Cursor] fix: 대시보드 캐러셀 오토슬라이드 시 페이지 스크롤 점프 방지 | passes: 변경 없음
 [2026-07-12] [Cursor] feat: ALBUM-024 음감 다이어리 페이지·날짜 그룹핑·청취기록 수정/삭제 | passes: 변경 없음
@@ -289,3 +290,12 @@
 [2026-07-12] [Cursor] style: 매칭맵 스코어 셀 색상 구간 재조정(285+/270/240/210) | passes: 변경 없음
 
 [2026-07-12] [Cursor] style: 매칭맵 회색 스코어 셀 다크모드 대비 강화 | passes: 변경 없음
+[2026-07-21] [Cursor] feat: GEAR-026 매칭점수 OpenAI·FR/음색분석 Anthropic 모델 교체 | passes: 변경 없음
+[2026-07-21] [Cursor] feat: GEAR-027 FR그래프 AI 해석 재분석 버튼 추가 | passes: 변경 없음
+[2026-07-21] [Cursor] style: 청음평가 AI 분석 로딩 문구 Gemini→AI 통일 | passes: 변경 없음
+[2026-07-21] [Cursor] feat: GEAR-026 recommendHeadfiAlbums Claude Sonnet 5 교체 | passes: 변경 없음
+[2026-07-21] [Cursor] style: 추천 앨범 로딩 문구 Gemini→AI 통일 | passes: 변경 없음
+[2026-07-21] [Cursor] feat: GEAR-026 recommendHeadfiAlbumMatch Claude Sonnet 5 교체 | passes: 변경 없음
+[2026-07-21] [Cursor] fix: 앨범매칭 Claude JSON 파싱 실패·에러 메시지 노출 수정 | passes: 변경 없음
+[2026-07-21] [Cursor] perf: Anthropic extended thinking 비활성·max_tokens·후보앨범 50 축소 | passes: 변경 없음
+[2026-07-21] [Cursor] revert: GEAR-026 recommendHeadfiAlbumMatch Gemini 원복 | passes: 변경 없음

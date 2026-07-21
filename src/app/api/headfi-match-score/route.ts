@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeHeadfiMatchScore } from '@/lib/gemini';
+import { analyzeHeadfiMatchScore } from '@/lib/openaiHeadfi';
 import {
   buildHeadphoneBaseListeningContext,
   buildHeadphoneListeningContextSections,

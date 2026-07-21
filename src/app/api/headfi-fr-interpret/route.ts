@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { interpretHeadfiFrGraphFromImageBuffer } from '@/lib/gemini';
+import { interpretHeadfiFrGraphFromImageBuffer } from '@/lib/anthropicHeadfi';
 import { fetchRemoteImageBytes } from '@/lib/headfi-fr-remote';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     if (!interpreted) {
       return NextResponse.json(
         {
-          error: 'GEMINI_FAILED',
+          error: 'AI_FAILED',
           message: 'AI 해석 단계에서 실패했습니다. 잠시 후 다시 시도해 주세요.',
         },
         { status: 500 },

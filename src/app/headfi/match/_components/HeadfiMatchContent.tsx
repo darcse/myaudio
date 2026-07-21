@@ -113,6 +113,7 @@ export function HeadfiMatchContent() {
   const [selectedDacAmpId, setSelectedDacAmpId] = useState<number | null>(null);
   const [selectedHeadphoneId, setSelectedHeadphoneId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recommendError, setRecommendError] = useState<string | null>(null);
   const [results, setResults] = useState<MatchResult[]>([]);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
@@ -179,6 +180,7 @@ export function HeadfiMatchContent() {
     if (!canRecommend || loading) return;
     setLoading(true);
     setResults([]);
+    setRecommendError(null);
     try {
       const res = await fetch('/api/headfi-album-match', {
         method: 'POST',
@@ -201,7 +203,9 @@ export function HeadfiMatchContent() {
       }
       setResults(list);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '추천에 실패했습니다.');
+      const message = e instanceof Error ? e.message : '추천에 실패했습니다.';
+      setRecommendError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -312,6 +316,7 @@ export function HeadfiMatchContent() {
                 onSelect={(id) => {
                   setSelectedDacAmpId(id);
                   setResults([]);
+                  setRecommendError(null);
                 }}
               />
               <DeviceSelectColumn
@@ -322,6 +327,7 @@ export function HeadfiMatchContent() {
                 onSelect={(id) => {
                   setSelectedHeadphoneId(id);
                   setResults([]);
+                  setRecommendError(null);
                 }}
               />
             </div>
@@ -342,6 +348,11 @@ export function HeadfiMatchContent() {
                 )}
               </button>
             </div>
+            {recommendError ? (
+              <p className="mt-4 text-center text-sm opacity-80" role="alert">
+                {recommendError}
+              </p>
+            ) : null}
           </div>
 
           {results.length > 0 ? (

@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
     const candidates = selectAlbumsForHeadfiMatch(
       albums,
       Array.isArray(hpRes.data.recommended_genres) ? hpRes.data.recommended_genres : [],
+      50,
     );
 
     const recommendations = await recommendHeadfiAlbumMatch(
@@ -132,8 +133,13 @@ export async function POST(req: NextRequest) {
       })
       .filter((r): r is NonNullable<typeof r> => r != null);
 
+    if (results.length === 0) {
+      return NextResponse.json({ error: '추천 앨범 정보를 불러오지 못했습니다.' }, { status: 500 });
+    }
+
     return NextResponse.json({ recommendations: results });
-  } catch {
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

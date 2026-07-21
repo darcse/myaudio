@@ -114,7 +114,7 @@ export function HeadfiMatchedAlbumsSection({
               }}
               aria-hidden
             />
-            <p className="text-xs opacity-70">Gemini가 추천 앨범을 분석 중이에요...</p>
+            <p className="text-xs opacity-70">AI가 추천 앨범을 선정하는 중…</p>
           </div>
         ) : aiReason ? (
           <p

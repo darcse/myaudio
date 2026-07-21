@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LineChart } from 'lucide-react';
+import { LineChart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Headfi, HeadfiFrInterpretation } from '../types';
 
@@ -85,13 +85,15 @@ export function HeadfiFrSection({
       }
       const interp = payload.fr_interpretation as HeadfiFrInterpretation;
       onHeadfiPatch({ id: viewingItem.id, fr_interpretation: JSON.stringify(interp) });
-      toast.success('AI 해석을 저장했습니다.');
+      toast.success(frInterpretParsed ? 'AI 해석을 갱신했습니다.' : 'AI 해석을 저장했습니다.');
     } catch {
       toast.error('AI 해석 요청 중 오류가 났습니다.');
     } finally {
       setFrInterpretLoading(false);
     }
   };
+
+  const showFrInterpretAction = isAuthenticated !== false && hasFrGraphUrl && onHeadfiPatch;
 
   if (!showFrSection) return null;
 
@@ -126,32 +128,50 @@ export function HeadfiFrSection({
         </div>
       ) : null}
       {frInterpretParsed ? (
-        <div
-          className="text-sm space-y-3 p-4 rounded-xl leading-relaxed"
-          style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-        >
-          <p>
-            <span className="font-semibold opacity-90">저음</span>{' '}
-            <span className="opacity-85">{frInterpretParsed.bass}</span>
-          </p>
-          <p>
-            <span className="font-semibold opacity-90">중음</span>{' '}
-            <span className="opacity-85">{frInterpretParsed.mid}</span>
-          </p>
-          <p>
-            <span className="font-semibold opacity-90">고음</span>{' '}
-            <span className="opacity-85">{frInterpretParsed.treble}</span>
-          </p>
-          <p className="pt-2 border-t opacity-90" style={{ borderColor: 'var(--border)' }}>
-            {frInterpretParsed.summary}
-          </p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold opacity-90">AI 해석</p>
+            {showFrInterpretAction ? (
+              <button
+                type="button"
+                onClick={() => void handleFrInterpret()}
+                disabled={frInterpretLoading}
+                className="shrink-0 rounded-lg p-1.5 transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+                style={{ color: 'var(--foreground)' }}
+                title="AI 해석 다시 분석"
+                aria-label="AI 해석 다시 분석"
+              >
+                <RefreshCw className={`size-4 ${frInterpretLoading ? 'animate-spin' : ''}`} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+          <div
+            className={`text-sm space-y-3 p-4 rounded-xl leading-relaxed transition-opacity ${frInterpretLoading ? 'opacity-50' : ''}`}
+            style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+          >
+            <p>
+              <span className="font-semibold opacity-90">저음</span>{' '}
+              <span className="opacity-85">{frInterpretParsed.bass}</span>
+            </p>
+            <p>
+              <span className="font-semibold opacity-90">중음</span>{' '}
+              <span className="opacity-85">{frInterpretParsed.mid}</span>
+            </p>
+            <p>
+              <span className="font-semibold opacity-90">고음</span>{' '}
+              <span className="opacity-85">{frInterpretParsed.treble}</span>
+            </p>
+            <p className="pt-2 border-t opacity-90" style={{ borderColor: 'var(--border)' }}>
+              {frInterpretParsed.summary}
+            </p>
+          </div>
         </div>
       ) : null}
-      {isAuthenticated !== false && !frInterpretParsed ? (
+      {showFrInterpretAction && !frInterpretParsed ? (
         <button
           type="button"
-          onClick={handleFrInterpret}
-          disabled={frInterpretLoading || !hasFrGraphUrl}
+          onClick={() => void handleFrInterpret()}
+          disabled={frInterpretLoading}
           className="btn-apple btn-apple-secondary w-full py-2.5 text-sm disabled:opacity-40 disabled:pointer-events-none"
         >
           AI 해석

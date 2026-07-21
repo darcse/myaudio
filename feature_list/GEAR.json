@@ -405,5 +405,36 @@
         "수정 후 관련 통계(앨범 통계, 기기 매칭 등)에도 변경된 값이 정상 반영되는지 확인"
       ],
       "passes": true
+    },
+    {
+      "id": "GEAR-026",
+      "category": "gear",
+      "title": "헤드파이 AI 분석 — 기능별 모델 교체 (매칭점수/FR해석/음색분석/추천앨범)",
+      "description": "analyzeHeadfiMatchScore(매칭 궁합 점수)는 GPT-5.4-mini로, interpretHeadfiFrGraphFromImageBuffer(FR그래프 해석)·analyzeHeadfiSound(청음평가 음색 분석)·recommendHeadfiAlbums(기기 맞춤 보유 앨범 추천, 후보 80개 유지)는 Claude Sonnet 5로 교체한다. recommendHeadfiAlbumMatch(DAC/AMP+헤드폰 조합 추천 앨범)는 토큰·비용 부담으로 Gemini로 원복한다. 실시간 검색 그라운딩을 사용하는 analyzeHeadfiPosition은 Gemini를 그대로 유지한다.",
+      "steps": [
+        "매칭맵에서 헤드폰×DAC/AMP 조합 궁합 점수 산정 시 GPT-5.4-mini API가 정상 호출되는지 확인",
+        "FR그래프 해석 요청 시 Claude Sonnet 5 API가 정상 호출되는지 확인",
+        "청음평가 음색 분석 요청 시 Claude Sonnet 5 API가 정상 호출되는지 확인",
+        "헤드파이 상세 모달의 '추천 앨범' 탭에서 Claude Sonnet 5 API가 정상 호출되고 후보 80개 기준으로 3장 추천되는지 확인",
+        "앨범매칭 화면에서 '추천 받기' 클릭 시 Gemini API가 정상 호출되고 기존과 동일하게 5장 추천 + 이유가 생성되는지 확인 (Claude가 아닌 Gemini로 원복 확인)",
+        "포지션맵 좌표 산정은 여전히 Gemini(googleSearch 그라운딩 포함)로 호출되는지 확인 (회귀 없음)",
+        "각 기능 API 호출 실패 시 기존과 동일하게 에러 처리되는지 확인"
+      ],
+      "passes": true
+    },
+    {
+      "id": "GEAR-027",
+      "category": "gear",
+      "title": "헤드파이 — FR그래프 해석 재분석 버튼 추가",
+      "description": "FR그래프 해석 결과가 이미 저장된 기기에도 재분석 버튼을 제공해, 기존 해석을 지우고 새로 분석(현재는 Claude Sonnet 5)을 다시 실행할 수 있다.",
+      "steps": [
+        "FR그래프 해석 결과가 이미 있는 기기 상세 화면에서 재분석 버튼이 노출되는지 확인",
+        "재분석 버튼 클릭 시 기존 해석 결과를 지우고 새로 분석을 요청하는지 확인",
+        "재분석 완료 후 새로운 해석 결과가 화면에 정상 반영되는지 확인",
+        "재분석 중 로딩 상태가 노출되는지 확인",
+        "재분석 API 호출 실패 시 기존 해석 결과가 사라지지 않고 에러 메시지만 노출되는지 확인 (기존 데이터 보존)",
+        "FR그래프 이미지 자체가 없는 기기에서는 재분석 버튼이 노출되지 않거나 비활성화되는지 확인"
+      ],
+      "passes": true
     }
   ]

@@ -223,7 +223,7 @@ export function HeadfiRadarSection({
                 }}
                 aria-hidden
               />
-              <p className="text-xs opacity-70">Gemini가 음색을 분석 중이에요...</p>
+              <p className="text-xs opacity-70">AI가 음색을 분석하는 중…</p>
             </div>
           ) : soundAnalysis ? (
             <p
