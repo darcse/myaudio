@@ -302,3 +302,8 @@
 [2026-07-21] [Cursor] style: 청음평가 AI분석 텍스트 크기·문단 구분 FR해석과 통일 | passes: 변경 없음
 [2026-07-21] [Cursor] style: 추천앨범 AI 해설 텍스트 크기·문단 구분 통일 | passes: 변경 없음
 [2026-07-21] [Cursor] fix: ESLint 경고 3건 정리 (useEffect deps·미사용 import) | passes: 변경 없음
+[2026-07-21] [Cursor] feat: ALBUM-025 generateArtistBio GPT-5.4-mini Responses API+web_search 교체 | passes: 변경 없음
+[2026-07-21] [Cursor] style: 아티스트 소개 로딩 문구 Gemini→AI 통일 | passes: 변경 없음
+[2026-07-21] [Cursor] style: generateArtistBio 프롬프트 자연스러운 소개글 문체·메타 발언 제거 | passes: 변경 없음
+[2026-07-21] [Cursor] style: generateArtistBio 연도·숫자 아라비아 숫자 표기 지시 추가 | passes: 변경 없음
+[2026-07-21] [Cursor] style: generateArtistBio 존대어(~습니다체) 문체·few-shot 예시 추가 | passes: 변경 없음

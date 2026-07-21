@@ -46,7 +46,7 @@ export function ArtistBioSection({
             }}
             aria-hidden
           />
-          <p className="text-sm opacity-80">Gemini가 아티스트 소개를 작성 중이에요...</p>
+          <p className="text-sm opacity-80">AI가 아티스트 소개를 작성 중이에요...</p>
         </div>
       ) : trimmed ? (
         <p className="whitespace-pre-line text-sm leading-relaxed opacity-85">{trimmed}</p>

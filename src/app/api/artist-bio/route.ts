@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateArtistBio } from '@/lib/gemini';
+import { generateArtistBio } from '@/lib/openaiArtistBio';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { getArtistMetaFromAlbums } from '@/app/artists/utils';
 
