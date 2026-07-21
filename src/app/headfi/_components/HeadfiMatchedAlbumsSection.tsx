@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { Disc, RefreshCw, Sparkles } from 'lucide-react';
+import { splitProseParagraphs } from '@/lib/utils';
 
 type MatchedAlbum = {
   id: number;
@@ -117,12 +118,16 @@ export function HeadfiMatchedAlbumsSection({
             <p className="text-xs opacity-70">AI가 추천 앨범을 선정하는 중…</p>
           </div>
         ) : aiReason ? (
-          <p
-            className="mb-4 whitespace-pre-line rounded-xl p-3 text-xs leading-relaxed opacity-80"
+          <div
+            className="mb-4 text-sm space-y-3 p-4 rounded-xl leading-relaxed"
             style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
           >
-            {aiReason}
-          </p>
+            {splitProseParagraphs(aiReason).map((paragraph, index) => (
+              <p key={index} className="opacity-85">
+                {paragraph}
+              </p>
+            ))}
+          </div>
         ) : null}
         {!aiRecommendLoading && aiRecommendedAlbums.length > 0 ? (
           <AlbumGrid albums={aiRecommendedAlbums} onAlbumClick={onAlbumClick} />

@@ -2,6 +2,7 @@
 
 import { Activity, Music2, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { splitProseParagraphs } from '@/lib/utils';
 import {
   RadarChart,
   Radar,
@@ -226,12 +227,16 @@ export function HeadfiRadarSection({
               <p className="text-xs opacity-70">AI가 음색을 분석하는 중…</p>
             </div>
           ) : soundAnalysis ? (
-            <p
-              className="whitespace-pre-line rounded-xl p-3 text-xs leading-relaxed opacity-80"
+            <div
+              className="text-sm space-y-3 p-4 rounded-xl leading-relaxed"
               style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
             >
-              {soundAnalysis}
-            </p>
+              {splitProseParagraphs(soundAnalysis).map((paragraph, index) => (
+                <p key={index} className="opacity-85">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           ) : (
             <p className="text-xs opacity-60">
               AI 분석이 아직 없습니다. 로그인 후 새로고침으로 생성할 수 있습니다.

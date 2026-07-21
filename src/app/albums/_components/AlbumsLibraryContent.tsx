@@ -504,6 +504,7 @@ export function AlbumsLibraryContent() {
   useEffect(() => {
     const panel = searchParams.get('panel');
     if (panel === 'taste') void handleAnalyzeTaste();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ?panel=taste URL 진입 시에만 1회 실행
   }, [searchParams]);
 
   const handleDeleteFromModal = async () => {

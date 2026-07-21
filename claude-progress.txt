@@ -299,3 +299,6 @@
 [2026-07-21] [Cursor] fix: 앨범매칭 Claude JSON 파싱 실패·에러 메시지 노출 수정 | passes: 변경 없음
 [2026-07-21] [Cursor] perf: Anthropic extended thinking 비활성·max_tokens·후보앨범 50 축소 | passes: 변경 없음
 [2026-07-21] [Cursor] revert: GEAR-026 recommendHeadfiAlbumMatch Gemini 원복 | passes: 변경 없음
+[2026-07-21] [Cursor] style: 청음평가 AI분석 텍스트 크기·문단 구분 FR해석과 통일 | passes: 변경 없음
+[2026-07-21] [Cursor] style: 추천앨범 AI 해설 텍스트 크기·문단 구분 통일 | passes: 변경 없음
+[2026-07-21] [Cursor] fix: ESLint 경고 3건 정리 (useEffect deps·미사용 import) | passes: 변경 없음

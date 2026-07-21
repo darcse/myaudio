@@ -33,14 +33,19 @@ export function useHeadfiDacAmpMapLazyAnalysis(
   viewingItem: Headfi | null,
   onPatch?: (patch: Partial<Headfi>) => void,
 ) {
+  const viewingItemId = viewingItem?.id;
+  const viewingItemCategory = viewingItem?.category;
+  const positionX = viewingItem?.position_x;
+  const positionY = viewingItem?.position_y;
+
   useEffect(() => {
-    if (!viewingItem?.id || !isDacAmpDapCategory(viewingItem.category)) return;
-    if (hasPositionCoordinates(viewingItem)) return;
+    if (!viewingItemId || !viewingItemCategory || !isDacAmpDapCategory(viewingItemCategory)) return;
+    if (hasPositionCoordinates({ position_x: positionX, position_y: positionY })) return;
 
     void fetch('/api/headfi-position', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ headfiId: viewingItem.id }),
+      body: JSON.stringify({ headfiId: viewingItemId }),
     })
       .then(async (res) => {
         const data = (await res.json().catch(() => ({}))) as {
@@ -50,12 +55,12 @@ export function useHeadfiDacAmpMapLazyAnalysis(
         };
         if (!res.ok || data.x == null || data.y == null) return;
         onPatch?.({
-          id: viewingItem.id,
+          id: viewingItemId,
           position_x: data.x,
           position_y: data.y,
           position_label: data.label || '',
         });
       })
       .catch(() => {});
-  }, [viewingItem?.id, viewingItem?.category, viewingItem?.position_x, viewingItem?.position_y, onPatch]);
+  }, [viewingItemId, viewingItemCategory, positionX, positionY, onPatch]);
 }

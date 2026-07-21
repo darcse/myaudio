@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
-import { updateArtistNames, shouldRetargetAlbumArtist } from '../lib/updateArtistNames';
+import { updateArtistNames } from '../lib/updateArtistNames';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import {
