@@ -307,3 +307,4 @@
 [2026-07-21] [Cursor] style: generateArtistBio 프롬프트 자연스러운 소개글 문체·메타 발언 제거 | passes: 변경 없음
 [2026-07-21] [Cursor] style: generateArtistBio 연도·숫자 아라비아 숫자 표기 지시 추가 | passes: 변경 없음
 [2026-07-21] [Cursor] style: generateArtistBio 존대어(~습니다체) 문체·few-shot 예시 추가 | passes: 변경 없음
+[2026-07-28] [Cursor] chore: gemini.ts 모델 gemini-3.1-flash-lite→3.5-flash-lite 일괄 교체 | passes: 변경 없음
