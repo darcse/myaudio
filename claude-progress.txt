@@ -309,3 +309,4 @@
 [2026-07-21] [Cursor] style: generateArtistBio 존대어(~습니다체) 문체·few-shot 예시 추가 | passes: 변경 없음
 [2026-07-28] [Cursor] chore: gemini.ts 모델 gemini-3.1-flash-lite→3.5-flash-lite 일괄 교체 | passes: 변경 없음
 [2026-07-30] [Cursor] feat: 앨범 등록 앨범 타입 플레이리스트 추가 | passes: 변경 없음
+[2026-07-31] [Cursor] fix: generateAlbumIntroAndTags 프롬프트 분량·구체성 강화 | passes: 변경 없음
