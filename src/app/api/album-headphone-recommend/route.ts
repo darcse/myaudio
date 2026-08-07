@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    const [albumRes, headphonesRes] = await Promise.all([
+    const [albumRes, receiversRes] = await Promise.all([
       supabase
         .from('album')
         .select('id, artist, album_name, genre1, genre2, audio_tags, mood_name')
@@ -44,23 +44,23 @@ export async function POST(req: NextRequest) {
         .select(
           'id, brand, model, category, temp, impedance, db1, db2, recommended_genres, fr_interpretation, status2',
         )
-        .eq('category', '헤드폰')
+        .in('category', ['헤드폰', '이어폰'])
         .eq('status2', '보유중'),
     ]);
 
     if (albumRes.error || !albumRes.data) {
       return NextResponse.json({ error: 'Album not found' }, { status: 404 });
     }
-    if (headphonesRes.error) {
-      return NextResponse.json({ error: headphonesRes.error.message }, { status: 500 });
+    if (receiversRes.error) {
+      return NextResponse.json({ error: receiversRes.error.message }, { status: 500 });
     }
 
-    const headphones = headphonesRes.data ?? [];
-    if (headphones.length === 0) {
-      return NextResponse.json({ error: '보유중인 헤드폰이 없습니다.' }, { status: 404 });
+    const receivers = receiversRes.data ?? [];
+    if (receivers.length === 0) {
+      return NextResponse.json({ headphone_ids: [], reason: '' });
     }
 
-    const headphoneRows = headphones.map((h) => ({
+    const headphoneRows = receivers.map((h) => ({
       id: h.id,
       brand: h.brand || '',
       model: h.model || '',

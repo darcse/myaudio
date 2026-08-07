@@ -67,7 +67,7 @@ function HeadphoneGrid({
           border: '1px solid var(--border)',
           color: 'var(--foreground)',
         };
-        const thumbAlt = `${h.brand} ${h.model}`.trim() || '헤드폰';
+        const thumbAlt = `${h.brand} ${h.model}`.trim() || '리시버';
         const inner = (
           <>
             <HeadphoneThumb imageUrl={h.image_url} alt={thumbAlt} />
@@ -139,7 +139,7 @@ export function AlbumRecommendedGearSection({
         >
           <strong className="flex items-center gap-1.5 text-sm">
             <Headphones className="size-4 shrink-0 opacity-80" />
-            추천 헤드폰
+            추천 리시버
           </strong>
           <ChevronDown
             className={`size-5 shrink-0 opacity-60 transition-transform ${headphonesOpen ? 'rotate-180' : ''}`}
@@ -177,7 +177,7 @@ export function AlbumRecommendedGearSection({
             showRank
           />
         ) : (
-          <p className="text-xs opacity-60">등록된 수동 추천 헤드폰이 없습니다.</p>
+          <p className="text-xs opacity-60">등록된 수동 추천 리시버가 없습니다.</p>
         )}
       </section>
 
@@ -185,7 +185,7 @@ export function AlbumRecommendedGearSection({
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold opacity-90">
             <Sparkles className="size-4 shrink-0 opacity-80" aria-hidden />
-            AI 추천
+            AI 추천 리시버
           </h3>
           {isAuthenticated === true && onRefreshAiRecommend ? (
             <button
@@ -194,8 +194,8 @@ export function AlbumRecommendedGearSection({
               disabled={aiBusy}
               className="shrink-0 rounded-lg p-1.5 transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
               style={{ color: 'var(--foreground)' }}
-              title="AI 추천 다시 생성"
-              aria-label="AI 추천 다시 생성"
+              title="AI 추천 리시버 다시 생성"
+              aria-label="AI 추천 리시버 다시 생성"
             >
               <RefreshCw className={`size-4 ${aiRecommendLoading ? 'animate-spin' : ''}`} />
             </button>
@@ -211,7 +211,7 @@ export function AlbumRecommendedGearSection({
               }}
               aria-hidden
             />
-            <p className="text-xs opacity-70">Gemini가 헤드폰 추천을 분석 중이에요...</p>
+            <p className="text-xs opacity-70">Gemini가 리시버 추천을 분석 중이에요...</p>
           </div>
         ) : albumIntroLoading ? (
           <p className="mb-4 text-xs opacity-60">앨범 소개 생성 중입니다.</p>
@@ -233,7 +233,7 @@ export function AlbumRecommendedGearSection({
             showRank
           />
         ) : !aiRecommendLoading ? (
-          <p className="text-xs opacity-60">AI 추천 헤드폰이 없습니다.</p>
+          <p className="text-xs opacity-60">AI 추천 리시버가 없습니다.</p>
         ) : null}
       </section>
     </div>

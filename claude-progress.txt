@@ -315,3 +315,4 @@
 [2026-08-08] [Cursor] fix: BUG-009 매칭 관련 필드 변경 시에만 headfi_match_cache 무효화 | passes: 변경 없음
 [2026-08-08] [Cursor] docs: BUG-009 headfi_match_cache base/target 의미·양방향 무효화 검증 완료 | passes: 변경 없음
 [2026-08-08] [Cursor] fix: BUG-010 headfi-match-score 캐시 조회·force 삭제 양방향 처리 | passes: 변경 없음
+[2026-08-08] [Cursor] feat: ALBUM-026 앨범 모달 AI 추천 리시버(헤드폰+이어폰) 확장 | passes: 변경 없음
