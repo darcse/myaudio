@@ -82,6 +82,7 @@ type ArtistExternalLinksSectionProps = {
   linksSaving: boolean;
   editing: boolean;
   isAuthenticated: boolean | null;
+  metaClassName?: string;
   onEditingChange: (editing: boolean) => void;
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
 };
@@ -110,6 +111,7 @@ export function ArtistExternalLinksSection({
   linksSaving,
   editing,
   isAuthenticated,
+  metaClassName = 'text-sm opacity-80',
   onEditingChange,
   onSaveLinks,
 }: ArtistExternalLinksSectionProps) {
@@ -160,7 +162,7 @@ export function ArtistExternalLinksSection({
       {showLinksToolbar ? (
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           {children ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm opacity-80">{children}</div>
+            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${metaClassName}`}>{children}</div>
           ) : (
             <div />
           )}

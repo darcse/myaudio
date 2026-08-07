@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
+import { AlbumCoverBlurBackdrop } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
 import type { Album } from '@/app/albums/types';
 import { countryFlag, findArtistWikiUrl, getPrimaryGenre1 } from '../utils';
 import type { ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
@@ -79,6 +80,11 @@ export function ArtistDetailPanel({
   const primaryGenre1 = getPrimaryGenre1(artist);
   const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
   const nameAltDisplay = nameAlt?.trim() || null;
+  const profileImageUrl = artistRecord?.profile_image_url?.trim() || null;
+  const hasProfileBackdrop = Boolean(profileImageUrl);
+  const backdropTagClassName =
+    'inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold text-white';
+  const backdropTagStyle = { background: 'rgba(255,255,255,0.2)' };
 
   const profileImage = (
     <ArtistProfileImage
@@ -123,22 +129,40 @@ export function ArtistDetailPanel({
         linksSaving={linksSaving}
         editing={linksEditing}
         isAuthenticated={isAuthenticated}
+        metaClassName={hasProfileBackdrop ? 'text-sm' : undefined}
         onEditingChange={setLinksEditing}
         onSaveLinks={onSaveLinks}
       >
         {artist.country ? (
-          <span>
+          <span
+            className={hasProfileBackdrop ? backdropTagClassName : undefined}
+            style={hasProfileBackdrop ? backdropTagStyle : undefined}
+          >
             {flag ? `${flag} ` : ''}
             {artist.country}
           </span>
         ) : null}
         {artist.artistType ? (
-          <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
+          <span
+            className={
+              hasProfileBackdrop
+                ? backdropTagClassName
+                : 'badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold'
+            }
+            style={hasProfileBackdrop ? backdropTagStyle : undefined}
+          >
             {artist.artistType}
           </span>
         ) : null}
         {primaryGenre1 ? (
-          <span className="badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold">
+          <span
+            className={
+              hasProfileBackdrop
+                ? backdropTagClassName
+                : 'badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold'
+            }
+            style={hasProfileBackdrop ? backdropTagStyle : undefined}
+          >
             {primaryGenre1}
           </span>
         ) : null}
@@ -153,13 +177,20 @@ export function ArtistDetailPanel({
 
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col rounded-xl border"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
-        className="border-b px-4 py-5 sm:px-6"
+        className={`relative overflow-hidden rounded-t-xl border-b px-4 py-5 sm:px-6${hasProfileBackdrop ? ' text-white' : ''}`}
         style={{ borderColor: 'var(--border)' }}
       >
+        {hasProfileBackdrop ? (
+          <AlbumCoverBlurBackdrop
+            coverImageUrl={profileImageUrl}
+            overlayStyle="rgba(0,0,0,0.55)"
+          />
+        ) : null}
+        <div className={hasProfileBackdrop ? 'relative z-10' : undefined}>
         {showMobileBack ? (
           <button
             type="button"
@@ -181,6 +212,7 @@ export function ArtistDetailPanel({
             {nameBlock}
             <div className="mt-2 flex flex-1 flex-col justify-between gap-4">{metaBlock}</div>
           </div>
+        </div>
         </div>
       </div>
 
