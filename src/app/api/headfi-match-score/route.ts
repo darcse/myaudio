@@ -27,31 +27,57 @@ function deviceName(brand: string | null, model: string | null): string {
   return `${brand ?? ''} ${model ?? ''}`.trim() || '-';
 }
 
-function toCacheScore(row: {
-  target_gear_id?: number;
-  gear_id?: number;
-  drive: number;
-  synergy: number;
-  genre: number;
-  comment: string;
-}): CacheScoreRow | null {
-  const targetId = row.target_gear_id ?? row.gear_id;
-  if (targetId == null || !Number.isFinite(targetId)) return null;
-  return {
-    target_gear_id: targetId,
-    drive: row.drive,
-    synergy: row.synergy,
-    genre: row.genre,
-    comment: row.comment,
-  };
-}
-
 type HeadfiGearRow = {
   id: number;
   brand: string | null;
   model: string | null;
   category: string | null;
 };
+
+type RawMatchCacheRow = {
+  base_gear_id: number;
+  target_gear_id: number;
+  drive: number;
+  synergy: number;
+  genre: number;
+  comment: string;
+};
+
+function normalizeMatchCacheScoresForBase(
+  rows: RawMatchCacheRow[],
+  baseGearId: number,
+  mode: HeadfiMatchScoreMode,
+  gearById: Map<number, HeadfiGearRow>,
+): CacheScoreRow[] {
+  const out: CacheScoreRow[] = [];
+  const seen = new Set<number>();
+
+  for (const row of rows) {
+    let otherId: number | null = null;
+    if (row.base_gear_id === baseGearId) {
+      otherId = row.target_gear_id;
+    } else if (row.target_gear_id === baseGearId) {
+      otherId = row.base_gear_id;
+    }
+    if (otherId == null || otherId === baseGearId || seen.has(otherId)) continue;
+
+    const gear = gearById.get(otherId);
+    if (!gear) continue;
+    if (mode === 'dac_amp' && !isWiredHeadphoneEarphoneCategory(gear.category)) continue;
+    if (mode === 'headphone' && !isDacAmpDapCategory(gear.category)) continue;
+
+    seen.add(otherId);
+    out.push({
+      target_gear_id: otherId,
+      drive: row.drive,
+      synergy: row.synergy,
+      genre: row.genre,
+      comment: row.comment,
+    });
+  }
+
+  return out;
+}
 
 function buildRankedResults(
   scores: CacheScoreRow[],
@@ -186,22 +212,19 @@ export async function POST(req: NextRequest) {
 
     const { data: cachedRows, error: cacheError } = await supabase
       .from('headfi_match_cache')
-      .select('target_gear_id, drive, synergy, genre, comment')
-      .eq('base_gear_id', baseGearId);
+      .select('base_gear_id, target_gear_id, drive, synergy, genre, comment')
+      .or(`base_gear_id.eq.${baseGearId},target_gear_id.eq.${baseGearId}`);
 
     if (cacheError) {
       return NextResponse.json({ error: cacheError.message }, { status: 500 });
     }
 
-    const cachedScores = (cachedRows ?? [])
-      .map((row) => toCacheScore(row))
-      .filter((row): row is CacheScoreRow => row != null)
-      .filter((row) => {
-        const gear = gearById.get(row.target_gear_id);
-        if (!gear) return false;
-        if (mode === 'dac_amp') return isWiredHeadphoneEarphoneCategory(gear.category);
-        return isDacAmpDapCategory(gear.category);
-      });
+    const cachedScores = normalizeMatchCacheScoresForBase(
+      (cachedRows ?? []) as RawMatchCacheRow[],
+      baseGearId,
+      mode,
+      gearById,
+    );
 
     const targetGearId =
       typeof body.targetGearId === 'number'
@@ -231,13 +254,24 @@ export async function POST(req: NextRequest) {
     }
 
     if (force) {
-      let deleteQuery = supabase.from('headfi_match_cache').delete().eq('base_gear_id', baseGearId);
       if (singleTarget) {
-        deleteQuery = deleteQuery.eq('target_gear_id', targetGearId);
-      }
-      const { error: deleteError } = await deleteQuery;
-      if (deleteError) {
-        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        const { error: deleteError } = await supabase
+          .from('headfi_match_cache')
+          .delete()
+          .or(
+            `and(base_gear_id.eq.${baseGearId},target_gear_id.eq.${targetGearId}),and(base_gear_id.eq.${targetGearId},target_gear_id.eq.${baseGearId})`,
+          );
+        if (deleteError) {
+          return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        }
+      } else {
+        const { error: deleteError } = await supabase
+          .from('headfi_match_cache')
+          .delete()
+          .or(`base_gear_id.eq.${baseGearId},target_gear_id.eq.${baseGearId}`);
+        if (deleteError) {
+          return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        }
       }
     }
 

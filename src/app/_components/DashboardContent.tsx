@@ -15,13 +15,8 @@ import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } f
 import type { Headfi } from '@/app/headfi/types';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
-import {
-  triggerHeadfiDacAmpMatchReanalysis,
-  triggerHeadfiDacAmpPositionAnalysis,
-  triggerHeadfiMatchCacheClear,
-  useHeadfiDacAmpMapLazyAnalysis,
-} from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
+import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
 
@@ -503,13 +498,6 @@ export function DashboardContent({
     try {
       await updateHeadfiInDB(editingHeadfi.id, headfiFormData);
       toast.success('기기 정보가 수정되었습니다.');
-      if (isDacAmpDapCategory(headfiFormData.category)) {
-        triggerHeadfiDacAmpMatchReanalysis(editingHeadfi.id);
-        triggerHeadfiDacAmpPositionAnalysis(editingHeadfi.id, true);
-      }
-      if (isWiredHeadphoneEarphoneCategory(headfiFormData.category)) {
-        triggerHeadfiMatchCacheClear(editingHeadfi.id);
-      }
       setEditingHeadfi(null);
       router.refresh();
     } catch (e) {

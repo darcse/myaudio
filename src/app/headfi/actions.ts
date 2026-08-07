@@ -1,5 +1,6 @@
 'use server';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
 import type { HeadfiAccessoryFormData, HeadfiFormData } from './types';
 
@@ -284,19 +285,33 @@ export async function updateHeadfiInDB(id: number, data: HeadfiFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
-  const { data: existing } = await supabase.from('headfi').select('fr_graph_url').eq('id', id).single();
+  const { data: existing, error: fetchError } = await supabase.from('headfi').select('*').eq('id', id).single();
+  if (fetchError || !existing) {
+    throw new Error(fetchError ? toSupabaseErrorMessage(fetchError) : 'Headfi not found');
+  }
   const mapped = mapHeadfiData(data);
   const row: Record<string, unknown> = { ...mapped };
   const mappedFr = mapped.fr_graph_url;
   const newFr =
     mappedFr != null && String(mappedFr).trim() !== '' ? String(mappedFr).trim() : null;
-  const oldFr = existing?.fr_graph_url?.trim() || null;
+  const oldFr = existing.fr_graph_url?.trim() || null;
   if (newFr !== oldFr) {
     row.fr_interpretation = null;
   }
+  const nextRow = { ...existing, ...row };
+  const shouldClearMatchCache = hasHeadfiMatchAffectingChange(existing, nextRow);
   const { data: result, error } = await supabase.from('headfi').update(row).eq('id', id);
 
   if (error) throw new Error(toSupabaseErrorMessage(error));
+
+  if (shouldClearMatchCache) {
+    const { error: cacheError } = await supabase
+      .from('headfi_match_cache')
+      .delete()
+      .or(`base_gear_id.eq.${id},target_gear_id.eq.${id}`);
+    if (cacheError) throw new Error(toSupabaseErrorMessage(cacheError));
+  }
+
   return result;
 }
 

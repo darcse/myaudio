@@ -12,7 +12,7 @@ import {
   updateHeadfiAccessoryInDB,
   uploadHeadfiDeviceImage,
 } from '../actions';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
+import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -29,7 +29,6 @@ import { HEADFI_ACCESSORY_CATEGORY_OPTIONS } from '../spendingStats';
 import {
   triggerHeadfiDacAmpMatchReanalysis,
   triggerHeadfiDacAmpPositionAnalysis,
-  triggerHeadfiMatchCacheClear,
   useHeadfiDacAmpMapLazyAnalysis,
 } from '../useHeadfiDacAmpMapLazyAnalysis';
 
@@ -549,13 +548,9 @@ export function HeadfiLibraryContent() {
             .catch(() => {});
         }
 
-        if (isDacAmpDapCategory(formData.category)) {
+        if (isNew && isDacAmpDapCategory(formData.category)) {
           triggerHeadfiDacAmpMatchReanalysis(savedId);
-          triggerHeadfiDacAmpPositionAnalysis(savedId, !isNew);
-        }
-
-        if (isWiredHeadphoneEarphoneCategory(formData.category)) {
-          triggerHeadfiMatchCacheClear(savedId);
+          triggerHeadfiDacAmpPositionAnalysis(savedId, false);
         }
       }
     } catch (e) {

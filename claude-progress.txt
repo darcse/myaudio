@@ -312,3 +312,6 @@
 [2026-07-31] [Cursor] fix: generateAlbumIntroAndTags 프롬프트 분량·구체성 강화 | passes: 변경 없음
 [2026-08-08] [Cursor] feat: 앨범 등록 추천 리시버 선택에 이어폰 포함·라벨 변경 | passes: 변경 없음
 [2026-08-08] [Cursor] fix: 헤드파이 등록 저장 Server Action→/api/headfi Route Handler 전환 | passes: 변경 없음
+[2026-08-08] [Cursor] fix: BUG-009 매칭 관련 필드 변경 시에만 headfi_match_cache 무효화 | passes: 변경 없음
+[2026-08-08] [Cursor] docs: BUG-009 headfi_match_cache base/target 의미·양방향 무효화 검증 완료 | passes: 변경 없음
+[2026-08-08] [Cursor] fix: BUG-010 headfi-match-score 캐시 조회·force 삭제 양방향 처리 | passes: 변경 없음
