@@ -342,7 +342,7 @@ export function AlbumStatsContent() {
     void createClient()
       .from('headfi')
       .select('id, brand, model')
-      .eq('category', '헤드폰')
+      .in('category', ['헤드폰', '이어폰'])
       .eq('status2', '보유중')
       .order('brand')
       .order('model')

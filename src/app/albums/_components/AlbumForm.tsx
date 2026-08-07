@@ -212,10 +212,10 @@ export function AlbumForm({
             />
           </div>
           <div className="col-span-2">
-            <p className="text-[11px] opacity-60 mb-2">추천 헤드폰은 Head-Fi 라이브러리에서 <strong className="opacity-90">보유중</strong>인 모델만 선택할 수 있어요.</p>
+            <p className="text-[11px] opacity-60 mb-2">추천 리시버는 Head-Fi 라이브러리에서 <strong className="opacity-90">보유중</strong>인 헤드폰·이어폰만 선택할 수 있어요.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">추천 헤드폰 1순위</label>
+                <label className="block text-sm font-semibold mb-1 opacity-90">추천 리시버 1순위</label>
                 <select
                   className="select-apple px-3 py-2 w-full h-[42px]"
                   value={formData.recommended_hp1}
@@ -230,7 +230,7 @@ export function AlbumForm({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1 opacity-90">추천 헤드폰 2순위</label>
+                <label className="block text-sm font-semibold mb-1 opacity-90">추천 리시버 2순위</label>
                 <select
                   className="select-apple px-3 py-2 w-full h-[42px]"
                   value={formData.recommended_hp2}
