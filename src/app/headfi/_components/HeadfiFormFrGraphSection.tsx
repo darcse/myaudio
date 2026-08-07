@@ -21,7 +21,8 @@ export function HeadfiFormFrGraphSection({
           측정 그래프 이미지를 업로드하거나, 이미 호스팅된 이미지 URL을 붙여 넣으세요.
         </p>
         <input
-          type="url"
+          type="text"
+          inputMode="url"
           placeholder="https://… (외부 이미지 직접 링크)"
           className={`${INPUT_BASE_CLASS} w-full`}
           value={formData.fr_graph_url}

@@ -9,10 +9,7 @@ import {
   deleteHeadfiAccessoryFromDB,
   deleteHeadfiFromDB,
   saveHeadfiAccessoryToDB,
-  saveHeadfiToDB,
   updateHeadfiAccessoryInDB,
-  updateHeadfiInDB,
-  uploadHeadfiFrGraphImage,
   uploadHeadfiDeviceImage,
 } from '../actions';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
@@ -435,11 +432,20 @@ export function HeadfiLibraryContent() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await uploadHeadfiFrGraphImage(file);
-      setFormData((prev) => ({ ...prev, fr_graph_url: url }));
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/headfi/fr-graph', { method: 'POST', body: formData });
+      const payload = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok) {
+        throw new Error(payload.error || 'FR 그래프 업로드에 실패했습니다.');
+      }
+      if (!payload.url) {
+        throw new Error('FR 그래프 업로드에 실패했습니다.');
+      }
+      setFormData((prev) => ({ ...prev, fr_graph_url: payload.url! }));
       toast.success('FR 그래프 이미지를 업로드했습니다. 저장하면 반영됩니다.');
-    } catch {
-      toast.error('FR 그래프 업로드에 실패했습니다. Storage 버킷 headfi-fr 설정을 확인해 주세요.');
+    } catch (err) {
+      toast.error(getClientErrorMessage(err) || 'FR 그래프 업로드에 실패했습니다. Storage 버킷 headfi-fr 설정을 확인해 주세요.');
     }
     e.target.value = '';
   };
@@ -484,15 +490,18 @@ export function HeadfiLibraryContent() {
     try {
       let savedId: number | null = null;
       const isNew = !('id' in selectedItem && selectedItem.id);
-      if ('id' in selectedItem && selectedItem.id) {
-        await updateHeadfiInDB(Number(selectedItem.id), formData);
-        savedId = Number(selectedItem.id);
-        toast.success('기기 정보가 수정되었습니다.');
-      } else {
-        const result = await saveHeadfiToDB(formData);
-        savedId = result?.id ?? null;
-        toast.success('기기가 라이브러리에 등록되었습니다.');
+      const editId = 'id' in selectedItem && selectedItem.id ? Number(selectedItem.id) : null;
+      const res = await fetch('/api/headfi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isNew ? { data: formData } : { id: editId, data: formData }),
+      });
+      const payload = (await res.json()) as { id?: number; error?: string };
+      if (!res.ok) {
+        throw new Error(payload.error || '저장에 실패했습니다.');
       }
+      savedId = payload.id ?? editId;
+      toast.success(isNew ? '기기가 라이브러리에 등록되었습니다.' : '기기 정보가 수정되었습니다.');
 
       setSelectedItem(null);
       await fetchLibrary();

@@ -1,4 +1,4 @@
-'use server'
+'use server';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
 import type { HeadfiAccessoryFormData, HeadfiFormData } from './types';
