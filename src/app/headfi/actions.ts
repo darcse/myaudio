@@ -2,7 +2,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiAccessoryFormData, HeadfiFormData } from './types';
+import type { HeadfiAccessoryFormData, HeadfiDeviceSettingFormData, HeadfiFormData } from './types';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
@@ -416,6 +416,55 @@ export async function deleteHeadfiAccessoryFromDB(id: number) {
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
   const { error } = await supabase.from('headfi_accessories').delete().eq('id', id);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return true;
+}
+
+function mapHeadfiDeviceSettingData(data: HeadfiDeviceSettingFormData) {
+  const dacAmpId = parseIntOrNull(data.dac_amp_id);
+  if (dacAmpId == null) throw new Error('DAC/AMP/DAP를 선택해 주세요.');
+  if (!Number.isFinite(data.headfi_id)) throw new Error('기기 정보가 올바르지 않습니다.');
+  return {
+    headfi_id: data.headfi_id,
+    dac_amp_id: dacAmpId,
+    setting_text: data.setting_text.trim(),
+  };
+}
+
+export async function saveHeadfiDeviceSettingToDB(data: HeadfiDeviceSettingFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_device_settings')
+    .insert([mapHeadfiDeviceSettingData(data)])
+    .select('id, headfi_id, dac_amp_id, setting_text, created_at')
+    .single();
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function updateHeadfiDeviceSettingInDB(id: number, data: HeadfiDeviceSettingFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_device_settings')
+    .update(mapHeadfiDeviceSettingData(data))
+    .eq('id', id)
+    .select('id, headfi_id, dac_amp_id, setting_text, created_at')
+    .single();
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function deleteHeadfiDeviceSettingFromDB(id: number) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { error } = await supabase.from('headfi_device_settings').delete().eq('id', id);
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return true;
 }

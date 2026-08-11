@@ -98,6 +98,20 @@ export interface HeadfiAccessoryFormData {
   purchase_date: string;
 }
 
+export interface HeadfiDeviceSetting {
+  id: number;
+  headfi_id: number;
+  dac_amp_id: number;
+  setting_text: string;
+  created_at?: string | null;
+}
+
+export interface HeadfiDeviceSettingFormData {
+  headfi_id: number;
+  dac_amp_id: string;
+  setting_text: string;
+}
+
 /** 폼에서 액션으로 넘기는 데이터 (모든 필드 문자열) */
 export interface HeadfiFormData {
   brand: string;

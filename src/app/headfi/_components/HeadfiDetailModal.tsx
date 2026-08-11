@@ -12,8 +12,10 @@ import { HeadfiInfoSection, HeadfiInfoHeroSection } from './HeadfiInfoSection';
 import { HeadfiFrSection } from './HeadfiFrSection';
 import { HeadfiRadarSection } from './HeadfiRadarSection';
 import { HeadfiMatchedAlbumsSection } from './HeadfiMatchedAlbumsSection';
+import { HeadfiSettingsSection } from './HeadfiSettingsSection';
+import { isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
 
-type DetailTab = 'info' | 'listen' | 'fr' | 'albums';
+type DetailTab = 'info' | 'listen' | 'fr' | 'albums' | 'settings';
 
 const HIDE_ALBUMS_TAB_CATEGORIES = new Set(['스피커', 'DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타']);
 
@@ -81,14 +83,16 @@ export function HeadfiDetailModal({
     viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const showFrTab = viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const showAlbumsTab = !HIDE_ALBUMS_TAB_CATEGORIES.has(viewingItem.category);
+  const showSettingsTab = isWiredHeadphoneEarphoneCategory(viewingItem.category);
 
   const tabItems = useMemo(() => {
     const items: { id: DetailTab; label: string }[] = [{ id: 'info', label: '기본 정보' }];
     if (showListenTab) items.push({ id: 'listen', label: '청음 평가' });
     if (showFrTab) items.push({ id: 'fr', label: 'FR 그래프' });
     if (showAlbumsTab) items.push({ id: 'albums', label: '추천 앨범' });
+    if (showSettingsTab) items.push({ id: 'settings', label: '세팅' });
     return items;
-  }, [showListenTab, showFrTab, showAlbumsTab]);
+  }, [showListenTab, showFrTab, showAlbumsTab, showSettingsTab]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -316,6 +320,12 @@ export function HeadfiDetailModal({
                       }
                       onAlbumClick={onAlbumClick}
                     />
+                  </div>
+                ) : null}
+
+                {showSettingsTab ? (
+                  <div className={activeTab === 'settings' ? '' : 'hidden'} aria-hidden={activeTab !== 'settings'}>
+                    <HeadfiSettingsSection headfiId={viewingItem.id} isAuthenticated={isAuthenticated} />
                   </div>
                 ) : null}
               </div>

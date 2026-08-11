@@ -318,3 +318,7 @@
 [2026-08-08] [Cursor] feat: ALBUM-026 앨범 모달 AI 추천 리시버(헤드폰+이어폰) 확장 | passes: 변경 없음
 [2026-08-08] [Cursor] style: 아티스트 상세 프로필 헤더 블러 배경 적용 | passes: 변경 없음
 [2026-08-08] [Cursor] fix: 아티스트 프로필 블러 헤더 태그 대비·상단 radius 수정 | passes: 변경 없음
+
+[2026-08-11] [Cursor] feat: GEAR-028 헤드폰·이어폰 세팅 탭·DAC/AMP 조합별 게인 설정 CRUD | passes: 변경 없음
+
+[2026-08-11] [Cursor] fix: GEAR-028 세팅 탭 DAC/AMP 선택에 DAP 포함 | passes: 변경 없음
