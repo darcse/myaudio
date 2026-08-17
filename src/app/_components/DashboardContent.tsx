@@ -691,8 +691,8 @@ export function DashboardContent({
                     </div>
                   )}
                 </div>
-                <p className="truncate text-sm font-bold leading-tight">{album.artist ?? '—'}</p>
-                <p className="mt-1 truncate text-xs opacity-70">{album.album_name}</p>
+                <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
+                <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
               </button>
             ))}
           </div>
@@ -733,8 +733,8 @@ export function DashboardContent({
                     </div>
                   )}
                 </div>
-                <p className="truncate text-sm font-bold leading-tight">{headfi.brand ?? '—'}</p>
-                <p className="mt-1 truncate text-xs opacity-70">{headfi.model ?? '—'}</p>
+                <p className="truncate text-sm font-bold leading-tight">{headfi.model ?? '—'}</p>
+                <p className="mt-1 truncate text-xs opacity-70">{headfi.brand ?? '—'}</p>
               </button>
             ))}
           </div>
