@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 
 type GearSummary = {
   id: number;
@@ -416,19 +417,14 @@ export function AlbumListenHistorySection({
         </div>
         <div>
           <label className="mb-1 block text-[11px] font-semibold opacity-70">헤드폰 / 이어폰 (선택)</label>
-          <select
-            className="select-apple h-[42px] w-full px-3 py-2 text-sm"
+          <ReceiverComboSelect
             value={selectedHeadphoneId}
-            onChange={(e) => setSelectedHeadphoneId(e.target.value)}
+            onChange={setSelectedHeadphoneId}
+            options={headphoneOptions}
             disabled={listenSaving}
-          >
-            <option value="">선택 안 함</option>
-            {headphoneOptions.map((g) => (
-              <option key={g.id} value={String(g.id)}>
-                {g.brand} {g.model}
-              </option>
-            ))}
-          </select>
+            placeholder="리시버 선택"
+            aria-label="헤드폰 / 이어폰 (선택)"
+          />
         </div>
       </div>
       <div>

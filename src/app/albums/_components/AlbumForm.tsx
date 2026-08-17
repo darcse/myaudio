@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
+import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import { countryOptions, genreOptions } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
 
@@ -216,33 +217,21 @@ export function AlbumForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">추천 리시버 1순위</label>
-                <select
-                  className="select-apple px-3 py-2 w-full h-[42px]"
+                <ReceiverComboSelect
                   value={formData.recommended_hp1}
-                  onChange={(e) => setFormData({ ...formData, recommended_hp1: e.target.value })}
-                >
-                  <option value="">선택 안 함</option>
-                  {headfiOwnedHeadphones.map((h) => (
-                    <option key={h.id} value={String(h.id)}>
-                      {h.brand} {h.model}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(recommended_hp1) => setFormData({ ...formData, recommended_hp1 })}
+                  options={headfiOwnedHeadphones}
+                  aria-label="추천 리시버 1순위"
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">추천 리시버 2순위</label>
-                <select
-                  className="select-apple px-3 py-2 w-full h-[42px]"
+                <ReceiverComboSelect
                   value={formData.recommended_hp2}
-                  onChange={(e) => setFormData({ ...formData, recommended_hp2: e.target.value })}
-                >
-                  <option value="">선택 안 함</option>
-                  {headfiOwnedHeadphones.map((h) => (
-                    <option key={h.id} value={String(h.id)}>
-                      {h.brand} {h.model}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(recommended_hp2) => setFormData({ ...formData, recommended_hp2 })}
+                  options={headfiOwnedHeadphones}
+                  aria-label="추천 리시버 2순위"
+                />
               </div>
             </div>
           </div>

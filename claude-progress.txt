@@ -333,3 +333,11 @@
 [2026-08-11] [Cursor] feat: GEAR-028 헤드폰·이어폰 세팅 탭·DAC/AMP 조합별 게인 설정 CRUD | passes: 변경 없음
 
 [2026-08-11] [Cursor] fix: GEAR-028 세팅 탭 DAC/AMP 선택에 DAP 포함 | passes: 변경 없음
+
+[2026-08-17] [Cursor] feat: ALBUM-027 리시버 검색+최근사용+전체보기 콤보박스 공용 컴포넌트 | passes: 변경 없음
+
+[2026-08-17] [Cursor] fix: ALBUM-027 리시버 콤보박스 portal·위아래 flip 배치 | passes: 변경 없음
+
+[2026-08-17] [Cursor] style: ALBUM-027 리시버 콤보박스 패널 고정 너비·우측 넘침 보정 | passes: 변경 없음
+
+[2026-08-17] [Cursor] fix: ALBUM-027 리시버 콤보박스 패널을 모달 경계 안으로 보정 | passes: 변경 없음
