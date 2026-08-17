@@ -341,3 +341,15 @@
 [2026-08-17] [Cursor] style: ALBUM-027 리시버 콤보박스 패널 고정 너비·우측 넘침 보정 | passes: 변경 없음
 
 [2026-08-17] [Cursor] fix: ALBUM-027 리시버 콤보박스 패널을 모달 경계 안으로 보정 | passes: 변경 없음
+
+[2026-08-17] [Cursor] feat: GEAR-029 Head-fi 사용 통계 페이지·앨범 통계 기기 랭킹 이관 | passes: 변경 없음
+
+[2026-08-17] [Cursor] style: GEAR-029 리시버·DAC/AMP 랭킹 TOP10 2컬럼 배치 | passes: 변경 없음
+
+[2026-08-17] [Cursor] style: GEAR-029 리시버 필터 라벨 헤드폰W·이어폰W 축약 | passes: 변경 없음
+
+[2026-08-17] [Cursor] style: GEAR-029 리시버 필터 라벨 HP/IEM/W-HP/W-IEM | passes: 변경 없음
+
+[2026-08-17] [Cursor] style: GEAR-029 리시버·DAC/AMP 랭킹 헤더 높이 정렬 | passes: 변경 없음
+
+[2026-08-17] [Cursor] feat: GEAR-029 최다 사용 DAC/AMP 랭킹에 DAP 명시·집계 보강 | passes: 변경 없음

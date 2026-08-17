@@ -3,9 +3,9 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart2, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
+import { BarChart2, BarChart3, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
 
-export type HeadfiNavId = 'stats' | 'position' | 'device-match' | 'album-match';
+export type HeadfiNavId = 'stats' | 'usage' | 'position' | 'device-match' | 'album-match';
 
 type HeadfiPageHeaderProps = {
   activeNav?: HeadfiNavId | null;
@@ -46,17 +46,28 @@ export function HeadfiPageHeader({
       </h1>
       <div className="flex flex-wrap items-center gap-2">
         {isAuthenticated ? (
-          onStatsClick ? (
-            <button type="button" className={navButtonClass(activeNav === 'stats')} onClick={onStatsClick}>
-              <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-              <span className="hidden sm:inline">소비 통계</span>
-            </button>
-          ) : (
-            <Link href={statsHref} className={navButtonClass(activeNav === 'stats')}>
-              <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-              <span className="hidden sm:inline">소비 통계</span>
+          <>
+            {onStatsClick ? (
+              <button
+                type="button"
+                className={navButtonClass(activeNav === 'stats')}
+                onClick={onStatsClick}
+                aria-label="소비 통계"
+              >
+                <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+                <span className="hidden sm:inline">소비 통계</span>
+              </button>
+            ) : (
+              <Link href={statsHref} className={navButtonClass(activeNav === 'stats')} aria-label="소비 통계">
+                <BarChart2 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+                <span className="hidden sm:inline">소비 통계</span>
+              </Link>
+            )}
+            <Link href="/headfi/stats" className={navButtonClass(activeNav === 'usage')} aria-label="사용 통계">
+              <BarChart3 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+              <span className="hidden sm:inline">사용 통계</span>
             </Link>
-          )
+          </>
         ) : null}
         <Link href="/headfi/map" className={navButtonClass(activeNav === 'position')}>
           <Map className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />

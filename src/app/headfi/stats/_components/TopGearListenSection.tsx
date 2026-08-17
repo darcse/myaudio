@@ -1,13 +1,13 @@
 'use client';
 
 import { Headphones } from 'lucide-react';
-import type { GearCategoryFilter, GearListenRankItem, ListenPeriodFilter } from '../albumListenStats';
+import type { GearCategoryFilter, GearListenRankItem, ListenPeriodFilter } from '@/app/albums/stats/albumListenStats';
 import {
   GEAR_CATEGORY_FILTER_OPTIONS,
   GEAR_LISTEN_RANKING_LIMIT,
   gearCategoryFilterLabel,
   formatPeriodLabel,
-} from '../albumListenStats';
+} from '@/app/albums/stats/albumListenStats';
 
 function filterToggleStyle(active: boolean): React.CSSProperties {
   return {
@@ -75,86 +75,84 @@ function GearRankRow({
 }
 
 type TopGearListenSectionProps = {
+  title: string;
+  icon?: React.ReactNode;
   items: GearListenRankItem[];
   periodFilter: ListenPeriodFilter;
-  categoryFilter: GearCategoryFilter;
-  onCategoryFilterChange: (value: GearCategoryFilter) => void;
+  categoryFilter?: GearCategoryFilter;
+  onCategoryFilterChange?: (value: GearCategoryFilter) => void;
   onGearClick: (headfiId: number) => void;
+  emptyDetail?: string;
 };
 
 export function TopGearListenSection({
+  title,
+  icon,
   items,
   periodFilter,
   categoryFilter,
   onCategoryFilterChange,
   onGearClick,
+  emptyDetail,
 }: TopGearListenSectionProps) {
-  const leftColumn = items.slice(0, 10);
-  const rightColumn = items.slice(10, GEAR_LISTEN_RANKING_LIMIT);
   const periodLabel = formatPeriodLabel(periodFilter);
-  const categoryLabel = gearCategoryFilterLabel(categoryFilter);
+  const categoryLabel =
+    categoryFilter != null ? gearCategoryFilterLabel(categoryFilter) : null;
 
   return (
     <section
-      className="mt-8 rounded-xl border"
+      className="flex min-h-[20rem] flex-col rounded-xl border"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
-        className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        className="flex min-h-[4.5rem] items-center justify-between gap-2 border-b px-4 py-2"
         style={{ borderColor: 'var(--border)' }}
       >
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <Headphones className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />
-          최다 청취 기기 TOP {GEAR_LISTEN_RANKING_LIMIT}
+        <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          {icon ?? <Headphones className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+          <span className="truncate">{title}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {GEAR_CATEGORY_FILTER_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onCategoryFilterChange(option)}
-              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-              style={filterToggleStyle(categoryFilter === option)}
-              aria-pressed={categoryFilter === option}
-            >
-              {gearCategoryFilterLabel(option)}
-            </button>
-          ))}
-        </div>
+        {categoryFilter != null && onCategoryFilterChange ? (
+          <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
+            {GEAR_CATEGORY_FILTER_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onCategoryFilterChange(option)}
+                className="shrink-0 rounded-full px-2 py-1 font-medium transition-colors"
+                style={filterToggleStyle(categoryFilter === option)}
+                aria-pressed={categoryFilter === option}
+              >
+                {gearCategoryFilterLabel(option)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
-      {items.length > 0 ? (
-        <div className="grid gap-y-0.5 p-2 sm:grid-cols-2">
-          <ul
-            className="min-w-0 space-y-0.5 sm:border-r sm:pr-3"
-            style={{ borderColor: 'var(--border)' }}
-          >
-            {leftColumn.map((item, index) => (
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        {items.length > 0 ? (
+          <ul className="space-y-0.5">
+            {items.slice(0, GEAR_LISTEN_RANKING_LIMIT).map((item, index) => (
               <li key={item.headfiId}>
                 <GearRankRow item={item} rank={index + 1} onClick={() => onGearClick(item.headfiId)} />
               </li>
             ))}
           </ul>
-          <ul className="min-w-0 space-y-0.5 sm:pl-3">
-            {rightColumn.map((item, index) => (
-              <li key={item.headfiId}>
-                <GearRankRow
-                  item={item}
-                  rank={index + 11}
-                  onClick={() => onGearClick(item.headfiId)}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <div className="px-6 py-12 text-center">
-          <p className="text-sm font-medium opacity-80">
-            {periodLabel} · {categoryLabel}에 태깅된 청취 기록이 없습니다.
-          </p>
-          <p className="mt-2 text-sm opacity-60">다른 연도, 월 또는 카테고리를 선택해 보세요.</p>
-        </div>
-      )}
+        ) : (
+          <div className="px-2 py-8 text-center">
+            <p className="text-sm font-medium opacity-80">
+              {emptyDetail ??
+                (categoryLabel
+                  ? `${periodLabel} · ${categoryLabel}에 태깅된 청취 기록이 없습니다.`
+                  : `${periodLabel}에 태깅된 청취 기록이 없습니다.`)}
+            </p>
+            <p className="mt-2 text-sm opacity-60">
+              {categoryLabel ? '다른 연도, 월 또는 카테고리를 선택해 보세요.' : '다른 연도나 월을 선택해 보세요.'}
+            </p>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

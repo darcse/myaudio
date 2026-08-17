@@ -24,10 +24,8 @@ import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildAlbumListenRankings,
   buildArtistListenRankings,
-  buildGearListenRankings,
   buildWeeklyHotAlbumRankings,
   clampListenPeriodFilter,
-  filterGearHistoryByPeriod,
   filterHistoryByPeriod,
   formatPeriodLabel,
   formatStatsMonthOptionLabel,
@@ -38,7 +36,6 @@ import {
   listStatsYears,
   type AlbumListenRankItem,
   type ArtistListenRankItem,
-  type GearCategoryFilter,
   type GearListenHistoryRow,
   type GearSummary,
   type ListenPeriodFilter,
@@ -46,7 +43,6 @@ import {
 } from '../albumListenStats';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
-import { TopGearListenSection } from './TopGearListenSection';
 
 type HistoryRow = GearListenHistoryRow;
 
@@ -212,7 +208,6 @@ export function AlbumStatsContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [statsTab, setStatsTab] = useState<AlbumStatsTab>('ranking');
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
-  const [gearCategoryFilter, setGearCategoryFilter] = useState<GearCategoryFilter>('all');
   const [gearById, setGearById] = useState<Map<number, GearSummary>>(() => new Map());
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
@@ -435,10 +430,6 @@ export function AlbumStatsContent() {
     () => filterHistoryByPeriod(historyRows, periodFilter),
     [historyRows, periodFilter],
   );
-  const filteredGearHistoryRows = useMemo(
-    () => filterGearHistoryByPeriod(historyRows, periodFilter),
-    [historyRows, periodFilter],
-  );
   const listenHistoryIndex = useMemo(
     () => buildListenHistoryIndex(filteredHistoryRows),
     [filteredHistoryRows],
@@ -450,10 +441,6 @@ export function AlbumStatsContent() {
   const artistRanking = useMemo(
     () => buildArtistListenRankings(albums, filteredHistoryRows),
     [albums, filteredHistoryRows],
-  );
-  const gearRanking = useMemo(
-    () => buildGearListenRankings(gearById, filteredGearHistoryRows, gearCategoryFilter),
-    [gearById, filteredGearHistoryRows, gearCategoryFilter],
   );
   const weekRange = useMemo(() => getRollingSevenDayRange(now), [now]);
   const weeklyHotAlbums = useMemo(
@@ -914,14 +901,6 @@ export function AlbumStatsContent() {
                   </RankingPanel>
                 </div>
               )}
-
-              <TopGearListenSection
-                items={gearRanking}
-                periodFilter={periodFilter}
-                categoryFilter={gearCategoryFilter}
-                onCategoryFilterChange={setGearCategoryFilter}
-                onGearClick={(id) => void openHeadfiById(id)}
-              />
             </>
           )}
         </>
@@ -944,6 +923,7 @@ export function AlbumStatsContent() {
             setViewingAlbum(updated);
             setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
           }}
+          onHeadfiClick={(id) => void openHeadfiById(id)}
         />
       ) : null}
 

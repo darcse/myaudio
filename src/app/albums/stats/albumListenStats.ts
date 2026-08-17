@@ -1,9 +1,11 @@
 import type { Album } from '@/app/albums/types';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
 export const LISTEN_RANKING_LIMIT = 10;
-export const GEAR_LISTEN_RANKING_LIMIT = 20;
+export const GEAR_LISTEN_RANKING_LIMIT = 10;
 export const WEEKLY_HOT_ALBUM_LIMIT = 5;
+export const WEEKLY_HOT_RECEIVER_LIMIT = 5;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
 export type ListenTrendUnit = 'year' | 'month' | 'week';
@@ -38,6 +40,8 @@ type HistoryRow = { album_id: number | null; listened_at: string | null };
 
 export type GearListenHistoryRow = HistoryRow & {
   headphone_id: number | null;
+  dac_amp_id?: number | null;
+  dac_amp2_id?: number | null;
 };
 
 export type GearCategoryFilter = 'all' | '헤드폰' | '이어폰' | '무선 헤드폰' | '무선 이어폰';
@@ -69,8 +73,10 @@ export const GEAR_CATEGORY_FILTER_OPTIONS: GearCategoryFilter[] = [
 
 export function gearCategoryFilterLabel(filter: GearCategoryFilter): string {
   if (filter === 'all') return '전체';
-  if (filter === '무선 헤드폰') return '무선헤드폰';
-  if (filter === '무선 이어폰') return '무선이어폰';
+  if (filter === '헤드폰') return 'HP';
+  if (filter === '이어폰') return 'IEM';
+  if (filter === '무선 헤드폰') return 'W-HP';
+  if (filter === '무선 이어폰') return 'W-IEM';
   return filter;
 }
 
@@ -132,6 +138,10 @@ export function buildGearListenRankings(
     });
   }
 
+  return sortGearListenRankItems(items, limit);
+}
+
+function sortGearListenRankItems(items: GearListenRankItem[], limit: number): GearListenRankItem[] {
   return items
     .sort((a, b) => {
       const byCount = b.listenCount - a.listenCount;
@@ -141,6 +151,50 @@ export function buildGearListenRankings(
       return a.model.localeCompare(b.model, 'ko') || a.headfiId - b.headfiId;
     })
     .slice(0, limit);
+}
+
+export function buildWeeklyHotReceiverRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  reference = new Date(),
+  limit = WEEKLY_HOT_RECEIVER_LIMIT,
+): GearListenRankItem[] {
+  const range = getRollingSevenDayRange(reference);
+  const filtered = filterHistoryByWeek(historyRows, range) as GearListenHistoryRow[];
+  return buildGearListenRankings(gearById, filtered, 'all', limit);
+}
+
+export function buildDacAmpListenRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  const counts = new Map<number, number>();
+
+  for (const row of historyRows) {
+    for (const headfiId of [row.dac_amp_id, row.dac_amp2_id, row.headphone_id]) {
+      if (headfiId == null) continue;
+      const gear = gearById.get(headfiId);
+      if (!gear || !isDacAmpDapCategory(gear.category)) continue;
+      counts.set(headfiId, (counts.get(headfiId) ?? 0) + 1);
+    }
+  }
+
+  const items: GearListenRankItem[] = [];
+  for (const [headfiId, listenCount] of counts.entries()) {
+    const gear = gearById.get(headfiId);
+    if (!gear) continue;
+    items.push({
+      headfiId,
+      brand: gear.brand,
+      model: gear.model,
+      category: gear.category,
+      imageUrl: gear.image_url,
+      listenCount,
+    });
+  }
+
+  return sortGearListenRankItems(items, limit);
 }
 
 export const STATS_MIN_YEAR = 2026;
