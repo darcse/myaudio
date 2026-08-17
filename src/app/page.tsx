@@ -101,6 +101,7 @@ export default async function Home() {
 
   const monthlyListenAlbums = [...albumListenMeta.entries()]
     .sort((a, b) => b[1].latestListenedAt.localeCompare(a[1].latestListenedAt))
+    .slice(0, 7)
     .map(([, data]) => ({
       id: data.album.id,
       album_name: String(data.album.album_name ?? ''),

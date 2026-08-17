@@ -10,51 +10,60 @@ type DashboardMonthlyListenCarouselProps = {
   onAlbumClick: (albumId: number) => void;
 };
 
-const AUTO_SLIDE_INTERVAL_MS = 3000;
+const AUTO_SLIDE_INTERVAL_MS = 4000;
 const MANUAL_PAUSE_MS = 7000;
 
 export function DashboardMonthlyListenCarousel({
   albums,
   onAlbumClick,
 }: DashboardMonthlyListenCarouselProps) {
-  const items = albums.slice(0, 6);
+  const items = albums.slice(0, 7);
+  const itemCount = items.length;
+  const itemIds = items.map((item) => item.id).join(',');
   const scrollRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const activeIndexRef = useRef(0);
+  const slideIndexRef = useRef(0);
   const isHoveringRef = useRef(false);
   const isTouchingRef = useRef(false);
   const isPageVisibleRef = useRef(true);
   const manualPauseUntilRef = useRef(0);
+  const isProgrammaticScrollRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const canAutoSlide = items.length > 2;
+  const canAutoSlide = itemCount > 2;
+
+  const applyScrollToIndex = useCallback((index: number, behavior: ScrollBehavior) => {
+    const root = scrollRef.current;
+    const slide = slideRefs.current[index];
+    if (!root || !slide) return;
+    isProgrammaticScrollRef.current = true;
+    root.scrollTo({ left: slide.offsetLeft, behavior });
+    window.setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, behavior === 'smooth' ? 500 : 50);
+  }, []);
 
   const scrollToIndex = useCallback(
-    (index: number, options?: { manual?: boolean }) => {
+    (index: number, options?: { manual?: boolean; auto?: boolean }) => {
       if (options?.manual) {
         manualPauseUntilRef.current = Date.now() + MANUAL_PAUSE_MS;
       }
-      const next = Math.max(0, Math.min(items.length - 1, index));
-      const root = scrollRef.current;
-      const slide = slideRefs.current[next];
-      if (root && slide) {
-        const rootRect = root.getBoundingClientRect();
-        const slideRect = slide.getBoundingClientRect();
-        const nextLeft =
-          root.scrollLeft +
-          (slideRect.left - rootRect.left) -
-          (rootRect.width - slideRect.width) / 2;
-        root.scrollTo({ left: Math.max(0, nextLeft), behavior: 'smooth' });
-      }
-      activeIndexRef.current = next;
+      const next = Math.max(0, Math.min(itemCount - 1, index));
+      applyScrollToIndex(next, 'smooth');
+      slideIndexRef.current = next;
       setActiveIndex(next);
     },
-    [items.length],
+    [applyScrollToIndex, itemCount],
   );
 
   useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
+    slideIndexRef.current = 0;
+    setActiveIndex(0);
+    const id = window.requestAnimationFrame(() => {
+      applyScrollToIndex(0, 'auto');
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [applyScrollToIndex, itemIds]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -72,39 +81,61 @@ export function DashboardMonthlyListenCarousel({
       if (isHoveringRef.current || isTouchingRef.current) return;
       if (Date.now() < manualPauseUntilRef.current) return;
 
-      const current = activeIndexRef.current;
-      const next = current >= items.length - 1 ? 0 : current + 1;
-      scrollToIndex(next);
+      const current = slideIndexRef.current;
+      const next = current >= itemCount - 1 ? 0 : current + 1;
+      applyScrollToIndex(next, 'smooth');
+      slideIndexRef.current = next;
+      setActiveIndex(next);
     }, AUTO_SLIDE_INTERVAL_MS);
 
     return () => window.clearInterval(id);
-  }, [canAutoSlide, items.length, scrollToIndex]);
+  }, [applyScrollToIndex, canAutoSlide, itemCount]);
 
   useEffect(() => {
     const root = scrollRef.current;
-    if (!root || items.length === 0) return;
+    if (!root || itemCount === 0) return;
 
-    const slides = slideRefs.current.filter(Boolean) as HTMLButtonElement[];
-    if (slides.length === 0) return;
+    const ro = new ResizeObserver(() => {
+      const slide = slideRefs.current[slideIndexRef.current];
+      if (!slide) return;
+      root.scrollLeft = slide.offsetLeft;
+    });
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [itemCount]);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length === 0) return;
-        const index = slides.indexOf(visible[0].target as HTMLButtonElement);
-        if (index >= 0) {
-          activeIndexRef.current = index;
-          setActiveIndex(index);
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || itemCount === 0) return;
+
+    let syncTimer = 0;
+    const onScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+      window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => {
+        const slides = slideRefs.current.filter(Boolean) as HTMLButtonElement[];
+        if (slides.length === 0) return;
+        const scrollLeft = root.scrollLeft;
+        let best = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < slides.length; i += 1) {
+          const dist = Math.abs(slides[i].offsetLeft - scrollLeft);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+          }
         }
-      },
-      { root, threshold: [0.55, 0.7, 0.85] },
-    );
+        slideIndexRef.current = best;
+        setActiveIndex(best);
+      }, 80);
+    };
 
-    slides.forEach((slide) => observer.observe(slide));
-    return () => observer.disconnect();
-  }, [items]);
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      root.removeEventListener('scroll', onScroll);
+      window.clearTimeout(syncTimer);
+    };
+  }, [itemCount]);
 
   return (
     <div
@@ -127,9 +158,8 @@ export function DashboardMonthlyListenCarousel({
     >
       <div
         ref={scrollRef}
-        className="scrollbar-hide absolute inset-0 flex items-center gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory"
+        className="scrollbar-hide absolute inset-0 flex items-center gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory"
       >
-        <div className="w-[9%] shrink-0" aria-hidden />
         {items.map((row, index) => (
           <button
             key={row.id}
@@ -138,16 +168,15 @@ export function DashboardMonthlyListenCarousel({
             }}
             type="button"
             onClick={() => onAlbumClick(row.id)}
-            className="relative aspect-square h-full max-h-full shrink-0 snap-center self-center overflow-hidden rounded-xl transition-opacity hover:opacity-90"
+            className="relative aspect-square h-full w-auto shrink-0 snap-start overflow-hidden rounded-xl transition-opacity hover:opacity-90"
             style={{
-              flexBasis: '82%',
               border: '1px solid var(--border)',
               background: 'var(--badge-bg)',
             }}
             title={`${row.artist ?? ''} — ${row.album_name} (${row.listenCount}회)`}
           >
             {row.cover_image_url ? (
-              <img src={row.cover_image_url} alt="" className="h-full w-full object-cover" />
+              <img src={row.cover_image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <Music className="size-8 opacity-35" strokeWidth={1.5} aria-hidden />
@@ -160,10 +189,9 @@ export function DashboardMonthlyListenCarousel({
             ) : null}
           </button>
         ))}
-        <div className="w-[9%] shrink-0" aria-hidden />
       </div>
 
-      {items.length > 1 ? (
+      {itemCount > 1 ? (
         <>
           <button
             type="button"
@@ -182,7 +210,7 @@ export function DashboardMonthlyListenCarousel({
           <button
             type="button"
             onClick={() => scrollToIndex(activeIndex + 1, { manual: true })}
-            disabled={activeIndex === items.length - 1}
+            disabled={activeIndex === itemCount - 1}
             className="absolute right-1 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition-opacity hover:opacity-100 disabled:pointer-events-none disabled:opacity-0 md:inline-flex"
             style={{
               background: 'color-mix(in srgb, var(--card-bg) 88%, transparent)',

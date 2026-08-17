@@ -17,7 +17,6 @@ import { getClientErrorMessage } from '@/lib/supabase-error';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
-import { DashboardTodayAlbumCard } from './DashboardTodayAlbumCard';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
 
 const AlbumDetailModal = dynamic(
@@ -629,7 +628,7 @@ export function DashboardContent({
           </div>
         </div>
 
-        <div className={summaryCardClass}>
+        <div className={`${summaryCardClass} lg:col-span-2`}>
           <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold opacity-80">
               <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
@@ -642,20 +641,17 @@ export function DashboardContent({
               {monthlyListens}회
             </Link>
           </div>
-          {monthlyListenAlbums.length === 0 ? (
-            <p className="text-sm opacity-60">이번 달 청취 기록이 없습니다.</p>
-          ) : (
-            <DashboardMonthlyListenCarousel
-              albums={monthlyListenAlbums}
-              onAlbumClick={(albumId) => void openAlbumById(albumId)}
-            />
-          )}
+          <div className="flex min-h-0 flex-1 flex-col">
+            {monthlyListenAlbums.length === 0 ? (
+              <p className="flex flex-1 items-center text-sm opacity-60">이번 달 청취 기록이 없습니다.</p>
+            ) : (
+              <DashboardMonthlyListenCarousel
+                albums={monthlyListenAlbums}
+                onAlbumClick={(albumId) => void openAlbumById(albumId)}
+              />
+            )}
+          </div>
         </div>
-
-        <DashboardTodayAlbumCard
-          totalAlbums={totalAlbums}
-          onAlbumClick={(album) => void openAlbumById(album.id)}
-        />
       </div>
 
       <div className="card-apple mb-8 flex flex-col p-5">
