@@ -6,19 +6,10 @@ import { DashboardContent } from './_components/DashboardContent';
 export const dynamic = 'force-dynamic';
 export const preferredRegion = 'icn1';
 
-function monthListenRange(): { start: string; endExclusive: string } {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const start = `${year}-${pad(month)}-01`;
-  const endExclusive = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
-  return { start, endExclusive };
-}
-
 type MonthlyListenJoinRow = {
   album_id: number | null;
   listened_at: string | null;
+  created_at: string | null;
   album:
     | {
         id: number;
@@ -45,18 +36,18 @@ function resolveJoinedAlbum(
 
 export default async function Home() {
   const supabase = await createClient();
-  const { start, endExclusive } = monthListenRange();
 
-  const [albumsCountRes, headfiCountRes, headfiCatsRes, monthlyListenRes, recentAlbumsRes, recentHeadfiRes] =
+  const [albumsCountRes, headfiCountRes, headfiCatsRes, listenCountRes, recentListenRes, recentAlbumsRes, recentHeadfiRes] =
     await Promise.all([
       supabase.from('album').select('*', { count: 'exact', head: true }),
       supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
       supabase.from('headfi').select('category, status2').neq('status2', '방출'),
+      supabase.from('album_listen_history').select('*', { count: 'exact', head: true }),
       supabase
         .from('album_listen_history')
-        .select('album_id, listened_at, album:album_id(id, album_name, artist, cover_image_url)')
-        .gte('listened_at', start)
-        .lt('listened_at', endExclusive),
+        .select('album_id, listened_at, created_at, album:album_id(id, album_name, artist, cover_image_url)')
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .limit(80),
       supabase
         .from('album')
         .select('id,album_name,artist,cover_image_url,created_at')
@@ -69,46 +60,47 @@ export default async function Home() {
         .limit(5),
     ]);
 
-  const monthlyListenRows = (monthlyListenRes.data ?? []) as MonthlyListenJoinRow[];
-  const monthlyListens = monthlyListenRows.length;
+  const monthlyListenRows = (recentListenRes.data ?? []) as MonthlyListenJoinRow[];
+  const monthlyListens = listenCountRes.count ?? 0;
 
-  const albumListenMeta = new Map<
-    number,
-    {
-      count: number;
-      latestListenedAt: string;
-      album: NonNullable<ReturnType<typeof resolveJoinedAlbum>>;
-    }
-  >();
+  const listenCountByAlbumId = new Map<number, number>();
+  const orderedRows = [...monthlyListenRows].sort((a, b) => {
+    const aCreated = a.created_at?.trim() ?? '';
+    const bCreated = b.created_at?.trim() ?? '';
+    if (aCreated !== bCreated) return bCreated.localeCompare(aCreated);
+    const aId = a.album_id ?? 0;
+    const bId = b.album_id ?? 0;
+    return bId - aId;
+  });
 
-  for (const row of monthlyListenRows) {
-    const listenedAt = row.listened_at?.trim() ?? '';
+  for (const row of orderedRows) {
     const album = resolveJoinedAlbum(row.album);
-    if (!album || !listenedAt) continue;
-    const id = album.id;
-    if (!Number.isInteger(id)) continue;
-    const prev = albumListenMeta.get(id);
-    if (!prev) {
-      albumListenMeta.set(id, { count: 1, latestListenedAt: listenedAt, album });
-      continue;
-    }
-    albumListenMeta.set(id, {
-      count: prev.count + 1,
-      latestListenedAt: listenedAt > prev.latestListenedAt ? listenedAt : prev.latestListenedAt,
-      album: prev.album,
-    });
+    if (!album || !Number.isInteger(album.id)) continue;
+    listenCountByAlbumId.set(album.id, (listenCountByAlbumId.get(album.id) ?? 0) + 1);
   }
 
-  const monthlyListenAlbums = [...albumListenMeta.entries()]
-    .sort((a, b) => b[1].latestListenedAt.localeCompare(a[1].latestListenedAt))
-    .slice(0, 7)
-    .map(([, data]) => ({
-      id: data.album.id,
-      album_name: String(data.album.album_name ?? ''),
-      artist: data.album.artist ?? null,
-      cover_image_url: data.album.cover_image_url ?? null,
-      listenCount: data.count,
-    }));
+  const monthlyListenAlbums: {
+    id: number;
+    album_name: string;
+    artist: string | null;
+    cover_image_url: string | null;
+    listenCount: number;
+  }[] = [];
+  const seenAlbumIds = new Set<number>();
+
+  for (const row of orderedRows) {
+    const album = resolveJoinedAlbum(row.album);
+    if (!album || !Number.isInteger(album.id) || seenAlbumIds.has(album.id)) continue;
+    seenAlbumIds.add(album.id);
+    monthlyListenAlbums.push({
+      id: album.id,
+      album_name: String(album.album_name ?? ''),
+      artist: album.artist ?? null,
+      cover_image_url: album.cover_image_url ?? null,
+      listenCount: listenCountByAlbumId.get(album.id) ?? 1,
+    });
+    if (monthlyListenAlbums.length >= 7) break;
+  }
 
   return (
     <DashboardContent

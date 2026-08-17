@@ -353,3 +353,11 @@
 [2026-08-17] [Cursor] style: GEAR-029 리시버·DAC/AMP 랭킹 헤더 높이 정렬 | passes: 변경 없음
 
 [2026-08-17] [Cursor] feat: GEAR-029 최다 사용 DAC/AMP 랭킹에 DAP 명시·집계 보강 | passes: 변경 없음
+
+[2026-08-17] [Cursor] fix: BUG-012 이번 달 청취 캐러셀 created_at 최신순·앨범 중복 제거 | passes: 변경 없음
+
+[2026-08-17] [Cursor] fix: BUG-013 아티스트 이름 편집 팝오버 portal·헤더 가림 해소 | passes: 변경 없음
+
+[2026-08-17] [Cursor] feat: 대시보드 이번 달 청취를 최근 청취 7장(중복 제외)으로 변경 | passes: 변경 없음
+
+[2026-08-17] [Cursor] feat: 대시보드 최근 청취 횟수 배지를 다이어리 더보기로 교체 | passes: 변경 없음

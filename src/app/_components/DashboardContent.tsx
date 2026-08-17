@@ -196,10 +196,6 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
-  const currentMonthArchiveHref = (() => {
-    const now = new Date();
-    return `/archive/${now.getFullYear()}/${now.getMonth() + 1}`;
-  })();
   const ownedHeadfiListHref = `/headfi?status=${encodeURIComponent('보유중')}`;
   const sortedHeadfiCategories = buildSortedHeadfiCategories(headfiCategoryRows);
   const ownedHeadfiTotal = sortedHeadfiCategories.reduce((sum, [, n]) => sum + n, 0);
@@ -581,7 +577,7 @@ export function DashboardContent({
           ·
         </span>
         <span>
-          <span className="opacity-60">이번 달 청취</span> {monthlyListens}
+          <span className="opacity-60">최근 청취</span> {monthlyListens}
         </span>
       </div>
 
@@ -632,18 +628,15 @@ export function DashboardContent({
           <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold opacity-80">
               <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
-              이번 달 청취
+              최근 청취
             </h2>
-            <Link
-              href={currentMonthArchiveHref}
-              className="shrink-0 rounded-full bg-blue-500/10 px-3 py-1 text-sm font-bold text-blue-500 tabular-nums transition-opacity hover:opacity-90"
-            >
-              {monthlyListens}회
+            <Link href="/albums/diary" className="link-apple shrink-0 text-sm">
+              더보기 &rarr;
             </Link>
           </div>
           <div className="flex min-h-0 flex-1 flex-col">
             {monthlyListenAlbums.length === 0 ? (
-              <p className="flex flex-1 items-center text-sm opacity-60">이번 달 청취 기록이 없습니다.</p>
+              <p className="flex flex-1 items-center text-sm opacity-60">최근 청취 기록이 없습니다.</p>
             ) : (
               <DashboardMonthlyListenCarousel
                 albums={monthlyListenAlbums}
