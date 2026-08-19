@@ -8,6 +8,8 @@ import { BarChart3, BookOpen, ChevronLeft, Disc, Sparkles } from 'lucide-react';
 export type AlbumNavId = 'stats' | 'diary';
 
 type AlbumPageHeaderProps = {
+  title?: string;
+  showAlbumNav?: boolean;
   activeNav?: AlbumNavId | null;
   isAuthenticated: boolean | null;
   showRegister?: boolean;
@@ -24,6 +26,8 @@ function navButtonClass(active: boolean): string {
 }
 
 export function AlbumPageHeader({
+  title = 'Albums',
+  showAlbumNav = true,
   activeNav,
   isAuthenticated,
   showRegister = false,
@@ -42,9 +46,11 @@ export function AlbumPageHeader({
     >
       <h1 className="page-title flex shrink-0 items-center gap-2">
         <Disc className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
-        Albums
+        {title}
       </h1>
       <div className="flex flex-wrap items-center gap-2">
+        {showAlbumNav ? (
+          <>
         <Link href="/albums/diary" className={navButtonClass(activeNav === 'diary')} aria-label="다이어리">
           <BookOpen className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
           <span className="hidden sm:inline">다이어리</span>
@@ -85,6 +91,8 @@ export function AlbumPageHeader({
             <span className="hidden sm:inline">취향 분석</span>
           </Link>
         )}
+          </>
+        ) : null}
         {showRegister && isAuthenticated ? (
           <button
             type="button"

@@ -29,6 +29,8 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     recommended_hp2: mids[1] != null ? String(mids[1]) : '',
     recommended_hp3: '',
     mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
+    owns_cd: Boolean(item.owns_cd),
+    owns_lp: Boolean(item.owns_lp),
     ...overrides,
   };
 }

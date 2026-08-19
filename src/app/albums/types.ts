@@ -22,6 +22,8 @@ export interface Album {
   ai_recommended_headphone_reason?: string | null;
   mood_names?: string[] | null;
   mood_name?: string | null;
+  owns_cd?: boolean | null;
+  owns_lp?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -55,6 +57,8 @@ export interface AlbumFormData {
   recommended_hp2: string;
   recommended_hp3: string;
   mood_names: string[];
+  owns_cd: boolean;
+  owns_lp: boolean;
 }
 
 export type SelectedAlbum = Album | MusicBrainzSearchItem | { isManual: true };

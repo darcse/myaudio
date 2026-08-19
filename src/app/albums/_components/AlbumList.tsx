@@ -4,10 +4,12 @@
 import { useEffect, useState } from 'react';
 import { LayoutGrid, LayoutList, List, Music, Shuffle, X } from 'lucide-react';
 import type { LibraryViewMode } from './albumBoardShared';
+import { PhysicalOwnedBadges } from './albumBoardShared';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
 import { isIndividualYearFilter } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
+import type { AlbumMediaFilter } from '../_hooks/useAlbumFilters';
 
 interface AlbumListProps {
   yearOptions: string[];
@@ -32,6 +34,9 @@ interface AlbumListProps {
   onSubGenreLabelClick?: (subGenre: string) => void;
   libraryViewMode?: LibraryViewMode;
   onLibraryViewModeChange?: (mode: LibraryViewMode) => void;
+  variant?: 'albums' | 'recordshelf';
+  listMediaFilter?: AlbumMediaFilter;
+  setListMediaFilter?: (v: AlbumMediaFilter) => void;
 }
 
 export function AlbumList({
@@ -57,25 +62,29 @@ export function AlbumList({
   onSubGenreLabelClick,
   libraryViewMode = 'list',
   onLibraryViewModeChange,
+  variant = 'albums',
+  listMediaFilter = 'all',
+  setListMediaFilter,
 }: AlbumListProps) {
+  const isRecordshelf = variant === 'recordshelf';
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const canLottery = lotteryPool.length > 0;
   const defaultYearFilter = yearOptions[0] ?? '';
-  const hideYearTagOnCard = isIndividualYearFilter(listYearFilter);
+  const hideYearTagOnCard = !isRecordshelf && isIndividualYearFilter(listYearFilter);
 
   const activeFilters = [
-    defaultYearFilter && listYearFilter !== defaultYearFilter && {
+    !isRecordshelf && defaultYearFilter && listYearFilter !== defaultYearFilter && {
       key: 'year',
       label: `연도: ${listYearFilter}`,
       reset: () => setListYearFilter(defaultYearFilter),
     },
-    listGenreFilter !== '전체' && {
+    !isRecordshelf && listGenreFilter !== '전체' && {
       key: 'genre',
       label: `장르: ${listGenreFilter}`,
       reset: () => setListGenreFilter('전체'),
     },
-    listCountryFilter !== '전체' && {
+    !isRecordshelf && listCountryFilter !== '전체' && {
       key: 'country',
       label: `국가: ${listCountryFilter}`,
       reset: () => setListCountryFilter('전체'),
@@ -88,8 +97,9 @@ export function AlbumList({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [listCurrentPage]);
 
+  const chipAlign = isRecordshelf ? 'justify-start' : 'justify-start lg:justify-end';
   const activeFilterChips = hasActiveFilters ? (
-    <div className="flex flex-wrap gap-1 justify-start lg:justify-end">
+    <div className={`flex flex-wrap gap-1 ${chipAlign}`}>
       {activeFilters.map((f) => (
         <button
           key={f.key}
@@ -108,9 +118,44 @@ export function AlbumList({
     </div>
   ) : null;
 
+  const filterSelects = (
+    <>
+      <select
+        className="select-apple px-3 py-2 text-sm h-[38px]"
+        value={listGenreFilter}
+        onChange={(e) => setListGenreFilter(e.target.value)}
+      >
+        <option value="전체">장르: 전체</option>
+        {genreOptions.map((g) => (
+          <option key={g} value={g}>{g}</option>
+        ))}
+      </select>
+      <select
+        className="select-apple px-3 py-2 text-sm h-[38px]"
+        value={listCountryFilter}
+        onChange={(e) => setListCountryFilter(e.target.value)}
+      >
+        <option value="전체">국가: 전체</option>
+        {countryOptions.map((c) => (
+          <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+        ))}
+      </select>
+      <select
+        className="select-apple px-3 py-2 text-sm h-[38px]"
+        value={listSortOrder}
+        onChange={(e) => setListSortOrder(e.target.value)}
+      >
+        <option value="latest">최신 등록순</option>
+        <option value="release_desc">발매일 최신순</option>
+        <option value="release_asc">발매일 과거순</option>
+      </select>
+    </>
+  );
+
   return (
     <div>
       <div className="flex flex-col lg:flex-row lg:items-start mb-2 gap-4 lg:gap-6">
+        {!isRecordshelf && (
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <h2 className="list-section-title flex items-center gap-2">
             <List className="size-5 opacity-80 shrink-0" strokeWidth={1.5} /> Albums of the
@@ -146,7 +191,8 @@ export function AlbumList({
             <Shuffle className="size-[18px]" strokeWidth={1.75} />
           </button>
         </div>
-        <div className="flex items-center gap-2 w-full lg:w-auto lg:ml-auto lg:min-w-0">
+        )}
+        <div className={`flex items-center gap-2 ${isRecordshelf ? 'w-full flex-wrap' : 'w-full lg:w-auto lg:ml-auto lg:min-w-0'}`}>
           {onLibraryViewModeChange && (
             <div className="flex items-center gap-1 shrink-0">
               <button
@@ -163,6 +209,7 @@ export function AlbumList({
               >
                 <LayoutList className="size-[18px]" strokeWidth={1.75} />
               </button>
+              {!isRecordshelf && (
               <button
                 type="button"
                 title="무드보드 뷰"
@@ -177,6 +224,7 @@ export function AlbumList({
               >
                 <LayoutGrid className="size-[18px]" strokeWidth={1.75} />
               </button>
+              )}
               <button
                 type="button"
                 title="장르보드 뷰"
@@ -193,7 +241,7 @@ export function AlbumList({
               </button>
             </div>
           )}
-          <div className="relative flex-1 min-w-0 lg:w-[320px]">
+          <div className={`relative min-w-0 ${isRecordshelf ? 'w-[320px] max-w-full' : 'flex-1 lg:w-[320px]'}`}>
             <input
               className="input-apple px-3 py-2 text-sm w-full h-[38px] pr-8"
               placeholder="앨범명, 아티스트 검색..."
@@ -211,6 +259,57 @@ export function AlbumList({
               </button>
             )}
           </div>
+          {isRecordshelf && setListMediaFilter && (
+            <div className="flex items-center gap-1 shrink-0">
+              {([
+                { value: 'all' as const, label: '전체' },
+                { value: 'cd' as const, label: 'CD' },
+                { value: 'lp' as const, label: 'LP' },
+              ]).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setListMediaFilter(opt.value)}
+                  className="h-[38px] px-3 text-[13px] font-medium rounded-lg shrink-0 transition-opacity hover:opacity-90"
+                  style={
+                    listMediaFilter === opt.value
+                      ? { background: 'var(--foreground)', color: 'var(--background)' }
+                      : { background: 'var(--card-bg)', border: '1px solid var(--border)' }
+                  }
+                  aria-pressed={listMediaFilter === opt.value}
+                  aria-label={`매체 ${opt.label}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {isRecordshelf && (
+            <>
+              <select
+                className="select-apple px-3 py-2 text-sm h-[38px]"
+                value={listGenreFilter}
+                onChange={(e) => setListGenreFilter(e.target.value)}
+                aria-label="장르 필터"
+              >
+                <option value="전체">장르: 전체</option>
+                {genreOptions.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+              <select
+                className="select-apple px-3 py-2 text-sm h-[38px]"
+                value={listSortOrder}
+                onChange={(e) => setListSortOrder(e.target.value)}
+                aria-label="발매일 정렬"
+              >
+                <option value="latest">최신 등록순</option>
+                <option value="release_desc">발매일 최신순</option>
+                <option value="release_asc">발매일 과거순</option>
+              </select>
+            </>
+          )}
+          {!isRecordshelf && (
           <button
             type="button"
             className="h-[34px] px-4 text-[13px] font-medium inline-flex items-center gap-2 rounded-lg hover:opacity-90 transition-opacity shrink-0"
@@ -228,49 +327,22 @@ export function AlbumList({
               </span>
             )}
           </button>
+          )}
         </div>
       </div>
       <div
         className={`flex flex-wrap items-start gap-x-4 gap-y-2 mb-3 ${
-          filtersOpen || hasActiveFilters ? 'justify-between' : ''
+          (filtersOpen || hasActiveFilters) && !isRecordshelf ? 'justify-between' : ''
         }`}
       >
         <p className="text-sm font-semibold opacity-80 shrink-0 pt-1.5">
           총 <span className="link-apple font-semibold">{totalFilteredCount}</span>개
         </p>
-        {(filtersOpen || hasActiveFilters) && (
+        {!isRecordshelf && (filtersOpen || hasActiveFilters) && (
           <div className="flex w-full flex-col items-stretch gap-2 lg:ml-auto lg:w-auto lg:items-end">
             {filtersOpen && (
               <div className="flex flex-wrap gap-2 justify-start lg:justify-end">
-                <select
-                  className="select-apple px-3 py-2 text-sm h-[38px]"
-                  value={listGenreFilter}
-                  onChange={(e) => setListGenreFilter(e.target.value)}
-                >
-                  <option value="전체">장르: 전체</option>
-                  {genreOptions.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-                <select
-                  className="select-apple px-3 py-2 text-sm h-[38px]"
-                  value={listCountryFilter}
-                  onChange={(e) => setListCountryFilter(e.target.value)}
-                >
-                  <option value="전체">국가: 전체</option>
-                  {countryOptions.map((c) => (
-                    <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
-                  ))}
-                </select>
-                <select
-                  className="select-apple px-3 py-2 text-sm h-[38px]"
-                  value={listSortOrder}
-                  onChange={(e) => setListSortOrder(e.target.value)}
-                >
-                  <option value="latest">최신 등록순</option>
-                  <option value="release_desc">발매일 최신순</option>
-                  <option value="release_asc">발매일 과거순</option>
-                </select>
+                {filterSelects}
               </div>
             )}
             {activeFilterChips}
@@ -278,13 +350,15 @@ export function AlbumList({
         )}
       </div>
 
-      <AlbumLotteryModal
-        open={lotteryOpen}
-        onClose={() => setLotteryOpen(false)}
-        lotteryPool={lotteryPool}
-        yearLabel={listYearFilter}
-        onAlbumClick={onItemClick}
-      />
+      {!isRecordshelf && (
+        <AlbumLotteryModal
+          open={lotteryOpen}
+          onClose={() => setLotteryOpen(false)}
+          lotteryPool={lotteryPool}
+          yearLabel={listYearFilter}
+          onAlbumClick={onItemClick}
+        />
+      )}
 
       {totalFilteredCount === 0 ? (
         <div className="empty-state-apple text-center py-12">
@@ -339,6 +413,7 @@ export function AlbumList({
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 pt-1">
+                    <PhysicalOwnedBadges album={item} />
                     {item.release_date && !hideYearTagOnCard && (
                       <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
                         {item.release_date.substring(0, 4)}
@@ -368,7 +443,7 @@ export function AlbumList({
                       )
                     )}
 
-                    {item.genre2 && (
+                    {!isRecordshelf && item.genre2 && (
                       onSubGenreLabelClick ? (
                         <button
                           type="button"

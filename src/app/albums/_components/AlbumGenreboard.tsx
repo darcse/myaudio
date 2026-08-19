@@ -18,6 +18,9 @@ type AlbumGenreboardProps = {
   onAlbumClick: (album: Album) => void;
   viewMode: LibraryViewMode;
   onViewModeChange: (mode: LibraryViewMode) => void;
+  hiddenModes?: LibraryViewMode[];
+  basePath?: string;
+  iconsLeading?: boolean;
 };
 
 export function AlbumGenreboard({
@@ -25,6 +28,9 @@ export function AlbumGenreboard({
   onAlbumClick,
   viewMode,
   onViewModeChange,
+  hiddenModes,
+  basePath = '/albums',
+  iconsLeading = false,
 }: AlbumGenreboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,17 +61,17 @@ export function AlbumGenreboard({
       setExpandedGenre(genre);
       const sp = new URLSearchParams(searchParams.toString());
       sp.set('genre', genre);
-      router.replace(`/albums?${sp.toString()}`);
+      router.replace(`${basePath}?${sp.toString()}`);
     },
-    [router, searchParams],
+    [router, searchParams, basePath],
   );
 
   const clearGenreQuery = useCallback(() => {
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete('genre');
     const q = sp.toString();
-    router.replace(q ? `/albums?${q}` : '/albums');
-  }, [router, searchParams]);
+    router.replace(q ? `${basePath}?${q}` : basePath);
+  }, [router, searchParams, basePath]);
 
   const expandedAlbums = useMemo(() => {
     if (!expandedGenre) return [];
@@ -79,7 +85,10 @@ export function AlbumGenreboard({
   if (expandedGenre != null) {
     return (
       <div>
-        <div className="flex flex-wrap items-center justify-between gap-3 gap-y-3 mb-5 min-w-0">
+        <div className={`flex flex-wrap items-center gap-3 gap-y-3 mb-5 min-w-0 ${iconsLeading ? '' : 'justify-between'}`}>
+          {iconsLeading && (
+            <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} hiddenModes={hiddenModes} />
+          )}
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
               type="button"
@@ -97,7 +106,9 @@ export function AlbumGenreboard({
               {expandedGenre}
             </p>
           </div>
-          <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+          {!iconsLeading && (
+            <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} hiddenModes={hiddenModes} />
+          )}
         </div>
         <BoardExpandedAlbumGrid
           albums={expandedAlbums}
@@ -109,12 +120,17 @@ export function AlbumGenreboard({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 min-w-0">
+      <div className={`flex flex-wrap items-center gap-3 mb-6 min-w-0 ${iconsLeading ? '' : 'justify-between'}`}>
+        {iconsLeading && (
+          <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} hiddenModes={hiddenModes} />
+        )}
         <h2 className="text-base font-bold flex items-center gap-2 shrink-0" style={{ color: 'var(--foreground)' }}>
-          <Music className="size-[18px] shrink-0" strokeWidth={1.75} aria-hidden />
+          {!iconsLeading && <Music className="size-[18px] shrink-0" strokeWidth={1.75} aria-hidden />}
           Genreboard
         </h2>
-        <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        {!iconsLeading && (
+          <LibraryViewModeIcons viewMode={viewMode} onViewModeChange={onViewModeChange} hiddenModes={hiddenModes} />
+        )}
       </div>
 
       {library.length === 0 ? (

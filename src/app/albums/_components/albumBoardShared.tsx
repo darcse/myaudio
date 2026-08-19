@@ -29,6 +29,26 @@ export function albumCoverBadges(album: Album): string[] {
   return badges;
 }
 
+export function PhysicalOwnedBadges({ album }: { album: Album }) {
+  const labels = [
+    album.owns_cd ? 'CD' : null,
+    album.owns_lp ? 'LP' : null,
+  ].filter((label): label is string => Boolean(label));
+  if (labels.length === 0) return null;
+  return (
+    <>
+      {labels.map((label) => (
+        <span
+          key={label}
+          className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple"
+        >
+          {label}
+        </span>
+      ))}
+    </>
+  );
+}
+
 export function BoardCollage({ albums }: { albums: Album[] }) {
   const slots = Array.from({ length: 6 }, (_, i) => albums[i] ?? null);
   return (
@@ -129,6 +149,11 @@ export function BoardExpandedAlbumGrid({
           </div>
           <p className="line-clamp-2 text-sm font-bold leading-tight">{item.album_name}</p>
           <p className="text-xs opacity-60 truncate mt-0.5">{subtitleText}</p>
+          {item.owns_cd || item.owns_lp ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              <PhysicalOwnedBadges album={item} />
+            </div>
+          ) : null}
         </button>
         );
       })}
@@ -139,9 +164,11 @@ export function BoardExpandedAlbumGrid({
 export function LibraryViewModeIcons({
   viewMode,
   onViewModeChange,
+  hiddenModes = [],
 }: {
   viewMode: LibraryViewMode;
   onViewModeChange: (mode: LibraryViewMode) => void;
+  hiddenModes?: LibraryViewMode[];
 }) {
   const iconBtn = (
     mode: LibraryViewMode,
@@ -166,9 +193,9 @@ export function LibraryViewModeIcons({
   );
   return (
     <div className="flex items-center gap-1 shrink-0">
-      {iconBtn('list', LayoutList, '목록 뷰')}
-      {iconBtn('moodboard', LayoutGrid, '무드보드 뷰')}
-      {iconBtn('genreboard', Music, '장르보드 뷰')}
+      {!hiddenModes.includes('list') && iconBtn('list', LayoutList, '목록 뷰')}
+      {!hiddenModes.includes('moodboard') && iconBtn('moodboard', LayoutGrid, '무드보드 뷰')}
+      {!hiddenModes.includes('genreboard') && iconBtn('genreboard', Music, '장르보드 뷰')}
     </div>
   );
 }

@@ -54,6 +54,8 @@ const initialAlbumFormData: AlbumFormData = {
   recommended_hp2: '',
   recommended_hp3: '',
   mood_names: [],
+  owns_cd: false,
+  owns_lp: false,
 };
 
 function albumFormDataFromArtist(artist: ArtistSummary): AlbumFormData {

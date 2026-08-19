@@ -23,6 +23,7 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
+import { albumToFormData } from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
 
 const ITEMS_PER_PAGE = 20;
@@ -48,16 +49,11 @@ const initialFormData: AlbumFormData = {
   recommended_hp2: '',
   recommended_hp3: '',
   mood_names: [],
+  owns_cd: false,
+  owns_lp: false,
 };
 
-function formYearsFromAlbum(year: Album['year']): string[] {
-  if (year == null) return ['2026'];
-  if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
-  const s = String(year).trim();
-  return s ? [s] : ['2026'];
-}
-
-export function AlbumsLibraryContent() {
+export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOwnedOnly?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
@@ -76,6 +72,8 @@ export function AlbumsLibraryContent() {
     setListGenreFilter,
     listCountryFilter,
     setListCountryFilter,
+    listMediaFilter,
+    setListMediaFilter,
     listSortOrder,
     setListSortOrder,
     listCurrentPage,
@@ -85,7 +83,9 @@ export function AlbumsLibraryContent() {
     paginatedLibrary,
     totalFilteredCount,
     listTotalPages,
-  } = useAlbumFilters(library, artistNameAltByName);
+  } = useAlbumFilters(library, artistNameAltByName, {
+    disableYearGrouping: physicalOwnedOnly,
+  });
 
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MusicBrainzSearchItem[]>([]);
@@ -119,8 +119,11 @@ export function AlbumsLibraryContent() {
     if (!silent) setIsLoading(true);
     try {
       const client = createClient();
+      const albumQuery = physicalOwnedOnly
+        ? client.from('album').select('*').or('owns_cd.eq.true,owns_lp.eq.true').order('release_date', { ascending: false })
+        : client.from('album').select('*').order('created_at', { ascending: false });
       const [albumRes, artistsRes] = await Promise.all([
-        client.from('album').select('*').order('created_at', { ascending: false }),
+        albumQuery,
         client.from('artists').select('artist_name, name_alt'),
       ]);
       setLibrary((albumRes.data as Album[]) || []);
@@ -132,7 +135,7 @@ export function AlbumsLibraryContent() {
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, []);
+  }, [physicalOwnedOnly]);
 
   useEffect(() => {
     void fetchLibrary();
@@ -141,9 +144,9 @@ export function AlbumsLibraryContent() {
   useEffect(() => {
     const m = searchParams.get('mood');
     const g = searchParams.get('genre');
-    if (m?.trim()) setLibraryViewMode('moodboard');
+    if (!physicalOwnedOnly && m?.trim()) setLibraryViewMode('moodboard');
     else if (g?.trim()) setLibraryViewMode('genreboard');
-  }, [searchParams]);
+  }, [searchParams, physicalOwnedOnly]);
 
   useEffect(() => {
     const panel = searchParams.get('panel');
@@ -154,9 +157,10 @@ export function AlbumsLibraryContent() {
     setViewingItem((prev) => {
       if (!prev) return prev;
       const fresh = library.find((a) => a.id === prev.id);
-      return fresh ? { ...prev, ...fresh } : prev;
+      if (fresh) return { ...prev, ...fresh };
+      return physicalOwnedOnly ? null : prev;
     });
-  }, [library]);
+  }, [library, physicalOwnedOnly]);
 
   useEffect(() => {
     if (!viewingItem?.id) {
@@ -375,6 +379,11 @@ export function AlbumsLibraryContent() {
     setLibraryViewMode('moodboard');
   };
 
+  const handleLibraryViewModeChange = (mode: LibraryViewMode) => {
+    if (physicalOwnedOnly && mode === 'moodboard') return;
+    setLibraryViewMode(mode);
+  };
+
   const handleRefreshAlbumIntro = async () => {
     if (!viewingItem) return;
     await refreshAlbumIntro({
@@ -403,28 +412,11 @@ export function AlbumsLibraryContent() {
     const item = viewingItem;
     setViewingItem(null);
     setSelectedItem(item);
-    const mids = (item.manual_recommended_headphone_ids ?? []).slice(0, 2);
-    setFormData({
-      artist: item.artist ?? '',
-      artist_type: item.artist_type ?? '',
-      country: item.country ?? '',
-      album_name: item.album_name ?? '',
-      album_type: item.album_type ?? '',
-      year: formYearsFromAlbum(item.year),
-      release_date: item.release_date ?? '',
-      genre1: item.genre1 ?? '',
-      genre2: item.genre2 ?? '',
-      cover_image_url: item.cover_image_url ?? '',
-      matching1: item.matching1 ?? '',
-      matching2: item.matching2 ?? '',
-      title_song_url: item.title_song_url ?? '',
-      wiki_url: item.wiki_url ?? '',
-      album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
-      recommended_hp1: mids[0] != null ? String(mids[0]) : '',
-      recommended_hp2: mids[1] != null ? String(mids[1]) : '',
-      recommended_hp3: '',
-      mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
-    });
+    setFormData(
+      albumToFormData(item, {
+        album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
+      }),
+    );
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -518,14 +510,16 @@ export function AlbumsLibraryContent() {
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
       <AlbumPageHeader
+        title={physicalOwnedOnly ? 'RecordShelf' : 'Albums'}
+        showAlbumNav={!physicalOwnedOnly}
         isAuthenticated={isAuthenticated}
-        showRegister
-        onMoodClick={() => setMoodModalOpen(true)}
-        onTasteClick={() => void handleAnalyzeTaste()}
-        onRegisterClick={handleManualRegister}
+        showRegister={!physicalOwnedOnly}
+        onMoodClick={physicalOwnedOnly ? undefined : () => setMoodModalOpen(true)}
+        onTasteClick={physicalOwnedOnly ? undefined : () => void handleAnalyzeTaste()}
+        onRegisterClick={physicalOwnedOnly ? undefined : handleManualRegister}
       />
 
-      {isAuthenticated && (
+      {isAuthenticated && !physicalOwnedOnly && (
         <AlbumSearchSection
           query={query}
           setQuery={setQuery}
@@ -570,8 +564,8 @@ export function AlbumsLibraryContent() {
           />
         </div>
       ) : (
-        <div className={`${isAuthenticated ? 'mt-8 pt-8 border-t-2' : ''}`} style={{ borderColor: 'var(--border)' }}>
-          {libraryViewMode === 'moodboard' ? (
+        <div className={`${isAuthenticated && !physicalOwnedOnly ? 'mt-8 pt-8 border-t-2' : ''}`} style={{ borderColor: 'var(--border)' }}>
+          {!physicalOwnedOnly && libraryViewMode === 'moodboard' ? (
             <AlbumMoodboard
               library={library}
               onAlbumClick={openAlbumDetail}
@@ -584,14 +578,22 @@ export function AlbumsLibraryContent() {
               library={library}
               onAlbumClick={openAlbumDetail}
               viewMode={libraryViewMode}
-              onViewModeChange={setLibraryViewMode}
+              onViewModeChange={handleLibraryViewModeChange}
+              hiddenModes={physicalOwnedOnly ? ['moodboard'] : undefined}
+              basePath={physicalOwnedOnly ? '/recordshelf' : '/albums'}
+              iconsLeading={physicalOwnedOnly}
             />
           ) : library.length === 0 ? (
             <div className="empty-state-apple text-center py-12">
-              <p>등록된 앨범이 없습니다.</p>
+              <p>
+                {physicalOwnedOnly
+                  ? 'CD 또는 LP로 표시된 앨범이 없습니다.'
+                  : '등록된 앨범이 없습니다.'}
+              </p>
             </div>
           ) : (
             <AlbumList
+              variant={physicalOwnedOnly ? 'recordshelf' : 'albums'}
               yearOptions={dynamicYearOptions}
               lotteryPool={yearLotteryPool}
               paginatedLibrary={paginatedLibrary}
@@ -603,6 +605,8 @@ export function AlbumsLibraryContent() {
               setListGenreFilter={setListGenreFilter}
               listCountryFilter={listCountryFilter}
               setListCountryFilter={setListCountryFilter}
+              listMediaFilter={listMediaFilter}
+              setListMediaFilter={setListMediaFilter}
               listSortOrder={listSortOrder}
               setListSortOrder={setListSortOrder}
               listCurrentPage={listCurrentPage}
@@ -619,7 +623,7 @@ export function AlbumsLibraryContent() {
                 setListCurrentPage(1);
               }}
               libraryViewMode={libraryViewMode}
-              onLibraryViewModeChange={setLibraryViewMode}
+              onLibraryViewModeChange={handleLibraryViewModeChange}
             />
           )}
         </div>

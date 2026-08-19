@@ -7,20 +7,29 @@ import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYear
 
 const ITEMS_PER_PAGE = 20;
 
+export type AlbumMediaFilter = 'all' | 'cd' | 'lp';
+
 export function useAlbumFilters(
   library: Album[],
   artistNameAltByName: Record<string, string | null> = {},
+  options?: { disableYearGrouping?: boolean },
 ) {
+  const disableYearGrouping = options?.disableYearGrouping ?? false;
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
   const [listCountryFilter, setListCountryFilter] = useState('전체');
+  const [listMediaFilter, setListMediaFilter] = useState<AlbumMediaFilter>('all');
   const [listSortOrder, setListSortOrder] = useState('release_desc');
   const [listCurrentPage, setListCurrentPage] = useState(1);
 
   const dynamicYearOptions = useMemo(() => buildDynamicYearOptions(library), [library]);
 
   useEffect(() => {
+    if (disableYearGrouping) {
+      setListYearFilter('');
+      return;
+    }
     if (dynamicYearOptions.length === 0) {
       setListYearFilter('');
       return;
@@ -29,17 +38,21 @@ export function useAlbumFilters(
       if (prev && dynamicYearOptions.includes(prev)) return prev;
       return dynamicYearOptions[0];
     });
-  }, [dynamicYearOptions]);
+  }, [dynamicYearOptions, disableYearGrouping]);
 
   useEffect(() => {
     setListCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [listSearchQuery, listYearFilter, listGenreFilter, listCountryFilter, listSortOrder]);
+  }, [listSearchQuery, listYearFilter, listGenreFilter, listCountryFilter, listMediaFilter, listSortOrder]);
 
   const listFilterCommon = useCallback(
     (item: Album) => {
       const matchesGenre = listGenreFilter === '전체' || item.genre1 === listGenreFilter;
       const matchesCountry = listCountryFilter === '전체' || item.country === listCountryFilter;
+      const matchesMedia =
+        listMediaFilter === 'all' ||
+        (listMediaFilter === 'cd' && Boolean(item.owns_cd)) ||
+        (listMediaFilter === 'lp' && Boolean(item.owns_lp));
       const lowerQuery = listSearchQuery.toLowerCase().trim();
       const artistName = item.artist?.trim() ?? '';
       const nameAlt = artistName ? (artistNameAltByName[artistName] ?? null) : null;
@@ -48,17 +61,19 @@ export function useAlbumFilters(
         (item.album_name && item.album_name.toLowerCase().includes(lowerQuery)) ||
         matchesArtistNameSearch(lowerQuery, artistName, nameAlt) ||
         (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery));
-      return matchesGenre && matchesCountry && matchesSearch;
+      return matchesGenre && matchesCountry && matchesMedia && matchesSearch;
     },
-    [listGenreFilter, listCountryFilter, listSearchQuery, artistNameAltByName],
+    [listGenreFilter, listCountryFilter, listMediaFilter, listSearchQuery, artistNameAltByName],
   );
 
   const filteredLibrary = useMemo(
     () =>
       library.filter(
-        (item) => albumMatchesYearFilter(item, listYearFilter) && listFilterCommon(item),
+        (item) =>
+          (disableYearGrouping || albumMatchesYearFilter(item, listYearFilter)) &&
+          listFilterCommon(item),
       ),
-    [library, listYearFilter, listFilterCommon],
+    [library, disableYearGrouping, listYearFilter, listFilterCommon],
   );
 
   const yearLotteryPool = useMemo(
@@ -95,6 +110,8 @@ export function useAlbumFilters(
     setListGenreFilter,
     listCountryFilter,
     setListCountryFilter,
+    listMediaFilter,
+    setListMediaFilter,
     listSortOrder,
     setListSortOrder,
     listCurrentPage,

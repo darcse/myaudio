@@ -9,6 +9,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
 import type { Headfi } from '@/app/headfi/types';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import {
   buildDacAmpListenRankings,
   buildGearListenRankings,
@@ -53,6 +54,14 @@ export function HeadfiUsageStatsContent() {
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
   const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
+  >([]);
+  const [matchedMatchingDevice, setMatchedMatchingDevice] = useState<{
+    id: number;
+    brand: string;
+    model: string;
+  } | null>(null);
+  const [matchedHeadphones, setMatchedHeadphones] = useState<
+    { id: number; brand: string; model: string; category: string; image_url?: string | null }[]
   >([]);
 
   const fetchData = useCallback(async () => {
@@ -132,6 +141,45 @@ export function HeadfiUsageStatsContent() {
         setRegisteredAlbums(rows);
       });
   }, [viewingHeadfi?.id]);
+
+  useEffect(() => {
+    if (
+      !viewingHeadfi ||
+      !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
+    ) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    const m = viewingHeadfi.matching;
+    if (!m || m === ' ' || !/^\d+$/.test(String(m))) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    createClient()
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('id', Number(m))
+      .single()
+      .then(({ data }) => {
+        setMatchedMatchingDevice(data ? { id: data.id, brand: data.brand || '', model: data.model || '' } : null);
+      });
+  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching]);
+
+  useEffect(() => {
+    if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
+      setMatchedHeadphones([]);
+      return;
+    }
+    const idStr = String(viewingHeadfi.id);
+    createClient()
+      .from('headfi')
+      .select('id,brand,model,category,image_url')
+      .in('category', ['헤드폰', '이어폰'])
+      .eq('matching', idStr)
+      .order('brand')
+      .order('model')
+      .then(({ data }) => setMatchedHeadphones(data || []));
+  }, [viewingHeadfi?.id, viewingHeadfi?.category]);
 
   const yearOptions = useMemo(() => listStatsYears(), []);
   const monthOptions = useMemo(() => listStatsMonths(periodFilter.year), [periodFilter.year]);
@@ -268,8 +316,8 @@ export function HeadfiUsageStatsContent() {
         <HeadfiDetailModal
           viewingItem={viewingHeadfi}
           registeredAlbums={registeredAlbums}
-          matchedMatchingDevice={null}
-          matchedHeadphones={[]}
+          matchedMatchingDevice={matchedMatchingDevice}
+          matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={() => {
             const id = viewingHeadfi.id;

@@ -44,6 +44,8 @@ function mapAlbumData(data: AlbumFormData) {
     wiki_url: data.wiki_url || null,
     album_intro: data.album_intro?.trim() || null,
     manual_recommended_headphone_ids: manualIds.length > 0 ? manualIds : null,
+    owns_cd: Boolean(data.owns_cd),
+    owns_lp: Boolean(data.owns_lp),
   };
 }
 

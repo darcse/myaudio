@@ -361,3 +361,10 @@
 [2026-08-17] [Cursor] feat: 대시보드 이번 달 청취를 최근 청취 7장(중복 제외)으로 변경 | passes: 변경 없음
 
 [2026-08-17] [Cursor] feat: 대시보드 최근 청취 횟수 배지를 다이어리 더보기로 교체 | passes: 변경 없음
+[2026-08-19] [Cursor] feat: RECORDSHELF-001 CD/LP 보유 체크·RecordShelf 메뉴 신설 | passes: 변경 없음
+[2026-08-19] [Cursor] feat: RECORDSHELF-001 연도 그룹핑 제거·리스트/그리드·매체 필터 | passes: 변경 없음
+[2026-08-19] [Cursor] fix: RECORDSHELF-001 리스트/장르보드 아이콘 매핑·필터 셀렉트 우측 배치 | passes: 변경 없음
+[2026-08-19] [Cursor] style: RECORDSHELF-001 장르보드 전환 시 뷰 아이콘 좌측 고정 | passes: 변경 없음
+[2026-08-19] [Cursor] style: RECORDSHELF-001 목록에서 장르2 숨김 | passes: 변경 없음
+[2026-08-19] [Cursor] style: RECORDSHELF-001 매체 태그·장르/발매일 셀렉트 상시 노출 | passes: 변경 없음
+[2026-08-19] [Cursor] fix: 사용통계 DAC/AMP/DAP 모달 매칭 모델 조회 | passes: 변경 없음
