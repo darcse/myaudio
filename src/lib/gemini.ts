@@ -684,6 +684,65 @@ JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향
   }
 }
 
+export async function fetchAlbumTracklist(album: {
+  artist: string | null;
+  album_name: string | null;
+  release_date: string | null;
+}): Promise<{ track_number: number; track_title: string }[] | null> {
+  const artist = album.artist?.trim() || '';
+  const albumName = album.album_name?.trim() || '';
+  if (!artist || !albumName) return null;
+
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-3.5-flash-lite',
+    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
+    generationConfig: {
+      maxOutputTokens: 2048,
+      temperature: 0.2,
+    },
+  });
+
+  const prompt = `Google Search로 "${artist} - ${albumName}" 앨범의 공식 트랙리스트(곡 제목과 트랙 번호)를 조회해.
+발매 연도 참고: ${album.release_date || '알 수 없음'}
+
+규칙:
+- 가사 원문, 가사 전문, 가사 일부는 절대 포함하지 마. 트랙 번호와 곡 제목만.
+- 표준 스튜디오 앨범 트랙리스트를 우선해. 확정할 수 없으면 빈 배열.
+- 반드시 아래 JSON만 출력해. 다른 텍스트 금지.
+{
+  "tracks": [
+    { "track_number": 1, "track_title": "곡 제목" }
+  ]
+}`;
+
+  try {
+    const result = await withRetry(() => model.generateContent(prompt));
+    const text = result.response.text();
+    const jsonRaw = extractJsonObjectFromText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { tracks?: unknown };
+    if (!Array.isArray(parsed.tracks)) return null;
+    const out: { track_number: number; track_title: string }[] = [];
+    const seen = new Set<number>();
+    for (const item of parsed.tracks) {
+      if (!item || typeof item !== 'object') continue;
+      const row = item as { track_number?: unknown; track_title?: unknown };
+      const num =
+        typeof row.track_number === 'number'
+          ? row.track_number
+          : parseInt(String(row.track_number ?? ''), 10);
+      const title = typeof row.track_title === 'string' ? row.track_title.trim() : '';
+      if (!Number.isFinite(num) || num <= 0 || !title || seen.has(num)) continue;
+      seen.add(num);
+      out.push({ track_number: num, track_title: title });
+    }
+    out.sort((a, b) => a.track_number - b.track_number);
+    return out.length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMonthlyReviewComment(
   year: number,
   month: number,

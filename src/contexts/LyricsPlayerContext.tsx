@@ -9,9 +9,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { Lyrics, LyricsQueueSource } from '@/app/lyrics/types';
-import { buildAllFavoritesSorted, buildFavoritePlayableQueue } from '@/app/lyrics/lib/favorites-queue';
-import { LYRICS_LIBRARY_SYNC_EVENT } from '@/app/lyrics/lib/lyrics-events';
+import type { Lyrics, LyricsQueueSource } from '@/app/works/types';
+import { buildAllFavoritesSorted, buildFavoritePlayableQueue } from '@/app/works/lib/favorites-queue';
+import { LYRICS_LIBRARY_SYNC_EVENT } from '@/app/works/lib/lyrics-events';
 
 export type { LyricsQueueSource };
 

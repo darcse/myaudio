@@ -1,30 +1,41 @@
-export interface Lyrics {
-  id: number;
-  title: string;
-  album: string | null;
-  genre1: string | null;
-  genre2: string | null;
-  lyrics: string | null;
-  cover_image_url: string | null;
-  audio_url: string | null;
-  youtube_url: string | null;
-  created_at?: string;
-  vibe_colors?: string[] | null;
-  vibe_emoji?: string | null;
-  is_favorite?: boolean;
-}
-
-export type LyricsFormData = {
-  title: string;
-  album: string;
-  genre1: string;
-  genre2: string;
-  lyrics: string;
-  cover_image_url: string;
-  audio_url: string;
-  youtube_url: string;
+export type TranslatedLine = {
+  original: string;
+  phonetic?: string;
+  translation: string;
 };
 
-export type SelectedLyrics = Lyrics | { isManual: true };
+export type LyricsTranslationTrack = {
+  id: string;
+  user_id: string;
+  album_id: number;
+  track_number: number;
+  track_title: string;
+  created_at?: string;
+};
 
-export type LyricsQueueSource = 'album' | 'favorites';
+export type LyricsTranslation = {
+  id: string;
+  user_id: string;
+  track_id: string;
+  lyrics_text: string;
+  youtube_url: string | null;
+  translated_lines: TranslatedLine[];
+  language?: string | null;
+  created_at?: string;
+};
+
+export type LyricsAlbumCard = {
+  albumId: number;
+  albumName: string;
+  artist: string | null;
+  country: string | null;
+  coverImageUrl: string | null;
+  releaseDate: string | null;
+  genre1: string | null;
+  trackCount: number;
+  translatedCount: number;
+};
+
+export type TrackWithTranslation = LyricsTranslationTrack & {
+  translation: LyricsTranslation | null;
+};

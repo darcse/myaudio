@@ -16,10 +16,10 @@ import { albumToFormData } from '@/app/albums/utils';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
-import { LyricsDetailModal } from '@/app/lyrics/_components/LyricsDetailModal';
+import { LyricsDetailModal } from '@/app/works/_components/LyricsDetailModal';
 import type { Headfi, HeadfiFormData, SelectedHeadfi } from '@/app/headfi/types';
 import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
-import type { Lyrics } from '@/app/lyrics/types';
+import type { Lyrics } from '@/app/works/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
@@ -811,7 +811,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           onEdit={() => {
             const id = viewingLyrics.id;
             setViewingLyrics(null);
-            router.push(`/lyrics?view=${id}`);
+            router.push(`/works?view=${id}`);
           }}
           onDelete={() => toast.info('삭제는 가사 화면에서 진행해 주세요.')}
           isAuthenticated={isAuthenticated}

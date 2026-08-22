@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { name: 'Artists', path: '/artists' },
   { name: 'Head-fi', path: '/headfi' },
   { name: 'RecordShelf', path: '/recordshelf' },
+  { name: 'Works', path: '/works' },
   { name: 'Lyrics', path: '/lyrics' },
   { name: 'Archive', path: '/archive' },
 ];

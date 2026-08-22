@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useLyricsPlayer } from '@/contexts/LyricsPlayerContext';
-import { LyricsPlayerBar } from '@/app/lyrics/_components/LyricsPlayerBar';
+import { LyricsPlayerBar } from '@/app/works/_components/LyricsPlayerBar';
 import { useAuthState } from '@/hooks/useAuthState';
-import { toggleLyricsFavorite } from '@/app/lyrics/actions';
+import { toggleLyricsFavorite } from '@/app/works/actions';
 import { getClientErrorMessage } from '@/lib/supabase-error';
-import type { Lyrics } from '@/app/lyrics/types';
+import type { Lyrics } from '@/app/works/types';
 
 export function GlobalLyricsPlayer() {
   const router = useRouter();
@@ -88,7 +88,7 @@ export function GlobalLyricsPlayer() {
       drawerUnfavoriteBusyId={drawerUnfavoriteBusyId}
       onTrackChange={changeTrack}
       onClose={stopPlayback}
-      onOpenLyrics={() => router.push(`/lyrics?view=${playingTrack.id}`)}
+      onOpenLyrics={() => router.push(`/works?view=${playingTrack.id}`)}
       onFavoriteToggle={isAuthenticated ? handleFavoriteToggle : undefined}
       favoriteBusy={favoriteBusy}
     />

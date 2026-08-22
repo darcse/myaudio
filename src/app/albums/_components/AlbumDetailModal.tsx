@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -87,8 +88,10 @@ export function AlbumDetailModal({
   onAlbumPatch,
   onHeadfiClick,
 }: AlbumDetailModalProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<DetailTab>('info');
   const [listenHistoryCount, setListenHistoryCount] = useState(0);
+  const [hasLyricsTracks, setHasLyricsTracks] = useState(false);
   const [localAiHeadphones, setLocalAiHeadphones] = useState(aiRecommendedHeadphones);
   const [localAiReason, setLocalAiReason] = useState<string | null>(
     viewingItem.ai_recommended_headphone_reason?.trim() || null,
@@ -123,6 +126,23 @@ export function AlbumDetailModal({
   useEffect(() => {
     setActiveTab('info');
     setListenHistoryCount(0);
+    setHasLyricsTracks(false);
+  }, [viewingItem.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void createClient()
+      .from('lyrics_translation_tracks')
+      .select('id')
+      .eq('album_id', viewingItem.id)
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled || error) return;
+        setHasLyricsTracks((data?.length ?? 0) > 0);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [viewingItem.id]);
 
   useEffect(() => {
@@ -253,6 +273,18 @@ export function AlbumDetailModal({
                     ) : null}
                   </button>
                 ))}
+                {hasLyricsTracks ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      router.push(`/lyrics/${viewingItem.id}`);
+                    }}
+                    className={tabButtonClass(false)}
+                  >
+                    Lyrics
+                  </button>
+                ) : null}
               </div>
               {isAuthenticated ? (
                 <div className="flex shrink-0 items-center gap-0.5 pb-3">

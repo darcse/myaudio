@@ -52,6 +52,13 @@ type MatchedAlbum = {
   release_date?: string | null;
 };
 
+type RecentLyricsAlbum = {
+  id: number;
+  album_name: string;
+  artist: string | null;
+  cover_image_url: string | null;
+};
+
 type DashboardContentProps = {
   totalAlbums: number;
   totalHeadfi: number;
@@ -59,10 +66,13 @@ type DashboardContentProps = {
   headfiCategoryRows: Pick<Headfi, 'category'>[];
   monthlyListenAlbums: MonthlyListenAlbum[];
   recentAlbums: Album[];
+  recentLyricsAlbums: RecentLyricsAlbum[];
   recentHeadfi: Headfi[];
 };
 
-const recentGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
+const recentAlbumGridClass = 'grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6';
+const recentLyricsGridClass = 'grid grid-cols-2 gap-4 sm:gap-6';
+const recentHeadfiGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
 const summaryCardClass = 'card-apple flex h-[21rem] min-h-[21rem] flex-col overflow-hidden p-4';
 
 const initialAlbumFormData: AlbumFormData = {
@@ -196,6 +206,7 @@ export function DashboardContent({
   headfiCategoryRows,
   monthlyListenAlbums,
   recentAlbums,
+  recentLyricsAlbums,
   recentHeadfi,
 }: DashboardContentProps) {
   const router = useRouter();
@@ -651,45 +662,88 @@ export function DashboardContent({
         </div>
       </div>
 
-      <div className="card-apple mb-8 flex flex-col p-5">
-        <div className="mb-5 flex items-center justify-between pt-0.5">
-          <h3 className="text-[15px] font-semibold">최근 등록 앨범</h3>
-          <Link href="/albums" className="link-apple text-sm">
-            더보기 &rarr;
-          </Link>
-        </div>
-        {recentAlbums.length === 0 ? (
-          <p className="py-6 text-center text-sm opacity-60">등록된 앨범이 없습니다.</p>
-        ) : (
-          <div className={recentGridClass}>
-            {recentAlbums.map((album) => (
-              <button
-                key={album.id}
-                type="button"
-                onClick={() => void openAlbumById(album.id)}
-                className="group w-full cursor-pointer text-left"
-              >
-                <div
-                  className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
-                  style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
-                >
-                  {album.cover_image_url ? (
-                    <img src={album.cover_image_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div
-                      className="flex h-full w-full items-center justify-center text-xs opacity-50"
-                      style={{ background: 'var(--badge-bg)' }}
-                    >
-                      No Cover
-                    </div>
-                  )}
-                </div>
-                <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
-                <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
-              </button>
-            ))}
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-6">
+        <section className="card-apple flex flex-col p-5 lg:col-span-3">
+          <div className="mb-5 flex items-center justify-between pt-0.5">
+            <h3 className="text-[15px] font-semibold">최근 등록 앨범</h3>
+            <Link href="/albums" className="link-apple text-sm">
+              더보기 &rarr;
+            </Link>
           </div>
-        )}
+          {recentAlbums.length === 0 ? (
+            <p className="py-6 text-center text-sm opacity-60">등록된 앨범이 없습니다.</p>
+          ) : (
+            <div className={recentAlbumGridClass}>
+              {recentAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => void openAlbumById(album.id)}
+                  className="group w-full cursor-pointer text-left"
+                >
+                  <div
+                    className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                    style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
+                  >
+                    {album.cover_image_url ? (
+                      <img src={album.cover_image_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex h-full w-full items-center justify-center text-xs opacity-50"
+                        style={{ background: 'var(--badge-bg)' }}
+                      >
+                        No Cover
+                      </div>
+                    )}
+                  </div>
+                  <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
+                  <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card-apple flex flex-col p-5 lg:col-span-2">
+          <div className="mb-5 flex items-center justify-between pt-0.5">
+            <h3 className="text-[15px] font-semibold">최근 등록 가사</h3>
+            <Link href="/lyrics" className="link-apple text-sm">
+              더보기 &rarr;
+            </Link>
+          </div>
+          {recentLyricsAlbums.length === 0 ? (
+            <p className="py-6 text-center text-sm opacity-60">등록된 가사가 없습니다.</p>
+          ) : (
+            <div className={recentLyricsGridClass}>
+              {recentLyricsAlbums.map((album) => (
+                <button
+                  key={album.id}
+                  type="button"
+                  onClick={() => router.push(`/lyrics/${album.id}`)}
+                  className="group w-full cursor-pointer text-left"
+                >
+                  <div
+                    className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                    style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
+                  >
+                    {album.cover_image_url ? (
+                      <img src={album.cover_image_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div
+                        className="flex h-full w-full items-center justify-center text-xs opacity-50"
+                        style={{ background: 'var(--badge-bg)' }}
+                      >
+                        No Cover
+                      </div>
+                    )}
+                  </div>
+                  <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
+                  <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       <div className="card-apple mb-8 flex flex-col p-5">
@@ -702,7 +756,7 @@ export function DashboardContent({
         {recentHeadfi.length === 0 ? (
           <p className="py-6 text-center text-sm opacity-60">구매한 기기가 없습니다.</p>
         ) : (
-          <div className={recentGridClass}>
+          <div className={recentHeadfiGridClass}>
             {recentHeadfi.map((headfi) => (
               <button
                 key={headfi.id}

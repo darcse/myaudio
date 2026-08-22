@@ -368,3 +368,16 @@
 [2026-08-19] [Cursor] style: RECORDSHELF-001 목록에서 장르2 숨김 | passes: 변경 없음
 [2026-08-19] [Cursor] style: RECORDSHELF-001 매체 태그·장르/발매일 셀렉트 상시 노출 | passes: 변경 없음
 [2026-08-19] [Cursor] fix: 사용통계 DAC/AMP/DAP 모달 매칭 모델 조회 | passes: 변경 없음
+[2026-08-22] [Cursor] style: GNB·페이지 타이틀 Lyrics → Works | passes: 변경 없음
+[2026-08-22] [Cursor] refactor: Works 페이지 경로 /lyrics → /works | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 Lyrics 가사 번역 노트 메뉴 | passes: 변경 없음
+[2026-08-22] [Cursor] fix: LYRICSTRANSLATE-001 1뎁스 목록을 트랙 등록 앨범까지 확대 | passes: 변경 없음
+[2026-08-22] [Cursor] fix: LYRICSTRANSLATE-001 일본어 발음을 한글 표기로 수정 | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 번역을 Claude Sonnet 5 의역으로 교체 | passes: 변경 없음
+[2026-08-22] [Cursor] fix: BUG-014 lyrics_text 저장 payload 누락 | passes: 변경 없음
+[2026-08-22] [Cursor] fix: LYRICSTRANSLATE-001 가사 열람 문단 단위 카드 그룹핑 | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 1뎁스 검색·필터·카드 메타 표시 | passes: 변경 없음
+[2026-08-22] [Cursor] style: LYRICSTRANSLATE-001 1뎁스 카드 메타 한 줄 텍스트 정리 | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 트랙리스트 헤더 메타·앨범 상세 모달 | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 앨범 상세 모달 Lyrics 탭(조건부 라우팅) | passes: 변경 없음
+[2026-08-22] [Cursor] feat: ALBUM-028 대시보드 최근 등록 앨범·가사 분할 위젯 | passes: 변경 없음

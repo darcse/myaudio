@@ -135,7 +135,7 @@ export function LyricsLibraryContent() {
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete('view');
     const q = sp.toString();
-    router.replace(q ? `/lyrics?${q}` : '/lyrics');
+    router.replace(q ? `/works?${q}` : '/works');
   }, [router, searchParams]);
 
   const handleManualRegister = () => {
@@ -292,7 +292,7 @@ export function LyricsLibraryContent() {
 
         const sp = new URLSearchParams(searchParams.toString());
         sp.set('view', String(updateId));
-        router.replace(`/lyrics?${sp.toString()}`);
+        router.replace(`/works?${sp.toString()}`);
       }
     } catch (e) {
       toast.error(getClientErrorMessage(e));
@@ -369,11 +369,11 @@ export function LyricsLibraryContent() {
   }, [detailTracksRaw, listSortOrder]);
 
   const openAlbum = (key: string) => {
-    router.push(`/lyrics?album=${encodeURIComponent(key)}`);
+    router.push(`/works?album=${encodeURIComponent(key)}`);
   };
 
   const handleBackFromAlbum = () => {
-    router.push('/lyrics');
+    router.push('/works');
   };
 
   const favoritePlayableQueue = useMemo(() => buildFavoritePlayableQueue(library), [library]);
@@ -429,7 +429,7 @@ export function LyricsLibraryContent() {
       <div className="flex flex-nowrap flex-row items-center justify-between gap-2 mb-6 w-full min-w-0">
         <h1 className="page-title flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <Mic2 className="size-6 sm:size-7 opacity-80 shrink-0" strokeWidth={1.5} />
-          <span className="truncate">Lyrics</span>
+          <span className="truncate">Works</span>
         </h1>
         {isAuthenticated ? (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -511,7 +511,7 @@ export function LyricsLibraryContent() {
             setViewingItem(t);
             const sp = new URLSearchParams(searchParams.toString());
             sp.set('view', String(t.id));
-            router.replace(`/lyrics?${sp.toString()}`);
+            router.replace(`/works?${sp.toString()}`);
           }}
           onPlayTrack={handlePlayTrack}
           onFavoriteToggle={isAuthenticated ? handleFavoriteToggle : undefined}
