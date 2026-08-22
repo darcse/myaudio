@@ -123,8 +123,7 @@ export function LyricsViewContent({
             <ArrowLeft className="size-5" strokeWidth={1.75} />
           </Link>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold sm:text-xl">{track.track_title}</h1>
-            <p className="truncate text-xs opacity-60">{albumName}</p>
+            <p className="truncate text-sm font-semibold opacity-75 sm:text-base">{albumName}</p>
           </div>
         </div>
         {isAuthenticated ? (
@@ -148,6 +147,17 @@ export function LyricsViewContent({
               <Trash2 className="size-4" strokeWidth={1.75} />
             </button>
           </div>
+        ) : null}
+      </div>
+
+      <div
+        className="mb-6 rounded-xl px-4 py-4"
+        style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+      >
+        <p className="text-lg font-bold leading-snug sm:text-xl">{track.track_title}</p>
+        {translation.translated_title?.trim() &&
+        translation.translated_title.trim() !== track.track_title.trim() ? (
+          <p className="mt-1.5 text-base leading-snug opacity-85">{translation.translated_title.trim()}</p>
         ) : null}
       </div>
 

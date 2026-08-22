@@ -13,10 +13,10 @@ type NavItem = { name: string; path: string };
 const navItems: NavItem[] = [
   { name: 'Albums', path: '/albums' },
   { name: 'Artists', path: '/artists' },
-  { name: 'Head-fi', path: '/headfi' },
-  { name: 'RecordShelf', path: '/recordshelf' },
-  { name: 'Works', path: '/works' },
   { name: 'Lyrics', path: '/lyrics' },
+  { name: 'RecordShelf', path: '/recordshelf' },
+  { name: 'Head-fi', path: '/headfi' },
+  { name: 'Works', path: '/works' },
   { name: 'Archive', path: '/archive' },
 ];
 

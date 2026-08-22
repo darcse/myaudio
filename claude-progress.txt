@@ -381,3 +381,6 @@
 [2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 트랙리스트 헤더 메타·앨범 상세 모달 | passes: 변경 없음
 [2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 앨범 상세 모달 Lyrics 탭(조건부 라우팅) | passes: 변경 없음
 [2026-08-22] [Cursor] feat: ALBUM-028 대시보드 최근 등록 앨범·가사 분할 위젯 | passes: 변경 없음
+[2026-08-22] [Cursor] chore: GNB 메뉴 순서 변경 (Lyrics·RecordShelf 위치 조정) | passes: 변경 없음
+[2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 AI 번역 트랙 제목·열람 타이틀 영역 | passes: 변경 없음
+[2026-08-22] [Cursor] fix: Lyrics 앨범 선택 검색 전용·아티스트명2 검색 | passes: 변경 없음

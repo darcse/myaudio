@@ -64,6 +64,7 @@ export async function saveLyricsTranslation(input: {
   youtubeUrl: string;
   lyricsText?: string;
   translatedLines: TranslatedLine[];
+  translatedTitle?: string | null;
   language?: string | null;
   translationId?: string | null;
 }) {
@@ -87,12 +88,18 @@ export async function saveLyricsTranslation(input: {
     lines.map((line) => line.original).join('\n');
   if (!lyricsText.trim()) throw new Error('가사 텍스트는 필수입니다.');
 
+  const translatedTitle =
+    typeof input.translatedTitle === 'string' && input.translatedTitle.trim()
+      ? input.translatedTitle.trim()
+      : null;
+
   const payload = {
     user_id: user.id,
     track_id: input.trackId,
     youtube_url: input.youtubeUrl.trim() || null,
     lyrics_text: lyricsText,
     translated_lines: lines,
+    translated_title: translatedTitle,
     language: input.language?.trim() || null,
   };
 

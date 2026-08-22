@@ -25,8 +25,8 @@ export function LyricsTranslateLibraryContent() {
   const [loading, setLoading] = useState(true);
   const [cards, setCards] = useState<LyricsAlbumCard[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [allAlbums, setAllAlbums] = useState<AlbumOption[]>([]);
   const [pickerQuery, setPickerQuery] = useState('');
+  const [pickerResults, setPickerResults] = useState<AlbumOption[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
@@ -103,27 +103,92 @@ export function LyricsTranslateLibraryContent() {
     };
   }, []);
 
-  const openPicker = async () => {
+  const openPicker = () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
       return;
     }
+    setPickerQuery('');
+    setPickerResults([]);
+    setPickerLoading(false);
     setPickerOpen(true);
-    setPickerLoading(true);
-    try {
-      const { data, error } = await createClient()
-        .from('album')
-        .select('id, album_name, artist, cover_image_url, release_date, genre1')
-        .order('album_name');
-      if (error) throw error;
-      setAllAlbums((data as AlbumOption[]) ?? []);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : '앨범 목록을 불러오지 못했습니다.');
-      setAllAlbums([]);
-    } finally {
-      setPickerLoading(false);
-    }
   };
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const q = pickerQuery.trim();
+    if (!q) {
+      setPickerResults([]);
+      setPickerLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setPickerLoading(true);
+        try {
+          const client = createClient();
+          const pattern = `%${q.replace(/[%_]/g, '')}%`;
+          const [albumDirectRes, artistsAltRes] = await Promise.all([
+            client
+              .from('album')
+              .select('id, album_name, artist, cover_image_url, release_date, genre1')
+              .or(`album_name.ilike.${pattern},artist.ilike.${pattern}`)
+              .order('album_name')
+              .limit(40),
+            client
+              .from('artists')
+              .select('artist_name')
+              .ilike('name_alt', pattern)
+              .limit(30),
+          ]);
+          if (albumDirectRes.error) throw albumDirectRes.error;
+          if (artistsAltRes.error) throw artistsAltRes.error;
+
+          const byId = new Map<number, AlbumOption>();
+          for (const row of albumDirectRes.data ?? []) {
+            byId.set(row.id, row as AlbumOption);
+          }
+
+          const altArtistNames = (artistsAltRes.data ?? [])
+            .map((a) => a.artist_name?.trim())
+            .filter((name): name is string => !!name);
+
+          if (altArtistNames.length > 0) {
+            const { data: albumsByAlt, error } = await client
+              .from('album')
+              .select('id, album_name, artist, cover_image_url, release_date, genre1')
+              .in('artist', altArtistNames)
+              .order('album_name')
+              .limit(40);
+            if (error) throw error;
+            for (const row of albumsByAlt ?? []) {
+              byId.set(row.id, row as AlbumOption);
+            }
+          }
+
+          if (!cancelled) {
+            setPickerResults(
+              [...byId.values()].sort((a, b) => a.album_name.localeCompare(b.album_name, 'ko')),
+            );
+          }
+        } catch (e) {
+          if (!cancelled) {
+            toast.error(e instanceof Error ? e.message : '앨범 검색에 실패했습니다.');
+            setPickerResults([]);
+          }
+        } finally {
+          if (!cancelled) setPickerLoading(false);
+        }
+      })();
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [pickerOpen, pickerQuery]);
 
   const filteredCards = useMemo(() => {
     const q = listSearchQuery.trim().toLowerCase();
@@ -147,16 +212,6 @@ export function LyricsTranslateLibraryContent() {
     });
   }, [cards, listSearchQuery, listGenreFilter, listCountryFilter, listSortOrder]);
 
-  const filteredAlbums = useMemo(() => {
-    const q = pickerQuery.trim().toLowerCase();
-    if (!q) return allAlbums;
-    return allAlbums.filter(
-      (a) =>
-        a.album_name.toLowerCase().includes(q) ||
-        (a.artist ?? '').toLowerCase().includes(q),
-    );
-  }, [allAlbums, pickerQuery]);
-
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <div className="mb-6 flex flex-nowrap items-center justify-between gap-2">
@@ -167,7 +222,7 @@ export function LyricsTranslateLibraryContent() {
         {isAuthenticated ? (
           <button
             type="button"
-            onClick={() => void openPicker()}
+            onClick={openPicker}
             className="btn-apple inline-flex h-[42px] shrink-0 items-center gap-1.5 px-3 text-sm font-semibold"
           >
             <Plus className="size-4" strokeWidth={2} />
@@ -313,18 +368,20 @@ export function LyricsTranslateLibraryContent() {
               <Search className="pointer-events-none absolute left-7 top-1/2 size-4 -translate-y-1/2 opacity-45" />
               <input
                 className="input-apple h-[40px] w-full py-2 pl-9 pr-3 text-sm"
-                placeholder="앨범·아티스트 검색"
+                placeholder="앨범·아티스트·아티스트명2 검색"
                 value={pickerQuery}
                 onChange={(e) => setPickerQuery(e.target.value)}
               />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
               {pickerLoading ? (
-                <p className="px-3 py-8 text-center text-sm opacity-60">불러오는 중...</p>
-              ) : filteredAlbums.length === 0 ? (
+                <p className="px-3 py-8 text-center text-sm opacity-60">검색 중...</p>
+              ) : !pickerQuery.trim() ? (
+                <p className="px-3 py-8 text-center text-sm opacity-60">앨범명 또는 아티스트를 검색하세요.</p>
+              ) : pickerResults.length === 0 ? (
                 <p className="px-3 py-8 text-center text-sm opacity-60">검색 결과가 없습니다.</p>
               ) : (
-                filteredAlbums.map((album) => (
+                pickerResults.map((album) => (
                   <button
                     key={album.id}
                     type="button"

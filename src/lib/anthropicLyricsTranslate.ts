@@ -26,13 +26,25 @@ function looksJapanese(text: string): boolean {
   return kana >= 2 || (kana >= 1 && kanji >= 1) || kanji >= 8;
 }
 
+function normalizeTranslatedTitle(original: string, translated: unknown): string | null {
+  const src = original.trim();
+  const value = typeof translated === 'string' ? translated.trim() : '';
+  if (!value || !src) return null;
+  if (value === src) return null;
+  return value;
+}
+
 const SYSTEM = `당신은 일본·영미 팝 가사를 한국어로 옮기는 전문 번역가다.
 웹에서 가사를 검색·보완하지 않는다. 사용자가 준 원문만 사용한다.
 일본어 줄의 phonetic은 반드시 한글 발음만 쓴다(히라가나·가타카나·로마자 금지).`;
 
-export async function translateLyricsLines(lyricsText: string): Promise<{
+export async function translateLyricsLines(
+  lyricsText: string,
+  trackTitle?: string,
+): Promise<{
   lines: TranslatedLine[];
   language: string | null;
+  translatedTitle: string | null;
 } | null> {
   const raw = lyricsText.replace(/\r\n/g, '\n').trim();
   if (!raw) return null;
@@ -46,9 +58,12 @@ export async function translateLyricsLines(lyricsText: string): Promise<{
 
   const numbered = sourceLines.map((line, i) => `${i + 1}|${line}`).join('\n');
   const likelyJa = looksJapanese(raw);
+  const titleBlock = trackTitle?.trim()
+    ? `\n트랙 제목(곡명) 번역:\n- 원문 제목: ${trackTitle.trim()}\n- 한국어 곡 제목으로 자연스럽게 의역해 trackTitleTranslation에 담아라.\n- 이미 한국어이거나 번역이 원문과 같으면 trackTitleTranslation은 "".\n`
+    : '\n트랙 제목 없음 — trackTitleTranslation은 "".\n';
 
   const prompt = `아래 가사를 줄 단위로 한국어로 옮겨라. 웹 검색·가사 조회 금지. 주어진 원문만 사용.
-
+${titleBlock}
 번역(translation) 원칙:
 - 직역하지 마라. 원문의 의미·감정·어조를 살리되, 한국어 화자가 자연스럽게 읽히는 의역으로 써라.
 - 조사·어미·관용 표현은 한국어 가사처럼 자연스럽게 맞추고, "~어 가는"처럼 어색한 직역 투를 피하라.
@@ -79,6 +94,7 @@ ${numbered}
 반드시 JSON만 출력:
 {
   "language": "ja",
+  "trackTitleTranslation": "한국어 곡 제목 또는 빈 문자열",
   "lines": [
     { "original": "원문", "phonetic": "한글발음만", "translation": "의역" }
   ]
@@ -99,7 +115,11 @@ ${numbered}
     const text = textBlock?.type === 'text' ? textBlock.text.trim() : '';
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
-    const parsed = JSON.parse(jsonRaw) as { language?: unknown; lines?: unknown };
+    const parsed = JSON.parse(jsonRaw) as {
+      language?: unknown;
+      trackTitleTranslation?: unknown;
+      lines?: unknown;
+    };
     if (!Array.isArray(parsed.lines)) return null;
 
     const lines: TranslatedLine[] = [];
@@ -122,7 +142,8 @@ ${numbered}
     }
 
     const language = typeof parsed.language === 'string' ? parsed.language.trim() : null;
-    return { lines, language: language || (likelyJa ? 'ja' : null) };
+    const translatedTitle = normalizeTranslatedTitle(trackTitle ?? '', parsed.trackTitleTranslation);
+    return { lines, language: language || (likelyJa ? 'ja' : null), translatedTitle };
   } catch {
     return null;
   }

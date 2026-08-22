@@ -26,6 +26,7 @@ export function LyricsEditContent({
   const [lyricsText, setLyricsText] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [previewLines, setPreviewLines] = useState<TranslatedLine[] | null>(null);
+  const [translatedTitle, setTranslatedTitle] = useState<string | null>(null);
   const [language, setLanguage] = useState<string | null>(null);
   const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,6 +57,7 @@ export function LyricsEditContent({
             setYoutubeUrl(tr.youtube_url ?? '');
             setPreviewLines(tr.translated_lines ?? []);
             setLanguage(tr.language ?? null);
+            setTranslatedTitle(tr.translated_title?.trim() || null);
             setLyricsText(
               (tr.lyrics_text?.trim()
                 ? tr.lyrics_text
@@ -84,11 +86,12 @@ export function LyricsEditContent({
       const res = await fetch('/api/lyrics-translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lyricsText }),
+        body: JSON.stringify({ lyricsText, trackTitle: track?.track_title ?? '' }),
       });
       const json = (await res.json()) as {
         lines?: TranslatedLine[];
         language?: string | null;
+        translatedTitle?: string | null;
         error?: string;
       };
       if (!res.ok || !json.lines) {
@@ -96,6 +99,7 @@ export function LyricsEditContent({
       }
       setPreviewLines(json.lines);
       setLanguage(json.language ?? null);
+      setTranslatedTitle(json.translatedTitle?.trim() || null);
       toast.success('번역 미리보기를 생성했습니다.');
     } catch (e) {
       toast.error(getClientErrorMessage(e));
@@ -131,6 +135,7 @@ export function LyricsEditContent({
         youtubeUrl,
         lyricsText,
         translatedLines: lines,
+        translatedTitle,
         language,
         translationId: existing?.id ?? null,
       });
@@ -214,6 +219,15 @@ export function LyricsEditContent({
 
       {previewLines ? (
         <div>
+          {translatedTitle ? (
+            <div
+              className="mb-4 rounded-xl px-4 py-3"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-[15px] font-medium">{track.track_title}</p>
+              <p className="mt-1 text-sm opacity-90">{translatedTitle}</p>
+            </div>
+          ) : null}
           <p className="mb-3 text-sm font-semibold">미리보기</p>
           <div className="space-y-3">
             {previewLines.map((line, i) => (

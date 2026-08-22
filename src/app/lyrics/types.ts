@@ -20,6 +20,7 @@ export type LyricsTranslation = {
   lyrics_text: string;
   youtube_url: string | null;
   translated_lines: TranslatedLine[];
+  translated_title?: string | null;
   language?: string | null;
   created_at?: string;
 };
