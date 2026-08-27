@@ -76,7 +76,7 @@ export default async function Home() {
         .from('album')
         .select('id,album_name,artist,cover_image_url,created_at')
         .order('created_at', { ascending: false })
-        .limit(3),
+        .limit(4),
       supabase
         .from('lyrics_translations')
         .select('created_at, track_id, lyrics_translation_tracks(album_id)')

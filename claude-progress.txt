@@ -384,3 +384,5 @@
 [2026-08-22] [Cursor] chore: GNB 메뉴 순서 변경 (Lyrics·RecordShelf 위치 조정) | passes: 변경 없음
 [2026-08-22] [Cursor] feat: LYRICSTRANSLATE-001 AI 번역 트랙 제목·열람 타이틀 영역 | passes: 변경 없음
 [2026-08-22] [Cursor] fix: Lyrics 앨범 선택 검색 전용·아티스트명2 검색 | passes: 변경 없음
+
+[2026-08-27] [Cursor] style: 대시보드 최근 앨범/기기 위젯 모바일 개수(4/4) 분기 | passes: 변경 없음

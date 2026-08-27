@@ -674,12 +674,12 @@ export function DashboardContent({
             <p className="py-6 text-center text-sm opacity-60">등록된 앨범이 없습니다.</p>
           ) : (
             <div className={recentAlbumGridClass}>
-              {recentAlbums.map((album) => (
+              {recentAlbums.map((album, index) => (
                 <button
                   key={album.id}
                   type="button"
                   onClick={() => void openAlbumById(album.id)}
-                  className="group w-full cursor-pointer text-left"
+                  className={`group w-full cursor-pointer text-left${index >= 3 ? ' sm:hidden' : ''}`}
                 >
                   <div
                     className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
@@ -757,12 +757,12 @@ export function DashboardContent({
           <p className="py-6 text-center text-sm opacity-60">구매한 기기가 없습니다.</p>
         ) : (
           <div className={recentHeadfiGridClass}>
-            {recentHeadfi.map((headfi) => (
+            {recentHeadfi.map((headfi, index) => (
               <button
                 key={headfi.id}
                 type="button"
                 onClick={() => void openHeadfiById(headfi.id)}
-                className="group w-full cursor-pointer text-left"
+                className={`group w-full cursor-pointer text-left${index >= 4 ? ' hidden sm:block' : ''}`}
               >
                 <div
                   className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
