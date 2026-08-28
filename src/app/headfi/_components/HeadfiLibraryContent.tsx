@@ -8,19 +8,23 @@ import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import {
   deleteHeadfiAccessoryFromDB,
   deleteHeadfiFromDB,
+  deleteHeadfiSaleFromDB,
   saveHeadfiAccessoryToDB,
+  saveHeadfiSaleToDB,
   updateHeadfiAccessoryInDB,
+  updateHeadfiSaleInDB,
   uploadHeadfiDeviceImage,
 } from '../actions';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { DAC_AMP_DAP_CATEGORIES, HEADFI_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
-import type { Headfi, HeadfiAccessory, HeadfiFormData, SelectedHeadfi } from '../types';
+import type { Headfi, HeadfiAccessory, HeadfiFormData, HeadfiSale, HeadfiSaleFormData, SelectedHeadfi } from '../types';
 import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiAccessoryModal } from './HeadfiAccessoryModal';
+import { HeadfiSaleModal } from './HeadfiSaleModal';
 import { HeadfiForm } from './HeadfiForm';
 import { HeadfiDetailModal } from './HeadfiDetailModal';
 import { HeadfiList } from './HeadfiList';
@@ -106,6 +110,7 @@ function normalizeFormData(item: Headfi | null) {
 export function HeadfiLibraryContent() {
   const [library, setLibrary] = useState<Headfi[]>([]);
   const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
+  const [sales, setSales] = useState<HeadfiSale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<SelectedHeadfi | null>(null);
   const [viewingItem, setViewingItem] = useState<Headfi | null>(null);
@@ -126,6 +131,7 @@ export function HeadfiLibraryContent() {
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [spendingModalOpen, setSpendingModalOpen] = useState(false);
   const [accessoryModalOpen, setAccessoryModalOpen] = useState(false);
+  const [saleModalOpen, setSaleModalOpen] = useState(false);
 
   const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
@@ -166,6 +172,16 @@ export function HeadfiLibraryContent() {
     setAccessories((data as HeadfiAccessory[]) || []);
   }, []);
 
+  const fetchSales = useCallback(async () => {
+    const client = createClient();
+    const { data } = await client
+      .from('headfi_sales')
+      .select('*')
+      .order('sale_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+    setSales((data as HeadfiSale[]) || []);
+  }, []);
+
   const fetchLibrary = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -184,6 +200,10 @@ export function HeadfiLibraryContent() {
   useEffect(() => {
     void fetchAccessories();
   }, [fetchAccessories]);
+
+  useEffect(() => {
+    void fetchSales();
+  }, [fetchSales]);
 
   useEffect(() => {
     const client = createClient();
@@ -414,6 +434,18 @@ export function HeadfiLibraryContent() {
     setAccessoryModalOpen(false);
   };
 
+  const handleSaleManageOpen = () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setSaleModalOpen(true);
+  };
+
+  const handleSaleModalClose = () => {
+    setSaleModalOpen(false);
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -618,6 +650,53 @@ export function HeadfiLibraryContent() {
     }
   };
 
+  const handleSaleCreate = async (data: HeadfiSaleFormData) => {
+    if (isAuthenticated === false) {
+      throw new Error('Unauthorized');
+    }
+    try {
+      await saveHeadfiSaleToDB(data);
+      toast.success('판매 기록이 등록되었습니다.');
+      await fetchSales();
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+      throw e;
+    }
+  };
+
+  const handleSaleUpdate = async (id: number, data: HeadfiSaleFormData) => {
+    if (isAuthenticated === false) {
+      throw new Error('Unauthorized');
+    }
+    try {
+      await updateHeadfiSaleInDB(id, data);
+      toast.success('판매 기록이 수정되었습니다.');
+      await fetchSales();
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+      throw e;
+    }
+  };
+
+  const handleSaleDelete = async (item: HeadfiSale) => {
+    if (isAuthenticated === false) {
+      throw new Error('Unauthorized');
+    }
+    const gear = library.find((g) => g.id === item.gear_id);
+    const gearLabel = gear ? `${gear.brand} ${gear.model}` : '선택한 기기';
+    if (!confirm(`'${gearLabel}' 판매 기록을 삭제하시겠습니까?`)) {
+      throw new Error('삭제가 취소되었습니다.');
+    }
+    try {
+      await deleteHeadfiSaleFromDB(item.id);
+      toast.success('판매 기록이 삭제되었습니다.');
+      await fetchSales();
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+      throw e;
+    }
+  };
+
   const filteredLibrary = useMemo(
     () =>
       library.filter((item) => {
@@ -695,6 +774,17 @@ export function HeadfiLibraryContent() {
         onDelete={handleAccessoryDelete}
       />
 
+      <HeadfiSaleModal
+        open={saleModalOpen}
+        sales={sales}
+        library={library}
+        categoryOptions={HEADFI_CATEGORY_OPTIONS}
+        onClose={handleSaleModalClose}
+        onCreate={handleSaleCreate}
+        onUpdate={handleSaleUpdate}
+        onDelete={handleSaleDelete}
+      />
+
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div
@@ -726,6 +816,7 @@ export function HeadfiLibraryContent() {
           listTotalPages={listTotalPages}
           isLibraryEmpty={library.length === 0}
           onAccessoryRegisterClick={handleAccessoryRegisterOpen}
+          onSaleManageClick={handleSaleManageOpen}
           onItemClick={(item) => {
             setViewingItem(item);
           }}
@@ -743,6 +834,7 @@ export function HeadfiLibraryContent() {
         onClose={() => setSpendingModalOpen(false)}
         library={library}
         accessories={accessories}
+        sales={sales}
       />
 
       {viewingAlbum ? (

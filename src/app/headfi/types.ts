@@ -98,6 +98,22 @@ export interface HeadfiAccessoryFormData {
   purchase_date: string;
 }
 
+export interface HeadfiSale {
+  id: number;
+  category: string;
+  gear_id: number;
+  price: number | null;
+  sale_date: string | null;
+  created_at?: string | null;
+}
+
+export interface HeadfiSaleFormData {
+  category: string;
+  gear_id: string;
+  price: string;
+  sale_date: string;
+}
+
 export interface HeadfiDeviceSetting {
   id: number;
   headfi_id: number;

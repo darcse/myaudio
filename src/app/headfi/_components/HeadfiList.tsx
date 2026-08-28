@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Cable, List, X } from 'lucide-react';
+import { Cable, CircleDollarSign, List, X } from 'lucide-react';
 import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
 import type { Headfi } from '../types';
 
@@ -26,6 +26,7 @@ type HeadfiListProps = {
   listTotalPages: number;
   isLibraryEmpty?: boolean;
   onAccessoryRegisterClick: () => void;
+  onSaleManageClick: () => void;
   onItemClick: (item: Headfi) => void;
 };
 
@@ -49,6 +50,7 @@ export function HeadfiList({
   listTotalPages,
   isLibraryEmpty = false,
   onAccessoryRegisterClick,
+  onSaleManageClick,
   onItemClick,
 }: HeadfiListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -101,6 +103,15 @@ export function HeadfiList({
                 title="독립 액세서리 등록"
               >
                 <Cable className="size-4" strokeWidth={1.75} />
+              </button>
+              <button
+                type="button"
+                className="btn-apple btn-apple-secondary inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center"
+                onClick={onSaleManageClick}
+                aria-label="판매 관리"
+                title="판매 관리"
+              >
+                <CircleDollarSign className="size-4" strokeWidth={1.75} />
               </button>
               <div className="relative min-w-0 flex-1">
                 <input

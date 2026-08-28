@@ -1,4 +1,4 @@
-import type { Headfi, HeadfiAccessory } from './types';
+import type { Headfi, HeadfiAccessory, HeadfiSale } from './types';
 
 export type SpendingYearBucket = {
   label: string;
@@ -20,6 +20,8 @@ export type SpendingCategoryBucket = {
 
 export type HeadfiSpendingStats = {
   total: number;
+  grossTotal: number;
+  totalSales: number;
   unclassified: number;
   yearly: SpendingYearBucket[];
   monthlyByYear: Record<2025 | 2026, SpendingMonthBucket[]>;
@@ -206,9 +208,14 @@ function getIndependentAccessoryContributions(item: HeadfiAccessory): AccessoryC
   return [{ label: category, amount, count: 1 }];
 }
 
+function headfiSaleAmount(item: Pick<HeadfiSale, 'price'>): number {
+  return safeAmount(item.price);
+}
+
 export function buildHeadfiSpendingStats(
   library: Headfi[],
   accessories: HeadfiAccessory[] = [],
+  sales: HeadfiSale[] = [],
 ): HeadfiSpendingStats {
   let total = 0;
   let unclassified = 0;
@@ -255,6 +262,31 @@ export function buildHeadfiSpendingStats(
       year2026 += amount;
     } else {
       after2026 += amount;
+    }
+  }
+
+  const grossTotal = total;
+  let totalSales = 0;
+
+  for (const item of sales) {
+    const amount = headfiSaleAmount(item);
+    if (amount <= 0) continue;
+    totalSales += amount;
+    total -= amount;
+    monthlyEntries.push({ purchase_date: item.sale_date, amount: -amount });
+    const year = parsePurchaseYear(item.sale_date);
+    if (year == null) {
+      unclassified -= amount;
+      continue;
+    }
+    if (year <= 2024) {
+      through2024 -= amount;
+    } else if (year === 2025) {
+      year2025 -= amount;
+    } else if (year === 2026) {
+      year2026 -= amount;
+    } else {
+      after2026 -= amount;
     }
   }
 
@@ -320,6 +352,8 @@ export function buildHeadfiSpendingStats(
 
   return {
     total,
+    grossTotal,
+    totalSales,
     unclassified,
     yearly,
     monthlyByYear: {

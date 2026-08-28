@@ -2,7 +2,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiAccessoryFormData, HeadfiDeviceSettingFormData, HeadfiFormData } from './types';
+import type { HeadfiAccessoryFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
@@ -416,6 +416,60 @@ export async function deleteHeadfiAccessoryFromDB(id: number) {
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
   const { error } = await supabase.from('headfi_accessories').delete().eq('id', id);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return true;
+}
+
+function mapHeadfiSaleData(data: HeadfiSaleFormData) {
+  const category = data.category.trim();
+  const gearId = parseIntOrNull(data.gear_id);
+  const price = parseIntOrNull(data.price);
+  const saleDate = data.sale_date.trim();
+  if (!category) throw new Error('카테고리를 선택해 주세요.');
+  if (gearId == null) throw new Error('기기를 선택해 주세요.');
+  if (price == null || price <= 0) throw new Error('가격을 입력해 주세요.');
+  if (!saleDate) throw new Error('판매일을 입력해 주세요.');
+  return {
+    category,
+    gear_id: gearId,
+    price,
+    sale_date: saleDate,
+  };
+}
+
+export async function saveHeadfiSaleToDB(data: HeadfiSaleFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_sales')
+    .insert([{ ...mapHeadfiSaleData(data), user_id: user.id }])
+    .select('id')
+    .single();
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function updateHeadfiSaleInDB(id: number, data: HeadfiSaleFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_sales')
+    .update(mapHeadfiSaleData(data))
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function deleteHeadfiSaleFromDB(id: number) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { error } = await supabase.from('headfi_sales').delete().eq('id', id).eq('user_id', user.id);
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return true;
 }
