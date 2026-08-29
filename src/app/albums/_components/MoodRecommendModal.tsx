@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { getCurrentWeather } from '@/lib/weather';
+import { getWeatherFromCurrentLocation } from '@/lib/weather';
 
 const MOOD_OPTIONS = [
   { value: '행복함', emoji: '😊' },
@@ -67,10 +67,7 @@ export function MoodRecommendModal({ onClose, onAlbumClick }: MoodRecommendModal
 
     let weather = null;
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-      });
-      weather = await getCurrentWeather(position.coords.latitude, position.coords.longitude);
+      weather = await getWeatherFromCurrentLocation();
       if (weather) setWeatherDesc(`${weather.description} ${weather.temperature}°C`);
       else setWeatherDesc('날씨 정보 없음');
     } catch {

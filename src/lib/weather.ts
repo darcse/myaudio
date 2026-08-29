@@ -4,6 +4,18 @@ export type WeatherInfo = {
   description: string;
 };
 
+export async function getWeatherFromCurrentLocation(): Promise<WeatherInfo | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  try {
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+    });
+    return await getCurrentWeather(position.coords.latitude, position.coords.longitude);
+  } catch {
+    return null;
+  }
+}
+
 export async function getCurrentWeather(lat: number, lon: number): Promise<WeatherInfo | null> {
   try {
     const res = await fetch(

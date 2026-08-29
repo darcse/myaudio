@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { captureListenContextSnapshot } from '@/lib/listenContextSnapshot';
+import { ListenContextMeta } from './ListenContextMeta';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 
 type GearSummary = {
@@ -17,6 +19,9 @@ type ListenHistoryRow = {
   id: number;
   listened_at: string;
   created_at?: string | null;
+  captured_at?: string | null;
+  weather_condition?: string | null;
+  temperature?: number | null;
   impression: string | null;
   dac_amp_id: number | null;
   dac_amp2_id: number | null;
@@ -91,7 +96,9 @@ export function AlbumListenHistorySection({
     const supabase = createClient();
     const { data, error } = await supabase
       .from('album_listen_history')
-      .select('id, listened_at, created_at, impression, dac_amp_id, dac_amp2_id, headphone_id')
+      .select(
+        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, dac_amp_id, dac_amp2_id, headphone_id',
+      )
       .eq('album_id', albumId)
       .order('listened_at', { ascending: false })
       .order('created_at', { ascending: false });
@@ -254,12 +261,16 @@ export function AlbumListenHistorySection({
         dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
         headphone_id: parseOptionalId(selectedHeadphoneId),
       };
+      const contextSnapshot = editingId == null ? await captureListenContextSnapshot() : null;
       const { error } =
         editingId != null
           ? await supabase.from('album_listen_history').update(payload).eq('id', editingId)
           : await supabase.from('album_listen_history').insert({
               album_id: albumId,
               ...payload,
+              captured_at: contextSnapshot?.captured_at ?? null,
+              weather_condition: contextSnapshot?.weather_condition ?? null,
+              temperature: contextSnapshot?.temperature ?? null,
             });
       if (error) {
         toast.error(error.message || '저장하지 못했습니다.');
@@ -502,6 +513,11 @@ export function AlbumListenHistorySection({
                 <p className="text-sm font-semibold tabular-nums">
                   {new Date(row.listened_at + 'T12:00:00').toLocaleDateString('ko-KR')}
                 </p>
+                <ListenContextMeta
+                  captured_at={row.captured_at}
+                  weather_condition={row.weather_condition}
+                  temperature={row.temperature}
+                />
                 <p className="mt-1 whitespace-pre-wrap text-sm opacity-85">
                   {row.impression?.trim() ? row.impression : '—'}
                 </p>

@@ -16,6 +16,9 @@ export type DiaryHistoryRow = {
   album_id: number | null;
   listened_at: string | null;
   created_at: string | null;
+  captured_at: string | null;
+  weather_condition: string | null;
+  temperature: number | null;
   impression: string | null;
   dac_amp_id: number | null;
   dac_amp2_id: number | null;
@@ -27,6 +30,9 @@ export type DiaryListenEntry = {
   albumId: number;
   listenedAt: string;
   createdAt: string | null;
+  capturedAt: string | null;
+  weatherCondition: string | null;
+  temperature: number | null;
   impression: string | null;
   dacAmpId: number | null;
   dacAmp2Id: number | null;
@@ -80,6 +86,9 @@ export function buildDiaryDayGroups(
       albumId: row.album_id,
       listenedAt,
       createdAt: row.created_at,
+      capturedAt: row.captured_at,
+      weatherCondition: row.weather_condition,
+      temperature: row.temperature,
       impression: row.impression,
       dacAmpId: row.dac_amp_id,
       dacAmp2Id: row.dac_amp2_id,

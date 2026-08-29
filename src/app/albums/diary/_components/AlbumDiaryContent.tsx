@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
+import { ListenContextMeta } from '@/app/albums/_components/ListenContextMeta';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { AlbumPageHeader, AlbumSubHeader } from '@/app/albums/_components/AlbumPageHeader';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
@@ -128,7 +129,9 @@ export function AlbumDiaryContent() {
         client.from('album').select('*').order('release_date', { ascending: false }),
         client
           .from('album_listen_history')
-          .select('id, album_id, listened_at, created_at, impression, dac_amp_id, dac_amp2_id, headphone_id'),
+          .select(
+            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, dac_amp_id, dac_amp2_id, headphone_id',
+          ),
         client.from('headfi').select('id, brand, model'),
       ]);
       const errors: string[] = [];
@@ -145,6 +148,9 @@ export function AlbumDiaryContent() {
         setHistoryRows(
           ((historyRes.data ?? []) as DiaryHistoryRow[]).map((row) => ({
             ...row,
+            captured_at: row.captured_at ?? null,
+            weather_condition: row.weather_condition ?? null,
+            temperature: row.temperature ?? null,
             dac_amp2_id: row.dac_amp2_id ?? null,
           })),
         );
@@ -755,6 +761,11 @@ export function AlbumDiaryContent() {
                           {entry.album?.album_name || '삭제된 앨범'}
                         </p>
                         <p className="truncate text-xs opacity-60">{entry.album?.artist || '—'}</p>
+                        <ListenContextMeta
+                          captured_at={entry.capturedAt}
+                          weather_condition={entry.weatherCondition}
+                          temperature={entry.temperature}
+                        />
                         {entry.impression?.trim() ? (
                           <p className="mt-1 line-clamp-2 text-xs opacity-75">{entry.impression}</p>
                         ) : null}
