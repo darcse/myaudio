@@ -391,3 +391,5 @@
 [2026-08-28] [Cursor] style: 소비 통계 전체 지출 아래 총지출-총판매액 세부 내역 표시 | passes: 변경 없음
 [2026-08-29] [Cursor] feat: ALBUM-029 청취 기록 저장 시 시각·날씨·기온 자동 스냅샷 | passes: 변경 없음
 [2026-08-29] [Cursor] style: ALBUM-029 청취 이력·음감 다이어리 컨텍스트(시각·날씨) 표시 | passes: 변경 없음
+[2026-08-29] [Cursor] fix: BUG-015 PWA 청취 기록 날씨 null — insert 후 비동기 update·geo 플래그 수정 | passes: 변경 없음
+[2026-08-29] [Cursor] style: 청취 기록 신규 등록 폼 청취일 기본값 오늘 날짜 | passes: 변경 없음

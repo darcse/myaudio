@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { captureListenContextSnapshot } from '@/lib/listenContextSnapshot';
+import { createListenCapturedAt, fetchListenWeatherContext } from '@/lib/listenContextSnapshot';
 import { ListenContextMeta } from './ListenContextMeta';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 
@@ -30,6 +30,14 @@ type ListenHistoryRow = {
   dac_amp2?: GearSummary | null;
   headphone?: GearSummary | null;
 };
+
+function todayLocalDateInputValue(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 function sortListenHistoryRows(rows: ListenHistoryRow[]): ListenHistoryRow[] {
   return [...rows].sort((a, b) => {
@@ -73,8 +81,8 @@ export function AlbumListenHistorySection({
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const resetFormFields = useCallback(() => {
-    setListenDate('');
+  const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
+    setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
     setListenImpression('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
@@ -239,6 +247,19 @@ export function AlbumListenHistorySection({
     return Number.isNaN(n) ? null : n;
   };
 
+  const enrichListenHistoryWeather = useCallback(async (rowId: number) => {
+    const { weather_condition, temperature } = await fetchListenWeatherContext();
+    if (weather_condition == null && temperature == null) return;
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('album_listen_history')
+      .update({ weather_condition, temperature })
+      .eq('id', rowId);
+    if (!error) {
+      await loadListenHistory();
+    }
+  }, [loadListenHistory]);
+
   const saveListenHistory = async () => {
     if (isAuthenticated !== true) return;
     const d = listenDate.trim();
@@ -261,20 +282,35 @@ export function AlbumListenHistorySection({
         dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
         headphone_id: parseOptionalId(selectedHeadphoneId),
       };
-      const contextSnapshot = editingId == null ? await captureListenContextSnapshot() : null;
-      const { error } =
+      const contextSnapshot =
+        editingId == null
+          ? { captured_at: createListenCapturedAt(), weather_condition: null, temperature: null }
+          : null;
+      const insertResult =
         editingId != null
           ? await supabase.from('album_listen_history').update(payload).eq('id', editingId)
-          : await supabase.from('album_listen_history').insert({
-              album_id: albumId,
-              ...payload,
-              captured_at: contextSnapshot?.captured_at ?? null,
-              weather_condition: contextSnapshot?.weather_condition ?? null,
-              temperature: contextSnapshot?.temperature ?? null,
-            });
+          : await supabase
+              .from('album_listen_history')
+              .insert({
+                album_id: albumId,
+                ...payload,
+                captured_at: contextSnapshot?.captured_at ?? null,
+                weather_condition: contextSnapshot?.weather_condition ?? null,
+                temperature: contextSnapshot?.temperature ?? null,
+              })
+              .select('id')
+              .single();
+      const error = insertResult.error;
+      const insertedId =
+        editingId == null && insertResult.data && 'id' in insertResult.data
+          ? (insertResult.data as { id: number }).id
+          : null;
       if (error) {
         toast.error(error.message || '저장하지 못했습니다.');
         return;
+      }
+      if (insertedId != null) {
+        void enrichListenHistoryWeather(insertedId);
       }
       resetFormFields();
       setFormOpen(false);
@@ -330,7 +366,7 @@ export function AlbumListenHistorySection({
         resetFormFields();
         return false;
       }
-      resetFormFields();
+      resetFormFields({ forNew: true });
       if (variant === 'accordion') setListenOpen(true);
       return true;
     });
