@@ -10,6 +10,7 @@ export interface Album {
   genre1: string | null;
   genre2: string | null;
   cover_image_url: string | null;
+  dominant_colors?: string[] | null;
   matching1: string | null;
   matching2: string | null;
   title_song_url: string | null;

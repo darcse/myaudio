@@ -1,7 +1,9 @@
 import type { Album } from '@/app/albums/types';
+import { buildDiaryDayGradient, buildDiaryDaySoftGradient, collectDiaryDayColors } from '@/lib/albumCoverColors';
 import {
   clampListenPeriodFilter,
   filterHistoryByPeriod,
+  STATS_EARLY_MONTHS,
   type ListenPeriodFilter,
 } from '@/app/albums/stats/albumListenStats';
 
@@ -130,4 +132,89 @@ export function buildDiaryDayGroups(
 
 export function formatDiaryGearLabel(gear: DiaryGearSummary): string {
   return `${gear.brand} ${gear.model}`.trim() || '—';
+}
+
+export function getDiaryDayHeaderGradient(entries: DiaryListenEntry[]): string | null {
+  return buildDiaryDayGradient(collectDiaryDayColors(entries));
+}
+
+export function getDiaryDayCalendarGradient(entries: DiaryListenEntry[]): string | null {
+  return buildDiaryDaySoftGradient(collectDiaryDayColors(entries));
+}
+
+export type DiaryCalendarCell = {
+  date: string | null;
+  day: number | null;
+  entries: DiaryListenEntry[];
+  inMonth: boolean;
+};
+
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+
+export function weekdayLabelForDate(date: string): string {
+  const day = new Date(`${date}T12:00:00`).getDay();
+  return WEEKDAY_LABELS[day] ?? '';
+}
+
+export function resolveDiaryCalendarMonth(
+  filter: ListenPeriodFilter,
+  dayGroups: DiaryDayGroup[],
+): number {
+  if (typeof filter.month === 'number') return filter.month;
+  const latestDate = [...dayGroups].sort((a, b) => b.date.localeCompare(a.date))[0]?.date;
+  if (latestDate) {
+    return Number.parseInt(latestDate.slice(5, 7), 10);
+  }
+  const now = new Date();
+  if (filter.month === STATS_EARLY_MONTHS) {
+    return filter.year === now.getFullYear() && now.getMonth() + 1 <= 5 ? now.getMonth() + 1 : 5;
+  }
+  return filter.year === now.getFullYear() ? now.getMonth() + 1 : 12;
+}
+
+export function buildEntriesByDate(dayGroups: DiaryDayGroup[]): Map<string, DiaryListenEntry[]> {
+  const map = new Map<string, DiaryListenEntry[]>();
+  for (const group of dayGroups) {
+    map.set(group.date, group.entries);
+  }
+  return map;
+}
+
+export function buildDiaryCalendarGrid(
+  year: number,
+  month: number,
+  entriesByDate: Map<string, DiaryListenEntry[]>,
+): DiaryCalendarCell[] {
+  const firstDay = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const startWeekday = firstDay.getDay();
+  const cells: DiaryCalendarCell[] = [];
+
+  for (let i = 0; i < startWeekday; i += 1) {
+    cells.push({ date: null, day: null, entries: [], inMonth: false });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    cells.push({
+      date,
+      day,
+      entries: entriesByDate.get(date) ?? [],
+      inMonth: true,
+    });
+  }
+
+  while (cells.length > 0 && cells.length % 7 !== 0) {
+    cells.push({ date: null, day: null, entries: [], inMonth: false });
+  }
+
+  return cells;
+}
+
+export function countUniqueAlbums(entries: DiaryListenEntry[]): number {
+  return new Set(entries.map((entry) => entry.albumId)).size;
+}
+
+export function pickDayWeatherEntry(entries: DiaryListenEntry[]): DiaryListenEntry | null {
+  return entries.find((entry) => entry.weatherCondition || entry.temperature != null) ?? entries[0] ?? null;
 }

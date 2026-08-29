@@ -18,6 +18,8 @@ import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-i
 import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
+import { TimeMachineRecallBanner } from './TimeMachineRecallBanner';
+import type { TimeMachineRecall } from '@/lib/timeMachineRecall';
 
 const AlbumDetailModal = dynamic(
   () => import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
@@ -68,6 +70,7 @@ type DashboardContentProps = {
   recentAlbums: Album[];
   recentLyricsAlbums: RecentLyricsAlbum[];
   recentHeadfi: Headfi[];
+  timeMachineRecall: TimeMachineRecall | null;
 };
 
 const recentAlbumGridClass = 'grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6';
@@ -208,6 +211,7 @@ export function DashboardContent({
   recentAlbums,
   recentLyricsAlbums,
   recentHeadfi,
+  timeMachineRecall,
 }: DashboardContentProps) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
@@ -553,6 +557,13 @@ export function DashboardContent({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 min-h-screen" style={{ color: 'var(--foreground)' }}>
+      {timeMachineRecall ? (
+        <TimeMachineRecallBanner
+          recall={timeMachineRecall}
+          onClick={() => void openAlbumById(timeMachineRecall.albumId)}
+        />
+      ) : null}
+
       <h1
         className="section-title mb-4 flex items-center justify-between gap-3 border-b pb-2 text-[28px]"
         style={{ borderColor: 'var(--border)' }}

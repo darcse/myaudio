@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchTimeMachineRecall } from '@/lib/timeMachineRecall.server';
 import type { Album } from '@/app/albums/types';
 import type { Headfi } from '@/app/headfi/types';
 import { DashboardContent } from './_components/DashboardContent';
@@ -61,7 +62,7 @@ function resolveLyricsAlbumId(
 export default async function Home() {
   const supabase = await createClient();
 
-  const [albumsCountRes, headfiCountRes, headfiCatsRes, listenCountRes, recentListenRes, recentAlbumsRes, recentLyricsRes, recentHeadfiRes] =
+  const [albumsCountRes, headfiCountRes, headfiCatsRes, listenCountRes, recentListenRes, recentAlbumsRes, recentLyricsRes, recentHeadfiRes, timeMachineRecall] =
     await Promise.all([
       supabase.from('album').select('*', { count: 'exact', head: true }),
       supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
@@ -87,6 +88,7 @@ export default async function Home() {
         .select('id,brand,model,image_url,purchase_date')
         .order('purchase_date', { ascending: false, nullsFirst: false })
         .limit(5),
+      fetchTimeMachineRecall(supabase),
     ]);
 
   const monthlyListenRows = (recentListenRes.data ?? []) as MonthlyListenJoinRow[];
@@ -164,6 +166,7 @@ export default async function Home() {
       recentAlbums={(recentAlbumsRes.data ?? []) as Album[]}
       recentLyricsAlbums={recentLyricsAlbums}
       recentHeadfi={(recentHeadfiRes.data ?? []) as Headfi[]}
+      timeMachineRecall={timeMachineRecall}
     />
   );
 }

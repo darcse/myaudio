@@ -393,3 +393,9 @@
 [2026-08-29] [Cursor] style: ALBUM-029 청취 이력·음감 다이어리 컨텍스트(시각·날씨) 표시 | passes: 변경 없음
 [2026-08-29] [Cursor] fix: BUG-015 PWA 청취 기록 날씨 null — insert 후 비동기 update·geo 플래그 수정 | passes: 변경 없음
 [2026-08-29] [Cursor] style: 청취 기록 신규 등록 폼 청취일 기본값 오늘 날짜 | passes: 변경 없음
+[2026-08-29] [Cursor] feat: ALBUM-030 앨범 커버 대표색 추출·음감 다이어리 날짜 그라데이션 | passes: 변경 없음
+[2026-08-29] [Cursor] chore: dominant_colors 백필 625건 중 602건 성공·23건 실패(유지) | passes: 변경 없음
+[2026-08-29] [Cursor] feat: ALBUM-031 대시보드 타임머신 회고 배너 | passes: 변경 없음
+[2026-08-29] [Cursor] style: 타임머신 회고 배너 닫기·세션 동안 숨김 | passes: 변경 없음
+[2026-08-29] [Cursor] feat: ALBUM-032 음감 다이어리 캘린더 카드 뷰·리스트 토글 | passes: 변경 없음
+[2026-08-29] [Cursor] style: ALBUM-032 캘린더 카드 그라데이션 톤다운·요일 제거 | passes: 변경 없음

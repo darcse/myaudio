@@ -1,14 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { BookOpen, Disc, Music, Pencil, Trash2, X } from 'lucide-react';
+import { BookOpen, CalendarDays, LayoutList, Music, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
-import { ListenContextMeta } from '@/app/albums/_components/ListenContextMeta';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { AlbumPageHeader, AlbumSubHeader } from '@/app/albums/_components/AlbumPageHeader';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
@@ -26,12 +24,17 @@ import {
 } from '@/app/albums/stats/albumListenStats';
 import {
   buildDiaryDayGroups,
-  formatDiaryGearLabel,
+  getDiaryDayHeaderGradient,
+  resolveDiaryCalendarMonth,
   type DiaryDaySortOrder,
   type DiaryGearSummary,
   type DiaryHistoryRow,
   type DiaryListenEntry,
 } from '../albumDiary';
+import { AlbumDiaryCalendarView } from './AlbumDiaryCalendarView';
+import { DiaryListenEntryListItem } from './DiaryListenEntryListItem';
+
+type DiaryViewMode = 'calendar' | 'list';
 
 type GearOption = { id: number; brand: string; model: string };
 
@@ -97,6 +100,7 @@ export function AlbumDiaryContent() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [sortOrder, setSortOrder] = useState<DiaryDaySortOrder>('desc');
+  const [diaryView, setDiaryView] = useState<DiaryViewMode>('calendar');
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
   const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
@@ -280,6 +284,14 @@ export function AlbumDiaryContent() {
     () => buildDiaryDayGroups(historyRows, albums, gearById, periodFilter, sortOrder),
     [historyRows, albums, gearById, periodFilter, sortOrder],
   );
+  const calendarMonth = useMemo(
+    () => resolveDiaryCalendarMonth(periodFilter, dayGroups),
+    [periodFilter, dayGroups],
+  );
+  const calendarMonthHint = useMemo(() => {
+    if (typeof periodFilter.month === 'number') return null;
+    return `${calendarMonth}월 기준 (필터: ${formatPeriodLabel(periodFilter)})`;
+  }, [periodFilter, calendarMonth]);
   const hasAnyListenData = historyRows.some((row) => row.album_id != null && row.listened_at);
   const periodSummary = useMemo(() => {
     const entries = dayGroups.flatMap((group) => group.entries);
@@ -469,18 +481,6 @@ export function AlbumDiaryContent() {
     };
   }, [editingEntry]);
 
-  const renderGearTags = (entry: DiaryListenEntry) => {
-    const gears = [entry.dacAmp, entry.dacAmp2, entry.headphone].filter(
-      (g): g is DiaryGearSummary => g != null,
-    );
-    if (gears.length === 0) return null;
-    return (
-      <p className="mt-1.5 truncate text-xs opacity-65">
-        {gears.map((g) => formatDiaryGearLabel(g)).join(' / ')}
-      </p>
-    );
-  };
-
   return (
     <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <AlbumPageHeader activeNav="diary" isAuthenticated={isAuthenticated} showDivider />
@@ -523,6 +523,30 @@ export function AlbumDiaryContent() {
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <span className="shrink-0 text-xs font-semibold opacity-60">보기</span>
+              <button
+                type="button"
+                onClick={() => setDiaryView('calendar')}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-medium transition-colors"
+                style={filterToggleStyle(diaryView === 'calendar')}
+                aria-pressed={diaryView === 'calendar'}
+              >
+                <CalendarDays className="size-3.5" strokeWidth={1.75} aria-hidden />
+                카드
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiaryView('list')}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-medium transition-colors"
+                style={filterToggleStyle(diaryView === 'list')}
+                aria-pressed={diaryView === 'list'}
+              >
+                <LayoutList className="size-3.5" strokeWidth={1.75} aria-hidden />
+                리스트
+              </button>
+            </div>
+            {diaryView === 'list' ? (
+            <div className="flex flex-wrap items-center gap-2">
               <span className="shrink-0 text-xs font-semibold opacity-60">정렬</span>
               <button
                 type="button"
@@ -543,6 +567,7 @@ export function AlbumDiaryContent() {
                 이전순
               </button>
             </div>
+            ) : null}
           </div>
           {hasAnyListenData && periodSummary.listenCount > 0 ? (
             <p className="text-sm font-semibold opacity-90">
@@ -709,6 +734,19 @@ export function AlbumDiaryContent() {
           <Music className="mx-auto mb-3 size-8 opacity-40" strokeWidth={1.5} />
           <p className="text-sm opacity-70">아직 등록된 청취 기록이 없습니다.</p>
         </div>
+      ) : diaryView === 'calendar' ? (
+        <AlbumDiaryCalendarView
+          year={periodFilter.year}
+          month={calendarMonth}
+          monthHint={calendarMonthHint}
+          dayGroups={dayGroups}
+          editingEntryId={editingEntry?.id ?? null}
+          listenSaving={listenSaving}
+          isAuthenticated={isAuthenticated}
+          onOpenAlbum={openAlbum}
+          onEditEntry={startEditEntry}
+          onDeleteEntry={(entryId) => void deleteEntry(entryId)}
+        />
       ) : dayGroups.length === 0 ? (
         <div
           className="rounded-xl border px-6 py-16 text-center"
@@ -719,86 +757,41 @@ export function AlbumDiaryContent() {
         </div>
       ) : (
         <div className="space-y-8">
-          {dayGroups.map((group) => (
+          {dayGroups.map((group) => {
+            const headerGradient = getDiaryDayHeaderGradient(group.entries);
+            return (
             <section key={group.date}>
-              <h3 className="mb-3 text-base font-semibold tabular-nums">{group.label}</h3>
+              <h3
+                className={`mb-3 text-base font-semibold tabular-nums ${headerGradient ? 'rounded-xl px-3 py-2' : ''}`}
+                style={
+                  headerGradient
+                    ? {
+                        background: headerGradient,
+                        color: '#fff',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.45)',
+                      }
+                    : undefined
+                }
+              >
+                {group.label}
+              </h3>
               <ul className="space-y-2">
                 {group.entries.map((entry) => (
-                  <li
+                  <DiaryListenEntryListItem
                     key={entry.id}
-                    className="flex gap-3 rounded-xl p-3"
-                    style={{
-                      background: 'var(--badge-bg)',
-                      border:
-                        editingEntry?.id === entry.id
-                          ? '1px solid var(--foreground)'
-                          : '1px solid var(--border)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => openAlbum(entry.albumId)}
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left transition-opacity hover:opacity-90"
-                    >
-                      <div
-                        className="relative size-14 shrink-0 overflow-hidden rounded-md"
-                        style={{ background: 'var(--card-bg)' }}
-                      >
-                        {entry.album?.cover_image_url ? (
-                          <img
-                            src={entry.album.cover_image_url}
-                            alt=""
-                            className="absolute inset-0 size-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center opacity-40">
-                            <Disc className="size-5" strokeWidth={1.5} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {entry.album?.album_name || '삭제된 앨범'}
-                        </p>
-                        <p className="truncate text-xs opacity-60">{entry.album?.artist || '—'}</p>
-                        <ListenContextMeta
-                          captured_at={entry.capturedAt}
-                          weather_condition={entry.weatherCondition}
-                          temperature={entry.temperature}
-                        />
-                        {entry.impression?.trim() ? (
-                          <p className="mt-1 line-clamp-2 text-xs opacity-75">{entry.impression}</p>
-                        ) : null}
-                        {renderGearTags(entry)}
-                      </div>
-                    </button>
-                    {isAuthenticated === true ? (
-                      <div className="flex shrink-0 flex-col gap-1.5 self-start">
-                        <button
-                          type="button"
-                          onClick={() => startEditEntry(entry)}
-                          disabled={listenSaving}
-                          className="btn-apple shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                          aria-label="청취 기록 수정"
-                        >
-                          <Pencil className="size-3.5" strokeWidth={2} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deleteEntry(entry.id)}
-                          disabled={listenSaving}
-                          className="btn-apple btn-apple-danger shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                          aria-label="청취 기록 삭제"
-                        >
-                          <Trash2 className="size-3.5" strokeWidth={2} />
-                        </button>
-                      </div>
-                    ) : null}
-                  </li>
+                    entry={entry}
+                    isEditing={editingEntry?.id === entry.id}
+                    listenSaving={listenSaving}
+                    showActions={isAuthenticated === true}
+                    onOpenAlbum={openAlbum}
+                    onEdit={startEditEntry}
+                    onDelete={(entryId) => void deleteEntry(entryId)}
+                  />
                 ))}
               </ul>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
 

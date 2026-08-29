@@ -1,6 +1,7 @@
 'use server';
 
 import { after } from 'next/server';
+import { extractDominantColorsFromCoverUrl } from '@/lib/albumCoverColors.server';
 import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
@@ -47,6 +48,17 @@ function mapAlbumData(data: AlbumFormData) {
     owns_cd: Boolean(data.owns_cd),
     owns_lp: Boolean(data.owns_lp),
   };
+}
+
+async function resolveDominantColors(coverUrl: string | null | undefined): Promise<string[] | null> {
+  const trimmed = coverUrl?.trim();
+  if (!trimmed) return null;
+  try {
+    const colors = await extractDominantColorsFromCoverUrl(trimmed);
+    return colors.length > 0 ? colors : null;
+  } catch {
+    return null;
+  }
 }
 
 type MusicBrainzSearchResult = {
@@ -186,9 +198,10 @@ export async function saveAlbumToDB(data: AlbumFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
+  const dominant_colors = await resolveDominantColors(data.cover_image_url);
   const { data: result, error } = await supabase
     .from('album')
-    .insert([mapAlbumData(data)])
+    .insert([{ ...mapAlbumData(data), dominant_colors }])
     .select('id')
     .single();
 
@@ -210,9 +223,10 @@ export async function updateAlbumInDB(id: number, data: AlbumFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
+  const dominant_colors = await resolveDominantColors(data.cover_image_url);
   const { data: result, error } = await supabase
     .from('album')
-    .update(mapAlbumData(data))
+    .update({ ...mapAlbumData(data), dominant_colors })
     .eq('id', id);
 
   if (error) throw error;
