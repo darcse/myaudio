@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { createListenCapturedAt, fetchListenWeatherContext } from '@/lib/listenContextSnapshot';
+import { createListenCapturedAt, fetchListenWeatherContext, type ListenWeatherContext } from '@/lib/listenContextSnapshot';
+import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/listenContextDebug';
 import { ListenContextMeta } from './ListenContextMeta';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 
@@ -247,17 +248,24 @@ export function AlbumListenHistorySection({
     return Number.isNaN(n) ? null : n;
   };
 
-  const enrichListenHistoryWeather = useCallback(async (rowId: number) => {
-    const { weather_condition, temperature } = await fetchListenWeatherContext();
-    if (weather_condition == null && temperature == null) return;
+  const enrichListenHistoryWeather = useCallback(async (rowId: number, contextPromise: Promise<ListenWeatherContext>) => {
+    listenContextLog('weather enrich start', { rowId });
+    const { weather_condition, temperature } = await contextPromise;
+    if (weather_condition == null && temperature == null) {
+      listenContextWarn('weather enrich skipped — no data', { rowId });
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase
       .from('album_listen_history')
       .update({ weather_condition, temperature })
       .eq('id', rowId);
-    if (!error) {
-      await loadListenHistory();
+    if (error) {
+      listenContextError('weather enrich update failed', { rowId, message: error.message });
+      return;
     }
+    listenContextLog('weather enrich saved', { rowId, weather_condition, temperature });
+    await loadListenHistory();
   }, [loadListenHistory]);
 
   const saveListenHistory = async () => {
@@ -268,6 +276,7 @@ export function AlbumListenHistorySection({
       return;
     }
     setListenSaving(true);
+    const weatherContextPromise = editingId == null ? fetchListenWeatherContext() : null;
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -309,8 +318,10 @@ export function AlbumListenHistorySection({
         toast.error(error.message || '저장하지 못했습니다.');
         return;
       }
-      if (insertedId != null) {
-        void enrichListenHistoryWeather(insertedId);
+      if (insertedId != null && weatherContextPromise) {
+        void enrichListenHistoryWeather(insertedId, weatherContextPromise);
+      } else if (editingId == null && insertedId == null) {
+        listenContextWarn('weather enrich not scheduled — missing inserted id');
       }
       resetFormFields();
       setFormOpen(false);

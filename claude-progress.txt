@@ -399,3 +399,4 @@
 [2026-08-29] [Cursor] style: 타임머신 회고 배너 닫기·세션 동안 숨김 | passes: 변경 없음
 [2026-08-29] [Cursor] feat: ALBUM-032 음감 다이어리 캘린더 카드 뷰·리스트 토글 | passes: 변경 없음
 [2026-08-29] [Cursor] style: ALBUM-032 캘린더 카드 그라데이션 톤다운·요일 제거 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: BUG-016 청취 기록 날씨 null 재발 — Safari 제스처·geo 플래그·진단 로그 | passes: 변경 없음
