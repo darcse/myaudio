@@ -10,7 +10,12 @@ export type ListenContextSnapshot = {
   temperature: number | null;
 };
 
-export type ListenWeatherContext = Pick<ListenContextSnapshot, 'weather_condition' | 'temperature'>;
+export type ListenWeatherContext = Pick<ListenContextSnapshot, 'weather_condition' | 'temperature'> & {
+  geoFailureCode?: number;
+};
+
+export const LISTEN_GEO_UNAVAILABLE_TOAST =
+  '날씨·기온을 가져오지 못했습니다. macOS 시스템 설정 → 개인정보 보호 및 보안 → 위치 서비스에서 Safari 접근을 확인해 주세요.';
 
 function clearGeoPermissionDenied(): void {
   if (typeof sessionStorage !== 'undefined') {
@@ -212,6 +217,8 @@ export async function fetchListenWeatherContext(): Promise<ListenWeatherContext>
     } else if (permissionState === 'granted') {
       clearGeoPermissionDenied();
     }
+
+    return { weather_condition: null, temperature: null, geoFailureCode: code };
   }
 
   return { weather_condition: null, temperature: null };

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { createListenCapturedAt, fetchListenWeatherContext, type ListenWeatherContext } from '@/lib/listenContextSnapshot';
+import { createListenCapturedAt, fetchListenWeatherContext, LISTEN_GEO_UNAVAILABLE_TOAST, type ListenWeatherContext } from '@/lib/listenContextSnapshot';
 import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/listenContextDebug';
 import { ListenContextMeta } from './ListenContextMeta';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
@@ -250,9 +250,12 @@ export function AlbumListenHistorySection({
 
   const enrichListenHistoryWeather = useCallback(async (rowId: number, contextPromise: Promise<ListenWeatherContext>) => {
     listenContextLog('weather enrich start', { rowId });
-    const { weather_condition, temperature } = await contextPromise;
+    const { weather_condition, temperature, geoFailureCode } = await contextPromise;
     if (weather_condition == null && temperature == null) {
       listenContextWarn('weather enrich skipped — no data', { rowId });
+      if (geoFailureCode === 2) {
+        toast.warning(LISTEN_GEO_UNAVAILABLE_TOAST);
+      }
       return;
     }
     const supabase = createClient();

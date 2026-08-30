@@ -401,3 +401,5 @@
 [2026-08-29] [Cursor] style: ALBUM-032 캘린더 카드 그라데이션 톤다운·요일 제거 | passes: 변경 없음
 [2026-08-30] [Cursor] fix: BUG-016 청취 기록 날씨 null 재발 — Safari 제스처·geo 플래그·진단 로그 | passes: 변경 없음
 [2026-08-30] [Cursor] fix: BUG-016 geo POSITION_UNAVAILABLE — 다중 재시도·watchPosition 폴백 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: BUG-016 원인 확인 — macOS 위치 서비스 off 시 POSITION_UNAVAILABLE, 시스템 설정 재활성화로 해결 | passes: 변경 없음
+[2026-08-30] [Cursor] style: BUG-016 POSITION_UNAVAILABLE 시 macOS 위치 서비스 안내 토스트 | passes: 변경 없음
