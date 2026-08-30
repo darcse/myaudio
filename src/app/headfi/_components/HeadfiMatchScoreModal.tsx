@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 import { HeadfiComboManageSection } from './HeadfiComboManageSection';
 import type { Headfi, HeadfiCombo } from '../types';
 import { buildGearByIdMap, formatComboLabel } from '../headfiComboUtils';
@@ -60,6 +61,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ScoreResult[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [reanalyzeConfirm, setReanalyzeConfirm] = useState(false);
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
@@ -70,6 +72,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
       setLoading(false);
       setResults([]);
       setExpandedId(null);
+      setReanalyzeConfirm(false);
       return;
     }
     const prevOverflow = document.body.style.overflow;
@@ -87,32 +90,52 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
     }
   }, [comboId, combos]);
 
-  const fetchScores = useCallback(
-    async (force = false) => {
-      const res = await fetch('/api/headfi-match-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comboId,
-          force,
-        }),
-      });
-      const payload = (await res.json()) as { error?: string; results?: ScoreResult[] };
-      if (!res.ok) {
-        throw new Error(payload.error || '분석에 실패했습니다.');
-      }
-      return payload.results ?? [];
-    },
-    [comboId],
-  );
+  const refreshCombos = useCallback(async () => {
+    if (isAuthenticated !== true) {
+      setCombos([]);
+      return;
+    }
+    const { data, error } = await createClient()
+      .from('headfi_combos')
+      .select('id, select1_id, select2_id, created_at')
+      .order('created_at', { ascending: false });
+    if (error) {
+      toast.error(error.message || '조합 목록을 불러오지 못했습니다.');
+      return;
+    }
+    setCombos((data ?? []) as HeadfiCombo[]);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!open) return;
+    void refreshCombos();
+  }, [open, refreshCombos]);
+
+  const fetchScores = useCallback(async (targetComboId: string, force = false) => {
+    const res = await fetch('/api/headfi-match-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        comboId: targetComboId,
+        force,
+      }),
+    });
+    const payload = (await res.json()) as { error?: string; results?: ScoreResult[] };
+    if (!res.ok) {
+      throw new Error(payload.error || '분석에 실패했습니다.');
+    }
+    return payload.results ?? [];
+  }, []);
 
   const handleAnalyze = async (force = false) => {
-    if (!comboId || loading) return;
+    const targetComboId = comboId.trim();
+    if (!targetComboId || loading) return;
     setLoading(true);
     setResults([]);
     setExpandedId(null);
+    setReanalyzeConfirm(false);
     try {
-      const list = await fetchScores(force);
+      const list = await fetchScores(targetComboId, force);
       if (list.length === 0) {
         throw new Error('분석 결과가 없습니다. 잠시 후 다시 시도해 주세요.');
       }
@@ -125,8 +148,8 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
   };
 
   const handleReanalyze = () => {
-    if (!comboId || loading) return;
-    if (!confirm('캐시를 삭제하고 다시 분석합니다. 계속할까요?')) return;
+    const targetComboId = comboId.trim();
+    if (!targetComboId || loading) return;
     void handleAnalyze(true);
   };
 
@@ -184,6 +207,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
                   setComboId(e.target.value);
                   setResults([]);
                   setExpandedId(null);
+                  setReanalyzeConfirm(false);
                 }}
               >
                 <option value="">선택하세요</option>
@@ -217,16 +241,48 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
               )}
             </button>
             {results.length > 0 ? (
-              <button
-                type="button"
-                className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-4 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!comboId || loading}
-                onClick={handleReanalyze}
-              >
-                재분석
-              </button>
+              reanalyzeConfirm ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="rounded-lg px-2 py-1 text-xs font-medium opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
+                    disabled={loading}
+                    onClick={() => setReanalyzeConfirm(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-apple btn-apple-danger h-[42px] shrink-0 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!comboId || loading}
+                    onClick={() => void handleReanalyze()}
+                  >
+                    {loading ? (
+                      <span
+                        className="inline-block h-5 w-5 animate-spin rounded-full border-2"
+                        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--background)' }}
+                      />
+                    ) : (
+                      '확인'
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-4 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!comboId || loading}
+                  onClick={() => setReanalyzeConfirm(true)}
+                >
+                  재분석
+                </button>
+              )
             ) : null}
           </div>
+
+          {results.length > 0 && reanalyzeConfirm ? (
+            <p className="mt-2 text-xs opacity-60">캐시를 삭제하고 다시 분석합니다.</p>
+          ) : null}
 
           {results.length > 0 ? (
             <ul className="mt-8 space-y-2 border-t pt-6" style={{ borderColor: 'var(--border)' }}>

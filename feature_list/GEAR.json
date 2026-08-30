@@ -540,5 +540,31 @@
         "등록된 조합이 없을 때 매칭맵 빈 상태(empty state) 노출 확인"
       ],
       "passes": true
+    },
+    {
+      "id": "GEAR-034",
+      "category": "gear",
+      "title": "매칭 프롬프트 — select1/select2 역할 조건부 지정",
+      "description": "조합 매칭 시 select2가 채워진 경우에만 select1을 DAC 전용(라인아웃)으로, select2를 AMP로 프롬프트에 명시하여 앰프 2대 연결로 오해석하는 문제를 방지한다. select2가 비어있으면 select1은 기존처럼 DAC/AMP 겸용으로 해석한다.",
+      "steps": [
+        "select1+select2 모두 채운 조합으로 매칭 실행 시, 결과 comment가 select1을 DAC 전용/라인아웃 기준으로 해석했는지 확인",
+        "select1만 채운 조합(select2 없음)으로 매칭 실행 시, select1이 기존처럼 DAC/AMP 겸용 기준으로 해석되는지 확인",
+        "동일 select1 기기를 단독 조합과 select2 포함 조합 양쪽에서 매칭했을 때 해석 방식이 달라지는지 확인",
+        "select1/select2 둘 다 앰프 전용 기기로만 구성된 조합에서 이상 동작 없는지 확인"
+      ],
+      "passes": true
+    },
+    {
+      "id": "GEAR-035",
+      "category": "gear",
+      "title": "매칭 평가 — 유사 모델명 혼동 방지 (정확한 기기명 전달)",
+      "description": "매칭 평가 시 제미나이/GPT가 유사한 모델명(예: zen can studio vs zen can)을 혼동하지 않도록, headfi 테이블에 저장된 정확한 기기명을 프롬프트에 명확히 전달하고 결과에도 정확한 모델명으로 표기되도록 한다.",
+      "steps": [
+        "zen can studio 조합으로 매칭 실행 시 결과 상단/comment에 정확히 'zen can studio'로 표기되는지 확인",
+        "결과 comment 내용이 zen can studio의 스펙(해당 모델 고유 특성)을 기준으로 서술되었는지 확인",
+        "이름이 유사한 다른 기기 쌍(다른 브랜드의 상하위 모델 등)으로도 동일하게 모델명 혼동 없이 해석되는지 확인",
+        "기기명에 공백/특수문자가 포함된 경우에도 정확히 전달되는지 확인"
+      ],
+      "passes": true
     }
   ]

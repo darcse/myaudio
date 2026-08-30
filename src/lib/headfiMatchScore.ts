@@ -66,6 +66,10 @@ function deviceName(brand: string | null, model: string | null): string {
   return `${brand ?? ''} ${model ?? ''}`.trim() || '-';
 }
 
+export function formatExactGearName(item: Headfi): string {
+  return deviceName(item.brand, item.model);
+}
+
 function avgScore(...values: (number | null | undefined)[]): number {
   const nums = values.filter((v): v is number => v != null && Number.isFinite(Number(v)));
   if (nums.length === 0) return 0;
@@ -205,8 +209,10 @@ export function buildHeadphoneBaseListeningContext(item: Headfi): {
 }
 
 function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
-  const name = deviceName(item.brand, item.model);
-  const lines = [`[${slotLabel}] ${name} (${item.category}) | 음색:${item.temp?.trim() || '-'}`];
+  const exactName = formatExactGearName(item);
+  const lines = [
+    `[${slotLabel}] 정확한 모델명: "${exactName}" | DB카테고리: ${item.category} | 음색: ${item.temp?.trim() || '-'}`,
+  ];
   if (isDacAmpDapCategory(item.category)) {
     const specs = formatDacAmpSpecsForPrompt(item);
     lines.push(
@@ -216,8 +222,25 @@ function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
   return lines.join('\n');
 }
 
+function buildDualChainRoleBlock(select1: Headfi, select2: Headfi): string {
+  const name1 = formatExactGearName(select1);
+  const name2 = formatExactGearName(select2);
+  return `[신호 경로 해석 규칙 — 2기기 조합]
+- 기기 1 "${name1}": DAC 전용. 디지털 입력→아날로그 라인아웃 출력만 담당. 헤드폰 직접 구동·헤드폰단 앰핑은 하지 않음.
+- 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+- "${name1}"와 "${name2}"를 각각 독립 앰프 2대로 해석하거나, 기기 1을 DAC/AMP 겸용으로 가정하지 말 것.`;
+}
+
+function buildComboDisplayName(select1: Headfi, select2: Headfi | null): string {
+  const name1 = formatExactGearName(select1);
+  if (!select2) {
+    return `${name1} (${select1.category})`;
+  }
+  const name2 = formatExactGearName(select2);
+  return `${name1} (DAC) → ${name2} (AMP)`;
+}
+
 export function buildComboBaseForPrompt(
-  comboLabel: string,
   select1: Headfi,
   select2: Headfi | null,
 ): {
@@ -226,12 +249,19 @@ export function buildComboBaseForPrompt(
   genres: string;
   combo_specs_block: string;
 } {
-  const blocks = [buildComboGearSpecBlock(select1, '기기 1')];
+  const dualChain = select2 != null;
+  const blocks = [
+    buildComboGearSpecBlock(
+      select1,
+      dualChain ? '기기 1 — DAC(라인아웃 출력 전용)' : '기기 1',
+    ),
+  ];
   if (select2) {
-    blocks.push(buildComboGearSpecBlock(select2, '기기 2'));
+    blocks.push(buildComboGearSpecBlock(select2, '기기 2 — AMP'));
+    blocks.push(buildDualChainRoleBlock(select1, select2));
   }
   return {
-    name: comboLabel,
+    name: buildComboDisplayName(select1, select2),
     temp: '-',
     genres: '-',
     combo_specs_block: blocks.join('\n\n'),

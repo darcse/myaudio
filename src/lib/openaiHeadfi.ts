@@ -53,7 +53,7 @@ export async function analyzeHeadfiMatchScore(
   const candidateSection = candidateContext?.trim() ? `\n${candidateContext.trim()}\n` : '';
   const hasHpListeningContext = Boolean(baseListeningBlocks || candidateSection);
   const comboSection = base.combo_specs_block?.trim()
-    ? `\n[조합 구성 — 신호 경로 순서]\n${base.combo_specs_block.trim()}\n\n조합 내 기기 1→기기 2(있을 경우) 신호 경로를 하나의 소스/앰프 체인으로 보고, 최종적으로 헤드폰/이어폰을 구동하는 유효 출력·음색·장르 적합성을 평가하세요.\n`
+    ? `\n[조합 구성 — 신호 경로 순서]\n${base.combo_specs_block.trim()}\n\n위 조합 스펙·[신호 경로 해석 규칙](있을 경우)과 정확한 모델명을 준수하여, 최종적으로 헤드폰/이어폰을 구동하는 유효 출력·음색·장르 적합성을 평가하세요.\n`
     : '';
   const prompt = `너는 헤드파이 전문 리뷰어이자 오디오 엔지니어야.
 실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
@@ -74,6 +74,7 @@ ${list}
 - 헤드폰/이어폰의 청음 평가 점수·AI 분석·FR 그래프 분석${hasHpListeningContext ? '을 위 컨텍스트에서' : '이 있으면'} synergy·genre 판단에 반영
 - 음색이 겹치면 synergy 낮게, 상호 보완이면 높게
 - 학습된 리뷰·측정 지식을 바탕으로 판단
+- 기준 조합·후보 기기 언급 시 프롬프트의 "정확한 모델명"·후보 목록의 기기명을 DB 등록값 그대로 인용. Studio/Pro/Evo/II 등 접미사가 다른 유사 모델과 혼동·축약·대체 금지
 
 각 기기에 대해 구체적 근거와 함께 2~3줄 총평 작성.
 

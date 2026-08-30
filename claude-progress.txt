@@ -412,3 +412,6 @@
 [2026-08-30] [Cursor] fix: 매칭맵 재분석 confirm 모달 뒤 가림 — 인라인 확인 UI로 교체 | passes: 변경 없음
 [2026-08-30] [Cursor] style: 기기 매칭 모달 탭 구성 (매칭 조합·조합 관리) | passes: 변경 없음
 [2026-08-30] [Cursor] fix: 조합 관리 삭제 confirm 모달 뒤 가림 — 인라인 확인 UI | passes: 변경 없음
+[2026-08-30] [Cursor] fix: GEAR-032 조합 매칭 프롬프트 DAC/AMP 역할 분리·정확한 모델명 전달 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: 기기 매칭 modal comboId required — 조합 목록 직접 로드·ID 인자 전달 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: 매칭 조합 modal 재분석 confirm 모달 뒤 가림 — 인라인 확인 UI | passes: 변경 없음

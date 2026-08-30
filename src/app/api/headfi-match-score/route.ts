@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeHeadfiMatchScore } from '@/lib/openaiHeadfi';
-import { formatComboLabel } from '@/app/headfi/headfiComboUtils';
 import {
   buildComboBaseForPrompt,
   buildHeadphoneListeningContextSections,
@@ -181,8 +180,6 @@ export async function POST(req: NextRequest) {
     }
 
     const gearById = new Map((allGear ?? []).map((g) => [g.id, g as HeadfiGearRow]));
-    const comboGearById = new Map((allGear ?? []).map((g) => [g.id, g as Headfi]));
-    const comboLabel = formatComboLabel(combo, comboGearById);
 
     const pool = (allGear ?? []).filter((item) => {
       if (gearIds.includes(item.id)) return false;
@@ -269,7 +266,7 @@ export async function POST(req: NextRequest) {
     const candidateLines = candidateHeadfiRows.map((item) => candidateLine(compressCandidateRow(item)));
     const candidateIds = candidateHeadfiRows.map((c) => c.id);
     const candidateContext = buildHeadphoneListeningContextSections(candidateHeadfiRows);
-    const comboBase = buildComboBaseForPrompt(comboLabel, select1, select2 ?? null);
+    const comboBase = buildComboBaseForPrompt(select1, select2 ?? null);
 
     const scores = await analyzeHeadfiMatchScore(
       comboBase,
