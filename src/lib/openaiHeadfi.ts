@@ -32,6 +32,7 @@ export async function analyzeHeadfiMatchScore(
     sound_scores_block?: string | null;
     ai_sound_analysis?: string | null;
     fr_interpretation_block?: string | null;
+    combo_specs_block?: string | null;
   },
   candidateLines: string[],
   validGearIds: number[],
@@ -51,10 +52,14 @@ export async function analyzeHeadfiMatchScore(
   ].join('');
   const candidateSection = candidateContext?.trim() ? `\n${candidateContext.trim()}\n` : '';
   const hasHpListeningContext = Boolean(baseListeningBlocks || candidateSection);
+  const comboSection = base.combo_specs_block?.trim()
+    ? `\n[조합 구성 — 신호 경로 순서]\n${base.combo_specs_block.trim()}\n\n조합 내 기기 1→기기 2(있을 경우) 신호 경로를 하나의 소스/앰프 체인으로 보고, 최종적으로 헤드폰/이어폰을 구동하는 유효 출력·음색·장르 적합성을 평가하세요.\n`
+    : '';
   const prompt = `너는 헤드파이 전문 리뷰어이자 오디오 엔지니어야.
 실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
 
-[기준 기기] ${base.name} | 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
+[기준 조합] ${base.name}${comboSection}
+[기준 조합 요약] 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
 [후보 기기 목록]
 id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역
 ${list}

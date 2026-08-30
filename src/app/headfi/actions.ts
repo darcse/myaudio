@@ -2,7 +2,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiAccessoryFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import type { HeadfiAccessoryFormData, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
@@ -305,10 +305,22 @@ export async function updateHeadfiInDB(id: number, data: HeadfiFormData) {
   if (error) throw new Error(toSupabaseErrorMessage(error));
 
   if (shouldClearMatchCache) {
+    const { data: combos } = await supabase
+      .from('headfi_combos')
+      .select('id')
+      .or(`select1_id.eq.${id},select2_id.eq.${id}`);
+    const comboIds = (combos ?? []).map((row) => row.id as string);
+    if (comboIds.length > 0) {
+      const { error: comboCacheError } = await supabase
+        .from('headfi_match_cache')
+        .delete()
+        .in('combo_id', comboIds);
+      if (comboCacheError) throw new Error(toSupabaseErrorMessage(comboCacheError));
+    }
     const { error: cacheError } = await supabase
       .from('headfi_match_cache')
       .delete()
-      .or(`base_gear_id.eq.${id},target_gear_id.eq.${id}`);
+      .eq('target_gear_id', id);
     if (cacheError) throw new Error(toSupabaseErrorMessage(cacheError));
   }
 
@@ -519,6 +531,41 @@ export async function deleteHeadfiDeviceSettingFromDB(id: number) {
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
   const { error } = await supabase.from('headfi_device_settings').delete().eq('id', id);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return true;
+}
+
+function mapHeadfiComboData(data: HeadfiComboFormData) {
+  const select1Id = parseIntOrNull(data.select1_id);
+  if (select1Id == null) throw new Error('기기 1을 선택해 주세요.');
+  const select2Raw = data.select2_id.trim();
+  const select2Id = select2Raw ? parseIntOrNull(select2Raw) : null;
+  if (select2Raw && select2Id == null) throw new Error('기기 2 선택값이 올바르지 않습니다.');
+  if (select2Id != null && select2Id === select1Id) throw new Error('같은 기기는 조합할 수 없습니다.');
+  return {
+    select1_id: select1Id,
+    select2_id: select2Id,
+  };
+}
+
+export async function saveHeadfiComboToDB(data: HeadfiComboFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_combos')
+    .insert([mapHeadfiComboData(data)])
+    .select('id, select1_id, select2_id, created_at')
+    .single();
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function deleteHeadfiComboFromDB(id: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { error } = await supabase.from('headfi_combos').delete().eq('id', id);
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return true;
 }

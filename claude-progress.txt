@@ -403,3 +403,12 @@
 [2026-08-30] [Cursor] fix: BUG-016 geo POSITION_UNAVAILABLE — 다중 재시도·watchPosition 폴백 | passes: 변경 없음
 [2026-08-30] [Cursor] fix: BUG-016 원인 확인 — macOS 위치 서비스 off 시 POSITION_UNAVAILABLE, 시스템 설정 재활성화로 해결 | passes: 변경 없음
 [2026-08-30] [Cursor] style: BUG-016 POSITION_UNAVAILABLE 시 macOS 위치 서비스 안내 토스트 | passes: 변경 없음
+[2026-08-30] [Cursor] feat: GEAR-031 기기 매칭 조합 관리 UI·headfi_combos CRUD | passes: 변경 없음
+[2026-08-30] [Cursor] feat: GEAR-032 기기 매칭 combo_id 기준 평가·프롬프트·UI 전환 | passes: 변경 없음
+[2026-08-30] [Cursor] feat: GEAR-033 매칭맵 헤더·캐시 combo_id 기준 전환 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: headfi_match_cache insert 시 base_gear_id NOT NULL — select1_id 채움 | passes: 변경 없음
+[2026-08-30] [Cursor] style: 매칭맵 조합 라벨 model만 표시 (브랜드·카테고리 제외) | passes: 변경 없음
+[2026-08-30] [Cursor] feat: 매칭맵 평가 셀 상세 모달 재분석 버튼 | passes: 변경 없음
+[2026-08-30] [Cursor] fix: 매칭맵 재분석 confirm 모달 뒤 가림 — 인라인 확인 UI로 교체 | passes: 변경 없음
+[2026-08-30] [Cursor] style: 기기 매칭 모달 탭 구성 (매칭 조합·조합 관리) | passes: 변경 없음
+[2026-08-30] [Cursor] fix: 조합 관리 삭제 confirm 모달 뒤 가림 — 인라인 확인 UI | passes: 변경 없음

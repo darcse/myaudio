@@ -5,14 +5,6 @@ import type { Headfi } from './types';
 import { hasPositionCoordinates } from '@/lib/headfiPosition';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
-export function triggerHeadfiDacAmpMatchReanalysis(baseGearId: number) {
-  void fetch('/api/headfi-match-score', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'dac_amp', baseGearId, force: true }),
-  }).catch(() => {});
-}
-
 export function triggerHeadfiMatchCacheClear(gearId: number) {
   void fetch('/api/headfi-match-score', {
     method: 'POST',

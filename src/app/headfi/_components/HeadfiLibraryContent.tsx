@@ -31,7 +31,6 @@ import { HeadfiList } from './HeadfiList';
 import { HeadfiPageHeader } from './HeadfiPageHeader';
 import { HEADFI_ACCESSORY_CATEGORY_OPTIONS } from '../spendingStats';
 import {
-  triggerHeadfiDacAmpMatchReanalysis,
   triggerHeadfiDacAmpPositionAnalysis,
   useHeadfiDacAmpMapLazyAnalysis,
 } from '../useHeadfiDacAmpMapLazyAnalysis';
@@ -581,7 +580,6 @@ export function HeadfiLibraryContent() {
         }
 
         if (isNew && isDacAmpDapCategory(formData.category)) {
-          triggerHeadfiDacAmpMatchReanalysis(savedId);
           triggerHeadfiDacAmpPositionAnalysis(savedId, false);
         }
       }
@@ -827,6 +825,7 @@ export function HeadfiLibraryContent() {
         open={scoreModalOpen}
         onClose={() => setScoreModalOpen(false)}
         library={library}
+        isAuthenticated={isAuthenticated}
       />
 
       <HeadfiSpendingStatsModal

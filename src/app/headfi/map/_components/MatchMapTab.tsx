@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Headfi } from '@/app/headfi/types';
-import { isDacAmpDapCategory, isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
+import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
+import { buildGearByIdMap, formatComboMapLabel } from '@/app/headfi/headfiComboUtils';
+import { isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
 
 type CacheRow = {
-  base_gear_id: number;
+  combo_id: string;
   target_gear_id: number;
   drive: number;
   synergy: number;
@@ -18,14 +19,15 @@ type CacheRow = {
 
 type MatchMapTabProps = {
   library: Headfi[];
+  combos: HeadfiCombo[];
   matchCache: CacheRow[];
   isAuthenticated: boolean | null;
 };
 
 type SelectedCell = {
-  dacId: number;
+  comboId: string;
   hpId: number;
-  dacName: string;
+  comboName: string;
   hpName: string;
   drive: number;
   synergy: number;
@@ -37,7 +39,7 @@ type CategoryFilter = '전체' | '헤드폰' | '이어폰';
 
 const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
-const SCORE_COL_WIDTH = '3rem';
+const COMBO_HEADER_MIN_WIDTH = '5.5rem';
 const ROW_LABEL_COL_WIDTH = '8rem';
 
 const HEATMAP_SCROLL_MAX_HEIGHT = 'min(80dvh, 48rem)';
@@ -79,18 +81,12 @@ function compareHpModelNames(a: Headfi, b: Headfi): number {
   return hpModelLabel(a).localeCompare(hpModelLabel(b), 'en', { numeric: true, sensitivity: 'base' });
 }
 
-function cellKey(dacId: number, hpId: number): string {
-  return `${dacId}-${hpId}`;
+function cellKey(comboId: string, hpId: number): string {
+  return `${comboId}-${hpId}`;
 }
 
-function findCacheEntry(cache: CacheRow[], dacId: number, hpId: number): CacheRow | null {
-  return (
-    cache.find(
-      (row) =>
-        (row.base_gear_id === dacId && row.target_gear_id === hpId) ||
-        (row.base_gear_id === hpId && row.target_gear_id === dacId),
-    ) ?? null
-  );
+function findCacheEntry(cache: CacheRow[], comboId: string, hpId: number): CacheRow | null {
+  return cache.find((row) => row.combo_id === comboId && row.target_gear_id === hpId) ?? null;
 }
 
 function scoreCellBackground(total: number): string {
@@ -126,8 +122,9 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTabProps) {
+export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: MatchMapTabProps) {
   const [selected, setSelected] = useState<SelectedCell | null>(null);
+  const [reanalyzeConfirm, setReanalyzeConfirm] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
   const [cache, setCache] = useState<CacheRow[]>(matchCache);
   const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
@@ -146,18 +143,18 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
   }, []);
 
   const analyzeCell = useCallback(
-    async (dac: Headfi, hp: Headfi) => {
-      if (!isAuthenticated) return;
-      const key = cellKey(dac.id, hp.id);
+    async (combo: HeadfiCombo, hp: Headfi, force = false) => {
+      if (!isAuthenticated) return null;
+      const key = cellKey(combo.id, hp.id);
       setCellLoading(key, true);
       try {
         const res = await fetch('/api/headfi-match-score', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            mode: 'dac_amp',
-            baseGearId: dac.id,
+            comboId: combo.id,
             targetGearId: hp.id,
+            force,
           }),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -172,41 +169,78 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
         };
         if (!res.ok) {
           toast.error(data.error || '궁합 분석에 실패했습니다.');
-          return;
+          return null;
         }
         const result = data.results?.find((row) => row.gear_id === hp.id) ?? data.results?.[0];
         if (!result) {
           toast.error('궁합 분석에 실패했습니다.');
-          return;
+          return null;
         }
+        const row: CacheRow = {
+          combo_id: combo.id,
+          target_gear_id: hp.id,
+          drive: result.drive,
+          synergy: result.synergy,
+          genre: result.genre,
+          comment: result.comment || '',
+        };
         setCache((prev) => {
           const filtered = prev.filter(
-            (row) =>
-              !(
-                (row.base_gear_id === dac.id && row.target_gear_id === hp.id) ||
-                (row.base_gear_id === hp.id && row.target_gear_id === dac.id)
-              ),
+            (item) => !(item.combo_id === combo.id && item.target_gear_id === hp.id),
           );
-          return [
-            ...filtered,
-            {
-              base_gear_id: dac.id,
-              target_gear_id: hp.id,
-              drive: result.drive,
-              synergy: result.synergy,
-              genre: result.genre,
-              comment: result.comment || '',
-            },
-          ];
+          return [...filtered, row];
         });
+        return row;
       } catch {
         toast.error('궁합 분석에 실패했습니다.');
+        return null;
       } finally {
         setCellLoading(key, false);
       }
     },
     [isAuthenticated, setCellLoading],
   );
+
+  const gearById = useMemo(() => buildGearByIdMap(library), [library]);
+
+  const runReanalyze = useCallback(
+    async (cell: SelectedCell) => {
+      if (!isAuthenticated) {
+        toast.error('로그인이 필요합니다.');
+        return;
+      }
+      const combo = combos.find((item) => item.id === cell.comboId);
+      const hp = gearById.get(cell.hpId);
+      if (!combo) {
+        toast.error('조합 정보를 찾을 수 없습니다.');
+        return;
+      }
+      if (!hp) {
+        toast.error('헤드폰·이어폰 정보를 찾을 수 없습니다.');
+        return;
+      }
+      const row = await analyzeCell(combo, hp, true);
+      if (!row) return;
+      setSelected({
+        comboId: row.combo_id,
+        hpId: row.target_gear_id,
+        comboName: cell.comboName,
+        hpName: cell.hpName,
+        drive: row.drive,
+        synergy: row.synergy,
+        genre: row.genre,
+        comment: row.comment,
+      });
+      setReanalyzeConfirm(false);
+    },
+    [analyzeCell, combos, gearById, isAuthenticated],
+  );
+
+  useEffect(() => {
+    if (!selected) {
+      setReanalyzeConfirm(false);
+    }
+  }, [selected]);
 
   useEffect(() => {
     if (!selected) return;
@@ -217,11 +251,10 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
     };
   }, [selected]);
 
-  const { allHpRows, dacCols } = useMemo(() => {
+  const { allHpRows } = useMemo(() => {
     const owned = library.filter((item) => item.status2 === '보유중');
-    const dacs = owned.filter((item) => isDacAmpDapCategory(item.category));
     const hps = owned.filter((item) => isWiredHeadphoneEarphoneCategory(item.category));
-    return { allHpRows: hps, dacCols: dacs };
+    return { allHpRows: hps };
   }, [library]);
 
   const hpRows = useMemo(() => {
@@ -230,10 +263,18 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
     return [...filtered].sort(compareHpModelNames);
   }, [allHpRows, categoryFilter]);
 
-  if (allHpRows.length === 0 || dacCols.length === 0) {
+  if (combos.length === 0) {
     return (
       <p className="py-12 text-center text-sm opacity-60">
-        매칭맵을 표시하려면 보유중인 DAC/AMP·DAP와 유선 헤드폰·이어폰이 필요합니다.
+        등록된 조합이 없습니다. 헤드파이 → 기기 매칭에서 조합을 먼저 등록해 주세요.
+      </p>
+    );
+  }
+
+  if (allHpRows.length === 0) {
+    return (
+      <p className="py-12 text-center text-sm opacity-60">
+        매칭맵을 표시하려면 보유중인 유선 헤드폰·이어폰이 필요합니다.
       </p>
     );
   }
@@ -242,7 +283,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0 text-sm opacity-70">
-          헤드폰·이어폰(행) × DAC/AMP·DAP(열) 궁합 점수 히트맵. 셀을 클릭하면 상세 스코어를 확인할 수 있습니다.
+          헤드폰·이어폰(행) × 조합(열) 궁합 점수 히트맵. 평가된 셀은 상세 확인·재분석, 미평가 셀은 클릭 시 분석합니다.
         </p>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <span className="shrink-0 text-xs font-semibold opacity-60">카테고리</span>
@@ -272,13 +313,13 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
           <table
             className="w-full table-fixed border-collapse text-xs"
             style={{
-              minWidth: `max(100%, calc(${ROW_LABEL_COL_WIDTH} + ${dacCols.length} * ${SCORE_COL_WIDTH}))`,
+              minWidth: `max(100%, calc(${ROW_LABEL_COL_WIDTH} + ${combos.length} * ${COMBO_HEADER_MIN_WIDTH}))`,
             }}
           >
           <colgroup>
             <col style={{ width: ROW_LABEL_COL_WIDTH }} />
-            {dacCols.map((dac) => (
-              <col key={dac.id} />
+            {combos.map((combo) => (
+              <col key={combo.id} style={{ minWidth: COMBO_HEADER_MIN_WIDTH }} />
             ))}
           </colgroup>
           <thead>
@@ -287,18 +328,21 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                 className="sticky left-0 top-0 z-40 px-2 py-2 text-left font-semibold"
                 style={stickyHeaderCellStyle('both')}
               />
-              {dacCols.map((dac) => (
-                <th
-                  key={dac.id}
-                  className="sticky top-0 z-20 overflow-hidden px-0.5 py-2 text-center font-medium leading-tight"
-                  style={stickyHeaderCellStyle('bottom')}
-                  title={deviceName(dac.brand, dac.model)}
-                >
-                  <span className="mx-auto block truncate text-center text-[10px] whitespace-nowrap">
-                    {dac.model || dac.brand}
-                  </span>
-                </th>
-              ))}
+              {combos.map((combo) => {
+                const label = formatComboMapLabel(combo, gearById);
+                return (
+                  <th
+                    key={combo.id}
+                    className="sticky top-0 z-20 overflow-hidden px-1 py-2 text-center font-medium leading-tight"
+                    style={{ ...stickyHeaderCellStyle('bottom'), minWidth: COMBO_HEADER_MIN_WIDTH }}
+                    title={label}
+                  >
+                    <span className="mx-auto block line-clamp-3 text-center text-[10px] break-words">
+                      {label}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -311,11 +355,11 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                 >
                   <span className="line-clamp-2 break-words">{hp.model || hp.brand}</span>
                 </th>
-                {dacCols.map((dac) => {
-                  const entry = findCacheEntry(cache, dac.id, hp.id);
+                {combos.map((combo) => {
+                  const entry = findCacheEntry(cache, combo.id, hp.id);
                   const total = entry ? entry.drive + entry.synergy + entry.genre : null;
-                  const isSelected = selected?.dacId === dac.id && selected?.hpId === hp.id;
-                  const key = cellKey(dac.id, hp.id);
+                  const isSelected = selected?.comboId === combo.id && selected?.hpId === hp.id;
+                  const key = cellKey(combo.id, hp.id);
                   const isLoading = loadingCells.has(key);
                   const cellStyle = entry
                     ? {
@@ -329,16 +373,16 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                       };
 
                   return (
-                    <td key={dac.id} className="overflow-hidden p-0.5 text-center align-middle">
+                    <td key={combo.id} className="overflow-hidden p-0.5 text-center align-middle">
                       <button
                         type="button"
                         disabled={isLoading}
                         onClick={() => {
                           if (entry) {
                             setSelected({
-                              dacId: dac.id,
+                              comboId: combo.id,
                               hpId: hp.id,
-                              dacName: deviceName(dac.brand, dac.model),
+                              comboName: formatComboMapLabel(combo, gearById),
                               hpName: deviceName(hp.brand, hp.model),
                               drive: entry.drive,
                               synergy: entry.synergy,
@@ -347,7 +391,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                             });
                             return;
                           }
-                          void analyzeCell(dac, hp);
+                          void analyzeCell(combo, hp);
                         }}
                         className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-90 disabled:cursor-default"
                         style={{
@@ -359,7 +403,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                             ? `합계 ${total} · 드라이브 ${entry.drive} · 시너지 ${entry.synergy} · 장르 ${entry.genre}`
                             : isAuthenticated
                               ? '클릭하여 궁합 분석'
-                              : '캐시 없음'
+                              : '미평가'
                         }
                       >
                         {isLoading ? (
@@ -367,7 +411,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                         ) : entry ? (
                           total
                         ) : (
-                          '—'
+                          <span className="text-[9px] font-medium opacity-70">미평가</span>
                         )}
                       </button>
                     </td>
@@ -400,7 +444,7 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                 </button>
                 <div className="mb-4 border-b pb-3 pr-9" style={{ borderColor: 'var(--border)' }}>
                   <h2 className="section-title pt-7 text-lg leading-snug">
-                    {selected.dacName} × {selected.hpName}
+                    {selected.comboName} × {selected.hpName}
                   </h2>
                 </div>
                 <div className="space-y-3">
@@ -414,6 +458,57 @@ export function MatchMapTab({ library, matchCache, isAuthenticated }: MatchMapTa
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed opacity-80">
                   {selected.comment || '—'}
                 </p>
+                {isAuthenticated ? (
+                  reanalyzeConfirm ? (
+                    <div className="mt-6 space-y-3">
+                      <p className="text-sm opacity-70">캐시를 삭제하고 다시 분석합니다.</p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="btn-apple btn-apple-secondary flex h-[42px] flex-1 items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={loadingCells.has(cellKey(selected.comboId, selected.hpId))}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReanalyzeConfirm(false);
+                          }}
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-apple btn-apple-primary flex h-[42px] flex-1 items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={loadingCells.has(cellKey(selected.comboId, selected.hpId))}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void runReanalyze(selected);
+                          }}
+                        >
+                          {loadingCells.has(cellKey(selected.comboId, selected.hpId)) ? (
+                            <Loader2 className="size-5 animate-spin opacity-70" />
+                          ) : (
+                            '확인'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-apple btn-apple-secondary mt-6 flex h-[42px] w-full items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={loadingCells.has(cellKey(selected.comboId, selected.hpId))}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReanalyzeConfirm(true);
+                      }}
+                    >
+                      {loadingCells.has(cellKey(selected.comboId, selected.hpId)) ? (
+                        <Loader2 className="size-5 animate-spin opacity-70" />
+                      ) : (
+                        '재분석'
+                      )}
+                    </button>
+                  )
+                ) : null}
               </div>
             </div>,
             document.body,

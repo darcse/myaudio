@@ -5,7 +5,7 @@ import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
-import type { Headfi } from '../../types';
+import type { Headfi, HeadfiCombo } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
 import { PositionMapTab } from './PositionMapTab';
 import { filterToggleStyle } from './positionMapUtils';
@@ -16,9 +16,10 @@ export function HeadfiMapContent() {
   const isAuthenticated = useAuthState();
   const [activeTab, setActiveTab] = useState<MapTab>('position');
   const [library, setLibrary] = useState<Headfi[]>([]);
+  const [combos, setCombos] = useState<HeadfiCombo[]>([]);
   const [matchCache, setMatchCache] = useState<
     {
-      base_gear_id: number;
+      combo_id: string;
       target_gear_id: number;
       drive: number;
       synergy: number;
@@ -32,20 +33,30 @@ export function HeadfiMapContent() {
     setIsLoading(true);
     try {
       const client = createClient();
-      const [{ data: headfiData }, { data: cacheData }] = await Promise.all([
+      const [{ data: headfiData }, { data: combosData }, { data: cacheData }] = await Promise.all([
         client.from('headfi').select('*').order('brand').order('model'),
-        client.from('headfi_match_cache').select('base_gear_id, target_gear_id, drive, synergy, genre, comment'),
+        client
+          .from('headfi_combos')
+          .select('id, select1_id, select2_id, created_at')
+          .order('created_at', { ascending: true }),
+        client
+          .from('headfi_match_cache')
+          .select('combo_id, target_gear_id, drive, synergy, genre, comment')
+          .not('combo_id', 'is', null),
       ]);
       setLibrary((headfiData as Headfi[]) || []);
+      setCombos((combosData as HeadfiCombo[]) || []);
       setMatchCache(
-        (cacheData ?? []).map((row) => ({
-          base_gear_id: row.base_gear_id,
-          target_gear_id: row.target_gear_id,
-          drive: row.drive,
-          synergy: row.synergy,
-          genre: row.genre,
-          comment: row.comment || '',
-        })),
+        (cacheData ?? [])
+          .filter((row) => typeof row.combo_id === 'string' && row.combo_id)
+          .map((row) => ({
+            combo_id: row.combo_id as string,
+            target_gear_id: row.target_gear_id as number,
+            drive: row.drive as number,
+            synergy: row.synergy as number,
+            genre: row.genre as number,
+            comment: row.comment || '',
+          })),
       );
     } finally {
       setIsLoading(false);
@@ -100,7 +111,12 @@ export function HeadfiMapContent() {
           onRefresh={fetchData}
         />
       ) : (
-        <MatchMapTab library={library} matchCache={matchCache} isAuthenticated={isAuthenticated} />
+        <MatchMapTab
+          library={library}
+          combos={combos}
+          matchCache={matchCache}
+          isAuthenticated={isAuthenticated}
+        />
       )}
     </div>
   );

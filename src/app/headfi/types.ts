@@ -128,6 +128,18 @@ export interface HeadfiDeviceSettingFormData {
   setting_text: string;
 }
 
+export interface HeadfiCombo {
+  id: string;
+  select1_id: number | null;
+  select2_id: number | null;
+  created_at?: string | null;
+}
+
+export interface HeadfiComboFormData {
+  select1_id: string;
+  select2_id: string;
+}
+
 /** 폼에서 액션으로 넘기는 데이터 (모든 필드 문자열) */
 export interface HeadfiFormData {
   brand: string;

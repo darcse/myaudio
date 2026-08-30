@@ -1,5 +1,5 @@
 import type { Headfi } from '@/app/headfi/types';
-import { formatVrms } from '@/app/headfi/dacAmpSpec';
+import { formatVrms, formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec';
 import { formatFrInterpretationForPrompt } from '@/lib/headfiAlbumMatch';
 import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
 import { shuffleArray } from '@/lib/utils';
@@ -24,6 +24,7 @@ export const HEADFI_CATEGORY_OPTIONS = [
 
 export const DAC_AMP_ONLY_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP'] as const;
 export const DAC_AMP_DAP_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP'] as const;
+export const COMBO_ELIGIBLE_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source'] as const;
 export const WIRED_HP_IEM_CATEGORIES = ['헤드폰', '이어폰'] as const;
 
 export function isDacAmpOnlyCategory(category: string | null | undefined): boolean {
@@ -32,6 +33,16 @@ export function isDacAmpOnlyCategory(category: string | null | undefined): boole
 
 export function isDacAmpDapCategory(category: string | null | undefined): boolean {
   return category === 'DAC' || category === 'AMP' || category === 'DAC/AMP' || category === 'DAP';
+}
+
+export function isComboEligibleCategory(category: string | null | undefined): boolean {
+  return (
+    category === 'DAC' ||
+    category === 'AMP' ||
+    category === 'DAC/AMP' ||
+    category === 'DAP' ||
+    category === 'Source'
+  );
 }
 
 export function isWiredHeadphoneEarphoneCategory(category: string | null | undefined): boolean {
@@ -190,5 +201,39 @@ export function buildHeadphoneBaseListeningContext(item: Headfi): {
     }),
     ai_sound_analysis: item.ai_sound_analysis?.trim() || null,
     fr_interpretation_block: formatFrInterpretationForPrompt(item.fr_interpretation),
+  };
+}
+
+function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
+  const name = deviceName(item.brand, item.model);
+  const lines = [`[${slotLabel}] ${name} (${item.category}) | 음색:${item.temp?.trim() || '-'}`];
+  if (isDacAmpDapCategory(item.category)) {
+    const specs = formatDacAmpSpecsForPrompt(item);
+    lines.push(
+      `  구동방식/등급:${specs.driveGrade} | Chipset:${specs.chipset} | Rk:${specs.rk} | Vrms@32Ω:${specs.vrms32} | Vrms@300Ω:${specs.vrms300}`,
+    );
+  }
+  return lines.join('\n');
+}
+
+export function buildComboBaseForPrompt(
+  comboLabel: string,
+  select1: Headfi,
+  select2: Headfi | null,
+): {
+  name: string;
+  temp: string;
+  genres: string;
+  combo_specs_block: string;
+} {
+  const blocks = [buildComboGearSpecBlock(select1, '기기 1')];
+  if (select2) {
+    blocks.push(buildComboGearSpecBlock(select2, '기기 2'));
+  }
+  return {
+    name: comboLabel,
+    temp: '-',
+    genres: '-',
+    combo_specs_block: blocks.join('\n\n'),
   };
 }
