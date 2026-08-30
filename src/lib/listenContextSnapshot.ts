@@ -64,6 +64,105 @@ function geolocationErrorLabel(code: number | undefined): string {
   return 'UNKNOWN';
 }
 
+function geolocationErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
+    return err.message;
+  }
+  return String(err);
+}
+
+type GeoAttempt = {
+  label: string;
+  timeout: number;
+  maximumAge: number;
+  enableHighAccuracy: boolean;
+};
+
+const GEO_ATTEMPTS: GeoAttempt[] = [
+  { label: 'cached-low', timeout: 10000, maximumAge: 300000, enableHighAccuracy: false },
+  { label: 'fresh-high', timeout: 15000, maximumAge: 0, enableHighAccuracy: true },
+  { label: 'fresh-low', timeout: 15000, maximumAge: 0, enableHighAccuracy: false },
+];
+
+function getCurrentPositionAttempt(attempt: GeoAttempt): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      timeout: attempt.timeout,
+      maximumAge: attempt.maximumAge,
+      enableHighAccuracy: attempt.enableHighAccuracy,
+    });
+  });
+}
+
+function watchGeolocationPosition(timeoutMs: number): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let lastError: GeolocationPositionError | null = null;
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        if (settled) return;
+        settled = true;
+        navigator.geolocation.clearWatch(watchId);
+        clearTimeout(timer);
+        resolve(position);
+      },
+      (error) => {
+        lastError = error;
+      },
+      {
+        timeout: timeoutMs,
+        maximumAge: 0,
+        enableHighAccuracy: true,
+      },
+    );
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      navigator.geolocation.clearWatch(watchId);
+      reject(lastError ?? ({ code: 3, message: 'watch timeout' } as GeolocationPositionError));
+    }, timeoutMs);
+  });
+}
+
+async function requestGeolocationPosition(): Promise<GeolocationPosition> {
+  let lastError: GeolocationPositionError | null = null;
+
+  for (const attempt of GEO_ATTEMPTS) {
+    listenContextLog('geo attempt', { strategy: attempt.label });
+    try {
+      const position = await getCurrentPositionAttempt(attempt);
+      listenContextLog('geo attempt success', { strategy: attempt.label });
+      return position;
+    } catch (err) {
+      const geoError = err as GeolocationPositionError;
+      lastError = geoError;
+      listenContextWarn('geo attempt failed', {
+        strategy: attempt.label,
+        code: geoError.code,
+        reason: geolocationErrorLabel(geoError.code),
+        message: geolocationErrorMessage(err),
+      });
+      if (geoError.code === 1) throw geoError;
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  }
+
+  listenContextLog('geo watch fallback start');
+  try {
+    const position = await watchGeolocationPosition(15000);
+    listenContextLog('geo watch fallback success');
+    return position;
+  } catch (err) {
+    const geoError = err as GeolocationPositionError;
+    listenContextWarn('geo watch fallback failed', {
+      code: geoError.code,
+      reason: geolocationErrorLabel(geoError.code),
+      message: geolocationErrorMessage(err),
+    });
+    throw lastError ?? geoError;
+  }
+}
+
 export function createListenCapturedAt(): string {
   return new Date().toISOString();
 }
@@ -81,13 +180,7 @@ export async function fetchListenWeatherContext(): Promise<ListenWeatherContext>
   listenContextLog('geo request start');
 
   try {
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        timeout: 20000,
-        maximumAge: 600000,
-        enableHighAccuracy: false,
-      });
-    });
+    const position = await requestGeolocationPosition();
     clearGeoPermissionDenied();
     const { latitude, longitude } = position.coords;
     listenContextLog('geo success', {
@@ -110,7 +203,7 @@ export async function fetchListenWeatherContext(): Promise<ListenWeatherContext>
     listenContextWarn('geo failed', {
       code,
       reason: geolocationErrorLabel(code),
-      message: err instanceof Error ? err.message : String(err),
+      message: geolocationErrorMessage(err),
     });
 
     const permissionState = await queryGeolocationPermissionState();
