@@ -10,28 +10,52 @@ import {
   HeadfiFormTextInput,
 } from './HeadfiFormSharedFields';
 import type { HeadfiFormSectionProps } from './headfiFormTypes';
-import { getHeadfiFormCategoryFlags, getWiredMatchingSelectValue, INPUT_BASE_CLASS } from './headfiFormUtils';
+import { getHeadfiFormCategoryFlags, INPUT_BASE_CLASS } from './headfiFormUtils';
 
 type HeadfiFormWiredSectionProps = HeadfiFormSectionProps & {
-  dacAmpList: { id: number; brand: string; model: string }[];
+  comboOptions: { id: string; label: string }[];
   onFrGraphFileChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 };
+
+function MatchingComboField({
+  comboOptions,
+  pairingComboId,
+  onChange,
+}: {
+  comboOptions: { id: string; label: string }[];
+  pairingComboId: string;
+  onChange: (value: string) => void;
+}) {
+  if (comboOptions.length === 0) {
+    return (
+      <p className="text-sm opacity-60">
+        등록된 조합이 없습니다. 기기 매칭 메뉴의 조합 관리에서 먼저 등록해 주세요.
+      </p>
+    );
+  }
+  return (
+    <select
+      className="select-apple h-[42px] w-full px-3 py-2"
+      value={pairingComboId}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">선택 안 함</option>
+      {comboOptions.map((combo) => (
+        <option key={combo.id} value={combo.id}>
+          {combo.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export function HeadfiFormWiredSection({
   formData,
   setFormData,
-  dacAmpList,
+  comboOptions,
   onFrGraphFileChange,
 }: HeadfiFormWiredSectionProps) {
-  const { cat, isHeadphone, isEarphone, isEarphoneType } = getHeadfiFormCategoryFlags(formData.category);
-  const dacAmpIds = dacAmpList.map((d) => String(d.id));
-  const { matchingSelectVal } = getWiredMatchingSelectValue(formData, dacAmpIds);
-
-  const handleMatchingChange = (value: string) => {
-    if (value === '') setFormData({ ...formData, matching: '' });
-    else if (value === '__custom__') setFormData({ ...formData, matching: ' ' });
-    else setFormData({ ...formData, matching: value });
-  };
+  const { cat, isHeadphone, isEarphoneType } = getHeadfiFormCategoryFlags(formData.category);
 
   return (
     <>
@@ -166,18 +190,12 @@ export function HeadfiFormWiredSection({
           </div>
           <div className="grid grid-cols-2 gap-x-6 sm:contents">
             <div>
-              <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
-              <select
-                className="select-apple px-3 py-2 w-full h-[42px]"
-                value={matchingSelectVal}
-                onChange={(e) => handleMatchingChange(e.target.value)}
-              >
-                <option value="">선택 안 함</option>
-                {dacAmpList.map((d) => (
-                  <option key={d.id} value={String(d.id)}>{d.brand} {d.model}</option>
-                ))}
-                <option value="__custom__">기타 (직접 입력)</option>
-              </select>
+              <label className="block text-sm font-semibold mb-1 opacity-90">매칭 조합</label>
+              <MatchingComboField
+                comboOptions={comboOptions}
+                pairingComboId={formData.pairing_combo_id}
+                onChange={(value) => setFormData({ ...formData, pairing_combo_id: value })}
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1 opacity-90">Gain</label>
@@ -192,41 +210,15 @@ export function HeadfiFormWiredSection({
           </div>
         </div>
       )}
-      {isEarphone && matchingSelectVal === '__custom__' ? (
-        <div className="col-span-2">
-          <input
-            type="text"
-            className={INPUT_BASE_CLASS}
-            placeholder="매칭 직접 입력"
-            value={formData.matching === ' ' ? '' : formData.matching}
-            onChange={(e) => setFormData({ ...formData, matching: e.target.value || ' ' })}
-          />
-        </div>
-      ) : null}
       {isHeadphone ? (
         <>
           <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">매칭 (DAC/AMP/DAP)</label>
-            <select
-              className="select-apple px-3 py-2 w-full h-[42px]"
-              value={matchingSelectVal}
-              onChange={(e) => handleMatchingChange(e.target.value)}
-            >
-              <option value="">선택 안 함</option>
-              {dacAmpList.map((d) => (
-                <option key={d.id} value={String(d.id)}>{d.brand} {d.model}</option>
-              ))}
-              <option value="__custom__">기타 (직접 입력)</option>
-            </select>
-            {matchingSelectVal === '__custom__' && (
-              <input
-                type="text"
-                className={`${INPUT_BASE_CLASS} mt-2`}
-                placeholder="매칭 직접 입력"
-                value={formData.matching === ' ' ? '' : formData.matching}
-                onChange={(e) => setFormData({ ...formData, matching: e.target.value || ' ' })}
-              />
-            )}
+            <label className="block text-sm font-semibold mb-1 opacity-90">매칭 조합</label>
+            <MatchingComboField
+              comboOptions={comboOptions}
+              pairingComboId={formData.pairing_combo_id}
+              onChange={(value) => setFormData({ ...formData, pairing_combo_id: value })}
+            />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">Gain</label>

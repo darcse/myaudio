@@ -77,6 +77,7 @@ function emptyWiredFields() {
     accessory_price: 0,
     unit: '',
     matching: '',
+    pairing_combo_id: null as string | null,
     gain: null as string | null,
     temp: '',
     bright: '',
@@ -189,6 +190,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
+      pairing_combo_id: data.pairing_combo_id?.trim() || null,
       gain: data.gain ?? null,
       temp: data.temp,
       bright: data.bright,
@@ -233,6 +235,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
+      pairing_combo_id: data.pairing_combo_id?.trim() || null,
       gain: data.gain ?? null,
       temp: data.temp,
       bright: data.bright,
@@ -565,7 +568,11 @@ export async function deleteHeadfiComboFromDB(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
-  const { error } = await supabase.from('headfi_combos').delete().eq('id', id);
+  const { error } = await supabase
+    .from('headfi_combos')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('deleted_at', null);
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return true;
 }

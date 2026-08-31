@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { HeadfiComboManageSection } from './HeadfiComboManageSection';
 import type { Headfi, HeadfiCombo } from '../types';
-import { buildGearByIdMap, formatComboLabel } from '../headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT } from '../headfiComboUtils';
 
 type ScoreResult = {
   gear_id: number;
@@ -97,7 +97,8 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
     }
     const { data, error } = await createClient()
       .from('headfi_combos')
-      .select('id, select1_id, select2_id, created_at')
+      .select(HEADFI_COMBO_SELECT)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) {
       toast.error(error.message || '조합 목록을 불러오지 못했습니다.');

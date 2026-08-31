@@ -16,6 +16,7 @@ import {
 type HeadfiInfoSectionProps = {
   viewingItem: Headfi;
   matchedMatchingDevice: { id: number; brand: string; model: string } | null;
+  pairingComboLabel?: string | null;
   matchedHeadphones: { id: number; brand: string; model: string; category: string; image_url?: string | null }[];
   variant?: 'default' | 'tab';
 };
@@ -50,6 +51,7 @@ export function HeadfiInfoHeroSection({ viewingItem }: Pick<HeadfiInfoSectionPro
 export function HeadfiInfoSection({
   viewingItem,
   matchedMatchingDevice,
+  pairingComboLabel = null,
   matchedHeadphones,
   variant = 'default',
 }: HeadfiInfoSectionProps) {
@@ -64,7 +66,9 @@ export function HeadfiInfoSection({
 
   const renderMatchingLink = (withGain = false) => (
     <>
-      {viewingItem.matching && viewingItem.matching !== ' ' ? (
+      {pairingComboLabel ? (
+        <span>{pairingComboLabel}</span>
+      ) : viewingItem.matching && viewingItem.matching !== ' ' ? (
         matchedMatchingDevice ? (
           <Link href={`/headfi?view=${matchedMatchingDevice.id}`} className="link-apple">
             {matchedMatchingDevice.brand} {matchedMatchingDevice.model}

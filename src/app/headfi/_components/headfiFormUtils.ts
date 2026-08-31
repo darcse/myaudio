@@ -33,17 +33,6 @@ export function getHeadfiFormCategoryFlags(category: string) {
   };
 }
 
-export function getWiredMatchingSelectValue(formData: HeadfiFormData, dacAmpIds: string[]) {
-  const isMatchingCustom =
-    !dacAmpIds.includes(formData.matching) && formData.matching !== '' && formData.matching !== ' ';
-  const matchingSelectVal = dacAmpIds.includes(formData.matching)
-    ? formData.matching
-    : isMatchingCustom
-      ? '__custom__'
-      : '';
-  return { matchingSelectVal, isMatchingCustom };
-}
-
 export function getWirelessMatchingSelectValue(
   formData: HeadfiFormData,
   wirelessMatchingIds: string[],

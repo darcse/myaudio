@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Headphones, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,7 +21,8 @@ import type { Headfi, HeadfiFormData, SelectedHeadfi } from '@/app/headfi/types'
 import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
 import type { Lyrics } from '@/app/works/types';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
 function sortCreated<T extends { created_at: string }>(rows: T[]) {
   return [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -93,6 +94,7 @@ const initialAlbumFormData: AlbumFormData = {
 export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
+  const { comboOptions, getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [timeline, setTimeline] = useState<MonthlyReviewTimeline | null>(null);
   const [comment, setComment] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,6 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
   const [headfiFormItem, setHeadfiFormItem] = useState<SelectedHeadfi | null>(null);
   const [headfiFormData, setHeadfiFormData] = useState<HeadfiFormData>(emptyHeadfiFormData);
   const [isSavingHeadfi, setIsSavingHeadfi] = useState(false);
-  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [wirelessMatchingList, setWirelessMatchingList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
@@ -220,11 +221,20 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
       });
   }, [viewingHeadfi?.id]);
 
+  const viewingPairingComboLabel = useMemo(
+    () => (viewingHeadfi ? getPairingComboLabel(viewingHeadfi) : null),
+    [viewingHeadfi, getPairingComboLabel],
+  );
+
   useEffect(() => {
     if (
       !viewingHeadfi ||
       !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
     ) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    if (viewingHeadfi.pairing_combo_id) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -245,7 +255,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
         );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적, 객체 전체 deps 시 상세 모달 필드 병합마다 재조회됨
-  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching]);
+  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching, viewingHeadfi?.pairing_combo_id]);
 
   useEffect(() => {
     if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
@@ -379,42 +389,26 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
 
   useEffect(() => {
     if (isAuthenticated !== true) {
-      setDacAmpList([]);
       setWirelessMatchingList([]);
       return;
     }
     const client = createClient();
-    void Promise.all([
-      client
-        .from('headfi')
-        .select('id,brand,model')
-        .in('category', [...DAC_AMP_DAP_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      client
-        .from('headfi')
-        .select('id,brand,model')
-        .eq('category', '기타')
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-    ]).then(([dacRes, wirelessRes]) => {
-      setDacAmpList(
-        (dacRes.data ?? []).map((row) => ({
-          id: row.id,
-          brand: row.brand || '',
-          model: row.model || '',
-        })),
-      );
-      setWirelessMatchingList(
-        (wirelessRes.data ?? []).map((row) => ({
-          id: row.id,
-          brand: row.brand || '',
-          model: row.model || '',
-        })),
-      );
-    });
+    void client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', '기타')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) => {
+        setWirelessMatchingList(
+          (data ?? []).map((row) => ({
+            id: row.id,
+            brand: row.brand || '',
+            model: row.model || '',
+          })),
+        );
+      });
   }, [isAuthenticated]);
 
   const patchListenGearSummary = useCallback((updated: Headfi) => {
@@ -794,6 +788,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           viewingItem={viewingHeadfi}
           registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
+          pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={handleHeadfiEditClick}
@@ -854,7 +849,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           selectedItem={headfiFormItem}
           formData={headfiFormData}
           setFormData={setHeadfiFormData}
-          dacAmpList={dacAmpList}
+          comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setHeadfiFormItem(null)}
           onSave={() => void handleHeadfiSave()}

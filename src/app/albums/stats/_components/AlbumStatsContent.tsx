@@ -19,7 +19,8 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
 import type { Headfi, HeadfiFormData, SelectedHeadfi } from '@/app/headfi/types';
 import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildAlbumListenRankings,
@@ -203,6 +204,7 @@ function ArtistRankRow({
 
 export function AlbumStatsContent() {
   const isAuthenticated = useAuthState();
+  const { comboOptions, getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
@@ -228,7 +230,6 @@ export function AlbumStatsContent() {
   const [headfiFormItem, setHeadfiFormItem] = useState<SelectedHeadfi | null>(null);
   const [headfiFormData, setHeadfiFormData] = useState<HeadfiFormData>(emptyHeadfiFormData);
   const [isSavingHeadfi, setIsSavingHeadfi] = useState(false);
-  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [wirelessMatchingList, setWirelessMatchingList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
@@ -356,42 +357,26 @@ export function AlbumStatsContent() {
 
   useEffect(() => {
     if (isAuthenticated !== true) {
-      setDacAmpList([]);
       setWirelessMatchingList([]);
       return;
     }
     const client = createClient();
-    void Promise.all([
-      client
-        .from('headfi')
-        .select('id,brand,model')
-        .in('category', [...DAC_AMP_DAP_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      client
-        .from('headfi')
-        .select('id,brand,model')
-        .eq('category', '기타')
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-    ]).then(([dacRes, wirelessRes]) => {
-      setDacAmpList(
-        (dacRes.data ?? []).map((row) => ({
-          id: row.id,
-          brand: row.brand || '',
-          model: row.model || '',
-        })),
-      );
-      setWirelessMatchingList(
-        (wirelessRes.data ?? []).map((row) => ({
-          id: row.id,
-          brand: row.brand || '',
-          model: row.model || '',
-        })),
-      );
-    });
+    void client
+      .from('headfi')
+      .select('id,brand,model')
+      .eq('category', '기타')
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) => {
+        setWirelessMatchingList(
+          (data ?? []).map((row) => ({
+            id: row.id,
+            brand: row.brand || '',
+            model: row.model || '',
+          })),
+        );
+      });
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -500,11 +485,20 @@ export function AlbumStatsContent() {
       });
   }, [viewingHeadfi?.id]);
 
+  const viewingPairingComboLabel = useMemo(
+    () => (viewingHeadfi ? getPairingComboLabel(viewingHeadfi) : null),
+    [viewingHeadfi, getPairingComboLabel],
+  );
+
   useEffect(() => {
     if (
       !viewingHeadfi ||
       !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
     ) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    if (viewingHeadfi.pairing_combo_id) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -530,7 +524,7 @@ export function AlbumStatsContent() {
         );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적
-  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching, gearById]);
+  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching, viewingHeadfi?.pairing_combo_id, gearById]);
 
   useEffect(() => {
     if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
@@ -975,6 +969,7 @@ export function AlbumStatsContent() {
           viewingItem={viewingHeadfi}
           registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
+          pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={handleHeadfiEditClick}
@@ -993,7 +988,7 @@ export function AlbumStatsContent() {
           selectedItem={headfiFormItem}
           formData={headfiFormData}
           setFormData={setHeadfiFormData}
-          dacAmpList={dacAmpList}
+          comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setHeadfiFormItem(null)}
           onSave={() => void handleHeadfiSave()}

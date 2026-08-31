@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { isComboEligibleCategory } from '@/lib/headfiMatchScore';
 import { deleteHeadfiComboFromDB, saveHeadfiComboToDB } from '../actions';
-import { buildGearByIdMap, formatComboLabel, formatGearShortLabel } from '../headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, formatGearShortLabel, HEADFI_COMBO_SELECT } from '../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../types';
 
 type HeadfiComboManageSectionProps = {
@@ -50,7 +50,8 @@ export function HeadfiComboManageSection({
     try {
       const { data, error } = await createClient()
         .from('headfi_combos')
-        .select('id, select1_id, select2_id, created_at')
+        .select(HEADFI_COMBO_SELECT)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
       if (error) {
         toast.error(error.message || '조합 목록을 불러오지 못했습니다.');

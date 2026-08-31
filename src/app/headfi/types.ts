@@ -36,6 +36,7 @@ export interface Headfi {
   dap_spec?: string | null;
   dap_output?: string | null;
   matching: string | null;
+  pairing_combo_id?: string | null;
   gain: string | null;
   temp: string | null;
   bright: string | null;
@@ -133,6 +134,7 @@ export interface HeadfiCombo {
   select1_id: number | null;
   select2_id: number | null;
   created_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface HeadfiComboFormData {
@@ -169,6 +171,7 @@ export interface HeadfiFormData {
   dap_spec: string;
   dap_output: string;
   matching: string;
+  pairing_combo_id: string;
   gain: string;
   temp: string;
   bright: string;

@@ -28,6 +28,7 @@ export const emptyHeadfiFormData: HeadfiFormData = {
   dap_spec: '',
   dap_output: '',
   matching: '',
+  pairing_combo_id: '',
   gain: '',
   temp: '',
   bright: '',

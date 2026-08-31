@@ -267,3 +267,45 @@ export function buildComboBaseForPrompt(
     combo_specs_block: blocks.join('\n\n'),
   };
 }
+
+export const MATCH_SCORE_MAX = 300;
+export const MASTER_PAIRING_BONUS = 20;
+
+export function hasMasterPairingBonus(
+  pairingComboId: string | null | undefined,
+  comboId: string,
+): boolean {
+  const normalized = pairingComboId?.trim();
+  if (!normalized) return false;
+  return normalized === comboId;
+}
+
+export type MatchScoreDisplay = {
+  baseTotal: number;
+  displayTotal: number;
+  hasMasterBonus: boolean;
+  bonusAmount: number;
+};
+
+export function computeMatchScoreDisplay(
+  drive: number,
+  synergy: number,
+  genre: number,
+  pairingComboId: string | null | undefined,
+  comboId: string,
+): MatchScoreDisplay {
+  const baseTotal = drive + synergy + genre;
+  const hasMasterBonus = hasMasterPairingBonus(pairingComboId, comboId);
+  const bonusAmount = hasMasterBonus ? MASTER_PAIRING_BONUS : 0;
+  const displayTotal = hasMasterBonus
+    ? Math.min(MATCH_SCORE_MAX, baseTotal + MASTER_PAIRING_BONUS)
+    : baseTotal;
+  return { baseTotal, displayTotal, hasMasterBonus, bonusAmount };
+}
+
+export function formatMatchScoreTotalLine(score: MatchScoreDisplay): string {
+  if (score.hasMasterBonus) {
+    return `합계 ${score.displayTotal} (${score.baseTotal} + 마스터 가산점 ${score.bonusAmount})`;
+  }
+  return `합계 ${score.baseTotal}`;
+}

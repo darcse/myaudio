@@ -6,7 +6,11 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
 import { buildGearByIdMap, formatComboMapLabel } from '@/app/headfi/headfiComboUtils';
-import { isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
+import {
+  computeMatchScoreDisplay,
+  formatMatchScoreTotalLine,
+  isWiredHeadphoneEarphoneCategory,
+} from '@/lib/headfiMatchScore';
 
 type CacheRow = {
   combo_id: string;
@@ -263,6 +267,18 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
     return [...filtered].sort(compareHpModelNames);
   }, [allHpRows, categoryFilter]);
 
+  const selectedScoreDisplay = useMemo(() => {
+    if (!selected) return null;
+    const hp = gearById.get(selected.hpId);
+    return computeMatchScoreDisplay(
+      selected.drive,
+      selected.synergy,
+      selected.genre,
+      hp?.pairing_combo_id,
+      selected.comboId,
+    );
+  }, [selected, gearById]);
+
   if (combos.length === 0) {
     return (
       <p className="py-12 text-center text-sm opacity-60">
@@ -357,14 +373,26 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                 </th>
                 {combos.map((combo) => {
                   const entry = findCacheEntry(cache, combo.id, hp.id);
-                  const total = entry ? entry.drive + entry.synergy + entry.genre : null;
+                  const scoreDisplay = entry
+                    ? computeMatchScoreDisplay(
+                        entry.drive,
+                        entry.synergy,
+                        entry.genre,
+                        hp.pairing_combo_id,
+                        combo.id,
+                      )
+                    : null;
+                  const total = scoreDisplay?.displayTotal ?? null;
                   const isSelected = selected?.comboId === combo.id && selected?.hpId === hp.id;
                   const key = cellKey(combo.id, hp.id);
                   const isLoading = loadingCells.has(key);
+                  const hasMasterBonus = scoreDisplay?.hasMasterBonus ?? false;
                   const cellStyle = entry
                     ? {
                         background: scoreCellBackground(total!),
-                        border: '1px solid var(--border)',
+                        border: hasMasterBonus
+                          ? '2px solid color-mix(in srgb, #e5a100 75%, var(--border))'
+                          : '1px solid var(--border)',
                       }
                     : {
                         background: 'var(--badge-bg)',
@@ -383,7 +411,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                               comboId: combo.id,
                               hpId: hp.id,
                               comboName: formatComboMapLabel(combo, gearById),
-                              hpName: deviceName(hp.brand, hp.model),
+                              hpName: hpModelLabel(hp),
                               drive: entry.drive,
                               synergy: entry.synergy,
                               genre: entry.genre,
@@ -393,14 +421,14 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                           }
                           void analyzeCell(combo, hp);
                         }}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-90 disabled:cursor-default"
+                        className="relative inline-flex h-10 w-10 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-90 disabled:cursor-default"
                         style={{
                           ...cellStyle,
                           outline: isSelected ? '2px solid var(--foreground)' : undefined,
                         }}
                         title={
-                          entry
-                            ? `합계 ${total} · 드라이브 ${entry.drive} · 시너지 ${entry.synergy} · 장르 ${entry.genre}`
+                          entry && scoreDisplay
+                            ? `${formatMatchScoreTotalLine(scoreDisplay)} · 드라이브 ${entry.drive} · 시너지 ${entry.synergy} · 장르 ${entry.genre}`
                             : isAuthenticated
                               ? '클릭하여 궁합 분석'
                               : '미평가'
@@ -409,7 +437,18 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                         {isLoading ? (
                           <Loader2 className="size-3.5 animate-spin opacity-70" />
                         ) : entry ? (
-                          total
+                          <>
+                            {total}
+                            {hasMasterBonus ? (
+                              <span
+                                className="absolute -right-0.5 -top-0.5 flex size-3.5 items-center justify-center rounded-full text-[7px] font-bold leading-none"
+                                style={{ background: '#e5a100', color: 'var(--background)' }}
+                                aria-hidden
+                              >
+                                M
+                              </span>
+                            ) : null}
+                          </>
                         ) : (
                           <span className="text-[9px] font-medium opacity-70">미평가</span>
                         )}
@@ -453,7 +492,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                   <ScoreBar label="장르 매칭" value={selected.genre} />
                 </div>
                 <p className="mt-4 text-sm font-semibold tabular-nums">
-                  합계 {selected.drive + selected.synergy + selected.genre}
+                  {selectedScoreDisplay ? formatMatchScoreTotalLine(selectedScoreDisplay) : null}
                 </p>
                 <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed opacity-80">
                   {selected.comment || '—'}

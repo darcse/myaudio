@@ -16,7 +16,7 @@ export function HeadfiForm({
   selectedItem,
   formData,
   setFormData,
-  dacAmpList,
+  comboOptions,
   wirelessMatchingList,
   onClose,
   onSave,
@@ -59,7 +59,7 @@ export function HeadfiForm({
             <HeadfiFormWiredSection
               formData={formData}
               setFormData={setFormData}
-              dacAmpList={dacAmpList}
+              comboOptions={comboOptions}
               onFrGraphFileChange={onFrGraphFileChange}
             />
           ) : null}

@@ -15,12 +15,13 @@ import {
   updateHeadfiSaleInDB,
   uploadHeadfiDeviceImage,
 } from '../actions';
-import { DAC_AMP_DAP_CATEGORIES, HEADFI_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { HEADFI_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
-import type { Headfi, HeadfiAccessory, HeadfiFormData, HeadfiSale, HeadfiSaleFormData, SelectedHeadfi } from '../types';
+import type { Headfi, HeadfiAccessory, HeadfiCombo, HeadfiFormData, HeadfiSale, HeadfiSaleFormData, SelectedHeadfi } from '../types';
+import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, mergeCombosForMatchMap, resolvePairingComboLabel } from '../headfiComboUtils';
 import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiAccessoryModal } from './HeadfiAccessoryModal';
@@ -63,6 +64,7 @@ const initialFormData = {
   dap_spec: '',
   dap_output: '',
   matching: '',
+  pairing_combo_id: '',
   gain: '',
   temp: '',
   bright: '',
@@ -135,7 +137,7 @@ export function HeadfiLibraryContent() {
   const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
   >([]);
-  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
+  const [combos, setCombos] = useState<HeadfiCombo[]>([]);
   const [wirelessMatchingList, setWirelessMatchingList] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
@@ -206,16 +208,15 @@ export function HeadfiLibraryContent() {
 
   useEffect(() => {
     const client = createClient();
-    client
-      .from('headfi')
-      .select('id,brand,model')
-      .in('category', [...DAC_AMP_DAP_CATEGORIES])
-      .eq('status2', '보유중')
-      .order('brand')
-      .order('model')
-      .then(({ data }) =>
-        setDacAmpList((data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }))),
-      );
+    if (isAuthenticated === true) {
+      void client
+        .from('headfi_combos')
+        .select(HEADFI_COMBO_SELECT)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setCombos((data as HeadfiCombo[]) || []));
+    } else {
+      setCombos([]);
+    }
     client
       .from('headfi')
       .select('id,brand,model')
@@ -228,7 +229,30 @@ export function HeadfiLibraryContent() {
           (data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
         ),
       );
-  }, [library]);
+  }, [isAuthenticated, library]);
+
+  const gearById = useMemo(() => buildGearByIdMap(library), [library]);
+
+  const comboOptions = useMemo(
+    () =>
+      combos
+        .filter(isActiveHeadfiCombo)
+        .map((combo) => ({
+          id: combo.id,
+          label: formatComboLabel(combo, gearById),
+        })),
+    [combos, gearById],
+  );
+
+  const getPairingComboLabel = useCallback(
+    (item: Headfi) => resolvePairingComboLabel(item.pairing_combo_id, combos, gearById),
+    [combos, gearById],
+  );
+
+  const viewingPairingComboLabel = useMemo(
+    () => (viewingItem ? getPairingComboLabel(viewingItem) : null),
+    [viewingItem, getPairingComboLabel],
+  );
 
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category');
@@ -304,6 +328,10 @@ export function HeadfiLibraryContent() {
       setMatchedMatchingDevice(null);
       return;
     }
+    if (viewingItem.pairing_combo_id) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
     const m = viewingItem.matching;
     if (!m || m === ' ' || !/^\d+$/.test(String(m))) {
       setMatchedMatchingDevice(null);
@@ -319,7 +347,7 @@ export function HeadfiLibraryContent() {
         setMatchedMatchingDevice(data ? { id: data.id, brand: data.brand || '', model: data.model || '' } : null);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적, 객체 전체 deps 시 상세 모달 필드 병합마다 재조회됨
-  }, [viewingItem?.id, viewingItem?.category, viewingItem?.matching]);
+  }, [viewingItem?.id, viewingItem?.category, viewingItem?.matching, viewingItem?.pairing_combo_id]);
 
   useEffect(() => {
     if (!viewingItem?.id || !isDacAmpDapCategory(viewingItem.category)) {
@@ -752,7 +780,7 @@ export function HeadfiLibraryContent() {
           selectedItem={selectedItem}
           formData={formData}
           setFormData={setFormData}
-          dacAmpList={dacAmpList}
+          comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setSelectedItem(null)}
           onSave={handleSave}
@@ -818,6 +846,7 @@ export function HeadfiLibraryContent() {
           onItemClick={(item) => {
             setViewingItem(item);
           }}
+          getPairingComboLabel={getPairingComboLabel}
         />
       )}
 
@@ -872,6 +901,7 @@ export function HeadfiLibraryContent() {
           viewingItem={viewingItem}
           registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
+          pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
           onClose={handleCloseView}
           onEdit={handleEditClick}

@@ -415,3 +415,6 @@
 [2026-08-30] [Cursor] fix: GEAR-032 조합 매칭 프롬프트 DAC/AMP 역할 분리·정확한 모델명 전달 | passes: 변경 없음
 [2026-08-30] [Cursor] fix: 기기 매칭 modal comboId required — 조합 목록 직접 로드·ID 인자 전달 | passes: 변경 없음
 [2026-08-30] [Cursor] fix: 매칭 조합 modal 재분석 confirm 모달 뒤 가림 — 인라인 확인 UI | passes: 변경 없음
+[2026-08-31] [Cursor] feat: GEAR-036 헤드폰/이어폰 매칭기기 입력을 headfi_combos 조합 선택으로 전환(pairing_combo_id 저장·표시) | passes: 변경 없음
+[2026-08-31] [Cursor] feat: GEAR-037 headfi_combos 소프트 삭제(deleted_at) 전환·선택 옵션 필터·매칭맵 캐시 참조 컬럼 유지 | passes: 변경 없음
+[2026-08-31] [Cursor] feat: GEAR-038 매칭맵 pairing_combo_id 일치 시 마스터 가산점 20점 표시(셀·상세 모달 breakdown) | passes: 변경 없음

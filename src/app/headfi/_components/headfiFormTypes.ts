@@ -5,7 +5,7 @@ export type HeadfiFormProps = {
   selectedItem: SelectedHeadfi;
   formData: HeadfiFormData;
   setFormData: Dispatch<SetStateAction<HeadfiFormData>>;
-  dacAmpList: { id: number; brand: string; model: string }[];
+  comboOptions: { id: string; label: string }[];
   wirelessMatchingList: { id: number; brand: string; model: string }[];
   onClose: () => void;
   onSave: () => void;

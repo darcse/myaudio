@@ -2,7 +2,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Headphones, Music, Package, RefreshCw } from 'lucide-react';
@@ -15,7 +15,8 @@ import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } f
 import type { Headfi } from '@/app/headfi/types';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
-import { DAC_AMP_DAP_CATEGORIES, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
+import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
 import { TimeMachineRecallBanner } from './TimeMachineRecallBanner';
@@ -130,6 +131,7 @@ const initialHeadfiFormData = {
   dap_spec: '',
   dap_output: '',
   matching: '',
+  pairing_combo_id: '',
   gain: '',
   temp: '',
   bright: '',
@@ -215,6 +217,7 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
+  const { comboOptions, getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const ownedHeadfiListHref = `/headfi?status=${encodeURIComponent('보유중')}`;
   const sortedHeadfiCategories = buildSortedHeadfiCategories(headfiCategoryRows);
   const ownedHeadfiTotal = sortedHeadfiCategories.reduce((sum, [, n]) => sum + n, 0);
@@ -243,7 +246,6 @@ export function DashboardContent({
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
-  const [dacAmpList, setDacAmpList] = useState<{ id: number; brand: string; model: string }[]>([]);
   const [wirelessMatchingList, setWirelessMatchingList] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
@@ -287,11 +289,20 @@ export function DashboardContent({
       });
   }, [viewingHeadfi?.id]);
 
+  const viewingPairingComboLabel = useMemo(
+    () => (viewingHeadfi ? getPairingComboLabel(viewingHeadfi) : null),
+    [viewingHeadfi, getPairingComboLabel],
+  );
+
   useEffect(() => {
     if (
       !viewingHeadfi ||
       !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
     ) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    if (viewingHeadfi.pairing_combo_id) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -311,7 +322,7 @@ export function DashboardContent({
         );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적, 객체 전체 deps 시 상세 모달 필드 병합마다 재조회됨
-  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching]);
+  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching, viewingHeadfi?.pairing_combo_id]);
 
   useEffect(() => {
     if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
@@ -393,16 +404,6 @@ export function DashboardContent({
   useEffect(() => {
     if (!isAuthenticated) return;
     const client = createClient();
-    client
-      .from('headfi')
-      .select('id,brand,model')
-      .in('category', [...DAC_AMP_DAP_CATEGORIES])
-      .eq('status2', '보유중')
-      .order('brand')
-      .order('model')
-      .then(({ data }) =>
-        setDacAmpList((data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }))),
-      );
     client
       .from('headfi')
       .select('id,brand,model')
@@ -821,6 +822,7 @@ export function DashboardContent({
           viewingItem={viewingHeadfi}
           registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
+          pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={handleHeadfiEditClick}
@@ -849,7 +851,7 @@ export function DashboardContent({
           selectedItem={editingHeadfi}
           formData={headfiFormData}
           setFormData={setHeadfiFormData}
-          dacAmpList={dacAmpList}
+          comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setEditingHeadfi(null)}
           onSave={() => void handleHeadfiSave()}

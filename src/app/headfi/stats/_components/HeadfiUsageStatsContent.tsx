@@ -29,6 +29,7 @@ import {
   type ListenPeriodFilter,
   type ListenPeriodMonth,
 } from '@/app/albums/stats/albumListenStats';
+import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
 import { TopGearListenSection } from './TopGearListenSection';
 import { WeeklyHotReceiversSection } from './WeeklyHotReceiversSection';
 
@@ -44,6 +45,7 @@ function filterToggleStyle(active: boolean): React.CSSProperties {
 export function HeadfiUsageStatsContent() {
   const router = useRouter();
   const isAuthenticated = useAuthState();
+  const { getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyRows, setHistoryRows] = useState<GearListenHistoryRow[]>([]);
@@ -142,11 +144,20 @@ export function HeadfiUsageStatsContent() {
       });
   }, [viewingHeadfi?.id]);
 
+  const viewingPairingComboLabel = useMemo(
+    () => (viewingHeadfi ? getPairingComboLabel(viewingHeadfi) : null),
+    [viewingHeadfi, getPairingComboLabel],
+  );
+
   useEffect(() => {
     if (
       !viewingHeadfi ||
       !['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'].includes(viewingHeadfi.category)
     ) {
+      setMatchedMatchingDevice(null);
+      return;
+    }
+    if (viewingHeadfi.pairing_combo_id) {
       setMatchedMatchingDevice(null);
       return;
     }
@@ -163,7 +174,8 @@ export function HeadfiUsageStatsContent() {
       .then(({ data }) => {
         setMatchedMatchingDevice(data ? { id: data.id, brand: data.brand || '', model: data.model || '' } : null);
       });
-  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- id/category/matching만 추적
+  }, [viewingHeadfi?.id, viewingHeadfi?.category, viewingHeadfi?.matching, viewingHeadfi?.pairing_combo_id]);
 
   useEffect(() => {
     if (!viewingHeadfi?.id || !isDacAmpDapCategory(viewingHeadfi.category)) {
@@ -317,6 +329,7 @@ export function HeadfiUsageStatsContent() {
           viewingItem={viewingHeadfi}
           registeredAlbums={registeredAlbums}
           matchedMatchingDevice={matchedMatchingDevice}
+          pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
           onClose={() => setViewingHeadfi(null)}
           onEdit={() => {

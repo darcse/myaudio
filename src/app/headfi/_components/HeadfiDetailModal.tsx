@@ -23,6 +23,7 @@ type HeadfiDetailModalProps = {
   viewingItem: Headfi;
   registeredAlbums: { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[];
   matchedMatchingDevice: { id: number; brand: string; model: string } | null;
+  pairingComboLabel?: string | null;
   matchedHeadphones: { id: number; brand: string; model: string; category: string; image_url?: string | null }[];
   onClose: () => void;
   onEdit: () => void;
@@ -61,6 +62,7 @@ export function HeadfiDetailModal({
   viewingItem,
   registeredAlbums,
   matchedMatchingDevice,
+  pairingComboLabel = null,
   matchedHeadphones,
   onClose,
   onEdit,
@@ -269,6 +271,7 @@ export function HeadfiDetailModal({
                   <HeadfiInfoSection
                     viewingItem={viewingItem}
                     matchedMatchingDevice={matchedMatchingDevice}
+                    pairingComboLabel={pairingComboLabel}
                     matchedHeadphones={matchedHeadphones}
                     variant="tab"
                   />
