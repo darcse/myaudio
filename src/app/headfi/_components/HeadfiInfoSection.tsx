@@ -61,8 +61,10 @@ export function HeadfiInfoSection({
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
   const isDacAmp = isDacAmpOnlyCategory(cat);
+  const isSource = cat === 'Source';
+  const showDacAmpSpecView = isDacAmp || isSource;
   const isDap = cat === 'DAP';
-  const isSourceOrEtc = cat === 'Source' || cat === '기타';
+  const isSourceOrEtc = isSource || cat === '기타';
 
   const renderMatchingLink = (withGain = false) => (
     <>
@@ -83,11 +85,11 @@ export function HeadfiInfoSection({
     </>
   );
 
-  const [specOpen, setSpecOpen] = useState(() => variant === 'tab' || isDacAmp || isDap);
+  const [specOpen, setSpecOpen] = useState(() => variant === 'tab' || showDacAmpSpecView || isDap);
 
   useEffect(() => {
-    setSpecOpen(variant === 'tab' || isDacAmp || isDap);
-  }, [viewingItem.id, cat, variant, isDacAmp, isDap]);
+    setSpecOpen(variant === 'tab' || showDacAmpSpecView || isDap);
+  }, [viewingItem.id, cat, variant, showDacAmpSpecView, isDap]);
 
   return (
     <>
@@ -223,7 +225,7 @@ export function HeadfiInfoSection({
                 </p>
               </>
             ) : null}
-            {isDacAmp ? (
+            {showDacAmpSpecView ? (
               <>
                 <p>
                   <strong>{HEADFI_DAC_AMP_LABELS.driveGrade}:</strong> {formatAmpTypeDisplay(viewingItem.amp_type)}
@@ -264,7 +266,7 @@ export function HeadfiInfoSection({
                 </div>
               </>
             ) : null}
-            {(isDacAmp || isDap || isSourceOrEtc || isWireless || isSpeaker) && viewingItem.accessory?.trim() ? (
+            {(showDacAmpSpecView || isDap || isSourceOrEtc || isWireless || isSpeaker) && viewingItem.accessory?.trim() ? (
               <p className="col-span-2">
                 <strong>액세서리:</strong> {viewingItem.accessory.trim()}
                 {Number(viewingItem.accessory_price) > 0
@@ -272,11 +274,11 @@ export function HeadfiInfoSection({
                   : ''}
               </p>
             ) : null}
-            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) &&
+            {(isWired || isWireless || isSpeaker || showDacAmpSpecView || isDap || isSourceOrEtc) &&
             viewingItem.etc?.trim() ? (
               <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc.trim()}</p>
             ) : null}
-            {(isWired || isWireless || isSpeaker || isDacAmp || isDap || isSourceOrEtc) ? (
+            {(isWired || isWireless || isSpeaker || showDacAmpSpecView || isDap || isSourceOrEtc) ? (
               viewingItem.memo ? (
                 <div className="col-span-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
                   <strong className="block mb-2">특징</strong>

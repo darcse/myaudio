@@ -12,8 +12,10 @@ export function getHeadfiFormCategoryFlags(category: string) {
   const isWireless = category === '무선 헤드폰' || category === '무선 이어폰';
   const isSpeaker = category === '스피커';
   const isDacAmp = isDacAmpOnlyCategory(category);
+  const isSource = category === 'Source';
   const isDap = category === 'DAP';
-  const isSourceOrEtc = category === 'Source' || category === '기타';
+  const isSourceOrEtc = isSource || category === '기타';
+  const showDacAmpSpecForm = isDacAmp || isSource;
   const isHeadphone = category === '헤드폰';
   const isEarphone = category === '이어폰';
   const isEarphoneType = isEarphone || category === '무선 이어폰';
@@ -25,8 +27,10 @@ export function getHeadfiFormCategoryFlags(category: string) {
     isWireless,
     isSpeaker,
     isDacAmp,
+    isSource,
     isDap,
     isSourceOrEtc,
+    showDacAmpSpecForm,
     isHeadphone,
     isEarphone,
     isEarphoneType,

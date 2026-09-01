@@ -166,7 +166,20 @@ function mapHeadfiData(data: HeadfiFormData) {
     };
   }
 
-  if (data.category === 'Source' || data.category === '기타') {
+  if (data.category === 'Source') {
+    return {
+      ...base,
+      ...emptyWiredFields(),
+      ...accessoryFields(data),
+      amp_type: data.amp_type?.trim() ?? '',
+      output_impedance: optionalFiniteNumber(data.output_impedance),
+      chipset: data.chipset?.trim() ?? '',
+      vrms_bal: optionalFiniteNumber(data.vrms_bal),
+      vrms_single: optionalFiniteNumber(data.vrms_single),
+    };
+  }
+
+  if (data.category === '기타') {
     return {
       ...base,
       ...emptyWiredFields(),

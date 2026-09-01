@@ -24,7 +24,7 @@ export function HeadfiForm({
   onFrGraphFileChange,
   isSaving = false,
 }: HeadfiFormProps) {
-  const { hasCategory, isWired, isWireless, isSpeaker, isDacAmp, isDap, isSourceOrEtc } =
+  const { hasCategory, isWired, isWireless, isSpeaker, isDap, isSourceOrEtc, isSource, showDacAmpSpecForm } =
     getHeadfiFormCategoryFlags(formData.category);
 
   return (
@@ -73,13 +73,13 @@ export function HeadfiForm({
           {hasCategory && isSpeaker ? (
             <HeadfiFormSpeakerSection formData={formData} setFormData={setFormData} />
           ) : null}
-          {hasCategory && isDacAmp ? (
+          {hasCategory && showDacAmpSpecForm ? (
             <HeadfiFormDacAmpSection formData={formData} setFormData={setFormData} />
           ) : null}
           {hasCategory && isDap ? (
             <HeadfiFormDapSection formData={formData} setFormData={setFormData} />
           ) : null}
-          {hasCategory && isSourceOrEtc ? (
+          {hasCategory && isSourceOrEtc && !isSource ? (
             <HeadfiFormSourceEtcSection formData={formData} setFormData={setFormData} />
           ) : null}
         </div>

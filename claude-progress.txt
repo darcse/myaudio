@@ -421,3 +421,5 @@
 [2026-09-01] [Cursor] fix: headfi_match_cache duplicate key — combo_id+target_gear_id upsert·GEAR-039 SQL | passes: 변경 없음
 [2026-09-01] [Cursor] fix: headfi_match_cache upsert onConflict 오류 — delete+insert로 저장·GEAR-039 SQL을 UNIQUE CONSTRAINT로 수정 | passes: 변경 없음
 [2026-09-01] [Cursor] fix: 조합 삭제 시 매칭맵 헤더에서도 제거(활성 조합만 표시·조합 변경 이벤트 동기화) | passes: 변경 없음
+[2026-09-01] [Cursor] feat: Source 카테고리 등록 모달에 DAC/AMP 스펙 필드(구동방식·Chipset·Rk·Vrms) 노출·저장 | passes: 변경 없음
+[2026-09-01] [Cursor] fix: Source 상세 모달 상세 스펙에 DAC/AMP 스펙 필드 표시 | passes: 변경 없음
