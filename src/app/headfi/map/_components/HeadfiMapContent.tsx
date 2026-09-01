@@ -5,7 +5,7 @@ import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
-import { HEADFI_COMBO_SELECT, mergeCombosForMatchMap } from '../../headfiComboUtils';
+import { HEADFI_COMBO_SELECT, HEADFI_COMBOS_CHANGED_EVENT } from '../../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
 import { PositionMapTab } from './PositionMapTab';
@@ -30,8 +30,8 @@ export function HeadfiMapContent() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (options?: { background?: boolean }) => {
+    if (!options?.background) setIsLoading(true);
     try {
       const client = createClient();
       const [{ data: headfiData }, { data: cacheData }] = await Promise.all([
@@ -41,8 +41,16 @@ export function HeadfiMapContent() {
           .select('combo_id, target_gear_id, drive, synergy, genre, comment')
           .not('combo_id', 'is', null),
       ]);
+      const { data: activeCombosData } = await client
+        .from('headfi_combos')
+        .select(HEADFI_COMBO_SELECT)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+
+      const activeCombos = (activeCombosData ?? []) as HeadfiCombo[];
+      const activeComboIds = new Set(activeCombos.map((combo) => combo.id));
       const matchCacheRows = (cacheData ?? [])
-        .filter((row) => typeof row.combo_id === 'string' && row.combo_id)
+        .filter((row) => typeof row.combo_id === 'string' && row.combo_id && activeComboIds.has(row.combo_id))
         .map((row) => ({
           combo_id: row.combo_id as string,
           target_gear_id: row.target_gear_id as number,
@@ -52,36 +60,22 @@ export function HeadfiMapContent() {
           comment: row.comment || '',
         }));
 
-      const { data: activeCombosData } = await client
-        .from('headfi_combos')
-        .select(HEADFI_COMBO_SELECT)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: true });
-
-      const activeCombos = (activeCombosData ?? []) as HeadfiCombo[];
-      const activeIdSet = new Set(activeCombos.map((combo) => combo.id));
-      const cachedComboIds = [...new Set(matchCacheRows.map((row) => row.combo_id))];
-      const missingComboIds = cachedComboIds.filter((id) => !activeIdSet.has(id));
-
-      let referencedCombos: HeadfiCombo[] = [];
-      if (missingComboIds.length > 0) {
-        const { data: referencedCombosData } = await client
-          .from('headfi_combos')
-          .select(HEADFI_COMBO_SELECT)
-          .in('id', missingComboIds);
-        referencedCombos = (referencedCombosData ?? []) as HeadfiCombo[];
-      }
-
       setLibrary((headfiData as Headfi[]) || []);
-      setCombos(mergeCombosForMatchMap(activeCombos, referencedCombos));
+      setCombos(activeCombos);
       setMatchCache(matchCacheRows);
     } finally {
-      setIsLoading(false);
+      if (!options?.background) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const onCombosChanged = () => void fetchData({ background: true });
+    window.addEventListener(HEADFI_COMBOS_CHANGED_EVENT, onCombosChanged);
+    return () => window.removeEventListener(HEADFI_COMBOS_CHANGED_EVENT, onCombosChanged);
   }, [fetchData]);
 
   return (

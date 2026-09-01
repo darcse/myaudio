@@ -21,7 +21,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { Headfi, HeadfiAccessory, HeadfiCombo, HeadfiFormData, HeadfiSale, HeadfiSaleFormData, SelectedHeadfi } from '../types';
-import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, mergeCombosForMatchMap, resolvePairingComboLabel } from '../headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from '../headfiComboUtils';
 import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiAccessoryModal } from './HeadfiAccessoryModal';

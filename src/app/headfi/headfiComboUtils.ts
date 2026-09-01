@@ -6,15 +6,12 @@ export function isActiveHeadfiCombo(combo: Pick<HeadfiCombo, 'deleted_at'>): boo
   return combo.deleted_at == null;
 }
 
-export function mergeCombosForMatchMap(activeCombos: HeadfiCombo[], extraCombos: HeadfiCombo[]): HeadfiCombo[] {
-  const byId = new Map<string, HeadfiCombo>();
-  for (const combo of activeCombos) byId.set(combo.id, combo);
-  for (const combo of extraCombos) {
-    if (!byId.has(combo.id)) byId.set(combo.id, combo);
+export const HEADFI_COMBOS_CHANGED_EVENT = 'headfi-combos-changed';
+
+export function notifyHeadfiCombosChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(HEADFI_COMBOS_CHANGED_EVENT));
   }
-  return Array.from(byId.values()).sort(
-    (a, b) => new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime(),
-  );
 }
 
 export function formatGearShortLabel(item: Headfi | undefined): string {

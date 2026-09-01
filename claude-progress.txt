@@ -418,3 +418,6 @@
 [2026-08-31] [Cursor] feat: GEAR-036 헤드폰/이어폰 매칭기기 입력을 headfi_combos 조합 선택으로 전환(pairing_combo_id 저장·표시) | passes: 변경 없음
 [2026-08-31] [Cursor] feat: GEAR-037 headfi_combos 소프트 삭제(deleted_at) 전환·선택 옵션 필터·매칭맵 캐시 참조 컬럼 유지 | passes: 변경 없음
 [2026-08-31] [Cursor] feat: GEAR-038 매칭맵 pairing_combo_id 일치 시 마스터 가산점 20점 표시(셀·상세 모달 breakdown) | passes: 변경 없음
+[2026-09-01] [Cursor] fix: headfi_match_cache duplicate key — combo_id+target_gear_id upsert·GEAR-039 SQL | passes: 변경 없음
+[2026-09-01] [Cursor] fix: headfi_match_cache upsert onConflict 오류 — delete+insert로 저장·GEAR-039 SQL을 UNIQUE CONSTRAINT로 수정 | passes: 변경 없음
+[2026-09-01] [Cursor] fix: 조합 삭제 시 매칭맵 헤더에서도 제거(활성 조합만 표시·조합 변경 이벤트 동기화) | passes: 변경 없음

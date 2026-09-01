@@ -292,9 +292,24 @@ export async function POST(req: NextRequest) {
       comment: row.comment,
     }));
 
+    const targetIds = insertRows.map((row) => row.target_gear_id);
+    if (targetIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('headfi_match_cache')
+        .delete()
+        .eq('combo_id', comboId)
+        .in('target_gear_id', targetIds);
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      }
+    }
+
     const { error: insertError } = await supabase.from('headfi_match_cache').insert(insertRows);
     if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      const message = insertError.message.includes('headfi_match_cache_base_gear_id_target_gear_id_key')
+        ? '매칭 캐시 DB 제약이 아직 combo_id 기준으로 갱신되지 않았습니다. scripts/sql/GEAR-039-match-cache-combo-unique.sql을 Supabase에서 실행해 주세요.'
+        : insertError.message;
+      return NextResponse.json({ error: message }, { status: 500 });
     }
 
     const freshScores: CacheScoreRow[] = scores.map((row) => ({

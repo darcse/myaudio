@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { isComboEligibleCategory } from '@/lib/headfiMatchScore';
 import { deleteHeadfiComboFromDB, saveHeadfiComboToDB } from '../actions';
-import { buildGearByIdMap, formatComboLabel, formatGearShortLabel, HEADFI_COMBO_SELECT } from '../headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, formatGearShortLabel, HEADFI_COMBO_SELECT, notifyHeadfiCombosChanged } from '../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../types';
 
 type HeadfiComboManageSectionProps = {
@@ -84,6 +84,7 @@ export function HeadfiComboManageSection({
       setSelect2Id('');
       toast.success('조합을 저장했습니다.');
       await loadCombos();
+      notifyHeadfiCombosChanged();
     } catch (error) {
       toast.error(getClientErrorMessage(error) || '조합을 저장하지 못했습니다.');
     } finally {
@@ -95,13 +96,12 @@ export function HeadfiComboManageSection({
     setDeletingId(comboId);
     try {
       await deleteHeadfiComboFromDB(comboId);
-      setCombos((prev) => {
-        const next = prev.filter((combo) => combo.id !== comboId);
-        onCombosChange?.(next);
-        return next;
-      });
+      const next = combos.filter((combo) => combo.id !== comboId);
+      setCombos(next);
+      onCombosChange?.(next);
       setDeleteConfirmId(null);
       toast.success('조합을 삭제했습니다.');
+      notifyHeadfiCombosChanged();
     } catch (error) {
       toast.error(getClientErrorMessage(error) || '조합을 삭제하지 못했습니다.');
     } finally {
