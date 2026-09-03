@@ -11,6 +11,16 @@ type HeadfiSoundScoresInput = {
   brand: string;
   model: string;
   category: string;
+  type1?: string | null;
+  type2?: string | null;
+  impedance?: number | null;
+  db1?: number | null;
+  db2?: number | null;
+  unit?: string | null;
+  temp?: string | null;
+  bright?: string | null;
+  volume?: string | null;
+  volume_type?: string | null;
   bass_quantity: number | null | undefined;
   bass_depth: number | null | undefined;
   bass_speed: number | null | undefined;
@@ -57,6 +67,47 @@ function normalizeImageMediaType(mimeType: string): AnthropicImageMediaType {
 function formatSoundScore(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(Number(value))) return '-';
   return String(value);
+}
+
+function trimFact(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function formatOptionalNumber(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(Number(value))) return null;
+  return String(value);
+}
+
+function buildConfirmedFactsBlock(headfi: HeadfiSoundScoresInput): string {
+  const lines: string[] = [
+    `브랜드: ${headfi.brand.trim() || '-'}`,
+    `모델명: ${headfi.model.trim() || '-'}`,
+    `카테고리: ${headfi.category.trim() || '-'}`,
+  ];
+  const type1 = trimFact(headfi.type1);
+  if (type1) lines.push(`타입1(형태): ${type1}`);
+  const type2 = trimFact(headfi.type2);
+  if (type2) lines.push(`타입2: ${type2}`);
+  const impedance = formatOptionalNumber(headfi.impedance);
+  if (impedance) lines.push(`임피던스: ${impedance} Ω`);
+  const db1 = formatOptionalNumber(headfi.db1);
+  if (db1) lines.push(`감도(dB/SPL V): ${db1}`);
+  const db2 = formatOptionalNumber(headfi.db2);
+  if (db2) lines.push(`감도(dB/mW): ${db2}`);
+  const unit = trimFact(headfi.unit);
+  if (unit) lines.push(`유닛: ${unit}`);
+  const volume = trimFact(headfi.volume);
+  const volumeType = trimFact(headfi.volume_type);
+  if (volume || volumeType) {
+    lines.push(`구동력: ${[volume, volumeType].filter(Boolean).join(' / ') || '-'}`);
+  }
+  const temp = trimFact(headfi.temp);
+  const bright = trimFact(headfi.bright);
+  if (temp || bright) {
+    lines.push(`음색(온도/밝기): ${[temp || '-', bright || '-'].join(' / ')}`);
+  }
+  return lines.join('\n');
 }
 
 type AnthropicTextCompletionOptions = {
@@ -154,10 +205,17 @@ export async function interpretHeadfiFrGraphFromImageBuffer(
 export async function analyzeHeadfiSound(
   headfi: HeadfiSoundScoresInput,
 ): Promise<{ analysis: string } | null> {
-  const prompt = `너는 헤드파이 전문 리뷰어야. 아래 기기의 청음 평가 점수와 알려진 리뷰·측정 지식을 종합해 
-이 기기의 음색 성향을 상세하게 분석해줘.
+  const confirmedFacts = buildConfirmedFactsBlock(headfi);
+  const prompt = `너는 헤드파이 전문 리뷰어야. 아래 [확정 사실]과 청음 평가 점수를 근거로 이 기기의 음색 성향을 상세하게 분석해줘.
 
-[기기] ${headfi.brand} ${headfi.model} | 카테고리: ${headfi.category}
+[확정 사실 — 사용자가 DB에 등록한 값. 절대 우선]
+${confirmedFacts}
+
+규칙:
+- 위 확정 사실이 당신의 사전 지식·유사 모델 기억과 충돌하면 확정 사실만 따른다.
+- 신모델이거나 정확히 모르는 기기일 수 있다. 확정 사실에 없는 형태(밀폐형/오픈형 등)·스펙·브랜드 일반화를 추측해 쓰지 마라.
+- 타입1이 "밀폐형"이면 절대 "오픈형"이라고 쓰지 말고, "오픈형"이면 절대 "밀폐형"이라고 쓰지 마라.
+- 확정 사실에 없는 세부 스펙은 언급하지 말고, 청음 평가 점수 패턴 중심으로 서술하라.
 
 [청음 평가 점수 (10점 만점)]
 저역 - 양감:${formatSoundScore(headfi.bass_quantity)} 깊이:${formatSoundScore(headfi.bass_depth)} 속도:${formatSoundScore(headfi.bass_speed)}
@@ -165,11 +223,11 @@ export async function analyzeHeadfiSound(
 고역 - 밝기:${formatSoundScore(headfi.treble_brightness)} 부드러움:${formatSoundScore(headfi.treble_smoothness)} 공기감:${formatSoundScore(headfi.treble_airiness)}
 기술 - 해상력:${formatSoundScore(headfi.resolution)} 분리도:${formatSoundScore(headfi.separation)} 음장:${formatSoundScore(headfi.soundstage)} 이미징:${formatSoundScore(headfi.imaging)} 음색:${formatSoundScore(headfi.timbre)}
 
-위 점수 패턴과 이 모델에 대한 일반적인 전문 리뷰·측정 특성을 바탕으로 다음을 포함한 분석을 작성해줘:
+위 확정 사실과 점수 패턴을 바탕으로 다음을 포함한 분석을 작성해줘:
 - 전반적인 음색 성향 (예: 따뜻하고 부드러운, 분석적이고 정교한 등)
 - 저역/중역/고역 밸런스 특징과 그 근거
 - 이 기기가 가장 빛을 발하는 음악적 상황 (장르, 보컬/악기 중심 등)
-- 알려진 리뷰·측정 특성과 청음 평가 점수가 일치하는지, 다르다면 어떻게 다른지
+- (확정 사실과 모순되지 않는 범위에서) 알려진 리뷰·측정 특성과 청음 평가 점수가 일치하는지, 다르다면 어떻게 다른지
 
 4~6줄 분량으로 구체적이고 전문적으로 작성. 평이한 설명 금지, 근거 기반 서술.
 

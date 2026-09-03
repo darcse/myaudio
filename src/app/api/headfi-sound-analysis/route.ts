@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const { data: row, error: fetchError } = await supabase
       .from('headfi')
       .select(
-        'id, brand, model, category, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre',
+        'id, brand, model, category, type1, type2, impedance, db1, db2, unit, temp, bright, volume, volume_type, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre',
       )
       .eq('id', headfiId)
       .single();
@@ -41,6 +41,16 @@ export async function POST(req: NextRequest) {
       brand: row.brand || '',
       model: row.model || '',
       category: row.category || '',
+      type1: row.type1,
+      type2: row.type2,
+      impedance: row.impedance,
+      db1: row.db1,
+      db2: row.db2,
+      unit: row.unit,
+      temp: row.temp,
+      bright: row.bright,
+      volume: row.volume,
+      volume_type: row.volume_type,
       bass_quantity: row.bass_quantity,
       bass_depth: row.bass_depth,
       bass_speed: row.bass_speed,
