@@ -83,12 +83,15 @@ export interface Headfi {
   [key: string]: unknown;
 }
 
+export type HeadfiAccessoryStatus = 'owned' | 'released';
+
 export interface HeadfiAccessory {
   id: number;
   category: string;
   name: string;
   price: number | null;
   purchase_date: string | null;
+  status?: HeadfiAccessoryStatus | null;
   created_at?: string | null;
 }
 
@@ -97,6 +100,7 @@ export interface HeadfiAccessoryFormData {
   name: string;
   price: string;
   purchase_date: string;
+  status: HeadfiAccessoryStatus;
 }
 
 export interface HeadfiSale {

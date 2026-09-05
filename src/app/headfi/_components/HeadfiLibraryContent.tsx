@@ -20,7 +20,16 @@ import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
-import type { Headfi, HeadfiAccessory, HeadfiCombo, HeadfiFormData, HeadfiSale, HeadfiSaleFormData, SelectedHeadfi } from '../types';
+import type {
+  Headfi,
+  HeadfiAccessory,
+  HeadfiAccessoryFormData,
+  HeadfiCombo,
+  HeadfiFormData,
+  HeadfiSale,
+  HeadfiSaleFormData,
+  SelectedHeadfi,
+} from '../types';
 import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from '../headfiComboUtils';
 import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
@@ -618,12 +627,7 @@ export function HeadfiLibraryContent() {
     }
   };
 
-  const handleAccessoryCreate = async (data: {
-    category: string;
-    name: string;
-    price: string;
-    purchase_date: string;
-  }) => {
+  const handleAccessoryCreate = async (data: HeadfiAccessoryFormData) => {
     if (isAuthenticated === false) {
       throw new Error('Unauthorized');
     }
@@ -637,15 +641,7 @@ export function HeadfiLibraryContent() {
     }
   };
 
-  const handleAccessoryUpdate = async (
-    id: number,
-    data: {
-      category: string;
-      name: string;
-      price: string;
-      purchase_date: string;
-    },
-  ) => {
+  const handleAccessoryUpdate = async (id: number, data: HeadfiAccessoryFormData) => {
     if (isAuthenticated === false) {
       throw new Error('Unauthorized');
     }

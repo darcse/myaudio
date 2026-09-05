@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
-import type { HeadfiAccessory, HeadfiAccessoryFormData } from '../types';
+import type { HeadfiAccessory, HeadfiAccessoryFormData, HeadfiAccessoryStatus } from '../types';
 
 type AccessoryRow = {
   key: string;
@@ -11,11 +11,13 @@ type AccessoryRow = {
   name: string;
   price: string;
   purchase_date: string;
+  status: HeadfiAccessoryStatus;
   isPersisted: boolean;
   originalCategory: string;
   originalName: string;
   originalPrice: string;
   originalPurchaseDate: string;
+  originalStatus: HeadfiAccessoryStatus;
 };
 
 type HeadfiAccessoryModalProps = {
@@ -28,6 +30,10 @@ type HeadfiAccessoryModalProps = {
   onDelete: (item: HeadfiAccessory) => Promise<void>;
 };
 
+function normalizeAccessoryStatus(status: string | null | undefined): HeadfiAccessoryStatus {
+  return status === 'released' ? 'released' : 'owned';
+}
+
 function createDraftRow(): AccessoryRow {
   return {
     key: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -36,15 +42,18 @@ function createDraftRow(): AccessoryRow {
     name: '',
     price: '',
     purchase_date: '',
+    status: 'owned',
     isPersisted: false,
     originalCategory: '',
     originalName: '',
     originalPrice: '',
     originalPurchaseDate: '',
+    originalStatus: 'owned',
   };
 }
 
 function toPersistedRow(item: HeadfiAccessory): AccessoryRow {
+  const status = normalizeAccessoryStatus(item.status);
   return {
     key: `saved-${item.id}`,
     id: item.id,
@@ -52,12 +61,37 @@ function toPersistedRow(item: HeadfiAccessory): AccessoryRow {
     name: item.name ?? '',
     price: item.price != null ? String(item.price) : '',
     purchase_date: item.purchase_date ?? '',
+    status,
     isPersisted: true,
     originalCategory: item.category ?? '',
     originalName: item.name ?? '',
     originalPrice: item.price != null ? String(item.price) : '',
     originalPurchaseDate: item.purchase_date ?? '',
+    originalStatus: status,
   };
+}
+
+function AccessoryStatusSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: HeadfiAccessoryStatus;
+  disabled?: boolean;
+  onChange: (value: HeadfiAccessoryStatus) => void;
+}) {
+  return (
+    <select
+      className="select-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
+      value={value}
+      onChange={(e) => onChange(normalizeAccessoryStatus(e.target.value))}
+      disabled={disabled}
+      aria-label="보유 상태"
+    >
+      <option value="owned">보유중</option>
+      <option value="released">방출</option>
+    </select>
+  );
 }
 
 export function HeadfiAccessoryModal({
@@ -73,10 +107,12 @@ export function HeadfiAccessoryModal({
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('전체');
+  const [statusFilter, setStatusFilter] = useState<'전체' | HeadfiAccessoryStatus>('전체');
 
   useEffect(() => {
     if (!open) return;
     setCategoryFilter('전체');
+    setStatusFilter('전체');
     setRows((prev) => {
       const drafts = prev.filter((row) => !row.isPersisted);
       return [...accessories.map(toPersistedRow), ...drafts];
@@ -89,12 +125,15 @@ export function HeadfiAccessoryModal({
   const persistedRows = rows.filter((row) => row.isPersisted);
   const filteredPersistedRows = useMemo(
     () =>
-      categoryFilter === '전체'
-        ? persistedRows
-        : persistedRows.filter((row) => row.category === categoryFilter),
-    [persistedRows, categoryFilter],
+      persistedRows.filter((row) => {
+        if (categoryFilter !== '전체' && row.category !== categoryFilter) return false;
+        if (statusFilter !== '전체' && row.status !== statusFilter) return false;
+        return true;
+      }),
+    [persistedRows, categoryFilter, statusFilter],
   );
   const displayedCount = filteredPersistedRows.length;
+  const hasActiveFilter = categoryFilter !== '전체' || statusFilter !== '전체';
 
   const hasUnsavedChanges = useMemo(
     () =>
@@ -103,32 +142,53 @@ export function HeadfiAccessoryModal({
           ? row.category !== row.originalCategory ||
             row.name !== row.originalName ||
             row.price !== row.originalPrice ||
-            row.purchase_date !== row.originalPurchaseDate
-          : Boolean(row.category || row.name || row.price || row.purchase_date),
+            row.purchase_date !== row.originalPurchaseDate ||
+            row.status !== row.originalStatus
+          : Boolean(row.category || row.name || row.price || row.purchase_date || row.status !== 'owned'),
       ),
     [rows],
   );
 
   const categoryFilterBar = (
-    <div className="flex items-center justify-between gap-3 py-1">
+    <div className="flex flex-wrap items-center justify-between gap-3 py-1">
       <span className="shrink-0 text-sm font-medium tabular-nums opacity-70">총 {displayedCount}건</span>
-      <div className="flex shrink-0 items-center gap-2">
-        <label htmlFor="accessory-category-filter" className="shrink-0 text-xs font-semibold opacity-60">
-          카테고리
-        </label>
-        <select
-          id="accessory-category-filter"
-          className="select-apple h-[34px] min-w-0 px-2.5 py-1.5 text-sm sm:max-w-xs"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="전체">전체</option>
-          {categoryOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2">
+          <label htmlFor="accessory-category-filter" className="shrink-0 text-xs font-semibold opacity-60">
+            카테고리
+          </label>
+          <select
+            id="accessory-category-filter"
+            className="select-apple h-[34px] min-w-0 px-2.5 py-1.5 text-sm sm:max-w-xs"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="전체">전체</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="accessory-status-filter" className="shrink-0 text-xs font-semibold opacity-60">
+            상태
+          </label>
+          <select
+            id="accessory-status-filter"
+            className="select-apple h-[34px] min-w-0 px-2.5 py-1.5 text-sm"
+            value={statusFilter}
+            onChange={(e) => {
+              const value = e.target.value;
+              setStatusFilter(value === 'released' || value === 'owned' ? value : '전체');
+            }}
+          >
+            <option value="전체">전체</option>
+            <option value="owned">보유중</option>
+            <option value="released">방출</option>
+          </select>
+        </div>
       </div>
     </div>
   );
@@ -157,6 +217,7 @@ export function HeadfiAccessoryModal({
       name: row.name,
       price: row.price,
       purchase_date: row.purchase_date,
+      status: row.status,
     };
     setSavingKey(row.key);
     try {
@@ -173,11 +234,13 @@ export function HeadfiAccessoryModal({
                   name: '',
                   price: '',
                   purchase_date: '',
+                  status: 'owned',
                   isPersisted: false,
                   originalCategory: '',
                   originalName: '',
                   originalPrice: '',
                   originalPurchaseDate: '',
+                  originalStatus: 'owned',
                 }
               : item,
           ),
@@ -201,10 +264,115 @@ export function HeadfiAccessoryModal({
         name: row.name,
         price: row.price ? Number(row.price) : 0,
         purchase_date: row.purchase_date || null,
+        status: row.status,
       });
     } finally {
       setDeletingKey(null);
     }
+  };
+
+  const rowGridClass =
+    'grid grid-cols-1 gap-2 lg:grid-cols-[0.95fr_1.7fr_0.55fr_0.75fr_0.4fr_auto] lg:items-center';
+
+  const renderRow = (row: AccessoryRow) => {
+    const busy = savingKey === row.key || deletingKey === row.key;
+    const released = row.status === 'released';
+    return (
+      <div
+        key={row.key}
+        className="rounded-lg border p-2.5 sm:p-3"
+        style={{
+          borderColor: 'var(--border)',
+          background: 'var(--background)',
+          opacity: released ? 0.55 : 1,
+        }}
+      >
+        <div className={rowGridClass}>
+          <select
+            className="select-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
+            value={row.category}
+            onChange={(e) => handleRowChange(row.key, { category: e.target.value })}
+            disabled={busy}
+          >
+            <option value="">카테고리</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex min-w-0 items-center gap-2">
+            <input
+              type="text"
+              className="input-apple h-[36px] min-w-0 flex-1 px-2.5 py-1.5 text-sm"
+              value={row.name}
+              onChange={(e) => handleRowChange(row.key, { name: e.target.value })}
+              placeholder="이름"
+              readOnly={busy}
+            />
+            {released ? (
+              <span
+                className="badge-apple shrink-0 px-2 py-0.5 text-[10px] font-semibold"
+                style={{ opacity: 1 }}
+              >
+                방출
+              </span>
+            ) : null}
+          </div>
+
+          <input
+            type="number"
+            className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
+            value={row.price}
+            onChange={(e) => handleRowChange(row.key, { price: e.target.value })}
+            placeholder="가격"
+            readOnly={busy}
+          />
+
+          <input
+            type="date"
+            className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
+            value={row.purchase_date}
+            onChange={(e) => handleRowChange(row.key, { purchase_date: e.target.value })}
+            readOnly={busy}
+          />
+
+          <AccessoryStatusSelect
+            value={row.status}
+            disabled={busy}
+            onChange={(status) => handleRowChange(row.key, { status })}
+          />
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-primary inline-flex h-[34px] w-[34px] items-center justify-center"
+              onClick={() => void handleSaveRow(row)}
+              disabled={busy}
+              aria-label={row.id != null ? '행 수정 저장' : '행 저장'}
+              title={row.id != null ? '행 수정 저장' : '행 저장'}
+            >
+              {savingKey === row.key ? (
+                <Check className="size-3.5 animate-pulse" strokeWidth={1.75} />
+              ) : (
+                <Save className="size-3.5" strokeWidth={1.75} />
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary inline-flex h-[34px] w-[34px] items-center justify-center"
+              onClick={() => void handleDeleteRow(row)}
+              disabled={busy}
+              aria-label="행 삭제"
+              title="행 삭제"
+            >
+              <Trash2 className="size-3.5" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -252,182 +420,22 @@ export function HeadfiAccessoryModal({
           </>
         ) : (
           <div className="max-h-[70vh] overflow-y-auto pr-1">
-            {draftRows.length > 0 ? (
-              <div className="space-y-2 pb-4">
-                {draftRows.map((row) => {
-              const busy = savingKey === row.key || deletingKey === row.key;
-              return (
-                <div
-                  key={row.key}
-                  className="rounded-lg border p-2.5 sm:p-3"
-                  style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
-                >
-                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1.75fr_0.65fr_0.9fr_auto] lg:items-center">
-                    <select
-                      className="select-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.category}
-                      onChange={(e) => handleRowChange(row.key, { category: e.target.value })}
-                      disabled={busy}
-                    >
-                      <option value="">카테고리</option>
-                      {categoryOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      type="text"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.name}
-                      onChange={(e) => handleRowChange(row.key, { name: e.target.value })}
-                      placeholder="이름"
-                      readOnly={busy}
-                    />
-
-                    <input
-                      type="number"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.price}
-                      onChange={(e) => handleRowChange(row.key, { price: e.target.value })}
-                      placeholder="가격"
-                      readOnly={busy}
-                    />
-
-                    <input
-                      type="date"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.purchase_date}
-                      onChange={(e) => handleRowChange(row.key, { purchase_date: e.target.value })}
-                      readOnly={busy}
-                    />
-
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        className="btn-apple btn-apple-primary inline-flex h-[34px] w-[34px] items-center justify-center"
-                        onClick={() => void handleSaveRow(row)}
-                        disabled={busy}
-                        aria-label="행 저장"
-                        title="행 저장"
-                      >
-                        {savingKey === row.key ? (
-                          <Check className="size-3.5 animate-pulse" strokeWidth={1.75} />
-                        ) : (
-                          <Save className="size-3.5" strokeWidth={1.75} />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-apple btn-apple-secondary inline-flex h-[34px] w-[34px] items-center justify-center"
-                        onClick={() => void handleDeleteRow(row)}
-                        disabled={busy}
-                        aria-label="행 삭제"
-                        title="행 삭제"
-                      >
-                        <Trash2 className="size-3.5" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-              </div>
-            ) : null}
+            {draftRows.length > 0 ? <div className="space-y-2 pb-4">{draftRows.map(renderRow)}</div> : null}
 
             {draftRows.length > 0 ? (
               <div className="border-t py-3" style={{ borderColor: 'var(--border)' }} />
             ) : null}
 
             <div className="space-y-2">
-            {categoryFilterBar}
+              {categoryFilterBar}
 
-            {filteredPersistedRows.length === 0 && categoryFilter !== '전체' ? (
-              <div className="empty-state-apple py-8 text-center">
-                <p className="text-sm opacity-70">해당 카테고리에 등록된 항목이 없습니다.</p>
-              </div>
-            ) : null}
-
-            {filteredPersistedRows.map((row) => {
-              const busy = savingKey === row.key || deletingKey === row.key;
-              return (
-                <div
-                  key={row.key}
-                  className="rounded-lg border p-2.5 sm:p-3"
-                  style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
-                >
-                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1fr_1.75fr_0.65fr_0.9fr_auto] lg:items-center">
-                    <select
-                      className="select-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.category}
-                      onChange={(e) => handleRowChange(row.key, { category: e.target.value })}
-                      disabled={busy}
-                    >
-                      <option value="">카테고리</option>
-                      {categoryOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      type="text"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.name}
-                      onChange={(e) => handleRowChange(row.key, { name: e.target.value })}
-                      placeholder="이름"
-                      readOnly={busy}
-                    />
-
-                    <input
-                      type="number"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.price}
-                      onChange={(e) => handleRowChange(row.key, { price: e.target.value })}
-                      placeholder="가격"
-                      readOnly={busy}
-                    />
-
-                    <input
-                      type="date"
-                      className="input-apple h-[36px] w-full px-2.5 py-1.5 text-sm"
-                      value={row.purchase_date}
-                      onChange={(e) => handleRowChange(row.key, { purchase_date: e.target.value })}
-                      readOnly={busy}
-                    />
-
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        className="btn-apple btn-apple-primary inline-flex h-[34px] w-[34px] items-center justify-center"
-                        onClick={() => void handleSaveRow(row)}
-                        disabled={busy}
-                        aria-label={row.id != null ? '행 수정 저장' : '행 저장'}
-                        title={row.id != null ? '행 수정 저장' : '행 저장'}
-                      >
-                        {savingKey === row.key ? (
-                          <Check className="size-3.5 animate-pulse" strokeWidth={1.75} />
-                        ) : (
-                          <Save className="size-3.5" strokeWidth={1.75} />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-apple btn-apple-secondary inline-flex h-[34px] w-[34px] items-center justify-center"
-                        onClick={() => void handleDeleteRow(row)}
-                        disabled={busy}
-                        aria-label="행 삭제"
-                        title="행 삭제"
-                      >
-                        <Trash2 className="size-3.5" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  </div>
+              {filteredPersistedRows.length === 0 && hasActiveFilter ? (
+                <div className="empty-state-apple py-8 text-center">
+                  <p className="text-sm opacity-70">선택한 필터에 해당하는 항목이 없습니다.</p>
                 </div>
-              );
-            })}
+              ) : null}
+
+              {filteredPersistedRows.map(renderRow)}
             </div>
           </div>
         )}

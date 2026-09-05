@@ -404,11 +404,13 @@ function mapHeadfiAccessoryData(data: HeadfiAccessoryFormData) {
   const name = data.name.trim();
   if (!category) throw new Error('카테고리를 선택해 주세요.');
   if (!name) throw new Error('액세서리 이름을 입력해 주세요.');
+  const status = data.status === 'released' ? 'released' : 'owned';
   return {
     category,
     name,
     price: parseIntOrNull(data.price) ?? 0,
     purchase_date: data.purchase_date.trim() || null,
+    status,
   };
 }
 
