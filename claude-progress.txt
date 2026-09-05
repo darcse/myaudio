@@ -427,3 +427,4 @@
 [2026-09-05] [Cursor] feat: ALBUM-033 앨범 무드 수동 재분류(드롭다운·mood_manually_set·자동분류 가드) | passes: 변경 없음
 [2026-09-05] [Cursor] feat: GEAR-039 독립 액세서리 보유중/방출 status(owned/released) 저장·목록 구분 | passes: 변경 없음
 [2026-09-05] [Cursor] feat: GEAR-039 액세서리 모달 상태(보유중/방출) 필터 추가 | passes: 변경 없음
+[2026-09-05] [Cursor] fix: ALBUM-033 이후 단건 무드분류가 메탈 무드로 편향되던 pickAlbumMoodGroupName 프롬프트·파싱 수정 | passes: 변경 없음

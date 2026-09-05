@@ -330,6 +330,23 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
 
 export const MOOD_GROUP_MUST_BE_NINE_MSG = '무드 그룹은 정확히 9개여야 합니다.';
 
+function resolvePickedMoodName(raw: string, moodNames: string[]): string | null {
+  const text = raw
+    .trim()
+    .replace(/```(?:json)?/gi, '')
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .trim();
+  if (!text) return null;
+  if (moodNames.includes(text)) return text;
+  const lineHit = text
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*\d.)\s]+/, '').trim().replace(/^["'`]+|["'`]+$/g, ''))
+    .find((line) => moodNames.includes(line));
+  if (lineHit) return lineHit;
+  const byLength = [...moodNames].sort((a, b) => b.length - a.length);
+  return byLength.find((name) => text.includes(name)) ?? null;
+}
+
 export async function pickAlbumMoodGroupName(
   album: {
     artist: string | null;
@@ -353,13 +370,15 @@ ${moodNames.join('\n')}
 장르2: ${album.genre2 ?? ''}
 오디오 태그: ${tags}
 
+분류 규칙:
+- 장르·아티스트·앨범명이 가리키는 작품 성격을 오디오 태그보다 우선한다.
+- 오디오 태그의 음향 표현(저역, 노이즈, 해상도, 공간감 등)만으로 특정 무드를 단정하지 마라.
+- "어둡고 냉소적인 메탈의 서사"는 실제 메탈/헤비 계열 작품에만 배정한다. 공포·서스펜스 OST, 앰비언트, 실험 전자음만으로 메탈 무드를 고르지 마라.
+
 위 무드 그룹 중 가장 적합한 하나의 mood_name만 반환해. 다른 텍스트 없이 목록에 있는 무드명 그대로만 출력해.`;
   try {
     const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text().trim().replace(/```json|```/g, '').replace(/^["']|["']$/g, '');
-    if (moodNames.includes(text)) return text;
-    const hit = moodNames.find((name) => text.includes(name));
-    return hit ?? null;
+    return resolvePickedMoodName(result.response.text(), moodNames);
   } catch {
     return null;
   }
