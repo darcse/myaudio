@@ -320,7 +320,12 @@ export function AlbumDetailModal({
             <div className="scrollbar-hide min-h-0 flex-1 overscroll-y-contain" style={modalBodyScrollStyle}>
               <div className="min-w-0 p-6 space-y-5">
                 <div className={activeTab === 'info' ? 'space-y-5' : 'hidden'} aria-hidden={activeTab !== 'info'}>
-                  <AlbumInfoSection viewingItem={viewingItem} onNavigateToMood={onNavigateToMood} />
+                  <AlbumInfoSection
+                    viewingItem={viewingItem}
+                    isAuthenticated={isAuthenticated}
+                    onNavigateToMood={onNavigateToMood}
+                    onAlbumPatch={onAlbumPatch}
+                  />
                   <AlbumIntroSection
                     viewingItem={viewingItem}
                     albumIntro={albumIntro}

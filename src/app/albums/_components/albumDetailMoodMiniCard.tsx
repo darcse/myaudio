@@ -29,7 +29,7 @@ const vibeBadgeStyle: CSSProperties = {
   maxWidth: '100%',
 };
 
-function getMoodVibeEmoji(moodName: string): string {
+export function getMoodVibeEmoji(moodName: string): string {
   const n = moodName.trim().toLowerCase();
   for (const row of MOOD_KEYWORD_SLOTS) {
     if (row.keys.some((k) => n.includes(k.toLowerCase()))) {
@@ -45,28 +45,42 @@ function getMoodVibeEmoji(moodName: string): string {
 
 export function MoodMiniCard({
   moodName,
-  onNavigate,
+  onClick,
+  disabled = false,
+  placeholder = false,
 }: {
   moodName: string;
-  onNavigate?: (name: string) => void;
+  onClick?: () => void;
+  disabled?: boolean;
+  placeholder?: boolean;
 }) {
-  const emoji = getMoodVibeEmoji(moodName);
-  const badgeSurface: CSSProperties = { ...vibeBadgeStyle, background: getMoodVibeGradient(moodName) };
+  const label = moodName.trim() || '무드 선택';
+  const emoji = placeholder ? '🏷️' : getMoodVibeEmoji(label);
+  const badgeSurface: CSSProperties = {
+    ...vibeBadgeStyle,
+    background: placeholder
+      ? 'color-mix(in srgb, var(--foreground) 35%, transparent)'
+      : getMoodVibeGradient(label),
+    opacity: placeholder ? 0.85 : 1,
+  };
   const inner = (
     <div className="flex items-center gap-[0.6rem] font-medium text-[0.85rem]">
       <span className="shrink-0 leading-none text-base text-[#fbbf24]" aria-hidden>
         {emoji}
       </span>
-      <span className="break-words text-left">{moodName.trim()}</span>
+      <span className="break-words text-left">{label}</span>
     </div>
   );
-  if (onNavigate) {
+  if (onClick) {
     return (
       <button
         type="button"
-        onClick={() => onNavigate(moodName.trim())}
-        className="text-left cursor-pointer transition-[filter,opacity] duration-200 hover:brightness-110 active:opacity-90"
+        onClick={onClick}
+        disabled={disabled}
+        className="text-left cursor-pointer transition-[filter,opacity] duration-200 hover:brightness-110 active:opacity-90 disabled:cursor-wait disabled:opacity-60"
         style={badgeSurface}
+        aria-haspopup="listbox"
+        aria-label={placeholder ? '무드 선택' : `무드 변경: ${label}`}
       >
         {inner}
       </button>

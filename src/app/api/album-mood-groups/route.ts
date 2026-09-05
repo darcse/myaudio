@@ -10,13 +10,24 @@ type AlbumRow = {
   audio_tags: string[] | null;
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const supabase = await createClient();
+    const listOnly = new URL(req.url).searchParams.get('listOnly') === '1';
+    if (listOnly) {
+      const { data, error } = await supabase
+        .from('album_mood_groups')
+        .select('mood_name, album_ids')
+        .order('id', { ascending: true });
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ groups: data ?? [] });
+    }
     const { data: albumRows, error: albumErr } = await supabase
       .from('album')
       .select('id, genre1, genre2, audio_tags');

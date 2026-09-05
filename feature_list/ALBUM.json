@@ -514,5 +514,20 @@
           "리스트 뷰 토글 시 기존 리스트 방식이 정상 동작하는지 확인 (회귀 없음)"
         ],
         "passes": true  
+      },
+      {
+        "id": "ALBUM-033",
+        "category": "album",
+        "title": "앨범 무드 수동 재분류 기능",
+        "description": "앨범 모달의 무드 태그를 클릭하면 9개 무드 목록이 나타나고, 사용자가 직접 선택해 저장할 수 있다. 수동 지정된 무드는 mood_manually_set 플래그로 표시되어 이후 자동 재분류 로직이 덮어쓰지 않는다.",
+        "steps": [
+          "앨범 모달의 무드 태그 클릭 시 9개 무드 목록이 팝업/드롭다운으로 노출되는지 확인",
+          "9개 중 하나 선택 후 저장 시 album.mood_name과 mood_manually_set이 true로 갱신되는지 확인",
+          "저장 후 모달을 닫았다 다시 열어도 변경된 무드가 유지되는지 확인",
+          "수동 지정된 앨범에 대해 전체 재분류(generateAlbumMoodGroups) 또는 단건 자동 분류(runAlbumMoodAssign)를 실행해도 mood_name이 그대로 유지되는지 확인",
+          "album_mood_groups 테이블의 album_ids 배열도 수동 변경된 무드 기준으로 갱신되는지 확인 (기존 무드 그룹에서 제거, 새 무드 그룹에 추가)",
+          "무드 목록 로딩 실패 또는 저장 API 실패 시 에러 메시지 노출 확인"
+        ],
+        "passes": true
       }
   ]

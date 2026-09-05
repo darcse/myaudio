@@ -23,6 +23,7 @@ export interface Album {
   ai_recommended_headphone_reason?: string | null;
   mood_names?: string[] | null;
   mood_name?: string | null;
+  mood_manually_set?: boolean | null;
   owns_cd?: boolean | null;
   owns_lp?: boolean | null;
   [key: string]: unknown;

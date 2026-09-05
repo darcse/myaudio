@@ -92,7 +92,9 @@ export function narrowCatalogToExplicitUuids(
 }
 
 export type AlbumMoodUuidOptions = {
-  readonly promptAllowedUuids: readonly string[];
+  readonly promptAllowedUuids?: readonly string[];
+  /** 재분류 시 기존 9개 무드명을 고정해 수동 지정 앨범 소속을 유지 */
+  readonly fixedMoodNames?: readonly string[];
 };
 
 export function parseGeminiAlbumMoodJson(raw: unknown, catalog: AlbumIdCatalog): AlbumMoodGroupRow[] | null {

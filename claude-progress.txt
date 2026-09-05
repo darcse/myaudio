@@ -424,3 +424,4 @@
 [2026-09-01] [Cursor] feat: Source 카테고리 등록 모달에 DAC/AMP 스펙 필드(구동방식·Chipset·Rk·Vrms) 노출·저장 | passes: 변경 없음
 [2026-09-01] [Cursor] fix: Source 상세 모달 상세 스펙에 DAC/AMP 스펙 필드 표시 | passes: 변경 없음
 [2026-09-03] [Cursor] fix: 청음평가 AI분석 프롬프트에 headfi 확정 사실(타입1 등) 주입 — HD480 Pro 밀폐형 검증 PASS | passes: 변경 없음
+[2026-09-05] [Cursor] feat: ALBUM-033 앨범 무드 수동 재분류(드롭다운·mood_manually_set·자동분류 가드) | passes: 변경 없음

@@ -382,7 +382,12 @@ export async function generateAlbumMoodGroups(
     catalog.kind === 'uuid'
       ? 'album_ids에는 아래에 제시한 "허용 album_uuid 목록"에 있는 문자열만 그대로 사용해. 목록에 없는 값(숫자만 있는 문자열 포함)은 절대 넣지 마.'
       : 'album_ids에는 목록에 적힌 id와 동일한 정수만 사용해.';
-  const system = `너는 음악 큐레이터야. 응답은 오직 JSON 배열 하나뿐이며, 배열 원소(무드 그룹 객체) 개수는 반드시 정확히 9개여야 한다. 8개 이하나 10개 이상이면 잘못된 응답이다. 빈 배열이나 다른 키로 감싼 객체 전체를 내지 마. 각 원소 형식: {"mood_name":"무드명","album_ids":[…]}. 모든 앨범 id가 정확히 한 번씩만 전체 그룹에 걸쳐 포함되어야 한다. ${idRule}`;
+  const fixedNames = options?.fixedMoodNames?.map((n) => n.trim()).filter(Boolean) ?? [];
+  const fixedNameRule =
+    fixedNames.length === 9
+      ? ` mood_name은 아래 9개 문자열을 순서 무관하게 각각 정확히 한 번씩만 사용해. 이름을 바꾸거나 새로 만들지 마:\n${fixedNames.join('\n')}`
+      : '';
+  const system = `너는 음악 큐레이터야. 응답은 오직 JSON 배열 하나뿐이며, 배열 원소(무드 그룹 객체) 개수는 반드시 정확히 9개여야 한다. 8개 이하나 10개 이상이면 잘못된 응답이다. 빈 배열이나 다른 키로 감싼 객체 전체를 내지 마. 각 원소 형식: {"mood_name":"무드명","album_ids":[…]}. 모든 앨범 id가 정확히 한 번씩만 전체 그룹에 걸쳐 포함되어야 한다. ${idRule}${fixedNameRule}`;
   const allowedUuidHeader =
     catalog.kind === 'uuid'
       ? `[허용 album_uuid 목록 — album_ids에는 여기 나온 문자열만 사용. 목록에 없으면 무조건 제거.]\n${catalog.allKeys.join('\n')}\n\n`
