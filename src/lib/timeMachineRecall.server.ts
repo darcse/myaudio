@@ -53,21 +53,25 @@ function resolveGearLabel(
   return `${gear.brand} ${gear.model}`.trim() || null;
 }
 
+function buildListenAtWindowsOrFilter(windows: { start: string; end: string }[]): string {
+  return windows
+    .map((window) => `and(listened_at.gte.${window.start},listened_at.lte.${window.end})`)
+    .join(',');
+}
+
 export async function fetchTimeMachineRecall(
   supabase: SupabaseClient,
   referenceDate = new Date(),
 ): Promise<TimeMachineRecall | null> {
   const windows = buildTimeMachineWindows(referenceDate);
-  const minDate = windows.reduce((min, w) => (w.start < min ? w.start : min), windows[0]?.start ?? '');
-  const maxDate = windows.reduce((max, w) => (w.end > max ? w.end : max), windows[0]?.end ?? '');
+  if (windows.length === 0) return null;
 
   const { data, error } = await supabase
     .from('album_listen_history')
     .select(
       'id, listened_at, captured_at, weather_condition, temperature, album_id, headphone_id, dac_amp_id, dac_amp2_id, album:album_id(id, album_name, artist, cover_image_url)',
     )
-    .gte('listened_at', minDate)
-    .lte('listened_at', maxDate);
+    .or(buildListenAtWindowsOrFilter(windows));
 
   if (error || !data?.length) return null;
 

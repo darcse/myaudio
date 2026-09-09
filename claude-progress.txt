@@ -443,3 +443,9 @@
 [2026-09-09] [Cursor] investigate: 모달 삭제 회귀 — 근본원인=window.confirm×modal-overlay 조합(GEAR-040 무관), 잔여 confirm 전수목록·재발방지 제안 | passes: 변경 없음
 
 [2026-09-09] [Cursor] fix: 잔여 window.confirm 5곳 전부 인라인 확인 UI로 교체 (청취이력·다이어리·가사·포지션맵) | passes: 변경 없음
+
+[2026-09-09] [Cursor] investigate: 대시보드 5초+ 로딩 — TimeMachine 과다조회(1y~1m 전체 구간)·SSR force-dynamic·클라 headfi 전체 fetch 등 병목 추정 (수정 없음) | passes: 변경 없음
+
+[2026-09-09] [Cursor] fix: 타임머신 fetchTimeMachineRecall — min~max 11개월 조회를 4개 ±3일 윈도우 OR로 축소 | passes: 변경 없음
+
+[2026-09-09] [Cursor] style: GNB 새로고침 버튼 클릭 시 RefreshCw animate-spin·disabled 피드백 | passes: 변경 없음

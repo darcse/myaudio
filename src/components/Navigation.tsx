@@ -30,6 +30,7 @@ export function Navigation() {
   const router = useRouter();
   const isAuthenticated = useAuthState();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [reloading, setReloading] = useState(false);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -51,8 +52,10 @@ export function Navigation() {
   }, [router]);
 
   const handleReload = useCallback(() => {
+    if (reloading) return;
+    setReloading(true);
     window.location.reload();
-  }, []);
+  }, [reloading]);
 
   const getActive = useCallback(
     (path: string) =>
@@ -104,12 +107,18 @@ export function Navigation() {
                 <button
                   type="button"
                   onClick={handleReload}
-                  className={iconButtonClass}
+                  disabled={reloading}
+                  aria-busy={reloading}
+                  className={`${iconButtonClass} disabled:pointer-events-none disabled:opacity-50`}
                   style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                   aria-label="새로고침"
                   title="새로고침"
                 >
-                  <RefreshCw size={16} strokeWidth={2} />
+                  <RefreshCw
+                    size={16}
+                    strokeWidth={2}
+                    className={reloading ? 'animate-spin' : undefined}
+                  />
                 </button>
                 <a
                   href={HOME_EXTERNAL_HREF}
@@ -284,12 +293,18 @@ export function Navigation() {
                         setMobileMenuOpen(false);
                         handleReload();
                       }}
-                      className={iconButtonClass}
+                      disabled={reloading}
+                      aria-busy={reloading}
+                      className={`${iconButtonClass} disabled:pointer-events-none disabled:opacity-50`}
                       style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                       aria-label="새로고침"
                       title="새로고침"
                     >
-                      <RefreshCw size={16} strokeWidth={2} />
+                      <RefreshCw
+                        size={16}
+                        strokeWidth={2}
+                        className={reloading ? 'animate-spin' : undefined}
+                      />
                     </button>
                     <a
                       href={HOME_EXTERNAL_HREF}
