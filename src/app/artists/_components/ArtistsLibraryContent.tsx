@@ -613,7 +613,6 @@ export function ArtistsLibraryContent() {
       return;
     }
     if (!viewingAlbum) return;
-    if (!confirm('정말 이 앨범을 삭제하시겠습니까?')) return;
     const deletedId = viewingAlbum.id;
     setIsDeleting(true);
     try {

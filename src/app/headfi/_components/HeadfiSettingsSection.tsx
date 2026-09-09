@@ -73,6 +73,7 @@ export function HeadfiSettingsSection({ headfiId, isAuthenticated }: HeadfiSetti
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (isAuthenticated !== true) {
@@ -201,13 +202,14 @@ export function HeadfiSettingsSection({ headfiId, isAuthenticated }: HeadfiSetti
   const handleDeleteRow = async (row: SettingRow) => {
     if (row.id == null) {
       setRows((prev) => prev.filter((item) => item.key !== row.key));
+      setPendingDeleteKey(null);
       return;
     }
-    if (!confirm('이 세팅을 삭제하시겠습니까?')) return;
     setDeletingKey(row.key);
     try {
       await deleteHeadfiDeviceSettingFromDB(row.id);
       toast.success('세팅을 삭제했습니다.');
+      setPendingDeleteKey(null);
       await loadData();
     } catch (error) {
       toast.error(getClientErrorMessage(error));
@@ -266,7 +268,13 @@ export function HeadfiSettingsSection({ headfiId, isAuthenticated }: HeadfiSetti
             <button
               type="button"
               className="btn-apple btn-apple-secondary inline-flex h-[34px] w-[34px] items-center justify-center"
-              onClick={() => void handleDeleteRow(row)}
+              onClick={() => {
+                if (row.id == null) {
+                  void handleDeleteRow(row);
+                  return;
+                }
+                setPendingDeleteKey(row.key);
+              }}
               disabled={busy}
               aria-label="세팅 삭제"
               title="세팅 삭제"
@@ -285,6 +293,35 @@ export function HeadfiSettingsSection({ headfiId, isAuthenticated }: HeadfiSetti
 
   return (
     <div className="space-y-4">
+      {pendingDeleteKey ? (
+        <div
+          className="rounded-lg border p-3"
+          style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+        >
+          <p className="text-sm font-medium">이 세팅을 삭제하시겠습니까?</p>
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+              onClick={() => setPendingDeleteKey(null)}
+              disabled={deletingKey != null}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+              onClick={() => {
+                const target = rows.find((row) => row.key === pendingDeleteKey);
+                if (target) void handleDeleteRow(target);
+              }}
+              disabled={deletingKey != null}
+            >
+              {deletingKey === pendingDeleteKey ? '삭제 중…' : '삭제'}
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold opacity-90">DAC/AMP/DAP 조합별 세팅</p>

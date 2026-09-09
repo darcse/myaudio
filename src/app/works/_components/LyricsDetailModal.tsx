@@ -48,6 +48,7 @@ export function LyricsDetailModal({
   hideAudioSection = false,
 }: LyricsDetailModalProps) {
   const [lyricsExpanded, setLyricsExpanded] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const ytId = viewingItem.youtube_url ? getYoutubeId(viewingItem.youtube_url) : null;
   const hasVibe = (viewingItem.vibe_colors?.length ?? 0) >= 2;
   const hasLyricsText = !!viewingItem.lyrics?.trim();
@@ -61,6 +62,7 @@ export function LyricsDetailModal({
 
   useEffect(() => {
     setLyricsExpanded(false);
+    setDeleteConfirmOpen(false);
   }, [viewingItem.id]);
 
   return (
@@ -218,30 +220,63 @@ export function LyricsDetailModal({
         ) : null}
 
         {isAuthenticated ? (
-          <div className="flex gap-4 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
-            <button
-              type="button"
-              onClick={onEdit}
-              className="btn-apple btn-apple-secondary flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={isDeleting}
-            >
-              <Pencil className={btnIconClass} /> 정보 수정하기
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="btn-apple btn-apple-danger flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-              disabled={isDeleting}
-              aria-busy={isDeleting}
-            >
-              {isDeleting ? (
-                <DeletingLabel />
-              ) : (
-                <>
-                  <Trash2 className={btnIconClass} /> 삭제하기
-                </>
-              )}
-            </button>
+          <div className="flex flex-col gap-3 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+            {deleteConfirmOpen ? (
+              <div
+                className="rounded-lg border p-3"
+                style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+              >
+                <p className="text-sm font-medium">정말 이 가사 항목을 삭제하시겠습니까?</p>
+                <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    disabled={isDeleting}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+                    onClick={() => {
+                      setDeleteConfirmOpen(false);
+                      onDelete();
+                    }}
+                    disabled={isDeleting}
+                    aria-busy={isDeleting}
+                  >
+                    {isDeleting ? <DeletingLabel /> : '삭제'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="btn-apple btn-apple-secondary flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isDeleting}
+                >
+                  <Pencil className={btnIconClass} /> 정보 수정하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  className="btn-apple btn-apple-danger flex-1 py-3 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
+                  disabled={isDeleting}
+                  aria-busy={isDeleting}
+                >
+                  {isDeleting ? (
+                    <DeletingLabel />
+                  ) : (
+                    <>
+                      <Trash2 className={btnIconClass} /> 삭제하기
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

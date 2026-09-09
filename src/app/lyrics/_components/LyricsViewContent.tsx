@@ -27,6 +27,7 @@ export function LyricsViewContent({
   const [translation, setTranslation] = useState<LyricsTranslation | null>(null);
   const [albumName, setAlbumName] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,7 +74,6 @@ export function LyricsViewContent({
 
   const handleDelete = async () => {
     if (!translation || isAuthenticated === false) return;
-    if (!window.confirm('이 가사를 삭제할까요?')) return;
     setDeleting(true);
     try {
       await deleteLyricsTranslation(translation.id);
@@ -139,7 +139,7 @@ export function LyricsViewContent({
             <button
               type="button"
               disabled={deleting}
-              onClick={() => void handleDelete()}
+              onClick={() => setDeleteConfirmOpen(true)}
               className="inline-flex size-[38px] items-center justify-center rounded-lg disabled:opacity-40"
               style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
               aria-label="삭제"
@@ -149,6 +149,36 @@ export function LyricsViewContent({
           </div>
         ) : null}
       </div>
+
+      {deleteConfirmOpen ? (
+        <div
+          className="mb-5 rounded-lg border p-3"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+        >
+          <p className="text-sm font-medium">이 가사를 삭제할까요?</p>
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={deleting}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                void handleDelete();
+              }}
+              disabled={deleting}
+            >
+              {deleting ? '삭제 중…' : '삭제'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div
         className="mb-6 rounded-xl px-4 py-4"

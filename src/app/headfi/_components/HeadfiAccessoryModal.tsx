@@ -6,7 +6,7 @@ import type { HeadfiAccessory, HeadfiAccessoryFormData, HeadfiAccessoryStatus } 
 
 type AccessoryRow = {
   key: string;
-  id: number | null;
+  id: string | null;
   category: string;
   name: string;
   price: string;
@@ -26,7 +26,7 @@ type HeadfiAccessoryModalProps = {
   categoryOptions: readonly string[];
   onClose: () => void;
   onCreate: (data: HeadfiAccessoryFormData) => Promise<void>;
-  onUpdate: (id: number, data: HeadfiAccessoryFormData) => Promise<void>;
+  onUpdate: (id: string, data: HeadfiAccessoryFormData) => Promise<void>;
   onDelete: (item: HeadfiAccessory) => Promise<void>;
 };
 
@@ -108,11 +108,15 @@ export function HeadfiAccessoryModal({
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [statusFilter, setStatusFilter] = useState<'전체' | HeadfiAccessoryStatus>('전체');
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setCategoryFilter('전체');
     setStatusFilter('전체');
+    setDiscardConfirmOpen(false);
+    setPendingDeleteKey(null);
     setRows((prev) => {
       const drafts = prev.filter((row) => !row.isPersisted);
       return [...accessories.map(toPersistedRow), ...drafts];
@@ -195,12 +199,18 @@ export function HeadfiAccessoryModal({
 
   if (!open) return null;
 
+  const forceClose = () => {
+    setDiscardConfirmOpen(false);
+    setPendingDeleteKey(null);
+    onClose();
+  };
+
   const requestClose = () => {
     if (hasUnsavedChanges) {
-      const confirmed = confirm('저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?');
-      if (!confirmed) return;
+      setDiscardConfirmOpen(true);
+      return;
     }
-    onClose();
+    forceClose();
   };
 
   const handleRowChange = (key: string, patch: Partial<AccessoryRow>) => {
@@ -254,6 +264,7 @@ export function HeadfiAccessoryModal({
   const handleDeleteRow = async (row: AccessoryRow) => {
     if (row.id == null) {
       setRows((prev) => prev.filter((item) => item.key !== row.key));
+      setPendingDeleteKey(null);
       return;
     }
     setDeletingKey(row.key);
@@ -266,6 +277,7 @@ export function HeadfiAccessoryModal({
         purchase_date: row.purchase_date || null,
         status: row.status,
       });
+      setPendingDeleteKey(null);
     } finally {
       setDeletingKey(null);
     }
@@ -362,7 +374,13 @@ export function HeadfiAccessoryModal({
             <button
               type="button"
               className="btn-apple btn-apple-secondary inline-flex h-[34px] w-[34px] items-center justify-center"
-              onClick={() => void handleDeleteRow(row)}
+              onClick={() => {
+                if (row.id == null) {
+                  void handleDeleteRow(row);
+                  return;
+                }
+                setPendingDeleteKey(row.key);
+              }}
               disabled={busy}
               aria-label="행 삭제"
               title="행 삭제"
@@ -397,6 +415,67 @@ export function HeadfiAccessoryModal({
           <h2 className="section-title text-xl">독립 액세서리 관리</h2>
           <p className="mt-1 text-sm opacity-70">행 단위로 바로 등록, 수정, 삭제할 수 있습니다.</p>
         </div>
+
+        {discardConfirmOpen ? (
+          <div
+            className="mb-4 rounded-lg border p-3"
+            style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+          >
+            <p className="text-sm font-medium">저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?</p>
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                onClick={() => setDiscardConfirmOpen(false)}
+              >
+                계속 편집
+              </button>
+              <button
+                type="button"
+                className="btn-apple btn-apple-primary h-[34px] px-3 text-sm"
+                onClick={forceClose}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {pendingDeleteKey ? (
+          <div
+            className="mb-4 rounded-lg border p-3"
+            style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+          >
+            <p className="text-sm font-medium">
+              {(() => {
+                const target = rows.find((row) => row.key === pendingDeleteKey);
+                const label = target?.name?.trim() || '이 액세서리';
+                return `'${label}' 액세서리를 삭제하시겠습니까?`;
+              })()}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                onClick={() => setPendingDeleteKey(null)}
+                disabled={deletingKey != null}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+                onClick={() => {
+                  const target = rows.find((row) => row.key === pendingDeleteKey);
+                  if (target) void handleDeleteRow(target);
+                }}
+                disabled={deletingKey != null}
+              >
+                {deletingKey === pendingDeleteKey ? '삭제 중…' : '삭제'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mb-4 flex justify-end">
           <button

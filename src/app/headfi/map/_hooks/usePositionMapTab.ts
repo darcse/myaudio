@@ -33,6 +33,7 @@ type UsePositionMapTabParams = {
 export function usePositionMapTab({ library, isAuthenticated, onRefresh }: UsePositionMapTabParams) {
   const [items, setItems] = useState(library);
   const [regenerating, setRegenerating] = useState(false);
+  const [regenerateConfirmOpen, setRegenerateConfirmOpen] = useState(false);
   const [loadingIds, setLoadingIds] = useState<Set<number>>(() => new Set());
   const [activePopover, setActivePopover] = useState<ActivePopover | null>(null);
   const [hoverTooltip, setHoverTooltip] = useState<HoverTooltip | null>(null);
@@ -223,18 +224,16 @@ export function usePositionMapTab({ library, isAuthenticated, onRefresh }: UsePo
     }
   };
 
-  const handleRegenerateAll = async () => {
+  const requestRegenerateAll = () => {
     if (filteredPlottedCount === 0) {
       toast.error('새로고침할 기기가 없습니다.');
       return;
     }
-    if (
-      !confirm(
-        '모든 기기의 포지션 좌표를 다시 생성합니다. 기존 좌표가 덮어씌워집니다. 계속하시겠습니까?',
-      )
-    ) {
-      return;
-    }
+    setRegenerateConfirmOpen(true);
+  };
+
+  const confirmRegenerateAll = async () => {
+    setRegenerateConfirmOpen(false);
     setRegenerating(true);
     try {
       const res = await fetch('/api/headfi-position', {
@@ -346,16 +345,19 @@ export function usePositionMapTab({ library, isAuthenticated, onRefresh }: UsePo
     filteredPlottedCount,
     mapMarkers,
     regenerating,
+    regenerateConfirmOpen,
     loadingIds,
     activePopover,
     hoverTooltip,
     setStatusFilter,
     setCategoryFilter,
+    setRegenerateConfirmOpen,
     handleDevicePickerToggle,
     toggleDeviceSelection,
     selectAllDevices,
     clearAllDevices,
-    handleRegenerateAll,
+    requestRegenerateAll,
+    confirmRegenerateAll,
     analyzeOne,
     clearPosition,
     openMarkerPopover,

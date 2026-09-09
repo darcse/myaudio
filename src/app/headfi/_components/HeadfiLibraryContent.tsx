@@ -15,7 +15,7 @@ import {
   updateHeadfiSaleInDB,
   uploadHeadfiDeviceImage,
 } from '../actions';
-import { HEADFI_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -533,7 +533,6 @@ export function HeadfiLibraryContent() {
       toast.error('로그인이 필요합니다.');
       return;
     }
-    if (!confirm('정말 이 기기를 삭제하시겠습니까?')) return;
     setIsDeleting(true);
     try {
       await deleteHeadfiFromDB(viewingItem.id);
@@ -641,7 +640,7 @@ export function HeadfiLibraryContent() {
     }
   };
 
-  const handleAccessoryUpdate = async (id: number, data: HeadfiAccessoryFormData) => {
+  const handleAccessoryUpdate = async (id: string, data: HeadfiAccessoryFormData) => {
     if (isAuthenticated === false) {
       throw new Error('Unauthorized');
     }
@@ -658,9 +657,6 @@ export function HeadfiLibraryContent() {
   const handleAccessoryDelete = async (item: HeadfiAccessory) => {
     if (isAuthenticated === false) {
       throw new Error('Unauthorized');
-    }
-    if (!confirm(`'${item.name}' 액세서리를 삭제하시겠습니까?`)) {
-      throw new Error('삭제가 취소되었습니다.');
     }
     try {
       await deleteHeadfiAccessoryFromDB(item.id);
@@ -703,11 +699,6 @@ export function HeadfiLibraryContent() {
   const handleSaleDelete = async (item: HeadfiSale) => {
     if (isAuthenticated === false) {
       throw new Error('Unauthorized');
-    }
-    const gear = library.find((g) => g.id === item.gear_id);
-    const gearLabel = gear ? `${gear.brand} ${gear.model}` : '선택한 기기';
-    if (!confirm(`'${gearLabel}' 판매 기록을 삭제하시겠습니까?`)) {
-      throw new Error('삭제가 취소되었습니다.');
     }
     try {
       await deleteHeadfiSaleFromDB(item.id);
@@ -800,7 +791,8 @@ export function HeadfiLibraryContent() {
         open={saleModalOpen}
         sales={sales}
         library={library}
-        categoryOptions={HEADFI_CATEGORY_OPTIONS}
+        accessories={accessories}
+        categoryOptions={HEADFI_SALE_CATEGORY_OPTIONS}
         onClose={handleSaleModalClose}
         onCreate={handleSaleCreate}
         onUpdate={handleSaleUpdate}

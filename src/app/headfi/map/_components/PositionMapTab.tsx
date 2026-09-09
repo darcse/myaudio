@@ -30,16 +30,19 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
     filteredPlottedCount,
     mapMarkers,
     regenerating,
+    regenerateConfirmOpen,
     loadingIds,
     activePopover,
     hoverTooltip,
     setStatusFilter,
     setCategoryFilter,
+    setRegenerateConfirmOpen,
     handleDevicePickerToggle,
     toggleDeviceSelection,
     selectAllDevices,
     clearAllDevices,
-    handleRegenerateAll,
+    requestRegenerateAll,
+    confirmRegenerateAll,
     analyzeOne,
     clearPosition,
     openMarkerPopover,
@@ -59,7 +62,7 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
           <button
             type="button"
             disabled={regenerating || filteredPlottedCount === 0}
-            onClick={() => void handleRegenerateAll()}
+            onClick={requestRegenerateAll}
             className="btn-apple btn-apple-secondary flex h-[38px] min-w-[7.5rem] items-center justify-center gap-1.5 px-3 text-sm disabled:opacity-50"
           >
             {regenerating ? (
@@ -73,6 +76,35 @@ export function PositionMapTab({ library, isAuthenticated, onRefresh }: Position
           </button>
         ) : null}
       </div>
+
+      {regenerateConfirmOpen ? (
+        <div
+          className="rounded-lg border p-3"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+        >
+          <p className="text-sm font-medium">
+            모든 기기의 포지션 좌표를 다시 생성합니다. 기존 좌표가 덮어씌워집니다. 계속하시겠습니까?
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+              onClick={() => setRegenerateConfirmOpen(false)}
+              disabled={regenerating}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-apple btn-apple-primary h-[34px] px-3 text-sm"
+              onClick={() => void confirmRegenerateAll()}
+              disabled={regenerating}
+            >
+              {regenerating ? '새로고침 중…' : '계속'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div
         ref={mapWrapRef}

@@ -86,7 +86,7 @@ export interface Headfi {
 export type HeadfiAccessoryStatus = 'owned' | 'released';
 
 export interface HeadfiAccessory {
-  id: number;
+  id: string;
   category: string;
   name: string;
   price: number | null;
@@ -106,7 +106,8 @@ export interface HeadfiAccessoryFormData {
 export interface HeadfiSale {
   id: number;
   category: string;
-  gear_id: number;
+  headfi_gear_id: number | null;
+  accessory_id: string | null;
   price: number | null;
   sale_date: string | null;
   created_at?: string | null;
@@ -114,7 +115,7 @@ export interface HeadfiSale {
 
 export interface HeadfiSaleFormData {
   category: string;
-  gear_id: string;
+  item_id: string;
   price: string;
   sale_date: string;
 }

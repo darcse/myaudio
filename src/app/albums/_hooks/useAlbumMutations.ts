@@ -86,9 +86,6 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
         toast.error('로그인이 필요합니다.');
         return false;
       }
-      if (!confirm(params.confirmMessage ?? '정말 이 앨범을 삭제하시겠습니까?')) {
-        return false;
-      }
       setIsDeleting(true);
       try {
         await deleteAlbumFromDB(params.albumId);

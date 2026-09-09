@@ -81,6 +81,7 @@ export function AlbumListenHistorySection({
   const [listenOpen, setListenOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
   const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
     setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
@@ -239,6 +240,7 @@ export function AlbumListenHistorySection({
     resetFormFields();
     setListenOpen(false);
     setFormOpen(false);
+    setPendingDeleteId(null);
   }, [albumId, resetFormFields]);
 
   const parseOptionalId = (raw: string) => {
@@ -355,7 +357,6 @@ export function AlbumListenHistorySection({
   };
 
   const deleteListenHistory = async (rowId: number) => {
-    if (!confirm('이 청취 이력을 삭제할까요?')) return;
     setListenSaving(true);
     try {
       const supabase = createClient();
@@ -364,6 +365,7 @@ export function AlbumListenHistorySection({
         toast.error(error.message || '삭제하지 못했습니다.');
         return;
       }
+      setPendingDeleteId(null);
       if (editingId === rowId) {
         resetFormFields();
         setFormOpen(false);
@@ -540,6 +542,32 @@ export function AlbumListenHistorySection({
 
   const historyList = (
     <>
+      {pendingDeleteId != null ? (
+        <div
+          className="mb-3 rounded-lg border p-3"
+          style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+        >
+          <p className="text-sm font-medium">이 청취 이력을 삭제할까요?</p>
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+              onClick={() => setPendingDeleteId(null)}
+              disabled={listenSaving}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+              onClick={() => void deleteListenHistory(pendingDeleteId)}
+              disabled={listenSaving}
+            >
+              {listenSaving ? '삭제 중…' : '삭제'}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {listenLoading ? (
         <div className="flex items-center gap-2 py-2 opacity-60">
           <div
@@ -585,7 +613,7 @@ export function AlbumListenHistorySection({
                 </button>
                 <button
                   type="button"
-                  onClick={() => void deleteListenHistory(row.id)}
+                  onClick={() => setPendingDeleteId(row.id)}
                   disabled={listenSaving}
                   className="btn-apple btn-apple-danger shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
                   aria-label="이력 삭제"

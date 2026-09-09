@@ -121,6 +121,7 @@ export function AlbumDiaryContent() {
   const [dacAmp2Options, setDacAmp2Options] = useState<GearOption[]>([]);
   const [headphoneOptions, setHeadphoneOptions] = useState<GearOption[]>([]);
   const [listenSaving, setListenSaving] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
 
@@ -392,7 +393,6 @@ export function AlbumDiaryContent() {
   };
 
   const deleteEntry = async (entryId: number) => {
-    if (!confirm('이 청취 기록을 삭제할까요?')) return;
     setListenSaving(true);
     try {
       const { error } = await createClient().from('album_listen_history').delete().eq('id', entryId);
@@ -400,6 +400,7 @@ export function AlbumDiaryContent() {
         toast.error(error.message || '삭제하지 못했습니다.');
         return;
       }
+      setPendingDeleteId(null);
       if (editingEntry?.id === entryId) resetEditForm();
       toast.success('청취 기록을 삭제했습니다.');
       await fetchData();
@@ -407,6 +408,34 @@ export function AlbumDiaryContent() {
       setListenSaving(false);
     }
   };
+
+  const deleteConfirmBanner =
+    pendingDeleteId != null ? (
+      <div
+        className="mb-4 rounded-lg border p-3"
+        style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+      >
+        <p className="text-sm font-medium">이 청취 기록을 삭제할까요?</p>
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+            onClick={() => setPendingDeleteId(null)}
+            disabled={listenSaving}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+            onClick={() => void deleteEntry(pendingDeleteId)}
+            disabled={listenSaving}
+          >
+            {listenSaving ? '삭제 중…' : '삭제'}
+          </button>
+        </div>
+      </div>
+    ) : null;
 
   const handleAlbumEditClick = () => {
     if (!viewingAlbum) return;
@@ -743,9 +772,14 @@ export function AlbumDiaryContent() {
           editingEntryId={editingEntry?.id ?? null}
           listenSaving={listenSaving}
           isAuthenticated={isAuthenticated}
+          pendingDeleteId={pendingDeleteId}
           onOpenAlbum={openAlbum}
           onEditEntry={startEditEntry}
-          onDeleteEntry={(entryId) => void deleteEntry(entryId)}
+          onDeleteEntry={setPendingDeleteId}
+          onCancelPendingDelete={() => setPendingDeleteId(null)}
+          onConfirmPendingDelete={() => {
+            if (pendingDeleteId != null) void deleteEntry(pendingDeleteId);
+          }}
         />
       ) : dayGroups.length === 0 ? (
         <div
@@ -757,6 +791,7 @@ export function AlbumDiaryContent() {
         </div>
       ) : (
         <div className="space-y-8">
+          {deleteConfirmBanner}
           {dayGroups.map((group) => {
             const headerGradient = getDiaryDayHeaderGradient(group.entries);
             return (
@@ -785,7 +820,7 @@ export function AlbumDiaryContent() {
                     showActions={isAuthenticated === true}
                     onOpenAlbum={openAlbum}
                     onEdit={startEditEntry}
-                    onDelete={(entryId) => void deleteEntry(entryId)}
+                    onDelete={setPendingDeleteId}
                   />
                 ))}
               </ul>

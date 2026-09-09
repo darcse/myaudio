@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import { countryOptions, genreOptions } from '../constants';
@@ -34,6 +34,11 @@ export function AlbumForm({
   isSaving = false,
   isDeleting = false,
 }: AlbumFormProps) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    setDeleteConfirmOpen(false);
+  }, [selectedItem]);
   useEffect(() => {
     const scrollY = window.scrollY;
     const { body, documentElement } = document;
@@ -283,17 +288,47 @@ export function AlbumForm({
               '라이브러리에 최종 등록'
             )}
           </button>
-          {isEdit && onDelete && (
+          {isEdit && onDelete && !deleteConfirmOpen ? (
             <button
               type="button"
               className="btn-apple btn-apple-danger p-4 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed"
-              onClick={onDelete}
+              onClick={() => setDeleteConfirmOpen(true)}
               disabled={isSaving || isDeleting}
               aria-busy={isDeleting}
             >
               {isDeleting ? <DeletingLabel /> : '앨범 삭제'}
             </button>
-          )}
+          ) : null}
+          {isEdit && onDelete && deleteConfirmOpen ? (
+            <div
+              className="rounded-lg border p-3"
+              style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+            >
+              <p className="text-sm font-medium">정말 이 앨범을 삭제하시겠습니까?</p>
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                  onClick={() => setDeleteConfirmOpen(false)}
+                  disabled={isDeleting}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+                  onClick={() => {
+                    setDeleteConfirmOpen(false);
+                    onDelete();
+                  }}
+                  disabled={isDeleting}
+                  aria-busy={isDeleting}
+                >
+                  {isDeleting ? <DeletingLabel /> : '삭제'}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

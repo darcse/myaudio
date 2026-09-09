@@ -3,6 +3,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
 import type { HeadfiAccessoryFormData, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
   if (raw === undefined || raw === null || String(raw).trim() === '') return null;
@@ -428,7 +429,7 @@ export async function saveHeadfiAccessoryToDB(data: HeadfiAccessoryFormData) {
   return result;
 }
 
-export async function updateHeadfiAccessoryInDB(id: number, data: HeadfiAccessoryFormData) {
+export async function updateHeadfiAccessoryInDB(id: string, data: HeadfiAccessoryFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
@@ -441,7 +442,7 @@ export async function updateHeadfiAccessoryInDB(id: number, data: HeadfiAccessor
   return result;
 }
 
-export async function deleteHeadfiAccessoryFromDB(id: number) {
+export async function deleteHeadfiAccessoryFromDB(id: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
@@ -452,16 +453,30 @@ export async function deleteHeadfiAccessoryFromDB(id: number) {
 
 function mapHeadfiSaleData(data: HeadfiSaleFormData) {
   const category = data.category.trim();
-  const gearId = parseIntOrNull(data.gear_id);
+  const itemId = data.item_id.trim();
   const price = parseIntOrNull(data.price);
   const saleDate = data.sale_date.trim();
   if (!category) throw new Error('카테고리를 선택해 주세요.');
-  if (gearId == null) throw new Error('기기를 선택해 주세요.');
+  if (!itemId) throw new Error('기기를 선택해 주세요.');
   if (price == null || price <= 0) throw new Error('가격을 입력해 주세요.');
   if (!saleDate) throw new Error('판매일을 입력해 주세요.');
+
+  if (isHeadfiSaleAccessoryCategory(category)) {
+    return {
+      category: HEADFI_SALE_ACCESSORY_CATEGORY,
+      headfi_gear_id: null,
+      accessory_id: itemId,
+      price,
+      sale_date: saleDate,
+    };
+  }
+
+  const headfiGearId = parseIntOrNull(itemId);
+  if (headfiGearId == null) throw new Error('기기를 선택해 주세요.');
   return {
     category,
-    gear_id: gearId,
+    headfi_gear_id: headfiGearId,
+    accessory_id: null,
     price,
     sale_date: saleDate,
   };

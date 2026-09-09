@@ -428,3 +428,18 @@
 [2026-09-05] [Cursor] feat: GEAR-039 독립 액세서리 보유중/방출 status(owned/released) 저장·목록 구분 | passes: 변경 없음
 [2026-09-05] [Cursor] feat: GEAR-039 액세서리 모달 상태(보유중/방출) 필터 추가 | passes: 변경 없음
 [2026-09-05] [Cursor] fix: ALBUM-033 이후 단건 무드분류가 메탈 무드로 편향되던 pickAlbumMoodGroupName 프롬프트·파싱 수정 | passes: 변경 없음
+[2026-09-09] [Cursor] feat: GEAR-040 판매관리 악세서리 카테고리(headfi_accessories released) — FK 드롭 SQL 별도 제공 | passes: 변경 없음
+[2026-09-09] [Cursor] refactor: headfi_sales gear_id → headfi_gear_id/accessory_id 분리 정합 (액세서리 id uuid) | passes: 변경 없음
+[2026-09-09] [Cursor] fix: 판매관리 선택옵션에서 이미 판매등록된 기기/액세서리 제외(현재 행 선택값 유지) | passes: 변경 없음
+[2026-09-09] [Cursor] style: 판매관리 카테고리 표기 악세서리→액세서리 (레거시 조회 호환) | passes: 변경 없음
+[2026-09-09] [Cursor] fix: 판매관리 모달 닫기 버튼 — 이벤트 버블/날짜 dirty 오탐 수정 | passes: 변경 없음
+[2026-09-09] [Cursor] feat: 판매관리 모달 카테고리 필터 추가 | passes: 변경 없음
+[2026-09-09] [Cursor] fix: 판매관리 미저장 닫기 — window.confirm 대신 모달 내 확인 UI | passes: 변경 없음
+[2026-09-09] [Cursor] fix: 판매관리 기기옵션에 #id 표시·taken ID를 headfi_gear_id/accessory_id 모두 수집 | passes: 변경 없음
+[2026-09-09] [Cursor] fix: 앨범 삭제 확인 — window.confirm 대신 모달 내 확인 UI | passes: 변경 없음
+
+[2026-09-09] [Cursor] fix: 헤드파이 기기/액세서리/판매/세팅 삭제·미저장닫기 — window.confirm 대신 모달 내 확인 UI | passes: 변경 없음
+
+[2026-09-09] [Cursor] investigate: 모달 삭제 회귀 — 근본원인=window.confirm×modal-overlay 조합(GEAR-040 무관), 잔여 confirm 전수목록·재발방지 제안 | passes: 변경 없음
+
+[2026-09-09] [Cursor] fix: 잔여 window.confirm 5곳 전부 인라인 확인 UI로 교체 (청취이력·다이어리·가사·포지션맵) | passes: 변경 없음

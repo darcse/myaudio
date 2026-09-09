@@ -24,9 +24,12 @@ type AlbumDiaryCalendarViewProps = {
   editingEntryId: number | null;
   listenSaving: boolean;
   isAuthenticated: boolean | null;
+  pendingDeleteId: number | null;
   onOpenAlbum: (albumId: number) => void;
   onEditEntry: (entry: DiaryListenEntry) => void;
   onDeleteEntry: (entryId: number) => void;
+  onCancelPendingDelete: () => void;
+  onConfirmPendingDelete: () => void;
 };
 
 const WEEKDAY_HEADERS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -39,9 +42,12 @@ export function AlbumDiaryCalendarView({
   editingEntryId,
   listenSaving,
   isAuthenticated,
+  pendingDeleteId,
   onOpenAlbum,
   onEditEntry,
   onDeleteEntry,
+  onCancelPendingDelete,
+  onConfirmPendingDelete,
 }: AlbumDiaryCalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -127,7 +133,10 @@ export function AlbumDiaryCalendarView({
         ? createPortal(
             <div
               className="modal-overlay-apple fixed inset-0 z-50 flex items-center justify-center p-4"
-              onClick={() => setSelectedDate(null)}
+              onClick={() => {
+                onCancelPendingDelete();
+                setSelectedDate(null);
+              }}
             >
               <div
                 className="modal-panel-apple relative w-full max-w-lg max-h-[85vh] overflow-y-auto p-6"
@@ -138,7 +147,10 @@ export function AlbumDiaryCalendarView({
               >
                 <button
                   type="button"
-                  onClick={() => setSelectedDate(null)}
+                  onClick={() => {
+                    onCancelPendingDelete();
+                    setSelectedDate(null);
+                  }}
                   className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100"
                   aria-label="닫기"
                 >
@@ -147,6 +159,32 @@ export function AlbumDiaryCalendarView({
                 <h3 className="mb-4 pr-8 text-base font-semibold tabular-nums">
                   {selectedDate.replace(/-/g, '.')} ({weekdayLabelForDate(selectedDate)})
                 </h3>
+                {pendingDeleteId != null ? (
+                  <div
+                    className="mb-4 rounded-lg border p-3"
+                    style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+                  >
+                    <p className="text-sm font-medium">이 청취 기록을 삭제할까요?</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                        onClick={onCancelPendingDelete}
+                        disabled={listenSaving}
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
+                        onClick={onConfirmPendingDelete}
+                        disabled={listenSaving}
+                      >
+                        {listenSaving ? '삭제 중…' : '삭제'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <ul className="space-y-2">
                   {selectedEntries.map((entry) => (
                     <DiaryListenEntryListItem
@@ -158,6 +196,7 @@ export function AlbumDiaryCalendarView({
                       onOpenAlbum={onOpenAlbum}
                       onEdit={(item) => {
                         setSelectedDate(null);
+                        onCancelPendingDelete();
                         onEditEntry(item);
                       }}
                       onDelete={onDeleteEntry}

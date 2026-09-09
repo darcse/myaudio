@@ -22,6 +22,21 @@ export const HEADFI_CATEGORY_OPTIONS = [
   '기타',
 ] as const;
 
+/** 판매관리 전용 — 기기 카테고리 + 독립 액세서리(headfi_accessories) */
+export const HEADFI_SALE_ACCESSORY_CATEGORY = '액세서리' as const;
+/** 과거 표기(악세서리) — 기존 headfi_sales 행 조회 호환 */
+export const HEADFI_SALE_ACCESSORY_CATEGORY_LEGACY = '악세서리' as const;
+
+export function isHeadfiSaleAccessoryCategory(category: string | null | undefined): boolean {
+  const value = (category ?? '').trim();
+  return value === HEADFI_SALE_ACCESSORY_CATEGORY || value === HEADFI_SALE_ACCESSORY_CATEGORY_LEGACY;
+}
+
+export const HEADFI_SALE_CATEGORY_OPTIONS = [
+  ...HEADFI_CATEGORY_OPTIONS,
+  HEADFI_SALE_ACCESSORY_CATEGORY,
+] as const;
+
 export const DAC_AMP_ONLY_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP'] as const;
 export const DAC_AMP_DAP_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP'] as const;
 export const COMBO_ELIGIBLE_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source'] as const;

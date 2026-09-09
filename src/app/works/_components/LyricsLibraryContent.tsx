@@ -217,7 +217,6 @@ export function LyricsLibraryContent() {
       toast.error('로그인이 필요합니다.');
       return;
     }
-    if (!confirm('정말 이 가사 항목을 삭제하시겠습니까?')) return;
     setIsDeleting(true);
     try {
       await deleteLyricsFromDB(viewingItem.id);
