@@ -529,5 +529,21 @@
           "무드 목록 로딩 실패 또는 저장 API 실패 시 에러 메시지 노출 확인"
         ],
         "passes": true
+      },
+      {
+        "id": "ALBUM-034",
+        "category": "album",
+        "title": "RecordShelf — 카세트테이프 보유 매체 추가",
+        "description": "앨범 등록 모달의 '물리 매체 보유' 섹션에 카세트테이프 체크박스를 추가하고, RecordShelf 메뉴의 필터/뱃지/목록 조회에 카세트테이프를 CD/LP와 동일하게 반영한다.",
+        "steps": [
+          "앨범 등록 모달에서 CD 보유/LP 보유 옆에 '카세트테이프 보유' 체크박스가 노출되는지 확인",
+          "카세트테이프 체크 후 저장 시 album.owns_cassette가 true로 저장되는지 확인",
+          "RecordShelf 목록 쿼리가 owns_cd, owns_lp뿐 아니라 owns_cassette=true인 앨범도 포함하는지 확인",
+          "RecordShelf 필터에 '카세트' 옵션이 추가되어 해당 필터 선택 시 카세트 보유 앨범만 노출되는지 확인",
+          "PhysicalOwnedBadges에 카세트 보유 앨범은 'Cassette'(또는 적절한 라벨) 뱃지가 CD/LP 뱃지와 함께 노출되는지 확인",
+          "CD/LP/카세트 중 아무것도 체크 안 된 앨범은 RecordShelf 목록에서 제외되는지 확인",
+          "세 매체를 모두 보유 체크한 앨범이 뱃지 3개가 동시에 정상 노출되는지 확인"
+        ],
+        "passes": true
       }
   ]

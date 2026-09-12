@@ -33,6 +33,7 @@ export function PhysicalOwnedBadges({ album }: { album: Album }) {
   const labels = [
     album.owns_cd ? 'CD' : null,
     album.owns_lp ? 'LP' : null,
+    album.owns_cassette ? '카세트' : null,
   ].filter((label): label is string => Boolean(label));
   if (labels.length === 0) return null;
   return (
@@ -149,7 +150,7 @@ export function BoardExpandedAlbumGrid({
           </div>
           <p className="line-clamp-2 text-sm font-bold leading-tight">{item.album_name}</p>
           <p className="text-xs opacity-60 truncate mt-0.5">{subtitleText}</p>
-          {item.owns_cd || item.owns_lp ? (
+          {item.owns_cd || item.owns_lp || item.owns_cassette ? (
             <div className="mt-1 flex flex-wrap gap-1">
               <PhysicalOwnedBadges album={item} />
             </div>

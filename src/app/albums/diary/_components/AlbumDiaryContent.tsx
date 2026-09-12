@@ -60,6 +60,7 @@ const initialAlbumFormData: AlbumFormData = {
   mood_names: [],
   owns_cd: false,
   owns_lp: false,
+  owns_cassette: false,
 };
 
 function filterToggleStyle(active: boolean): CSSProperties {

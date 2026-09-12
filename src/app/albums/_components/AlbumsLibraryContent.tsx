@@ -51,6 +51,7 @@ const initialFormData: AlbumFormData = {
   mood_names: [],
   owns_cd: false,
   owns_lp: false,
+  owns_cassette: false,
 };
 
 export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOwnedOnly?: boolean }) {
@@ -120,7 +121,11 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     try {
       const client = createClient();
       const albumQuery = physicalOwnedOnly
-        ? client.from('album').select('*').or('owns_cd.eq.true,owns_lp.eq.true').order('release_date', { ascending: false })
+        ? client
+            .from('album')
+            .select('*')
+            .or('owns_cd.eq.true,owns_lp.eq.true,owns_cassette.eq.true')
+            .order('release_date', { ascending: false })
         : client.from('album').select('*').order('created_at', { ascending: false });
       const [albumRes, artistsRes] = await Promise.all([
         albumQuery,
@@ -587,7 +592,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
             <div className="empty-state-apple text-center py-12">
               <p>
                 {physicalOwnedOnly
-                  ? 'CD 또는 LP로 표시된 앨범이 없습니다.'
+                  ? 'CD·LP·카세트로 표시된 앨범이 없습니다.'
                   : '등록된 앨범이 없습니다.'}
               </p>
             </div>

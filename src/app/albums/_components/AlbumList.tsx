@@ -265,6 +265,7 @@ export function AlbumList({
                 { value: 'all' as const, label: '전체' },
                 { value: 'cd' as const, label: 'CD' },
                 { value: 'lp' as const, label: 'LP' },
+                { value: 'cassette' as const, label: '카세트' },
               ]).map((opt) => (
                 <button
                   key={opt.value}

@@ -47,6 +47,7 @@ function mapAlbumData(data: AlbumFormData) {
     manual_recommended_headphone_ids: manualIds.length > 0 ? manualIds : null,
     owns_cd: Boolean(data.owns_cd),
     owns_lp: Boolean(data.owns_lp),
+    owns_cassette: Boolean(data.owns_cassette),
   };
 }
 

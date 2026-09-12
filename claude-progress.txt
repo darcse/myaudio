@@ -455,3 +455,5 @@
 [2026-09-12] [Cursor] feat: STATS-001 Listening Insights(/insights) — 랭킹·추이·사용통계·Archive 탭 이관, GNB Archive 교체, 구경로 리다이렉트 | passes: 변경 없음
 
 [2026-09-12] [Cursor] feat: STATS-002 Insights 장르 통계 탭(장르1·아티스트 구분 랭킹) + GNB 라벨 Insights | passes: 변경 없음
+
+[2026-09-12] [Cursor] feat: album owns_cassette — 등록폼·저장·RecordShelf 필터/뱃지 | passes: 변경 없음

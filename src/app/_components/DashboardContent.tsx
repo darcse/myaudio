@@ -101,6 +101,7 @@ const initialAlbumFormData: AlbumFormData = {
   mood_names: [],
   owns_cd: false,
   owns_lp: false,
+  owns_cassette: false,
 };
 
 const initialHeadfiFormData = {
@@ -192,6 +193,7 @@ function albumFormDataFromItem(item: Album): AlbumFormData {
     mood_names: Array.isArray(item.mood_names) ? [...item.mood_names] : [],
     owns_cd: Boolean(item.owns_cd),
     owns_lp: Boolean(item.owns_lp),
+    owns_cassette: Boolean(item.owns_cassette),
   };
 }
 

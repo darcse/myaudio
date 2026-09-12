@@ -26,6 +26,7 @@ export interface Album {
   mood_manually_set?: boolean | null;
   owns_cd?: boolean | null;
   owns_lp?: boolean | null;
+  owns_cassette?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -61,6 +62,7 @@ export interface AlbumFormData {
   mood_names: string[];
   owns_cd: boolean;
   owns_lp: boolean;
+  owns_cassette: boolean;
 }
 
 export type SelectedAlbum = Album | MusicBrainzSearchItem | { isManual: true };

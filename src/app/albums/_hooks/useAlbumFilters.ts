@@ -7,7 +7,7 @@ import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYear
 
 const ITEMS_PER_PAGE = 20;
 
-export type AlbumMediaFilter = 'all' | 'cd' | 'lp';
+export type AlbumMediaFilter = 'all' | 'cd' | 'lp' | 'cassette';
 
 export function useAlbumFilters(
   library: Album[],
@@ -52,7 +52,8 @@ export function useAlbumFilters(
       const matchesMedia =
         listMediaFilter === 'all' ||
         (listMediaFilter === 'cd' && Boolean(item.owns_cd)) ||
-        (listMediaFilter === 'lp' && Boolean(item.owns_lp));
+        (listMediaFilter === 'lp' && Boolean(item.owns_lp)) ||
+        (listMediaFilter === 'cassette' && Boolean(item.owns_cassette));
       const lowerQuery = listSearchQuery.toLowerCase().trim();
       const artistName = item.artist?.trim() ?? '';
       const nameAlt = artistName ? (artistNameAltByName[artistName] ?? null) : null;
