@@ -449,3 +449,9 @@
 [2026-09-09] [Cursor] fix: 타임머신 fetchTimeMachineRecall — min~max 11개월 조회를 4개 ±3일 윈도우 OR로 축소 | passes: 변경 없음
 
 [2026-09-09] [Cursor] style: GNB 새로고침 버튼 클릭 시 RefreshCw animate-spin·disabled 피드백 | passes: 변경 없음
+
+[2026-09-12] [Cursor] feat: 앨범 국가 옵션에 중국 추가 | passes: 변경 없음
+
+[2026-09-12] [Cursor] feat: STATS-001 Listening Insights(/insights) — 랭킹·추이·사용통계·Archive 탭 이관, GNB Archive 교체, 구경로 리다이렉트 | passes: 변경 없음
+
+[2026-09-12] [Cursor] feat: STATS-002 Insights 장르 통계 탭(장르1·아티스트 구분 랭킹) + GNB 라벨 Insights | passes: 변경 없음

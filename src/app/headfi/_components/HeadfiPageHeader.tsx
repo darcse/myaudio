@@ -3,9 +3,9 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart2, BarChart3, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
+import { BarChart2, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
 
-export type HeadfiNavId = 'stats' | 'usage' | 'position' | 'device-match' | 'album-match';
+export type HeadfiNavId = 'stats' | 'position' | 'device-match' | 'album-match';
 
 type HeadfiPageHeaderProps = {
   activeNav?: HeadfiNavId | null;
@@ -63,10 +63,6 @@ export function HeadfiPageHeader({
                 <span className="hidden sm:inline">소비 통계</span>
               </Link>
             )}
-            <Link href="/headfi/stats" className={navButtonClass(activeNav === 'usage')} aria-label="사용 통계">
-              <BarChart3 className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-              <span className="hidden sm:inline">사용 통계</span>
-            </Link>
           </>
         ) : null}
         <Link href="/headfi/map" className={navButtonClass(activeNav === 'position')}>

@@ -98,7 +98,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
         </h1>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Link
-            href={`/archive?year=${y}`}
+            href={`/insights?tab=archive&year=${y}`}
             className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium opacity-85 transition-opacity hover:opacity-100"
             style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
             aria-label="Archive 목록으로 돌아가기"

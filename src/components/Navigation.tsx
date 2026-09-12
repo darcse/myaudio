@@ -17,7 +17,7 @@ const navItems: NavItem[] = [
   { name: 'RecordShelf', path: '/recordshelf' },
   { name: 'Head-fi', path: '/headfi' },
   { name: 'Works', path: '/works' },
-  { name: 'Archive', path: '/archive' },
+  { name: 'Insights', path: '/insights' },
 ];
 
 const iconButtonClass =

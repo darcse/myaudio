@@ -49,6 +49,11 @@ type HistoryRow = GearListenHistoryRow;
 
 type AlbumStatsTab = 'ranking' | 'trend';
 
+type AlbumStatsContentProps = {
+  embedded?: boolean;
+  fixedTab?: AlbumStatsTab;
+};
+
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
   artist_type: '',
@@ -202,7 +207,7 @@ function ArtistRankRow({
   );
 }
 
-export function AlbumStatsContent() {
+export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsContentProps) {
   const isAuthenticated = useAuthState();
   const { comboOptions, getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -210,7 +215,7 @@ export function AlbumStatsContent() {
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [statsTab, setStatsTab] = useState<AlbumStatsTab>('ranking');
+  const [statsTab, setStatsTab] = useState<AlbumStatsTab>(fixedTab ?? 'ranking');
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [gearById, setGearById] = useState<Map<number, GearSummary>>(() => new Map());
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
@@ -243,6 +248,12 @@ export function AlbumStatsContent() {
   const [now, setNow] = useState(() => new Date());
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
+
+  useEffect(() => {
+    if (fixedTab) setStatsTab(fixedTab);
+  }, [fixedTab]);
+
+  const activeStatsTab = fixedTab ?? statsTab;
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -721,34 +732,45 @@ export function AlbumStatsContent() {
   };
 
   return (
-    <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <AlbumPageHeader activeNav="stats" isAuthenticated={isAuthenticated} showDivider />
-      <AlbumSubHeader
-        icon={BarChart3}
-        title="청취 통계"
-        trailing={
-          <>
-            <button
-              type="button"
-              onClick={() => setStatsTab('ranking')}
-              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-              style={filterToggleStyle(statsTab === 'ranking')}
-              aria-pressed={statsTab === 'ranking'}
-            >
-              랭킹
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatsTab('trend')}
-              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-              style={filterToggleStyle(statsTab === 'trend')}
-              aria-pressed={statsTab === 'trend'}
-            >
-              청취 추이
-            </button>
-          </>
-        }
-      />
+    <div
+      className={
+        embedded
+          ? 'relative'
+          : 'relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6'
+      }
+      style={{ color: 'var(--foreground)' }}
+    >
+      {!embedded ? (
+        <>
+          <AlbumPageHeader activeNav={null} isAuthenticated={isAuthenticated} showDivider />
+          <AlbumSubHeader
+            icon={BarChart3}
+            title="청취 통계"
+            trailing={
+              <>
+                <button
+                  type="button"
+                  onClick={() => setStatsTab('ranking')}
+                  className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+                  style={filterToggleStyle(activeStatsTab === 'ranking')}
+                  aria-pressed={activeStatsTab === 'ranking'}
+                >
+                  랭킹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatsTab('trend')}
+                  className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
+                  style={filterToggleStyle(activeStatsTab === 'trend')}
+                  aria-pressed={activeStatsTab === 'trend'}
+                >
+                  청취 추이
+                </button>
+              </>
+            }
+          />
+        </>
+      ) : null}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -757,7 +779,7 @@ export function AlbumStatsContent() {
             style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
           />
         </div>
-      ) : statsTab === 'trend' ? (
+      ) : activeStatsTab === 'trend' ? (
         <ListenTrendSection historyRows={historyRows} now={now} loadError={loadError} />
       ) : (
         <>

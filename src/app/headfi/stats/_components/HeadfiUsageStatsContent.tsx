@@ -42,7 +42,7 @@ function filterToggleStyle(active: boolean): React.CSSProperties {
   };
 }
 
-export function HeadfiUsageStatsContent() {
+export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
   const { getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
@@ -230,9 +230,20 @@ export function HeadfiUsageStatsContent() {
   }, []);
 
   return (
-    <div className="relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <HeadfiPageHeader activeNav="usage" isAuthenticated={isAuthenticated} showDivider />
-      <HeadfiSubHeader icon={BarChart3} title="사용 통계" />
+    <div
+      className={
+        embedded
+          ? 'relative'
+          : 'relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6'
+      }
+      style={{ color: 'var(--foreground)' }}
+    >
+      {!embedded ? (
+        <>
+          <HeadfiPageHeader activeNav={null} isAuthenticated={isAuthenticated} showDivider />
+          <HeadfiSubHeader icon={BarChart3} title="사용 통계" />
+        </>
+      ) : null}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">

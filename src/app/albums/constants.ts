@@ -1,6 +1,7 @@
 export const countryOptions = [
   { name: '한국', flag: '🇰🇷' },
   { name: '일본', flag: '🇯🇵' },
+  { name: '중국', flag: '🇨🇳' },
   { name: '미국', flag: '🇺🇸' },
   { name: '영국', flag: '🇬🇧' },
   { name: '프랑스', flag: '🇫🇷' },
