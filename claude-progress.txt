@@ -457,3 +457,7 @@
 [2026-09-12] [Cursor] feat: STATS-002 Insights 장르 통계 탭(장르1·아티스트 구분 랭킹) + GNB 라벨 Insights | passes: 변경 없음
 
 [2026-09-12] [Cursor] feat: album owns_cassette — 등록폼·저장·RecordShelf 필터/뱃지 | passes: 변경 없음
+
+[2026-09-13] [Cursor] feat: 앨범 타입에 리메이크·리믹스 옵션 추가 | passes: 변경 없음
+
+[2026-09-13] [Cursor] feat: 앨범 장르 옵션에 Crossover 추가 | passes: 변경 없음

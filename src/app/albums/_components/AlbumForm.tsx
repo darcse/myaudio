@@ -135,6 +135,8 @@ export function AlbumForm({
               <option value="베스트/스페셜">베스트/스페셜</option>
               <option value="OST">OST</option>
               <option value="Live">라이브</option>
+              <option value="리메이크">리메이크</option>
+              <option value="리믹스">리믹스</option>
               <option value="플레이리스트">플레이리스트</option>
             </select>
           </div>

@@ -19,7 +19,7 @@ export const countryOptions = [
 
 export const genreOptions = [
   'Rock', 'Metal', 'Electronic', 'Pop', 'K-Pop', 'J-Pop', 'J-Idol', 'J-Rock',
-  'OST', 'Jazz', 'Classic', '기타',
+  'OST', 'Jazz', 'Classic', 'Crossover', '기타',
 ] as const;
 
 export const albumYearOptions = [
