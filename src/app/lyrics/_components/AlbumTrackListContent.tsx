@@ -15,7 +15,7 @@ import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import { countryOptions } from '@/app/albums/constants';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
-import { replaceAlbumTracks } from '../actions';
+import { deleteAlbumTracks, replaceAlbumTracks, commitAlbumTrackListDraft } from '../actions';
 import type { TrackWithTranslation } from '../types';
 
 type AlbumMeta = {
@@ -26,6 +26,14 @@ type AlbumMeta = {
   cover_image_url: string | null;
   release_date: string | null;
   genre1: string | null;
+};
+
+type TrackEditDraft = {
+  key: string;
+  id: string | null;
+  track_number: string;
+  track_title: string;
+  hasTranslation: boolean;
 };
 
 const initialAlbumFormData: AlbumFormData = {
@@ -95,11 +103,20 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [removingAlbum, setRemovingAlbum] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editDrafts, setEditDrafts] = useState<TrackEditDraft[]>([]);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdits, setSavingEdits] = useState(false);
+  const [deleteTrackKey, setDeleteTrackKey] = useState<string | null>(null);
+  const [newTrackNumber, setNewTrackNumber] = useState('');
+  const [newTrackTitle, setNewTrackTitle] = useState('');
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const client = createClient();
       const [{ data: albumRow, error: albumError }, { data: trackRows, error: trackError }] =
@@ -120,7 +137,7 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
       if (!albumRow) {
         toast.error('앨범을 찾을 수 없습니다.');
         router.push('/lyrics');
-        return;
+        return [] as TrackWithTranslation[];
       }
       setAlbum(albumRow as AlbumMeta);
 
@@ -137,17 +154,18 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
           translationByTrack.set(tr.track_id, tr as NonNullable<TrackWithTranslation['translation']>);
         }
       }
-      setTracks(
-        list.map((t) => ({
-          ...t,
-          translation: translationByTrack.get(t.id) ?? null,
-        })),
-      );
+      const mapped = list.map((t) => ({
+        ...t,
+        translation: translationByTrack.get(t.id) ?? null,
+      }));
+      setTracks(mapped);
+      return mapped;
     } catch (e) {
       toast.error(getClientErrorMessage(e));
       setTracks([]);
+      return [] as TrackWithTranslation[];
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, [albumId, router]);
 
@@ -356,6 +374,156 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
     }
   };
 
+  const handleRemoveFromLyrics = async () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setRemovingAlbum(true);
+    try {
+      await deleteAlbumTracks(albumId);
+      toast.success('Lyrics에서 앨범을 제거했습니다.');
+      setRemoveConfirmOpen(false);
+      router.push('/lyrics');
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+    } finally {
+      setRemovingAlbum(false);
+    }
+  };
+
+  const enterEditMode = () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    setEditError(null);
+    setDeleteTrackKey(null);
+    setNewTrackNumber(String((tracks.reduce((max, t) => Math.max(max, t.track_number), 0) || 0) + 1));
+    setNewTrackTitle('');
+    setEditDrafts(
+      tracks.map((t) => ({
+        key: t.id,
+        id: t.id,
+        track_number: String(t.track_number),
+        track_title: t.track_title,
+        hasTranslation: Boolean(t.translation),
+      })),
+    );
+    setEditMode(true);
+  };
+
+  const exitEditMode = () => {
+    setEditMode(false);
+    setEditError(null);
+    setDeleteTrackKey(null);
+    setNewTrackTitle('');
+  };
+
+  const validateDrafts = (drafts: TrackEditDraft[]) => {
+    const parsed: { id: string | null; track_number: number; track_title: string }[] = [];
+    for (const d of drafts) {
+      const title = d.track_title.trim();
+      const num = Number(d.track_number);
+      if (!title) return { error: '트랙 제목은 필수입니다.' };
+      if (!Number.isFinite(num) || !Number.isInteger(num) || num <= 0) {
+        return { error: '트랙 번호는 1 이상의 정수여야 합니다.' };
+      }
+      parsed.push({ id: d.id, track_number: num, track_title: title });
+    }
+    const nums = parsed.map((t) => t.track_number);
+    if (new Set(nums).size !== nums.length) {
+      return { error: '트랙 번호가 중복됩니다.' };
+    }
+    return { parsed };
+  };
+
+  const handleSaveEdits = async () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    const result = validateDrafts(editDrafts);
+    if ('error' in result && result.error) {
+      setEditError(result.error);
+      return;
+    }
+    if (!('parsed' in result) || !result.parsed) return;
+    setSavingEdits(true);
+    setEditError(null);
+    try {
+      await commitAlbumTrackListDraft(albumId, result.parsed);
+      toast.success('트랙리스트를 저장했습니다.');
+      setEditMode(false);
+      setDeleteTrackKey(null);
+      await load();
+    } catch (e) {
+      const message = getClientErrorMessage(e);
+      const synced = await load({ silent: true });
+      setEditDrafts(
+        synced.map((t) => ({
+          key: t.id,
+          id: t.id,
+          track_number: String(t.track_number),
+          track_title: t.track_title,
+          hasTranslation: Boolean(t.translation),
+        })),
+      );
+      setDeleteTrackKey(null);
+      setEditError(`저장 실패 — 서버 상태로 동기화했습니다. ${message}`);
+      if (synced.length === 0) {
+        setEditMode(false);
+      }
+    } finally {
+      setSavingEdits(false);
+    }
+  };
+
+  const handleConfirmDeleteTrack = () => {
+    if (!deleteTrackKey) return;
+    setEditError(null);
+    const nextDrafts = editDrafts.filter((d) => d.key !== deleteTrackKey);
+    setEditDrafts(nextDrafts);
+    setDeleteTrackKey(null);
+  };
+
+  const handleAddTrack = () => {
+    const title = newTrackTitle.trim();
+    const num = Number(newTrackNumber);
+    if (!title) {
+      setEditError('트랙 제목은 필수입니다.');
+      return;
+    }
+    if (!Number.isFinite(num) || !Number.isInteger(num) || num <= 0) {
+      setEditError('트랙 번호는 1 이상의 정수여야 합니다.');
+      return;
+    }
+    const draftNums = editDrafts.map((d) => Number(d.track_number));
+    if (draftNums.includes(num)) {
+      setEditError('트랙 번호가 중복됩니다.');
+      return;
+    }
+    setEditError(null);
+    const key =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? `new-${crypto.randomUUID()}`
+        : `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setEditDrafts((prev) =>
+      [
+        ...prev,
+        {
+          key,
+          id: null,
+          track_number: String(num),
+          track_title: title,
+          hasTranslation: false,
+        },
+      ].sort((a, b) => Number(a.track_number) - Number(b.track_number)),
+    );
+    setNewTrackTitle('');
+    setNewTrackNumber(String(num + 1));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -396,15 +564,67 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          disabled={detailOpening || !album}
-          onClick={() => void openAlbumDetail()}
-          className="btn-apple btn-apple-secondary mt-1 shrink-0 self-start px-3 py-2 text-xs font-semibold disabled:opacity-40 sm:text-sm"
-        >
-          {detailOpening ? '불러오는 중...' : '앨범 상세보기'}
-        </button>
+        <div className="mt-1 flex shrink-0 flex-col items-end gap-2 self-start sm:flex-row sm:items-start">
+          {isAuthenticated === true && tracks.length > 0 && !editMode ? (
+            <button
+              type="button"
+              onClick={enterEditMode}
+              className="btn-apple btn-apple-secondary px-3 py-2 text-xs font-semibold sm:text-sm"
+            >
+              트랙리스트 수정
+            </button>
+          ) : null}
+          {isAuthenticated === true ? (
+            <button
+              type="button"
+              disabled={removingAlbum || editMode}
+              onClick={() => setRemoveConfirmOpen(true)}
+              className="btn-apple btn-apple-secondary px-3 py-2 text-xs font-semibold disabled:opacity-40 sm:text-sm"
+            >
+              앨범 제거
+            </button>
+          ) : null}
+          <button
+            type="button"
+            disabled={detailOpening || !album || editMode}
+            onClick={() => void openAlbumDetail()}
+            className="btn-apple btn-apple-secondary px-3 py-2 text-xs font-semibold disabled:opacity-40 sm:text-sm"
+          >
+            {detailOpening ? '불러오는 중...' : '앨범 상세보기'}
+          </button>
+        </div>
       </div>
+
+      {removeConfirmOpen ? (
+        <div
+          className="mb-5 rounded-lg border p-3"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+        >
+          <p className="text-sm font-medium">Lyrics에서 이 앨범을 제거할까요?</p>
+          <p className="mt-1 text-xs opacity-65">
+            트랙리스트와 등록된 가사가 삭제됩니다. Albums 라이브러리의 앨범은 그대로 유지됩니다.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+              onClick={() => setRemoveConfirmOpen(false)}
+              disabled={removingAlbum}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="btn-apple h-[34px] px-3 text-sm"
+              style={{ background: '#ff3b30', color: '#fff' }}
+              onClick={() => void handleRemoveFromLyrics()}
+              disabled={removingAlbum}
+            >
+              {removingAlbum ? '제거 중...' : '제거'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {tracks.length === 0 ? (
         <div className="space-y-5">
@@ -447,6 +667,157 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
             >
               {savingManual ? '저장 중...' : '트랙리스트 저장'}
             </button>
+          </div>
+        </div>
+      ) : editMode ? (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">트랙리스트 수정</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                onClick={exitEditMode}
+                disabled={savingEdits}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="btn-apple h-[34px] px-3 text-sm font-semibold"
+                onClick={() => void handleSaveEdits()}
+                disabled={savingEdits}
+              >
+                {savingEdits ? '저장 중...' : '변경 저장'}
+              </button>
+            </div>
+          </div>
+          <p className="text-xs opacity-65">
+            추가·수정·삭제는 임시 반영됩니다. 저장을 눌러야 서버에 적용되며, 제목·번호만 바꾸면 가사는 유지되고
+            트랙 삭제는 저장 시 해당 가사도 함께 삭제됩니다.
+          </p>
+          {editError ? (
+            <p className="rounded-lg px-3 py-2 text-sm" style={{ background: 'rgba(255,59,48,0.12)', color: '#ff3b30' }}>
+              {editError}
+            </p>
+          ) : null}
+          {deleteTrackKey ? (
+            <div
+              className="rounded-lg border p-3"
+              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+            >
+              <p className="text-sm font-medium">이 트랙을 목록에서 제거할까요?</p>
+              <p className="mt-1 text-xs opacity-65">
+                {editDrafts.find((d) => d.key === deleteTrackKey)?.hasTranslation
+                  ? '저장 시 등록된 가사도 함께 삭제됩니다.'
+                  : '저장하기 전까지는 서버에 반영되지 않습니다.'}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                  onClick={() => setDeleteTrackKey(null)}
+                  disabled={savingEdits}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className="btn-apple h-[34px] px-3 text-sm"
+                  style={{ background: '#ff3b30', color: '#fff' }}
+                  onClick={handleConfirmDeleteTrack}
+                  disabled={savingEdits}
+                >
+                  목록에서 제거
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <ul className="divide-y rounded-2xl" style={{ border: '1px solid var(--border)' }}>
+            {editDrafts.map((draft) => (
+              <li
+                key={draft.key}
+                className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center"
+                style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+              >
+                <input
+                  type="number"
+                  min={1}
+                  className="input-apple h-[38px] w-16 shrink-0 px-2 text-center text-sm tabular-nums"
+                  value={draft.track_number}
+                  onChange={(e) =>
+                    setEditDrafts((prev) =>
+                      prev.map((d) => (d.key === draft.key ? { ...d, track_number: e.target.value } : d)),
+                    )
+                  }
+                  aria-label="트랙 번호"
+                />
+                <input
+                  type="text"
+                  className="input-apple h-[38px] min-w-0 flex-1 px-3 text-sm"
+                  value={draft.track_title}
+                  onChange={(e) =>
+                    setEditDrafts((prev) =>
+                      prev.map((d) => (d.key === draft.key ? { ...d, track_title: e.target.value } : d)),
+                    )
+                  }
+                  aria-label="트랙 제목"
+                />
+                <div className="flex shrink-0 items-center gap-2">
+                  {draft.hasTranslation ? (
+                    <span className="text-[11px] font-semibold" style={{ color: '#0a84ff' }}>
+                      가사있음
+                    </span>
+                  ) : !draft.id ? (
+                    <span className="text-[11px] font-semibold opacity-55">신규</span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+                    style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)', color: '#ff3b30' }}
+                    disabled={savingEdits}
+                    onClick={() => {
+                      setEditError(null);
+                      setDeleteTrackKey(draft.key);
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+          >
+            <p className="mb-2 text-sm font-semibold">트랙 추가</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="number"
+                min={1}
+                className="input-apple h-[38px] w-16 shrink-0 px-2 text-center text-sm tabular-nums"
+                value={newTrackNumber}
+                onChange={(e) => setNewTrackNumber(e.target.value)}
+                aria-label="새 트랙 번호"
+              />
+              <input
+                type="text"
+                className="input-apple h-[38px] min-w-0 flex-1 px-3 text-sm"
+                value={newTrackTitle}
+                onChange={(e) => setNewTrackTitle(e.target.value)}
+                placeholder="트랙 제목"
+                aria-label="새 트랙 제목"
+              />
+              <button
+                type="button"
+                className="btn-apple h-[38px] shrink-0 px-4 text-sm font-semibold disabled:opacity-40"
+                disabled={savingEdits}
+                onClick={handleAddTrack}
+              >
+                추가
+              </button>
+            </div>
           </div>
         </div>
       ) : (

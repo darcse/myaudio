@@ -461,3 +461,9 @@
 [2026-09-13] [Cursor] feat: 앨범 타입에 리메이크·리믹스 옵션 추가 | passes: 변경 없음
 
 [2026-09-13] [Cursor] feat: 앨범 장르 옵션에 Crossover 추가 | passes: 변경 없음
+
+[2026-09-13] [Cursor] feat: LYRICS-005 Lyrics 앨범 제거(트랙+가사, album 미터치) | passes: 변경 없음
+
+[2026-09-13] [Cursor] feat: LYRICS-006 트랙리스트 수정(제목·번호 유지/삭제 시만 가사 제거) | passes: 변경 없음
+
+[2026-09-13] [Cursor] refactor: LYRICS-006 트랙리스트 수정 — draft 로컬 반영 후 일괄 저장 | passes: 변경 없음
