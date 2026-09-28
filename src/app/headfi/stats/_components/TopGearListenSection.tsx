@@ -4,7 +4,6 @@ import { Headphones } from 'lucide-react';
 import type { GearCategoryFilter, GearListenRankItem, ListenPeriodFilter } from '@/app/albums/stats/albumListenStats';
 import {
   GEAR_CATEGORY_FILTER_OPTIONS,
-  GEAR_LISTEN_RANKING_LIMIT,
   gearCategoryFilterLabel,
   formatPeriodLabel,
 } from '@/app/albums/stats/albumListenStats';
@@ -133,7 +132,7 @@ export function TopGearListenSection({
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {items.length > 0 ? (
           <ul className="space-y-0.5">
-            {items.slice(0, GEAR_LISTEN_RANKING_LIMIT).map((item, index) => (
+            {items.map((item, index) => (
               <li key={item.headfiId}>
                 <GearRankRow item={item} rank={index + 1} onClick={() => onGearClick(item.headfiId)} />
               </li>

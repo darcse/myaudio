@@ -467,3 +467,19 @@
 [2026-09-13] [Cursor] feat: LYRICS-006 트랙리스트 수정(제목·번호 유지/삭제 시만 가사 제거) | passes: 변경 없음
 
 [2026-09-13] [Cursor] refactor: LYRICS-006 트랙리스트 수정 — draft 로컬 반영 후 일괄 저장 | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: Insights 장르 통계 — 아티스트 구분 TOP10 → 하부 장르(genre2) TOP10 | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: Insights 월=전체 시 랭킹 TOP20 (청취/기기/장르) | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: Insights 장르 통계 — 장르2 단일 TOP + 장르별 아티스트 3팀 썸네일 | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: 장르 통계 아티스트 썸네일 클릭 → ArtistDetailModal | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: 장르 통계 항목 — 아티스트5 + 구분선 + 앨범5 | passes: 변경 없음
+
+[2026-09-28] [Cursor] style: 장르 통계 아티스트/앨범 5열 균등 그리드(max 5.5rem) | passes: 변경 없음
+
+[2026-09-28] [Cursor] style: 장르 통계 아티스트|앨범 한 줄(lg) / 모바일 두 줄 | passes: 변경 없음
+
+[2026-09-28] [Cursor] feat: 장르 통계 앨범 썸네일 → AlbumDetailModal/폼 + 배경 잠금 | passes: 변경 없음

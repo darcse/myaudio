@@ -18,8 +18,8 @@ import {
   filterGearHistoryByPeriod,
   formatPeriodLabel,
   formatStatsMonthOptionLabel,
-  GEAR_LISTEN_RANKING_LIMIT,
   getDefaultListenPeriodFilter,
+  getPeriodRankingLimit,
   getRollingSevenDayRange,
   listStatsMonths,
   listStatsYears,
@@ -195,17 +195,21 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
 
   const yearOptions = useMemo(() => listStatsYears(), []);
   const monthOptions = useMemo(() => listStatsMonths(periodFilter.year), [periodFilter.year]);
+  const rankingLimit = useMemo(
+    () => getPeriodRankingLimit(periodFilter.month),
+    [periodFilter.month],
+  );
   const filteredHistoryRows = useMemo(
     () => filterGearHistoryByPeriod(historyRows, periodFilter),
     [historyRows, periodFilter],
   );
   const receiverRanking = useMemo(
-    () => buildGearListenRankings(gearById, filteredHistoryRows, gearCategoryFilter),
-    [gearById, filteredHistoryRows, gearCategoryFilter],
+    () => buildGearListenRankings(gearById, filteredHistoryRows, gearCategoryFilter, rankingLimit),
+    [gearById, filteredHistoryRows, gearCategoryFilter, rankingLimit],
   );
   const dacAmpRanking = useMemo(
-    () => buildDacAmpListenRankings(gearById, filteredHistoryRows),
-    [gearById, filteredHistoryRows],
+    () => buildDacAmpListenRankings(gearById, filteredHistoryRows, rankingLimit),
+    [gearById, filteredHistoryRows, rankingLimit],
   );
   const weekRange = useMemo(() => getRollingSevenDayRange(now), [now]);
   const weeklyHotReceivers = useMemo(
@@ -314,7 +318,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
 
           <div className="grid gap-6 lg:grid-cols-2">
             <TopGearListenSection
-              title={`최다 사용 리시버 TOP ${GEAR_LISTEN_RANKING_LIMIT}`}
+              title={`최다 사용 리시버 TOP ${rankingLimit}`}
               icon={<Headphones className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
               items={receiverRanking}
               periodFilter={periodFilter}
@@ -324,7 +328,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
             />
 
             <TopGearListenSection
-              title={`최다 사용 DAC/AMP/DAP TOP ${GEAR_LISTEN_RANKING_LIMIT}`}
+              title={`최다 사용 DAC/AMP/DAP TOP ${rankingLimit}`}
               icon={<Cpu className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
               items={dacAmpRanking}
               periodFilter={periodFilter}

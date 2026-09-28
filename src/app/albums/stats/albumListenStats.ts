@@ -4,6 +4,7 @@ import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 
 export const LISTEN_RANKING_LIMIT = 10;
 export const GEAR_LISTEN_RANKING_LIMIT = 10;
+export const PERIOD_RANKING_LIMIT_ALL_MONTHS = 20;
 export const WEEKLY_HOT_ALBUM_LIMIT = 5;
 export const WEEKLY_HOT_RECEIVER_LIMIT = 5;
 export const LISTEN_TREND_WEEK_COUNT = 12;
@@ -206,6 +207,10 @@ export type ListenPeriodFilter = {
   year: number;
   month: ListenPeriodMonth;
 };
+
+export function getPeriodRankingLimit(month: ListenPeriodMonth): number {
+  return month === 'all' ? PERIOD_RANKING_LIMIT_ALL_MONTHS : LISTEN_RANKING_LIMIT;
+}
 
 export function listStatsYears(): number[] {
   const maxYear = Math.max(STATS_MIN_YEAR, new Date().getFullYear());
@@ -560,10 +565,27 @@ export type LabelListenRankItem = {
   rank: number;
 };
 
+export type GenreLabelArtist = {
+  name: string;
+  listenCount: number;
+};
+
+export type GenreLabelAlbum = {
+  albumId: number;
+  albumName: string;
+  coverImageUrl: string | null;
+  listenCount: number;
+};
+
+export type Genre2ListenRankItem = LabelListenRankItem & {
+  topArtists: GenreLabelArtist[];
+  topAlbums: GenreLabelAlbum[];
+};
+
 function buildLabelListenRankings(
-  albums: Pick<Album, 'id' | 'genre1' | 'artist_type'>[],
+  albums: Pick<Album, 'id' | 'genre1' | 'genre2'>[],
   historyRows: HistoryRow[],
-  getLabel: (album: Pick<Album, 'id' | 'genre1' | 'artist_type'>) => string | null,
+  getLabel: (album: Pick<Album, 'id' | 'genre1' | 'genre2'>) => string | null,
   limit = LISTEN_RANKING_LIMIT,
 ): LabelListenRankItem[] {
   const index = buildListenHistoryIndex(historyRows);
@@ -605,7 +627,7 @@ function buildLabelListenRankings(
 }
 
 export function buildGenreListenRankings(
-  albums: Pick<Album, 'id' | 'genre1' | 'artist_type'>[],
+  albums: Pick<Album, 'id' | 'genre1' | 'genre2'>[],
   historyRows: HistoryRow[],
   limit = LISTEN_RANKING_LIMIT,
 ): LabelListenRankItem[] {
@@ -620,18 +642,82 @@ export function buildGenreListenRankings(
   );
 }
 
-export function buildArtistTypeListenRankings(
-  albums: Pick<Album, 'id' | 'genre1' | 'artist_type'>[],
+export function buildGenre2ListenRankings(
+  albums: Pick<Album, 'id' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>[],
   historyRows: HistoryRow[],
   limit = LISTEN_RANKING_LIMIT,
-): LabelListenRankItem[] {
-  return buildLabelListenRankings(
-    albums,
-    historyRows,
-    (album) => {
-      const label = album.artist_type?.trim();
-      return label ? label : null;
-    },
-    limit,
-  );
+  artistsPerGenre = 5,
+  albumsPerGenre = 5,
+): Genre2ListenRankItem[] {
+  const index = buildListenHistoryIndex(historyRows);
+  const labelMap = new Map<string, { listenCount: number; albumCount: number }>();
+  const artistsByLabel = new Map<string, Map<string, number>>();
+  const albumsByLabel = new Map<string, GenreLabelAlbum[]>();
+
+  for (const album of albums) {
+    const entry = index.get(album.id);
+    if (!entry || entry.count <= 0) continue;
+    const label = album.genre2?.trim();
+    if (!label) continue;
+
+    const prev = labelMap.get(label) ?? { listenCount: 0, albumCount: 0 };
+    labelMap.set(label, {
+      listenCount: prev.listenCount + entry.count,
+      albumCount: prev.albumCount + 1,
+    });
+
+    const albumList = albumsByLabel.get(label) ?? [];
+    albumList.push({
+      albumId: album.id,
+      albumName: album.album_name,
+      coverImageUrl: album.cover_image_url,
+      listenCount: entry.count,
+    });
+    albumsByLabel.set(label, albumList);
+
+    const artistName = album.artist?.trim();
+    if (!artistName) continue;
+    const artistMap = artistsByLabel.get(label) ?? new Map<string, number>();
+    artistMap.set(artistName, (artistMap.get(artistName) ?? 0) + entry.count);
+    artistsByLabel.set(label, artistMap);
+  }
+
+  const ranked = [...labelMap.entries()]
+    .map(([label, data]) => ({
+      label,
+      listenCount: data.listenCount,
+      albumCount: data.albumCount,
+    }))
+    .sort((a, b) => {
+      const byCount = b.listenCount - a.listenCount;
+      if (byCount !== 0) return byCount;
+      return a.label.localeCompare(b.label, 'ko');
+    })
+    .slice(0, limit);
+
+  let competitionRank = 1;
+  return ranked.map((item, i) => {
+    if (i > 0 && item.listenCount < ranked[i - 1]!.listenCount) {
+      competitionRank = i + 1;
+    }
+    const artistMap = artistsByLabel.get(item.label);
+    const topArtists = artistMap
+      ? [...artistMap.entries()]
+          .map(([name, listenCount]) => ({ name, listenCount }))
+          .sort((a, b) => {
+            const byCount = b.listenCount - a.listenCount;
+            if (byCount !== 0) return byCount;
+            return a.name.localeCompare(b.name, 'ko');
+          })
+          .slice(0, artistsPerGenre)
+      : [];
+    const topAlbums = [...(albumsByLabel.get(item.label) ?? [])]
+      .sort((a, b) => {
+        const byCount = b.listenCount - a.listenCount;
+        if (byCount !== 0) return byCount;
+        return a.albumName.localeCompare(b.albumName, 'ko') || a.albumId - b.albumId;
+      })
+      .slice(0, albumsPerGenre);
+    return { ...item, rank: competitionRank, topArtists, topAlbums };
+  });
 }

@@ -32,7 +32,7 @@ import {
   formatStatsMonthOptionLabel,
   getRollingSevenDayRange,
   getDefaultListenPeriodFilter,
-  LISTEN_RANKING_LIMIT,
+  getPeriodRankingLimit,
   listStatsMonths,
   listStatsYears,
   type AlbumListenRankItem,
@@ -425,6 +425,10 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
 
   const yearOptions = useMemo(() => listStatsYears(), []);
   const monthOptions = useMemo(() => listStatsMonths(periodFilter.year), [periodFilter.year]);
+  const rankingLimit = useMemo(
+    () => getPeriodRankingLimit(periodFilter.month),
+    [periodFilter.month],
+  );
   const filteredHistoryRows = useMemo(
     () => filterHistoryByPeriod(historyRows, periodFilter),
     [historyRows, periodFilter],
@@ -434,12 +438,12 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
     [filteredHistoryRows],
   );
   const albumRanking = useMemo(
-    () => buildAlbumListenRankings(albums, filteredHistoryRows),
-    [albums, filteredHistoryRows],
+    () => buildAlbumListenRankings(albums, filteredHistoryRows, rankingLimit),
+    [albums, filteredHistoryRows, rankingLimit],
   );
   const artistRanking = useMemo(
-    () => buildArtistListenRankings(albums, filteredHistoryRows),
-    [albums, filteredHistoryRows],
+    () => buildArtistListenRankings(albums, filteredHistoryRows, rankingLimit),
+    [albums, filteredHistoryRows, rankingLimit],
   );
   const weekRange = useMemo(() => getRollingSevenDayRange(now), [now]);
   const weeklyHotAlbums = useMemo(
@@ -878,7 +882,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
               ) : (
                 <div className="grid gap-6 lg:grid-cols-2">
                   <RankingPanel
-                    title={`최다 청취 앨범 TOP ${LISTEN_RANKING_LIMIT}`}
+                    title={`최다 청취 앨범 TOP ${rankingLimit}`}
                     icon={<Disc className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
                   >
                     {albumRanking.length > 0 ? (
@@ -898,7 +902,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
                     )}
                   </RankingPanel>
                   <RankingPanel
-                    title={`최다 청취 아티스트 TOP ${LISTEN_RANKING_LIMIT}`}
+                    title={`최다 청취 아티스트 TOP ${rankingLimit}`}
                     icon={<Mic2 className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
                   >
                     {artistRanking.length > 0 ? (
