@@ -483,3 +483,5 @@
 [2026-09-28] [Cursor] style: 장르 통계 아티스트|앨범 한 줄(lg) / 모바일 두 줄 | passes: 변경 없음
 
 [2026-09-28] [Cursor] feat: 장르 통계 앨범 썸네일 → AlbumDetailModal/폼 + 배경 잠금 | passes: 변경 없음
+
+[2026-10-07] [Cursor] feat: 국가 옵션에 대만·스위스 추가 | passes: 변경 없음
