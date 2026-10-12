@@ -1,3 +1,44 @@
+function retryDelayFromDetails(details: unknown): number | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    if (!item || typeof item !== 'object') continue;
+    const raw = (item as { retryDelay?: unknown }).retryDelay;
+    if (typeof raw !== 'string') continue;
+    const match = raw.match(/^(\d+(?:\.\d+)?)s$/i);
+    if (match) return Math.ceil(parseFloat(match[1]) * 1000) + 1000;
+  }
+  return null;
+}
+
+export function parseGeminiRetryDelayMs(error: unknown): number | null {
+  const err = error as {
+    status?: number;
+    message?: string;
+    error?: { message?: string; details?: unknown };
+  };
+  const blobs: string[] = [];
+  if (typeof err?.message === 'string' && err.message) blobs.push(err.message);
+  if (typeof err?.error?.message === 'string' && err.error.message) blobs.push(err.error.message);
+
+  const retryIn = /retry in (\d+(?:\.\d+)?)s/i;
+  for (const blob of blobs) {
+    const match = blob.match(retryIn);
+    if (match) return Math.ceil(parseFloat(match[1]) * 1000) + 1000;
+    try {
+      const parsed = JSON.parse(blob) as { error?: { message?: string; details?: unknown } };
+      if (typeof parsed?.error?.message === 'string') {
+        const inner = parsed.error.message.match(retryIn);
+        if (inner) return Math.ceil(parseFloat(inner[1]) * 1000) + 1000;
+      }
+      const fromDetails = retryDelayFromDetails(parsed?.error?.details);
+      if (fromDetails != null) return fromDetails;
+    } catch {
+    }
+  }
+
+  return retryDelayFromDetails(err?.error?.details);
+}
+
 export async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 2000): Promise<T> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -10,8 +51,7 @@ export async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 
       const is503 =
         err?.status === 503 || message.includes('503') || message.includes('Service Unavailable');
       if (is429 && i < retries - 1) {
-        const retryDelayMatch = message.match(/retry in (\d+)s/i);
-        const waitMs = retryDelayMatch ? parseInt(retryDelayMatch[1], 10) * 1000 + 1000 : 60000;
+        const waitMs = parseGeminiRetryDelayMs(error) ?? 60000;
         await new Promise((resolve) => setTimeout(resolve, waitMs));
         continue;
       }

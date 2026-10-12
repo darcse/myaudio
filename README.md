@@ -17,7 +17,7 @@ myaudio는 개인이 보유하고 감상한 **음악 앨범(Albums), 아티스�
     *   *코드상 기본 모델 ID는 `src/lib/aiModels.ts` 한 곳에 있습니다. 모델 교체 시 이 파일과 이 섹션을 함께 고칩니다.*
     *   **Google Gemini** — `gemini-3.5-flash-lite`
         *   앨범 소개·무드 분류·취향 분석·추천·포지션맵·트랙리스트·월간 코멘트 등 12개 기능 (일부 Google Search grounding 사용)
-        *   SDK: `@google/generative-ai` (지원 종료된 레거시 SDK, 신규 SDK 이관 예정)
+        *   SDK: `@google/genai` 2.x (3.0 미만 고정). 모든 호출은 `gemini.ts`의 `generateGeminiText` 래퍼를 거침
     *   **OpenAI** — `gpt-5.4-mini`
         *   아티스트 국문 바이오 (Responses API + `web_search`)
         *   기기 조합 매칭 스코어 (Chat Completions, web_search 없음)
@@ -61,14 +61,15 @@ myaudio/
 │   │   ├── supabase/                   # Supabase client / server / middleware 설정
 │   │   ├── musicbrainz.ts              # MusicBrainz API 연동 모듈
 │   │   ├── aiModels.ts                 # AI 기본 모델 ID 및 env override resolver (모델명 단일 관리)
-│   │   ├── gemini.ts                   # Gemini 호출 함수 모음 및 retry 로직
+│   │   ├── gemini.ts                   # Gemini 호출 함수 모음 (generateGeminiText 공통 래퍼)
+│   │   ├── aiRetry.ts                  # 429 재시도 헬퍼 및 retry delay 파싱
 │   │   ├── openaiArtistBio.ts          # OpenAI 아티스트 바이오
 │   │   ├── openaiHeadfi.ts             # OpenAI 매칭 스코어
 │   │   ├── anthropicHeadfi.ts          # Anthropic FR 해석·음색 분석·추천 앨범
 │   │   ├── anthropicLyricsTranslate.ts # Anthropic 가사 번역
 │   │   └── timeMachineRecall.server.ts # 대시보드 과거 청취 타임머신 발굴 로직
 │   └── proxy.ts                        # 쿠키 기반 세션 갱신 및 토큰 프록시
-├── scripts/                            # 일회성 데이터 마이그레이션 스크립트 (앱 런타임 아님)
+├── scripts/                            # 일회성 데이터 마이그레이션 스크립트 (앱 런타임 아님. migrate-null-mood-names.mjs는 레거시 SDK 의존으로 현재 실행 불가)
 ├── feature_list/                       # 하네스 검증용 JSON 파일군 (SETUP, ALBUM, GEAR, LYRICS, RecordShelf, UX, STATS, BUG 등)
 ├── public/                             # PWA 아이콘 및 정적 에셋
 ├── CONVENTIONS.md                      # 프로젝트 코딩 컨벤션 및 DB 맵핑 규칙

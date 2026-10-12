@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import {
   extractJsonArrayFromText,
   extractJsonObjectFromText,
@@ -19,7 +19,54 @@ export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRef
 export type { HeadfiSoundScores } from '@/lib/headfiSoundScores';
 export { buildHeadfiSoundScoresPromptBlock, headfiHasSoundScores } from '@/lib/headfiSoundScores';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const genAI = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: { retryOptions: { attempts: 1 } },
+});
+
+type GenerateGeminiTextOptions = {
+  fnName: string;
+  prompt: string;
+  systemInstruction?: string;
+  googleSearch?: boolean;
+  maxOutputTokens?: number;
+  temperature?: number;
+};
+
+function logGeminiFailure(fnName: string, error: unknown) {
+  const err = error as { status?: number; message?: string };
+  const raw = typeof err.message === 'string' && err.message ? err.message : String(error);
+  console.error('[gemini]', {
+    fn: fnName,
+    status: err.status,
+    error: raw.replace(/\s+/g, ' ').slice(0, 300),
+  });
+}
+
+async function generateGeminiText(options: GenerateGeminiTextOptions): Promise<string> {
+  try {
+    return await withRetry(async () => {
+      const response = await genAI.models.generateContent({
+        model: resolveGeminiModel(),
+        contents: options.prompt,
+        config: {
+          ...(options.systemInstruction ? { systemInstruction: options.systemInstruction } : {}),
+          ...(options.googleSearch ? { tools: [{ googleSearch: {} }] } : {}),
+          ...(options.maxOutputTokens != null ? { maxOutputTokens: options.maxOutputTokens } : {}),
+          ...(options.temperature != null ? { temperature: options.temperature } : {}),
+        },
+      });
+      const text = response.text?.trim() ?? '';
+      if (!text) {
+        throw new Error('Empty Gemini response text');
+      }
+      return text;
+    });
+  } catch (error) {
+    logGeminiFailure(options.fnName, error);
+    throw error;
+  }
+}
 
 export async function analyzeMusicTaste(albums: {
   genre1: string | null;
@@ -27,8 +74,6 @@ export async function analyzeMusicTaste(albums: {
   country: string | null;
   release_date: string | null;
 }[]) {
-  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
-
   const albumSummary = albums
     .map(
       (a) =>
@@ -57,8 +102,7 @@ ${albumSummary}
   `;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({ fnName: 'analyzeMusicTaste', prompt });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     return JSON.parse(jsonRaw) as unknown;
@@ -75,17 +119,6 @@ export async function generateAlbumIntroAndTags(album: {
   release_date: string | null;
   country: string | null;
 }): Promise<{ audio_tags: string[]; album_intro: string } | null> {
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    systemInstruction:
-      '당신은 한국어 음악 매거진 에디터입니다. 앨범 소개는 존대어(~습니다체)로 풍부하고 구체적으로 작성합니다. 한 줄 요약이나 짧은 나열은 피합니다.',
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-    generationConfig: {
-      maxOutputTokens: 1024,
-      temperature: 0.6,
-    },
-  });
-
   const prompt = `
 Google Search로 "${album.artist} - ${album.album_name}" 앨범을 검색해.
 앨범의 음악적 특성, 프로덕션, 마스터링, 장르적 분위기, 평가를 파악한 뒤,
@@ -126,8 +159,15 @@ album_intro 작성 시 반드시 지킬 것:
   `;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'generateAlbumIntroAndTags',
+      prompt,
+      systemInstruction:
+        '당신은 한국어 음악 매거진 에디터입니다. 앨범 소개는 존대어(~습니다체)로 풍부하고 구체적으로 작성합니다. 한 줄 요약이나 짧은 나열은 피합니다.',
+      googleSearch: true,
+      maxOutputTokens: 1024,
+      temperature: 0.6,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { audio_tags?: unknown; album_intro?: unknown };
@@ -163,11 +203,6 @@ export async function recommendByMood(
   }[],
   timeSlot = '',
 ): Promise<{ album_id: number | null; headphone_id: number | null; reason: string } | null> {
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
   const albumList = albums
     .map(
       (a) =>
@@ -214,8 +249,11 @@ reason 작성 시 헤드폰은 "브랜드 모델명" 형식으로만 언급하�
   `;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'recommendByMood',
+      prompt,
+      googleSearch: true,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as {
@@ -242,11 +280,6 @@ export async function recommendHeadfiListeningGenres(headphone: {
   brand: string;
   model: string;
 }): Promise<string[] | null> {
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
   const prompt = `
 Google Search로 "${headphone.brand} ${headphone.model}" 헤드폰 또는 이어폰의 리뷰, 커뮤니티 평가, 음향 논의를 검색해 참고해.
 이 기기와 잘 어울리는 음악 장르·재생 스타일을 한국어 서술형으로 최대 4개까지 제안해.
@@ -261,8 +294,11 @@ recommended_genres는 1개 이상, 최대 4개 배열. 항목은 모두 한국�
   `;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'recommendHeadfiListeningGenres',
+      prompt,
+      googleSearch: true,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { recommended_genres?: unknown };
@@ -280,8 +316,6 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
   colors: string[];
   emoji: string;
 } | null> {
-  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
-
   const prompt = `
 다음 가사의 감성과 분위기를 분석해서 반드시 아래 JSON 형식으로만 답변해줘.
 다른 텍스트는 절대 포함하지 마.
@@ -309,8 +343,7 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
 `;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({ fnName: 'analyzeLyricsVibe', prompt });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { colors?: unknown; emoji?: unknown };
@@ -359,7 +392,6 @@ export async function pickAlbumMoodGroupName(
   moodNames: string[],
 ): Promise<string | null> {
   if (moodNames.length === 0) return null;
-  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
   const tags = Array.isArray(album.audio_tags) ? JSON.stringify(album.audio_tags) : '[]';
   const prompt = `무드 그룹 목록:
 ${moodNames.join('\n')}
@@ -378,8 +410,8 @@ ${moodNames.join('\n')}
 
 위 무드 그룹 중 가장 적합한 하나의 mood_name만 반환해. 다른 텍스트 없이 목록에 있는 무드명 그대로만 출력해.`;
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    return resolvePickedMoodName(result.response.text(), moodNames);
+    const text = await generateGeminiText({ fnName: 'pickAlbumMoodGroupName', prompt });
+    return resolvePickedMoodName(text, moodNames);
   } catch {
     return null;
   }
@@ -430,13 +462,12 @@ export async function generateAlbumMoodGroups(
       return `id:${a.id} genre1:${a.genre1 ?? ''} genre2:${a.genre2 ?? ''} audio_tags:${tags}`;
     });
   const user = `${allowedUuidHeader}다음 앨범 메타를 참고해 9개 무드로 분류해줘:\n${metaLines.join('\n')}`;
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    systemInstruction: system,
-  });
   try {
-    const result = await withRetry(() => model.generateContent(user));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'generateAlbumMoodGroups',
+      prompt: user,
+      systemInstruction: system,
+    });
     const fenced = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
     const jsonMatch = fenced?.[1] ? [fenced[1]] : text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return null;
@@ -473,11 +504,6 @@ export async function recommendAlbumHeadphones(
 ): Promise<{ headphone_ids: number[]; reason: string } | null> {
   if (headphones.length === 0) return null;
 
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
   const tags = Array.isArray(album.audio_tags) ? album.audio_tags.join(', ') : '-';
   const mood = album.mood_name?.trim() || '-';
   const genre = `${album.genre1 || ''}${album.genre2 ? `/${album.genre2}` : ''}`.trim() || '-';
@@ -513,8 +539,11 @@ JSON만 응답:
 {"headphone_ids": [1, 2], "reason": "구체적 근거를 포함한 2~3줄 추천 이유"}`;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'recommendAlbumHeadphones',
+      prompt,
+      googleSearch: true,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { headphone_ids?: unknown; reason?: unknown };
@@ -565,8 +594,6 @@ export async function recommendHeadfiAlbumMatch(
     audio_tags: string[] | null;
   }[],
 ): Promise<{ album_id: number; reason: string }[] | null> {
-  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
-
   const albumList = albums
     .map((a) => {
       const tags = Array.isArray(a.audio_tags) ? a.audio_tags.join(', ') : '';
@@ -595,8 +622,7 @@ JSON만 응답: [{"album_id": 123, "reason": "추천 이유 2~3줄"}]
 ${albumList}`;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({ fnName: 'recommendHeadfiAlbumMatch', prompt });
     const jsonRaw = extractJsonArrayFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as unknown;
@@ -656,11 +682,6 @@ type HeadfiDacAmpPositionInput = {
 export type HeadfiPositionInput = HeadfiWiredPositionInput | HeadfiDacAmpPositionInput;
 
 export async function analyzeHeadfiPosition(input: HeadfiPositionInput): Promise<HeadfiPositionResult | null> {
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-  });
-
   const prompt =
     input.profile === 'dac_amp'
       ? `너는 헤드파이 전문 분석가야. 아래 DAC/AMP/DAP의 출력 스펙과 실제 리뷰·측정 데이터를 분석해서 포지션맵 좌표를 생성해줘.
@@ -690,8 +711,11 @@ JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향
 JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향"}`;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'analyzeHeadfiPosition',
+      prompt,
+      googleSearch: true,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { x?: unknown; y?: unknown; label?: unknown };
@@ -718,15 +742,6 @@ export async function fetchAlbumTracklist(album: {
   const albumName = album.album_name?.trim() || '';
   if (!artist || !albumName) return null;
 
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
-    generationConfig: {
-      maxOutputTokens: 2048,
-      temperature: 0.2,
-    },
-  });
-
   const prompt = `Google Search로 "${artist} - ${albumName}" 앨범의 공식 트랙리스트(곡 제목과 트랙 번호)를 조회해.
 발매 연도 참고: ${album.release_date || '알 수 없음'}
 
@@ -741,8 +756,13 @@ export async function fetchAlbumTracklist(album: {
 }`;
 
   try {
-    const result = await withRetry(() => model.generateContent(prompt));
-    const text = result.response.text();
+    const text = await generateGeminiText({
+      fnName: 'fetchAlbumTracklist',
+      prompt,
+      googleSearch: true,
+      maxOutputTokens: 2048,
+      temperature: 0.2,
+    });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { tracks?: unknown };
@@ -777,14 +797,12 @@ export async function generateMonthlyReviewComment(
   const trimmed = activityText.trim();
   if (!trimmed) return null;
   const user = `${year}년 ${month}월 활동:\n${trimmed}`;
-  const model = genAI.getGenerativeModel({
-    model: resolveGeminiModel(),
-    systemInstruction,
-  });
   try {
-    const result = await withRetry(() => model.generateContent(user));
-    const text = result.response.text().trim();
-    return text.length > 0 ? text : null;
+    return await generateGeminiText({
+      fnName: 'generateMonthlyReviewComment',
+      prompt: user,
+      systemInstruction,
+    });
   } catch {
     return null;
   }
