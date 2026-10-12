@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
+import { resolveOpenAIArtistBioModel } from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 
-const DEFAULT_MODEL = 'gpt-5.4-mini';
 const INSTRUCTIONS =
   '당신은 한국어 음악 매거진 에디터입니다. 아티스트 소개글을 존대어(~습니다체)로 자연스럽게 작성합니다. 팩트체크 보고서·뉴스 기사 투가 아닌, 매거진 프로필 소개글 문체를 사용합니다. 연도·월·주년수 등 숫자는 반드시 아라비아 숫자(0-9)로 표기합니다. 모든 소개 문장은 한국어(한글)로만 작성합니다.';
 
@@ -109,7 +109,7 @@ function extractOutputText(response: OpenAI.Responses.Response): string {
 
 async function requestArtistBio(artist: ArtistBioInput, strictKorean: boolean): Promise<string | null> {
   const client = new OpenAI({ apiKey: requireOpenAIApiKey() });
-  const model = process.env.OPENAI_ARTIST_BIO_MODEL?.trim() || DEFAULT_MODEL;
+  const model = resolveOpenAIArtistBioModel();
   const response = await withRetry(() =>
     client.responses.create({
       model,

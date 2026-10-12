@@ -1,9 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { HeadfiFrInterpretation } from '@/app/headfi/types';
+import { resolveAnthropicHeadfiModel } from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import { stripHeadphoneIdSuffixes } from '@/lib/utils';
-
-const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5';
 
 type AnthropicImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
@@ -45,10 +44,6 @@ function requireAnthropicApiKey(): string {
     throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다.');
   }
   return key;
-}
-
-function resolveAnthropicModel(): string {
-  return process.env.ANTHROPIC_HEADFI_MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
 }
 
 function normalizeImageMediaType(mimeType: string): AnthropicImageMediaType {
@@ -124,7 +119,7 @@ async function createAnthropicTextCompletion(
   const client = new Anthropic({ apiKey: requireAnthropicApiKey() });
   const message = await withRetry(() =>
     client.messages.create({
-      model: resolveAnthropicModel(),
+      model: resolveAnthropicHeadfiModel(),
       max_tokens: maxTokens,
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt }],
@@ -164,7 +159,7 @@ export async function interpretHeadfiFrGraphFromImageBuffer(
     const client = new Anthropic({ apiKey: requireAnthropicApiKey() });
     const message = await withRetry(() =>
       client.messages.create({
-        model: resolveAnthropicModel(),
+        model: resolveAnthropicHeadfiModel(),
         max_tokens: 1024,
         thinking: { type: 'disabled' },
         messages: [

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { resolveOpenAIMatchScoreModel } from '@/lib/aiModels';
 import { extractJsonArrayFromText, withRetry } from '@/lib/aiRetry';
 
 export type HeadfiMatchScoreResult = {
@@ -8,8 +9,6 @@ export type HeadfiMatchScoreResult = {
   genre: number;
   comment: string;
 };
-
-const DEFAULT_MATCH_SCORE_MODEL = 'gpt-5.4-mini';
 
 function requireOpenAIApiKey(): string {
   const key = process.env.OPENAI_API_KEY?.trim();
@@ -83,7 +82,7 @@ JSON만 응답:
 
   try {
     const client = new OpenAI({ apiKey: requireOpenAIApiKey() });
-    const model = process.env.OPENAI_MATCH_SCORE_MODEL?.trim() || DEFAULT_MATCH_SCORE_MODEL;
+    const model = resolveOpenAIMatchScoreModel();
     const completion = await withRetry(() =>
       client.chat.completions.create({
         model,

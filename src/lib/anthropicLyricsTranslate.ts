@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { resolveAnthropicLyricsTranslateModel } from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import type { TranslatedLine } from '@/app/lyrics/types';
-
-const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5';
 
 function requireAnthropicApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim();
@@ -10,14 +9,6 @@ function requireAnthropicApiKey(): string {
     throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다.');
   }
   return key;
-}
-
-function resolveAnthropicModel(): string {
-  return (
-    process.env.ANTHROPIC_LYRICS_TRANSLATE_MODEL?.trim() ||
-    process.env.ANTHROPIC_HEADFI_MODEL?.trim() ||
-    DEFAULT_ANTHROPIC_MODEL
-  );
 }
 
 function looksJapanese(text: string): boolean {
@@ -104,7 +95,7 @@ ${numbered}
     const client = new Anthropic({ apiKey: requireAnthropicApiKey() });
     const message = await withRetry(() =>
       client.messages.create({
-        model: resolveAnthropicModel(),
+        model: resolveAnthropicLyricsTranslateModel(),
         max_tokens: 8192,
         thinking: { type: 'disabled' },
         system: SYSTEM,

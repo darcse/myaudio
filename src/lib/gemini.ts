@@ -12,6 +12,7 @@ import {
   type AlbumMoodGroupRow,
   type AlbumMoodUuidOptions,
 } from '@/lib/albumMoodRefs';
+import { resolveGeminiModel } from '@/lib/aiModels';
 import { stripHeadphoneIdSuffixes } from '@/lib/utils';
 
 export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRefs';
@@ -26,7 +27,7 @@ export async function analyzeMusicTaste(albums: {
   country: string | null;
   release_date: string | null;
 }[]) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
 
   const albumSummary = albums
     .map(
@@ -75,7 +76,7 @@ export async function generateAlbumIntroAndTags(album: {
   country: string | null;
 }): Promise<{ audio_tags: string[]; album_intro: string } | null> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     systemInstruction:
       '당신은 한국어 음악 매거진 에디터입니다. 앨범 소개는 존대어(~습니다체)로 풍부하고 구체적으로 작성합니다. 한 줄 요약이나 짧은 나열은 피합니다.',
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
@@ -163,7 +164,7 @@ export async function recommendByMood(
   timeSlot = '',
 ): Promise<{ album_id: number | null; headphone_id: number | null; reason: string } | null> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
 
@@ -242,7 +243,7 @@ export async function recommendHeadfiListeningGenres(headphone: {
   model: string;
 }): Promise<string[] | null> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
 
@@ -279,7 +280,7 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
   colors: string[];
   emoji: string;
 } | null> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
 
   const prompt = `
 다음 가사의 감성과 분위기를 분석해서 반드시 아래 JSON 형식으로만 답변해줘.
@@ -358,7 +359,7 @@ export async function pickAlbumMoodGroupName(
   moodNames: string[],
 ): Promise<string | null> {
   if (moodNames.length === 0) return null;
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
   const tags = Array.isArray(album.audio_tags) ? JSON.stringify(album.audio_tags) : '[]';
   const prompt = `무드 그룹 목록:
 ${moodNames.join('\n')}
@@ -430,7 +431,7 @@ export async function generateAlbumMoodGroups(
     });
   const user = `${allowedUuidHeader}다음 앨범 메타를 참고해 9개 무드로 분류해줘:\n${metaLines.join('\n')}`;
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     systemInstruction: system,
   });
   try {
@@ -473,7 +474,7 @@ export async function recommendAlbumHeadphones(
   if (headphones.length === 0) return null;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
 
@@ -564,7 +565,7 @@ export async function recommendHeadfiAlbumMatch(
     audio_tags: string[] | null;
   }[],
 ): Promise<{ album_id: number; reason: string }[] | null> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+  const model = genAI.getGenerativeModel({ model: resolveGeminiModel() });
 
   const albumList = albums
     .map((a) => {
@@ -656,7 +657,7 @@ export type HeadfiPositionInput = HeadfiWiredPositionInput | HeadfiDacAmpPositio
 
 export async function analyzeHeadfiPosition(input: HeadfiPositionInput): Promise<HeadfiPositionResult | null> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
   });
 
@@ -718,7 +719,7 @@ export async function fetchAlbumTracklist(album: {
   if (!artist || !albumName) return null;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     tools: [{ googleSearch: {} }] as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['tools'],
     generationConfig: {
       maxOutputTokens: 2048,
@@ -777,7 +778,7 @@ export async function generateMonthlyReviewComment(
   if (!trimmed) return null;
   const user = `${year}년 ${month}월 활동:\n${trimmed}`;
   const model = genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash-lite',
+    model: resolveGeminiModel(),
     systemInstruction,
   });
   try {
