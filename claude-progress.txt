@@ -486,3 +486,5 @@
 
 [2026-10-07] [Cursor] feat: 국가 옵션에 대만·스위스 추가 | passes: 변경 없음
 [2026-10-12] [Cursor] refactor: AI 모델명을 src/lib/aiModels.ts로 단일화 | passes: 변경 없음
+[2026-10-12] [Cursor] refactor: Gemini SDK @google/genai 이관 | passes: 변경 없음
+[2026-10-12] [Cursor] chore: eslint ignore에 .next-buildcheck 추가 | passes: 변경 없음
