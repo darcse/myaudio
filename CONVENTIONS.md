@@ -177,6 +177,15 @@ ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → �
 
 ---
 
+## 검증 명령
+
+- `npx tsc --noEmit`, `npm run lint`, `npm run build`가 모두 통과해야 완료로 본다.
+- `npm run lint`는 ESLint CLI + flat config(`eslint.config.mjs`)로 저장소 전체를 검사한다.
+- 빌드 출력 디렉터리(`.next`, `.next-buildcheck` 등)를 새로 만들면 `.gitignore`와 `eslint.config.mjs`의 `ignores`에 **함께** 추가한다. 빠지면 lint가 산출물까지 검사해 수천 건이 나온다.
+- lint 건수를 줄이려고 규칙을 끄지 않는다.
+
+---
+
 ## 인증
 
 - 비로그인(Guest): 목록·상세 조회만 가능 (읽기 전용)
@@ -210,8 +219,12 @@ ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → �
 - 한국어 응답은 정규화 후 저장·렌더링 (react-markdown)
 - 생성 비용이 큰 결과는 캐시 테이블에 저장하고 재사용한다 (무드, 매칭 점수, 월간 코멘트 등)
 - FR 그래프 이미지 해석은 Anthropic 비전으로 처리한다 (Gemini 이미지 호출 없음)
-- Gemini SDK `@google/generative-ai`는 지원 종료된 레거시 SDK다. 이관 전까지 신규 Gemini 기능은 기존 `gemini.ts` 패턴을 따르되, 이관 계획과 충돌하는 구조는 먼저 보고한다.
-- Gemini 검색 도구(Google Search grounding)는 현재 구 SDK 타입을 우회해 쓰고 있다. 이 부분을 수정할 때는 검색 결과가 실제로 반영되는지 확인한다.
+- Gemini SDK는 `@google/genai` 2.x를 쓴다 (3.0은 Node 22 필수 등 변경이 있어 별도 검토 후 올린다). 레거시 `@google/generative-ai`는 앱에서 쓰지 않는다.
+- 신규 Gemini 기능은 `gemini.ts`의 `generateGeminiText` 래퍼를 거친다. 래퍼 밖에서 SDK를 직접 호출하지 않는다.
+  - 응답은 `response.text` getter로 읽고, 빈 값은 실패로 처리한다
+  - SDK 자체 재시도는 끄고(`retryOptions.attempts: 1`) `withRetry`만 쓴다 (중첩 재시도 방지)
+  - 실패 시 `[gemini]` 로그를 남긴다. API 키와 프롬프트 전문은 로그에 남기지 않는다
+- Google Search grounding(`config.tools: [{ googleSearch: {} }]`)을 쓰는 호출에는 `responseMimeType` / `responseSchema`를 넣지 않는다 (400 에러). JSON은 프롬프트로 요구하고 파싱한다.
 
 ---
 
