@@ -51,7 +51,7 @@ function MonthlyBarChart({ data }: { data: BarDatum[] }) {
       viewBox={`0 0 ${width} ${height}`}
       className="w-full min-h-[260px]"
       role="img"
-      aria-label="월별 지출 바 차트"
+      aria-label="월별 구매액 바 차트"
     >
       {data.map((item, index) => {
         const barHeight = maxValue > 0 ? (item.value / maxValue) * chartHeight : 0;
@@ -129,7 +129,7 @@ function SpendingTable({
 }
 
 function YearlyTable({ rows }: { rows: SpendingYearBucket[] }) {
-  return <SpendingTable rows={rows} labelHeader="연도" amountHeader="지출" />;
+  return <SpendingTable rows={rows} labelHeader="연도" amountHeader="순지출 (총지출−판매)" />;
 }
 
 function CategorySpendingTable({ rows }: { rows: SpendingCategoryBucket[] }) {
@@ -199,7 +199,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
         </div>
 
         <section className="mb-6 text-center">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">전체 지출</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide opacity-60">순지출</p>
           <p className="text-3xl font-bold tabular-nums">{formatKrw(stats.total)}</p>
           <p className="mt-1 text-xs tabular-nums opacity-55">
             총지출 {formatKrw(stats.grossTotal)} - 총판매액 {formatKrw(stats.totalSales)}
@@ -229,7 +229,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
 
         {statsTab === 'period' ? (
         <section className="space-y-4">
-          <h3 className="text-sm font-semibold opacity-90">연도별 지출</h3>
+          <h3 className="text-sm font-semibold opacity-90">연도별 순지출</h3>
           <YearlyTable rows={stats.yearly} />
           {stats.unclassified > 0 ? (
             <p className="text-xs opacity-70">
@@ -238,7 +238,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
           ) : null}
 
           <div className="flex items-center justify-between gap-2 pt-2">
-            <h3 className="text-sm font-semibold opacity-90">월별 지출</h3>
+            <h3 className="text-sm font-semibold opacity-90">월별 구매액</h3>
             <div className="flex gap-1">
               {([2025, 2026] as const).map((year) => (
                 <button
@@ -258,7 +258,9 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
             </div>
           </div>
           <MonthlyBarChart data={monthlyChartData} />
-          <p className="text-xs opacity-55">구매 없는 달은 0원으로 표시됩니다. 바 위 금액은 만·억 단위로 축약 표시됩니다.</p>
+          <p className="text-xs opacity-55">
+            구매 없는 달은 0원으로 표시됩니다. 바 위 금액은 만·억 단위로 축약 표시됩니다. 월별 차트는 구매액만 합산하며, 연도별 표와 상단 순지출은 총지출에서 판매를 뺀 금액입니다.
+          </p>
         </section>
         ) : (
         <section className="space-y-6">

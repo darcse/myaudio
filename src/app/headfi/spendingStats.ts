@@ -273,7 +273,6 @@ export function buildHeadfiSpendingStats(
     if (amount <= 0) continue;
     totalSales += amount;
     total -= amount;
-    monthlyEntries.push({ purchase_date: item.sale_date, amount: -amount });
     const year = parsePurchaseYear(item.sale_date);
     if (year == null) {
       unclassified -= amount;

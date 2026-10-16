@@ -488,3 +488,6 @@
 [2026-10-12] [Cursor] refactor: AI 모델명을 src/lib/aiModels.ts로 단일화 | passes: 변경 없음
 [2026-10-12] [Cursor] refactor: Gemini SDK @google/genai 이관 | passes: 변경 없음
 [2026-10-12] [Cursor] chore: eslint ignore에 .next-buildcheck 추가 | passes: 변경 없음
+[2026-10-16] [Cursor] fix: 소비통계 월별 차트는 구매액만 집계 (판매 차감 제외) | passes: 변경 없음
+[2026-10-16] [Cursor] style: 소비통계 모달 순지출/총지출 라벨 통일 | passes: 변경 없음
+[2026-10-16] [Cursor] docs: AGENTS.md에 개발 서버 보호 규칙 추가 | passes: 변경 없음

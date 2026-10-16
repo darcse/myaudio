@@ -10,3 +10,4 @@
 [2026-10-12] [Cursor] refactor: AI 모델명을 src/lib/aiModels.ts로 단일화 | passes: 변경 없음
 [2026-10-12] [Cursor] refactor: Gemini SDK @google/genai 이관 | passes: 변경 없음
 [2026-10-12] [Cursor] chore: eslint ignore에 .next-buildcheck 추가 | passes: 변경 없음
+[2026-10-16] [Cursor] 조사: 헤드파이 소비통계 10월 구매액 미표시 원인 (코드만, 수정 없음) | passes: 변경 없음
