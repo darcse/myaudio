@@ -23,7 +23,7 @@
       "Pretendard 폰트가 본문에 적용되어 있는지 확인",
       "라이트/다크/자동 테마 토글 시 전환 확인",
       "자동 모드에서 시스템 설정 따라가는지 확인",
-      "npm run build 에러 없이 통과 확인"
+      "npm run build:check 에러 없이 통과 확인"
     ],
     "passes": true
   },

@@ -272,10 +272,12 @@ ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → �
     npx tsc --noEmit
     ```
 *   **Next.js 빌드**:
+    배포용 빌드. 실행 중인 dev와 `.next`를 공유하므로 로컬 에이전트 검증에는 쓰지 않음.
     ```bash
     npm run build
     ```
 *   **Next.js 빌드 정적 검사 전용**:
+    `.next-buildcheck`에 출력하는 컴파일 검증용.
     ```bash
     npm run build:check
     ```

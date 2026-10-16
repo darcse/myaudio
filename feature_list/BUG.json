@@ -22,7 +22,7 @@
             "albums/page.tsx, headfi/page.tsx, lyrics/page.tsx, headfi/match/page.tsx에서 'use client' 제거 확인",
             "각 페이지 정상 렌더링 확인",
             "클라이언트 인터랙션(필터, 모달 등) 정상 동작 확인",
-            "npm run build 통과 확인"
+            "npm run build:check 통과 확인"
           ],
           "passes": true
         },
@@ -35,7 +35,7 @@
             "parseFrInterpretationSummary가 한 곳에만 정의되고 다른 파일에서 import하는지 확인",
             "Fisher-Yates 셔플 헬퍼 함수 생성 및 기존 3곳의 셔플 패턴 교체 확인",
             "기존 기능(FR 요약 파싱, 앨범 셔플) 동작 변화 없음 확인",
-            "npm run build 통과 확인"
+            "npm run build:check 통과 확인"
           ],
           "passes": true
         },
@@ -49,7 +49,7 @@
             "HeadfiDetailModal — 기본정보/레이더차트/FR그래프/매칭앨범 섹션별 컴포넌트 분리 확인",
             "AlbumsLibraryContent — 필터/정렬 로직 커스텀 훅으로 분리 확인",
             "분리 후 기존 기능 전체 동작 변화 없음 확인",
-            "npm run build 통과 확인"
+            "npm run build:check 통과 확인"
           ],
           "passes": true
         },

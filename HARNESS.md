@@ -42,7 +42,7 @@ Claude Chat → feature_list/ → Cursor or Codex (구현) → 브라우저 수�
 
 1. 에이전트별 progress 파일 읽기 — 이전 세션 파악
 2. `feature_list/` 읽기 — passes: false 항목 파악
-3. `npm run dev` 기동 확인
+3. JW가 띄운 개발 서버 접속 주소를 확인한다. 모르면 물어본다. 직접 실행·종료하지 않는다.
 
 ---
 
@@ -72,7 +72,7 @@ Claude Chat → feature_list/ → Cursor or Codex (구현) → 브라우저 수�
 순서대로 실행:
 
 1. `npx tsc --noEmit` — 타입 오류 확인
-2. `npm run build` — 빌드 성공 확인
+2. `npm run build:check` — Next 컴파일 성공 확인 (.next-buildcheck, 실행 중 dev의 .next를 덮지 않음)
 3. `npm run lint` — 린트 에러 확인
 
 실패 시:

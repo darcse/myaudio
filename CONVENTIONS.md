@@ -179,7 +179,8 @@ ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → �
 
 ## 검증 명령
 
-- `npx tsc --noEmit`, `npm run lint`, `npm run build`가 모두 통과해야 완료로 본다.
+- 구현 완료 기준: `npx tsc --noEmit`과 `npm run lint` 통과.
+- Next 컴파일이 필요하면 `npm run build:check`를 쓴다. `npm run build`는 실행 중인 `next dev`와 `.next`를 공유하므로 에이전트가 돌리지 않는다.
 - `npm run lint`는 ESLint CLI + flat config(`eslint.config.mjs`)로 저장소 전체를 검사한다.
 - 빌드 출력 디렉터리(`.next`, `.next-buildcheck` 등)를 새로 만들면 `.gitignore`와 `eslint.config.mjs`의 `ignores`에 **함께** 추가한다. 빠지면 lint가 산출물까지 검사해 수천 건이 나온다.
 - lint 건수를 줄이려고 규칙을 끄지 않는다.
