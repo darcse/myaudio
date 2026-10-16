@@ -492,3 +492,4 @@
 [2026-10-16] [Cursor] style: 소비통계 모달 순지출/총지출 라벨 통일 | passes: 변경 없음
 [2026-10-16] [Cursor] docs: AGENTS.md에 개발 서버 보호 규칙 추가 | passes: 변경 없음
 [2026-10-16] [Cursor] docs: 지침 충돌 정리 (dev 보호·build:check 통일) | passes: 변경 없음
+[2026-10-16] [Cursor] feat: 소비통계 연도별 표에 총지출·판매 분해 표시 | passes: 변경 없음

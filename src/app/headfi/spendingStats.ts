@@ -3,6 +3,8 @@ import type { Headfi, HeadfiAccessory, HeadfiSale } from './types';
 export type SpendingYearBucket = {
   label: string;
   amount: number;
+  gross: number;
+  sales: number;
 };
 
 export type SpendingMonthBucket = {
@@ -107,6 +109,50 @@ function parsePurchaseYear(purchaseDate: string | null | undefined): number | nu
   if (!trimmed) return null;
   const year = Number.parseInt(trimmed.slice(0, 4), 10);
   return Number.isFinite(year) ? year : null;
+}
+
+type YearParts = {
+  gross: number;
+  sales: number;
+};
+
+type YearLedger = {
+  through2024: YearParts;
+  year2025: YearParts;
+  year2026: YearParts;
+  after2026: YearParts;
+  unclassified: YearParts;
+};
+
+function emptyYearParts(): YearParts {
+  return { gross: 0, sales: 0 };
+}
+
+function emptyYearLedger(): YearLedger {
+  return {
+    through2024: emptyYearParts(),
+    year2025: emptyYearParts(),
+    year2026: emptyYearParts(),
+    after2026: emptyYearParts(),
+    unclassified: emptyYearParts(),
+  };
+}
+
+function yearPartsFor(ledger: YearLedger, year: number | null): YearParts {
+  if (year == null) return ledger.unclassified;
+  if (year <= 2024) return ledger.through2024;
+  if (year === 2025) return ledger.year2025;
+  if (year === 2026) return ledger.year2026;
+  return ledger.after2026;
+}
+
+function toYearBucket(label: string, parts: YearParts): SpendingYearBucket {
+  return {
+    label,
+    amount: parts.gross - parts.sales,
+    gross: parts.gross,
+    sales: parts.sales,
+  };
 }
 
 function buildMonthlyBuckets(
@@ -218,51 +264,21 @@ export function buildHeadfiSpendingStats(
   sales: HeadfiSale[] = [],
 ): HeadfiSpendingStats {
   let total = 0;
-  let unclassified = 0;
-  let through2024 = 0;
-  let year2025 = 0;
-  let year2026 = 0;
-  let after2026 = 0;
+  const ledger = emptyYearLedger();
   const monthlyEntries: { purchase_date: string | null | undefined; amount: number }[] = [];
 
   for (const item of library) {
     const amount = headfiItemSpending(item);
     total += amount;
     monthlyEntries.push({ purchase_date: item.purchase_date, amount });
-    const year = parsePurchaseYear(item.purchase_date);
-    if (year == null) {
-      unclassified += amount;
-      continue;
-    }
-    if (year <= 2024) {
-      through2024 += amount;
-    } else if (year === 2025) {
-      year2025 += amount;
-    } else if (year === 2026) {
-      year2026 += amount;
-    } else {
-      after2026 += amount;
-    }
+    yearPartsFor(ledger, parsePurchaseYear(item.purchase_date)).gross += amount;
   }
 
   for (const item of accessories) {
     const amount = headfiAccessorySpending(item);
     total += amount;
     monthlyEntries.push({ purchase_date: item.purchase_date, amount });
-    const year = parsePurchaseYear(item.purchase_date);
-    if (year == null) {
-      unclassified += amount;
-      continue;
-    }
-    if (year <= 2024) {
-      through2024 += amount;
-    } else if (year === 2025) {
-      year2025 += amount;
-    } else if (year === 2026) {
-      year2026 += amount;
-    } else {
-      after2026 += amount;
-    }
+    yearPartsFor(ledger, parsePurchaseYear(item.purchase_date)).gross += amount;
   }
 
   const grossTotal = total;
@@ -273,29 +289,20 @@ export function buildHeadfiSpendingStats(
     if (amount <= 0) continue;
     totalSales += amount;
     total -= amount;
-    const year = parsePurchaseYear(item.sale_date);
-    if (year == null) {
-      unclassified -= amount;
-      continue;
-    }
-    if (year <= 2024) {
-      through2024 -= amount;
-    } else if (year === 2025) {
-      year2025 -= amount;
-    } else if (year === 2026) {
-      year2026 -= amount;
-    } else {
-      after2026 -= amount;
-    }
+    yearPartsFor(ledger, parsePurchaseYear(item.sale_date)).sales += amount;
   }
 
+  const unclassified = ledger.unclassified.gross - ledger.unclassified.sales;
   const yearly: SpendingYearBucket[] = [
-    { label: '~2024', amount: through2024 },
-    { label: '2025', amount: year2025 },
-    { label: '2026', amount: year2026 },
+    toYearBucket('~2024', ledger.through2024),
+    toYearBucket('2025', ledger.year2025),
+    toYearBucket('2026', ledger.year2026),
   ];
-  if (after2026 > 0) {
-    yearly.push({ label: '2027+', amount: after2026 });
+  if (ledger.after2026.gross > 0 || ledger.after2026.sales > 0) {
+    yearly.push(toYearBucket('2027+', ledger.after2026));
+  }
+  if (ledger.unclassified.gross !== 0 || ledger.unclassified.sales !== 0) {
+    yearly.push(toYearBucket('미분류', ledger.unclassified));
   }
 
   const categoryTotals = new Map<string, number>(

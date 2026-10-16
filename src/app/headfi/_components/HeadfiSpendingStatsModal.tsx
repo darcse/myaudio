@@ -118,8 +118,13 @@ function SpendingTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.label} className="border-t" style={{ borderColor: 'var(--border)' }}>
-              <td className="px-3 py-2 opacity-90">{row.label}</td>
-              <td className="px-3 py-2 text-right tabular-nums font-medium">{formatKrw(row.amount)}</td>
+              <td className="px-3 py-2 align-top opacity-90">{row.label}</td>
+              <td className="px-3 py-2 text-right">
+                <p className="tabular-nums font-medium">{formatKrw(row.amount)}</p>
+                <p className="mt-0.5 text-xs font-normal tabular-nums opacity-55">
+                  (총지출 {formatKrw(row.gross)} − 판매 {formatKrw(row.sales)})
+                </p>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -231,11 +236,6 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
         <section className="space-y-4">
           <h3 className="text-sm font-semibold opacity-90">연도별 순지출</h3>
           <YearlyTable rows={stats.yearly} />
-          {stats.unclassified > 0 ? (
-            <p className="text-xs opacity-70">
-              <strong className="opacity-90">미분류</strong> (구입일 없음): {formatKrw(stats.unclassified)}
-            </p>
-          ) : null}
 
           <div className="flex items-center justify-between gap-2 pt-2">
             <h3 className="text-sm font-semibold opacity-90">월별 구매액</h3>
