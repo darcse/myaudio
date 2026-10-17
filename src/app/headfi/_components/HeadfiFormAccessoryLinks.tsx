@@ -146,9 +146,9 @@ export function HeadfiFormAccessoryLinks({
   const emptyCategory = Boolean(pickerCategory) && ownedInCategory.length === 0;
 
   return (
-    <div className="col-span-2 space-y-3">
+    <div className="col-span-2 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <label className="block text-sm font-semibold opacity-90">액세서리</label>
+        <label className="text-xs font-semibold opacity-90">액세서리</label>
         <button
           type="button"
           className="btn-apple btn-apple-secondary inline-flex h-[34px] items-center gap-1 px-3 text-xs"
@@ -166,7 +166,7 @@ export function HeadfiFormAccessoryLinks({
       {selectedItems.length === 0 ? (
         <p className="text-sm opacity-60">연결된 액세서리가 없습니다.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {selectedItems.map((item) => (
             <li
               key={item.id}
@@ -188,11 +188,14 @@ export function HeadfiFormAccessoryLinks({
       )}
 
       {pickerOpen ? (
-        <div className="space-y-3 rounded-xl p-3" style={{ border: '1px solid var(--border)' }}>
-          <div>
-            <label className="mb-1 block text-sm font-semibold opacity-90">액세서리 카테고리</label>
+        <div className="space-y-2 rounded-xl px-2 py-2" style={{ border: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-2">
+            <label className="shrink-0 text-xs font-semibold opacity-90" htmlFor="headfi-accessory-category">
+              카테고리
+            </label>
             <select
-              className="select-apple h-[42px] w-full px-3 py-2"
+              id="headfi-accessory-category"
+              className="select-apple h-[42px] min-w-0 flex-1 px-3 py-2"
               value={pickerCategory}
               onChange={(e) => {
                 setPickerCategory(e.target.value);
@@ -213,7 +216,7 @@ export function HeadfiFormAccessoryLinks({
             emptyCategory ? (
               <p className="text-sm opacity-70">등록된 제품이 없습니다.</p>
             ) : (
-              <ul className="max-h-48 space-y-1 overflow-y-auto">
+              <ul className="space-y-1">
                 {selectable.map((item) => (
                   <li key={item.id}>
                     <button
