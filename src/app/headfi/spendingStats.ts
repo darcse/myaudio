@@ -54,12 +54,7 @@ export const HEADFI_ACCESSORY_CATEGORY_OPTIONS = [
   '무선 헤드폰 액세서리',
   '무선 이어폰 이어팁',
   '무선 이어폰 액세서리',
-  'DAC 액세서리',
-  'AMP 액세서리',
-  'DAC/AMP 액세서리',
-  'DAP 액세서리',
-  'Source 액세서리',
-  '스피커 액세서리',
+  '기타 케이블',
   '기타 액세서리',
 ] as const;
 

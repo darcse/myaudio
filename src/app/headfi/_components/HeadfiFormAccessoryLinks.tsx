@@ -23,8 +23,12 @@ function accessoryLabel(item: HeadfiAccessory): string {
 }
 
 
-function isOwned(item: HeadfiAccessory): boolean {
-  return item.status !== 'released';
+function isReleased(item: HeadfiAccessory): boolean {
+  return item.status === 'released';
+}
+
+function ReleasedBadge() {
+  return <span className="shrink-0 text-[10px] font-semibold">방출</span>;
 }
 
 export function HeadfiFormAccessoryLinks({
@@ -74,15 +78,16 @@ export function HeadfiFormAccessoryLinks({
     return map;
   }, [linkedGear, currentHeadfiId]);
 
-  const ownedInCategory = useMemo(
+  const itemsInCategory = useMemo(
     () =>
-      accessories.filter(
-        (item) => isOwned(item) && (!pickerCategory || item.category === pickerCategory),
-      ),
+      accessories
+        .filter((item) => !pickerCategory || item.category === pickerCategory)
+        .slice()
+        .sort((a, b) => Number(isReleased(a)) - Number(isReleased(b))),
     [accessories, pickerCategory],
   );
 
-  const selectable = ownedInCategory.filter((item) => !selectedIds.includes(item.id));
+  const selectable = itemsInCategory.filter((item) => !selectedIds.includes(item.id));
 
   const resetPicker = () => {
     setPickerOpen(false);
@@ -143,7 +148,7 @@ export function HeadfiFormAccessoryLinks({
     }
   };
 
-  const emptyCategory = Boolean(pickerCategory) && ownedInCategory.length === 0;
+  const emptyCategory = Boolean(pickerCategory) && itemsInCategory.length === 0;
 
   return (
     <div className="col-span-2 space-y-2">
@@ -173,7 +178,10 @@ export function HeadfiFormAccessoryLinks({
               className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm"
               style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
             >
-              <span className="min-w-0 truncate">{accessoryLabel(item)}</span>
+              <span className="flex min-w-0 items-center gap-1">
+                <span className="min-w-0 truncate">{accessoryLabel(item)}</span>
+                {isReleased(item) ? <ReleasedBadge /> : null}
+              </span>
               <button
                 type="button"
                 className="btn-apple btn-apple-secondary inline-flex h-[30px] w-[30px] items-center justify-center"
@@ -226,7 +234,10 @@ export function HeadfiFormAccessoryLinks({
                       onClick={() => addAccessory(item.id)}
                     >
                       <span className="min-w-0">
-                        <span className="block truncate">{accessoryLabel(item)}</span>
+                        <span className="flex min-w-0 items-center gap-1">
+                          <span className="min-w-0 truncate">{accessoryLabel(item)}</span>
+                          {isReleased(item) ? <ReleasedBadge /> : null}
+                        </span>
                         {(otherGearByAccessoryId.get(item.id) ?? []).map((gear) => {
                           const model = gear.model.trim();
                           if (!model) return null;

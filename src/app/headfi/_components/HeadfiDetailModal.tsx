@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { createClient } from '@/lib/supabase/client';
 import { DeletingLabel } from '@/components/AsyncMutationUi';
 import type { Headfi } from '../types';
@@ -97,12 +98,7 @@ export function HeadfiDetailModal({
     return items;
   }, [showListenTab, showFrTab, showAlbumsTab, showSettingsTab]);
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
+  useLockBodyScroll();
 
   useEffect(() => {
     setActiveTab('info');

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { createClient } from '@/lib/supabase/client';
 import { HeadfiComboManageSection } from './HeadfiComboManageSection';
 import type { Headfi, HeadfiCombo } from '../types';
@@ -65,21 +66,16 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
+  useLockBodyScroll(open);
+
   useEffect(() => {
-    if (!open) {
-      setActiveTab('match');
-      setComboId('');
-      setLoading(false);
-      setResults([]);
-      setExpandedId(null);
-      setReanalyzeConfirm(false);
-      return;
-    }
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    if (open) return;
+    setActiveTab('match');
+    setComboId('');
+    setLoading(false);
+    setResults([]);
+    setExpandedId(null);
+    setReanalyzeConfirm(false);
   }, [open]);
 
   useEffect(() => {

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BarChart2 } from 'lucide-react';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiAccessory, HeadfiSale } from '../types';
 import {
   buildHeadfiSpendingStats,
@@ -174,14 +175,7 @@ export function HeadfiSpendingStatsModal({ open, onClose, library, accessories, 
     [stats.monthlyByYear, monthlyYear],
   );
 
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open]);
+  useLockBodyScroll(open);
 
   if (!open) return null;
 

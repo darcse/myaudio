@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
 import { buildGearByIdMap, formatComboMapLabel } from '@/app/headfi/headfiComboUtils';
 import {
@@ -246,14 +247,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
     }
   }, [selected]);
 
-  useEffect(() => {
-    if (!selected) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [selected]);
+  useLockBodyScroll(Boolean(selected));
 
   const { allHpRows } = useMemo(() => {
     const owned = library.filter((item) => item.status2 === '보유중');

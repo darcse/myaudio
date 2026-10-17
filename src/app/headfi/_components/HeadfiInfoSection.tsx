@@ -62,7 +62,7 @@ function HeadfiLinkedAccessories({ headfiId }: { headfiId: number }) {
         <ul className="mt-1 space-y-1">
           {rows.map((row) => (
             <li key={row.id} className="text-sm">
-              {row.name} + {row.price != null && Number.isFinite(Number(row.price)) ? formatKrw(Number(row.price)) : '0원'}
+              {row.name} | {row.price != null && Number.isFinite(Number(row.price)) ? formatKrw(Number(row.price)) : '0원'}
               {row.released ? <span className="ml-2 text-xs opacity-60">방출</span> : null}
             </li>
           ))}

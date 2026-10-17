@@ -205,7 +205,6 @@ export function HeadfiLibraryContent() {
   }, []);
 
   const fetchLibrary = useCallback(async () => {
-    setIsLoading(true);
     try {
       const client = createClient();
       const { data } = await client.from('headfi').select('*').order('created_at', { ascending: false });
