@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  HeadfiFormAccessoryFieldsRow,
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
   HeadfiFormPurchaseStatusRow,
@@ -31,7 +30,6 @@ export function HeadfiFormDapSection({ formData, setFormData }: HeadfiFormSectio
         <HeadfiFormVrmsField label={HEADFI_DAC_AMP_LABELS.vrms32} field="vrms_bal" formData={formData} setFormData={setFormData} />
         <HeadfiFormVrmsField label={HEADFI_DAC_AMP_LABELS.vrms300} field="vrms_single" formData={formData} setFormData={setFormData} />
       </div>
-      <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
       <div className="col-span-2">
         <HeadfiFormTextInput label="기타" field="etc" formData={formData} setFormData={setFormData} />
       </div>

@@ -95,6 +95,20 @@ export interface HeadfiAccessory {
   created_at?: string | null;
 }
 
+export interface HeadfiAccessoryLink {
+  id: string;
+  headfi_id: number;
+  accessory_id: string;
+}
+
+export interface HeadfiAccessoryLinkedGear {
+  accessory_id: string;
+  headfi_id: number;
+  brand: string;
+  model: string;
+  status2: string | null;
+}
+
 export interface HeadfiAccessoryFormData {
   category: string;
   name: string;

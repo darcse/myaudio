@@ -90,18 +90,8 @@ export function formatCategorySpendingLabel(row: SpendingCategoryBucket): string
   return `${row.label} (${row.count}${row.countUnit})`;
 }
 
-export function headfiItemSpending(
-  item: Pick<Headfi, 'price' | 'cable_price' | 'eartip_price' | 'accessory_price'>,
-): number {
-  const price = item.price ?? 0;
-  const cablePrice = item.cable_price ?? 0;
-  const eartipPrice = item.eartip_price ?? 0;
-  const accessoryPrice = item.accessory_price ?? 0;
-  const safePrice = Number.isFinite(Number(price)) ? Number(price) : 0;
-  const safeCable = Number.isFinite(Number(cablePrice)) ? Number(cablePrice) : 0;
-  const safeEartip = Number.isFinite(Number(eartipPrice)) ? Number(eartipPrice) : 0;
-  const safeAccessory = Number.isFinite(Number(accessoryPrice)) ? Number(accessoryPrice) : 0;
-  return safePrice + safeCable + safeEartip + safeAccessory;
+export function headfiItemSpending(item: Pick<Headfi, 'price'>): number {
+  return safeAmount(item.price);
 }
 
 function parsePurchaseYear(purchaseDate: string | null | undefined): number | null {
@@ -182,68 +172,6 @@ type AccessoryContribution = {
   count: number;
 };
 
-function getAccessoryContributions(item: Headfi): AccessoryContribution[] {
-  const category = item.category?.trim();
-  const cable = safeAmount(item.cable_price);
-  const eartip = safeAmount(item.eartip_price);
-  const accessory = safeAmount(item.accessory_price);
-  const out: AccessoryContribution[] = [];
-  const push = (label: string, amount: number, count = 1) => {
-    if (amount > 0) out.push({ label, amount, count });
-  };
-
-  switch (category) {
-    case '헤드폰':
-      push('헤드폰 케이블', cable);
-      push('헤드폰 이어패드', eartip);
-      break;
-    case '이어폰':
-      push('이어폰 케이블', cable);
-      push('이어폰 이어팁', eartip);
-      break;
-    case '무선 헤드폰':
-      push('무선 헤드폰 이어패드', eartip);
-      push('무선 헤드폰 액세서리', accessory);
-      push('무선 헤드폰 부가비용', cable);
-      break;
-    case '무선 이어폰':
-      push('무선 이어폰 이어팁', eartip);
-      push('무선 이어폰 액세서리', accessory);
-      push('무선 이어폰 부가비용', cable);
-      break;
-    case 'DAC':
-      push('DAC 액세서리', accessory);
-      break;
-    case 'AMP':
-      push('AMP 액세서리', accessory);
-      break;
-    case 'DAC/AMP':
-      push('DAC/AMP 액세서리', accessory);
-      break;
-    case 'DAP':
-      push('DAP 액세서리', accessory);
-      break;
-    case 'Source':
-      push('Source 액세서리', accessory);
-      break;
-    case '기타':
-      push('기타 액세서리', accessory);
-      break;
-    case '스피커':
-      push('스피커 액세서리', accessory);
-      push('스피커 부가비용', cable + eartip);
-      break;
-    default: {
-      const lump = cable + eartip + accessory;
-      if (lump > 0) {
-        push(category ? `${category} 부가비용` : '기타 부가비용', lump);
-      }
-    }
-  }
-
-  return out;
-}
-
 function headfiAccessorySpending(item: Pick<HeadfiAccessory, 'price'>): number {
   return safeAmount(item.price);
 }
@@ -318,13 +246,6 @@ export function buildHeadfiSpendingStats(
     if (category && categoryTotals.has(category)) {
       categoryTotals.set(category, (categoryTotals.get(category) ?? 0) + safeAmount(item.price));
       categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
-    }
-    for (const contribution of getAccessoryContributions(item)) {
-      const prev = accessoryTotals.get(contribution.label) ?? { amount: 0, count: 0 };
-      accessoryTotals.set(contribution.label, {
-        amount: prev.amount + contribution.amount,
-        count: prev.count + contribution.count,
-      });
     }
   }
 

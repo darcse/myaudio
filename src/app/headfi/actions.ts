@@ -2,7 +2,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiAccessoryFormData, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import type { HeadfiAccessoryFormData, HeadfiAccessoryLink, HeadfiAccessoryLinkedGear, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
@@ -90,6 +90,23 @@ function emptyWiredFields() {
     ...emptySoundScores(),
     ...emptyDacColumns(),
   };
+}
+
+const LEGACY_ACCESSORY_COLUMNS = [
+  'cable',
+  'cable_price',
+  'eartip',
+  'eartip_price',
+  'accessory',
+  'accessory_price',
+] as const;
+
+function omitLegacyAccessoryColumns(row: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...row };
+  for (const key of LEGACY_ACCESSORY_COLUMNS) {
+    delete next[key];
+  }
+  return next;
 }
 
 function normalizePersistedImageUrl(url: string | undefined): string {
@@ -290,7 +307,7 @@ export async function saveHeadfiToDB(data: HeadfiFormData) {
   const supabase = await createClient();
   const { data: result, error } = await supabase
     .from('headfi')
-    .insert([mapHeadfiData(data)])
+    .insert([omitLegacyAccessoryColumns(mapHeadfiData(data) as Record<string, unknown>)])
     .select('id')
     .single();
 
@@ -306,7 +323,7 @@ export async function updateHeadfiInDB(id: number, data: HeadfiFormData) {
   if (fetchError || !existing) {
     throw new Error(fetchError ? toSupabaseErrorMessage(fetchError) : 'Headfi not found');
   }
-  const mapped = mapHeadfiData(data);
+  const mapped = omitLegacyAccessoryColumns(mapHeadfiData(data) as Record<string, unknown>);
   const row: Record<string, unknown> = { ...mapped };
   const mappedFr = mapped.fr_graph_url;
   const newFr =
@@ -413,6 +430,85 @@ function mapHeadfiAccessoryData(data: HeadfiAccessoryFormData) {
     purchase_date: data.purchase_date.trim() || null,
     status,
   };
+}
+
+export async function listHeadfiAccessoryLinks(): Promise<HeadfiAccessoryLink[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('headfi_accessory_links')
+    .select('id,headfi_id,accessory_id')
+    .eq('user_id', user.id);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return (data ?? []) as HeadfiAccessoryLink[];
+}
+
+export async function listHeadfiAccessoryLinkedGear(): Promise<HeadfiAccessoryLinkedGear[]> {
+  const links = await listHeadfiAccessoryLinks();
+  if (links.length === 0) return [];
+  const headfiIds = [...new Set(links.map((link) => link.headfi_id))];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('headfi')
+    .select('id,brand,model,status2')
+    .in('id', headfiIds);
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  const gearById = new Map(
+    ((data ?? []) as { id: number; brand: string | null; model: string | null; status2: string | null }[]).map(
+      (row) => [row.id, row],
+    ),
+  );
+  return links.flatMap((link) => {
+    const gear = gearById.get(link.headfi_id);
+    if (!gear) return [];
+    return [
+      {
+        accessory_id: link.accessory_id,
+        headfi_id: gear.id,
+        brand: gear.brand ?? '',
+        model: gear.model ?? '',
+        status2: gear.status2,
+      },
+    ];
+  });
+}
+
+export async function syncHeadfiAccessoryLinks(headfiId: number, accessoryIds: string[]): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const desired = [...new Set(accessoryIds.map((id) => id.trim()).filter(Boolean))];
+  const { data: existing, error: existingError } = await supabase
+    .from('headfi_accessory_links')
+    .select('id,accessory_id')
+    .eq('headfi_id', headfiId)
+    .eq('user_id', user.id);
+  if (existingError) throw new Error(toSupabaseErrorMessage(existingError));
+  const current = existing ?? [];
+  const currentIds = new Set(current.map((row) => row.accessory_id));
+  const desiredSet = new Set(desired);
+  const toDelete = current.filter((row) => !desiredSet.has(row.accessory_id)).map((row) => row.id);
+  const toInsert = desired.filter((id) => !currentIds.has(id));
+  if (toDelete.length > 0) {
+    const { error } = await supabase
+      .from('headfi_accessory_links')
+      .delete()
+      .eq('headfi_id', headfiId)
+      .eq('user_id', user.id)
+      .in('id', toDelete);
+    if (error) throw new Error(toSupabaseErrorMessage(error));
+  }
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from('headfi_accessory_links').insert(
+      toInsert.map((accessory_id) => ({
+        headfi_id: headfiId,
+        accessory_id,
+        user_id: user.id,
+      })),
+    );
+    if (error) throw new Error(toSupabaseErrorMessage(error));
+  }
 }
 
 export async function saveHeadfiAccessoryToDB(data: HeadfiAccessoryFormData) {

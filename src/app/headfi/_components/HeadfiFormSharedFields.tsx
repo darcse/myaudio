@@ -134,30 +134,3 @@ export function HeadfiFormMemoField({ formData, setFormData }: HeadfiFormSection
     </div>
   );
 }
-
-export function HeadfiFormAccessoryFieldsRow({ formData, setFormData }: HeadfiFormSectionProps) {
-  return (
-    <>
-      <div>
-        <label className="block text-sm font-semibold mb-1 opacity-90">액세서리</label>
-        <input
-          type="text"
-          className={INPUT_BASE_CLASS}
-          placeholder="액세서리 (예: 전원케이블, USB케이블)"
-          value={formData.accessory}
-          onChange={(e) => setFormData({ ...formData, accessory: e.target.value })}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold mb-1 opacity-90">액세서리 가격</label>
-        <input
-          type="number"
-          className={INPUT_BASE_CLASS}
-          placeholder="가격"
-          value={formData.accessory_price}
-          onChange={(e) => setFormData({ ...formData, accessory_price: e.target.value })}
-        />
-      </div>
-    </>
-  );
-}

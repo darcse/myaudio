@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  HeadfiFormAccessoryFieldsRow,
   HeadfiFormAmpTypeSelect,
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
@@ -33,7 +32,6 @@ export function HeadfiFormDacAmpSection({ formData, setFormData }: HeadfiFormSec
           <HeadfiFormVrmsField label={HEADFI_DAC_AMP_LABELS.vrms300} field="vrms_single" formData={formData} setFormData={setFormData} />
         </div>
       </div>
-      <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
       <div className="col-span-2">
         <HeadfiFormTextInput label="기타" field="etc" formData={formData} setFormData={setFormData} />
       </div>

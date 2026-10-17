@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
-import type { HeadfiAccessory, HeadfiAccessoryFormData, HeadfiAccessoryStatus } from '../types';
+import type {
+  HeadfiAccessory,
+  HeadfiAccessoryFormData,
+  HeadfiAccessoryLinkedGear,
+  HeadfiAccessoryStatus,
+} from '../types';
 
 type AccessoryRow = {
   key: string;
@@ -23,12 +28,17 @@ type AccessoryRow = {
 type HeadfiAccessoryModalProps = {
   open: boolean;
   accessories: HeadfiAccessory[];
+  linkedGear?: HeadfiAccessoryLinkedGear[];
   categoryOptions: readonly string[];
   onClose: () => void;
   onCreate: (data: HeadfiAccessoryFormData) => Promise<void>;
   onUpdate: (id: string, data: HeadfiAccessoryFormData) => Promise<void>;
   onDelete: (item: HeadfiAccessory) => Promise<void>;
 };
+
+function gearDisplayName(item: HeadfiAccessoryLinkedGear): string {
+  return `${item.brand} ${item.model}`.trim() || `기기 #${item.headfi_id}`;
+}
 
 function normalizeAccessoryStatus(status: string | null | undefined): HeadfiAccessoryStatus {
   return status === 'released' ? 'released' : 'owned';
@@ -97,6 +107,7 @@ function AccessoryStatusSelect({
 export function HeadfiAccessoryModal({
   open,
   accessories,
+  linkedGear = [],
   categoryOptions,
   onClose,
   onCreate,
@@ -110,18 +121,36 @@ export function HeadfiAccessoryModal({
   const [statusFilter, setStatusFilter] = useState<'전체' | HeadfiAccessoryStatus>('전체');
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
+  const [listNotice, setListNotice] = useState<string | null>(null);
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
-    setCategoryFilter('전체');
-    setStatusFilter('전체');
-    setDiscardConfirmOpen(false);
-    setPendingDeleteKey(null);
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
+    }
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    if (justOpened) {
+      setCategoryFilter('전체');
+      setStatusFilter('전체');
+      setDiscardConfirmOpen(false);
+      setPendingDeleteKey(null);
+      setListNotice(null);
+    }
     setRows((prev) => {
       const drafts = prev.filter((row) => !row.isPersisted);
       return [...accessories.map(toPersistedRow), ...drafts];
     });
   }, [open, accessories]);
+
+  const linkedGearByAccessoryId = useMemo(() => {
+    const map: Record<string, HeadfiAccessoryLinkedGear[]> = {};
+    for (const item of linkedGear) {
+      (map[item.accessory_id] ??= []).push(item);
+    }
+    return map;
+  }, [linkedGear]);
 
   const hasRows = rows.length > 0;
   const canAddRow = useMemo(() => savingKey == null && deletingKey == null, [savingKey, deletingKey]);
@@ -130,7 +159,7 @@ export function HeadfiAccessoryModal({
   const filteredPersistedRows = useMemo(
     () =>
       persistedRows.filter((row) => {
-        if (categoryFilter !== '전체' && row.category !== categoryFilter) return false;
+        if (categoryFilter !== '전체' && row.originalCategory !== categoryFilter) return false;
         if (statusFilter !== '전체' && row.status !== statusFilter) return false;
         return true;
       }),
@@ -138,6 +167,12 @@ export function HeadfiAccessoryModal({
   );
   const displayedCount = filteredPersistedRows.length;
   const hasActiveFilter = categoryFilter !== '전체' || statusFilter !== '전체';
+
+  useEffect(() => {
+    if (!listNotice) return;
+    const timeoutId = window.setTimeout(() => setListNotice(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [listNotice]);
 
   const hasUnsavedChanges = useMemo(
     () =>
@@ -202,6 +237,21 @@ export function HeadfiAccessoryModal({
   const forceClose = () => {
     setDiscardConfirmOpen(false);
     setPendingDeleteKey(null);
+    setListNotice(null);
+    setRows((prev) =>
+      prev.map((row) =>
+        row.isPersisted
+          ? {
+              ...row,
+              category: row.originalCategory,
+              name: row.originalName,
+              price: row.originalPrice,
+              purchase_date: row.originalPurchaseDate,
+              status: row.originalStatus,
+            }
+          : row,
+      ),
+    );
     onClose();
   };
 
@@ -232,7 +282,16 @@ export function HeadfiAccessoryModal({
     setSavingKey(row.key);
     try {
       if (row.id != null) {
+        const nextCategory = payload.category.trim();
+        const movedAway =
+          categoryFilter !== '전체' &&
+          row.originalCategory === categoryFilter &&
+          nextCategory !== '' &&
+          nextCategory !== categoryFilter;
         await onUpdate(row.id, payload);
+        if (movedAway) {
+          setListNotice(`${nextCategory} 카테고리로 이동했습니다`);
+        }
       } else {
         await onCreate(payload);
         setRows((prev) =>
@@ -289,6 +348,7 @@ export function HeadfiAccessoryModal({
   const renderRow = (row: AccessoryRow) => {
     const busy = savingKey === row.key || deletingKey === row.key;
     const released = row.status === 'released';
+    const linked = row.id != null ? (linkedGearByAccessoryId[row.id] ?? []) : [];
     return (
       <div
         key={row.key}
@@ -389,6 +449,28 @@ export function HeadfiAccessoryModal({
             </button>
           </div>
         </div>
+        {row.isPersisted ? (
+          <div className="mt-2 min-w-0">
+            {linked.length === 0 ? (
+              <p className="text-xs opacity-50">연결된 기기 없음</p>
+            ) : (
+              <ul className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+                {linked.map((item) => (
+                  <li
+                    key={`${row.id}-${item.headfi_id}`}
+                    className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-tight"
+                    style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                  >
+                    <span className="min-w-0 truncate">{gearDisplayName(item)}</span>
+                    {item.status2 === '방출' ? (
+                      <span className="shrink-0 text-[10px] font-semibold opacity-70">방출</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </div>
     );
   };
@@ -412,7 +494,7 @@ export function HeadfiAccessoryModal({
         </button>
 
         <div className="mb-3 pr-8">
-          <h2 className="section-title text-xl">독립 액세서리 관리</h2>
+          <h2 className="section-title text-xl">액세서리 관리</h2>
           <p className="mt-1 text-sm opacity-70">행 단위로 바로 등록, 수정, 삭제할 수 있습니다.</p>
         </div>
 
@@ -446,13 +528,21 @@ export function HeadfiAccessoryModal({
             className="mb-4 rounded-lg border p-3"
             style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
           >
-            <p className="text-sm font-medium">
-              {(() => {
-                const target = rows.find((row) => row.key === pendingDeleteKey);
-                const label = target?.name?.trim() || '이 액세서리';
-                return `'${label}' 액세서리를 삭제하시겠습니까?`;
-              })()}
-            </p>
+            {(() => {
+              const target = rows.find((row) => row.key === pendingDeleteKey);
+              const label = target?.name?.trim() || '이 액세서리';
+              const linked = target?.id != null ? (linkedGearByAccessoryId[target.id] ?? []) : [];
+              return (
+                <>
+                  <p className="text-sm font-medium">{`'${label}' 액세서리를 삭제하시겠습니까?`}</p>
+                  {linked.length > 0 ? (
+                    <p className="mt-1 break-words text-sm opacity-80">
+                      연결된 기기 {linked.length}대: {linked.map(gearDisplayName).join(', ')}
+                    </p>
+                  ) : null}
+                </>
+              );
+            })()}
             <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
@@ -475,6 +565,15 @@ export function HeadfiAccessoryModal({
               </button>
             </div>
           </div>
+        ) : null}
+
+        {listNotice ? (
+          <p
+            className="mb-4 rounded-lg border px-3 py-2 text-sm opacity-80"
+            style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+          >
+            {listNotice}
+          </p>
         ) : null}
 
         <div className="mb-4 flex justify-end">

@@ -28,7 +28,6 @@ type HeadfiListProps = {
   onAccessoryRegisterClick: () => void;
   onSaleManageClick: () => void;
   onItemClick: (item: Headfi) => void;
-  getPairingComboLabel?: (item: Headfi) => string | null;
 };
 
 export function HeadfiList({
@@ -53,7 +52,6 @@ export function HeadfiList({
   onAccessoryRegisterClick,
   onSaleManageClick,
   onItemClick,
-  getPairingComboLabel,
 }: HeadfiListProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -101,8 +99,8 @@ export function HeadfiList({
                 type="button"
                 className="btn-apple btn-apple-secondary inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center"
                 onClick={onAccessoryRegisterClick}
-                aria-label="독립 액세서리 등록"
-                title="독립 액세서리 등록"
+                aria-label="액세서리 관리"
+                title="액세서리 관리"
               >
                 <Cable className="size-4" strokeWidth={1.75} />
               </button>
@@ -288,16 +286,9 @@ export function HeadfiList({
                   </div>
 
                   <h3 className="font-bold text-sm leading-tight mb-0.5 truncate">{item.model}</h3>
-                  <p className="text-xs truncate mb-1" style={{ color: 'var(--muted)' }}>
+                  <p className="mb-3 text-xs truncate" style={{ color: 'var(--muted)' }}>
                     {item.brand}
                   </p>
-                  {(item.category === '헤드폰' || item.category === '이어폰') && getPairingComboLabel?.(item) ? (
-                    <p className="mb-3 line-clamp-2 text-[10px] leading-snug opacity-60">
-                      {getPairingComboLabel(item)}
-                    </p>
-                  ) : (
-                    <div className="mb-3" />
-                  )}
 
                   <div
                     className="mt-auto pt-3 flex items-center justify-between"

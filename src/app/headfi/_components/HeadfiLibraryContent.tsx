@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Album } from '@/app/albums/types';
@@ -9,6 +9,7 @@ import {
   deleteHeadfiAccessoryFromDB,
   deleteHeadfiFromDB,
   deleteHeadfiSaleFromDB,
+  listHeadfiAccessoryLinkedGear,
   saveHeadfiAccessoryToDB,
   saveHeadfiSaleToDB,
   updateHeadfiAccessoryInDB,
@@ -24,6 +25,7 @@ import type {
   Headfi,
   HeadfiAccessory,
   HeadfiAccessoryFormData,
+  HeadfiAccessoryLinkedGear,
   HeadfiCombo,
   HeadfiFormData,
   HeadfiSale,
@@ -120,6 +122,7 @@ function normalizeFormData(item: Headfi | null) {
 export function HeadfiLibraryContent() {
   const [library, setLibrary] = useState<Headfi[]>([]);
   const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
+  const [accessoryLinkedGear, setAccessoryLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>([]);
   const [sales, setSales] = useState<HeadfiSale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<SelectedHeadfi | null>(null);
@@ -137,6 +140,7 @@ export function HeadfiLibraryContent() {
   const [listSortOption, setListSortOption] = useState<ListSortOption>('purchase_desc');
   const [listCurrentPage, setListCurrentPage] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const createdGearIdRef = useRef<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [spendingModalOpen, setSpendingModalOpen] = useState(false);
@@ -182,6 +186,14 @@ export function HeadfiLibraryContent() {
     setAccessories((data as HeadfiAccessory[]) || []);
   }, []);
 
+  const fetchAccessoryLinkedGear = useCallback(async () => {
+    try {
+      setAccessoryLinkedGear(await listHeadfiAccessoryLinkedGear());
+    } catch {
+      setAccessoryLinkedGear([]);
+    }
+  }, []);
+
   const fetchSales = useCallback(async () => {
     const client = createClient();
     const { data } = await client
@@ -210,6 +222,10 @@ export function HeadfiLibraryContent() {
   useEffect(() => {
     void fetchAccessories();
   }, [fetchAccessories]);
+
+  useEffect(() => {
+    void fetchAccessoryLinkedGear();
+  }, [fetchAccessoryLinkedGear]);
 
   useEffect(() => {
     void fetchSales();
@@ -263,10 +279,57 @@ export function HeadfiLibraryContent() {
     [viewingItem, getPairingComboLabel],
   );
 
+  const categoryFromUrl = searchParams.get('category');
+  const statusFromUrl = searchParams.get('status');
+  const sortFromUrl = searchParams.get('sort');
+  const panelFromUrl = searchParams.get('panel');
+  const viewFromUrl = searchParams.get('view');
+
+  const patchHeadfiQuery = useCallback(
+    (mutate: (sp: URLSearchParams) => void) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      mutate(sp);
+      const qs = sp.toString();
+      router.replace(qs ? `/headfi?${qs}` : '/headfi', { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const handleListCategoryFilter = useCallback(
+    (value: string) => {
+      setListCategoryFilter(value);
+      patchHeadfiQuery((sp) => {
+        if (!value || value === '전체') sp.delete('category');
+        else sp.set('category', value);
+      });
+    },
+    [patchHeadfiQuery],
+  );
+
+  const handleListStatusFilter = useCallback(
+    (value: string) => {
+      setListStatusFilter(value);
+      patchHeadfiQuery((sp) => {
+        if (!value || value === '전체') sp.delete('status');
+        else sp.set('status', value);
+      });
+    },
+    [patchHeadfiQuery],
+  );
+
+  const handleListSortOption = useCallback(
+    (value: string) => {
+      const next = value as ListSortOption;
+      setListSortOption(next);
+      patchHeadfiQuery((sp) => {
+        if (next === 'purchase_desc') sp.delete('sort');
+        else sp.set('sort', next);
+      });
+    },
+    [patchHeadfiQuery],
+  );
+
   useEffect(() => {
-    const categoryFromUrl = searchParams.get('category');
-    const statusFromUrl = searchParams.get('status');
-    const sortFromUrl = searchParams.get('sort');
     if (categoryFromUrl) setListCategoryFilter(categoryFromUrl);
     if (statusFromUrl) setListStatusFilter(statusFromUrl);
     if (
@@ -277,13 +340,12 @@ export function HeadfiLibraryContent() {
     ) {
       setListSortOption(sortFromUrl);
     }
-  }, [searchParams]);
+  }, [categoryFromUrl, statusFromUrl, sortFromUrl]);
 
   useEffect(() => {
-    const panel = searchParams.get('panel');
-    if (panel === 'stats') setSpendingModalOpen(true);
-    if (panel === 'device-match') setScoreModalOpen(true);
-  }, [searchParams]);
+    if (panelFromUrl === 'stats') setSpendingModalOpen(true);
+    if (panelFromUrl === 'device-match') setScoreModalOpen(true);
+  }, [panelFromUrl]);
 
   useEffect(() => {
     setListCurrentPage(1);
@@ -295,11 +357,10 @@ export function HeadfiLibraryContent() {
   }, [listSearchQuery, listCategoryFilter, listStatusFilter, listType1Filter, listType2Filter, listSortOption]);
 
   useEffect(() => {
-    const viewId = searchParams.get('view');
-    if (!viewId || !library.length) return;
-    const item = library.find((i) => String(i.id) === viewId);
+    if (!viewFromUrl || !library.length) return;
+    const item = library.find((i) => String(i.id) === viewFromUrl);
     if (item) setViewingItem(item);
-  }, [searchParams, library]);
+  }, [viewFromUrl, library]);
 
   useEffect(() => {
     if (!viewingItem?.id) return;
@@ -454,6 +515,7 @@ export function HeadfiLibraryContent() {
       toast.error('로그인이 필요합니다.');
       return;
     }
+    createdGearIdRef.current = null;
     setSelectedItem({ isManual: true });
     setFormData(initialFormData);
   };
@@ -463,6 +525,7 @@ export function HeadfiLibraryContent() {
       toast.error('로그인이 필요합니다.');
       return;
     }
+    void fetchAccessoryLinkedGear();
     setAccessoryModalOpen(true);
   };
 
@@ -546,17 +609,17 @@ export function HeadfiLibraryContent() {
     }
   };
 
-  const handleSave = async () => {
-    if (!selectedItem) return;
+  const handleSave = async (): Promise<number | null> => {
+    if (!selectedItem) return null;
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
-      return;
+      return null;
     }
     setIsSaving(true);
     try {
-      let savedId: number | null = null;
-      const isNew = !('id' in selectedItem && selectedItem.id);
-      const editId = 'id' in selectedItem && selectedItem.id ? Number(selectedItem.id) : null;
+      const editId =
+        'id' in selectedItem && selectedItem.id ? Number(selectedItem.id) : createdGearIdRef.current;
+      const isNew = editId == null;
       const res = await fetch('/api/headfi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -566,64 +629,67 @@ export function HeadfiLibraryContent() {
       if (!res.ok) {
         throw new Error(payload.error || '저장에 실패했습니다.');
       }
-      savedId = payload.id ?? editId;
-      toast.success(isNew ? '기기가 라이브러리에 등록되었습니다.' : '기기 정보가 수정되었습니다.');
-
-      setSelectedItem(null);
-      await fetchLibrary();
-
-      if (savedId != null) {
-        const client = createClient();
-        const { data: updatedRow } = await client.from('headfi').select('*').eq('id', savedId).single();
-        if (updatedRow) setViewingItem(updatedRow as Headfi);
-
-        const sp = new URLSearchParams(searchParams.toString());
-        sp.set('view', String(savedId));
-        router.replace(`/headfi?${sp.toString()}`, { scroll: false });
-
-        const wired = formData.category === '헤드폰' || formData.category === '이어폰';
-        if (wired) {
-          const { data: row } = await client
-            .from('headfi')
-            .select('recommended_genres')
-            .eq('id', savedId)
-            .single();
-          const needsGen =
-            !row?.recommended_genres || (Array.isArray(row.recommended_genres) && row.recommended_genres.length === 0);
-          if (needsGen) {
-            void fetch('/api/headfi-recommended-genres', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ headfiId: savedId }),
-            })
-              .then((res) => {
-                if (res.ok) void fetchLibrary();
-              })
-              .catch(() => {});
-          }
-        }
-
-        if (isNew && isPositionMapCategory(formData.category)) {
-          void fetch('/api/headfi-position', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ headfiId: savedId }),
-          })
-            .then((res) => {
-              if (res.ok) void fetchLibrary();
-            })
-            .catch(() => {});
-        }
-
-        if (isNew && isDacAmpDapCategory(formData.category)) {
-          triggerHeadfiDacAmpPositionAnalysis(savedId, false);
-        }
-      }
+      const savedId = payload.id ?? editId;
+      if (savedId != null) createdGearIdRef.current = savedId;
+      return savedId ?? null;
     } catch (e) {
       toast.error(getClientErrorMessage(e));
+      return null;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveFinished = async () => {
+    const savedId = createdGearIdRef.current;
+    const isNew = !(selectedItem && 'id' in selectedItem && selectedItem.id);
+    toast.success(isNew ? '기기가 라이브러리에 등록되었습니다.' : '기기 정보가 수정되었습니다.');
+    createdGearIdRef.current = null;
+    setSelectedItem(null);
+    await fetchLibrary();
+    if (savedId == null) return;
+    const client = createClient();
+    const { data: updatedRow } = await client.from('headfi').select('*').eq('id', savedId).single();
+    if (updatedRow) setViewingItem(updatedRow as Headfi);
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set('view', String(savedId));
+    router.replace(`/headfi?${sp.toString()}`, { scroll: false });
+    const wired = formData.category === '헤드폰' || formData.category === '이어폰';
+    if (wired) {
+      const { data: row } = await client
+        .from('headfi')
+        .select('recommended_genres')
+        .eq('id', savedId)
+        .single();
+      const needsGen =
+        !row?.recommended_genres || (Array.isArray(row.recommended_genres) && row.recommended_genres.length === 0);
+      if (needsGen) {
+        void fetch('/api/headfi-recommended-genres', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ headfiId: savedId }),
+        })
+          .then((res) => {
+            if (res.ok) void fetchLibrary();
+          })
+          .catch(() => {});
+      }
+    }
+    if (isNew && isPositionMapCategory(formData.category)) {
+      void fetch('/api/headfi-position', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headfiId: savedId }),
+      })
+        .then((res) => {
+          if (res.ok) void fetchLibrary();
+        })
+        .catch(() => {});
+    }
+    if (isNew && isDacAmpDapCategory(formData.category)) {
+      triggerHeadfiDacAmpPositionAnalysis(savedId, false);
+    }
+    void fetchAccessoryLinkedGear();
   };
 
   const handleAccessoryCreate = async (data: HeadfiAccessoryFormData) => {
@@ -662,6 +728,7 @@ export function HeadfiLibraryContent() {
       await deleteHeadfiAccessoryFromDB(item.id);
       toast.success('액세서리가 삭제되었습니다.');
       await fetchAccessories();
+      await fetchAccessoryLinkedGear();
     } catch (e) {
       toast.error(getClientErrorMessage(e));
       throw e;
@@ -769,8 +836,16 @@ export function HeadfiLibraryContent() {
           setFormData={setFormData}
           comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
-          onClose={() => setSelectedItem(null)}
+          onClose={() => {
+            createdGearIdRef.current = null;
+            setSelectedItem(null);
+          }}
           onSave={handleSave}
+          onSaved={() => void handleSaveFinished()}
+          onAccessoriesMutated={() => {
+            void fetchAccessories();
+            void fetchAccessoryLinkedGear();
+          }}
           onImageUpload={handleImageUpload}
           onFrGraphFileChange={handleFrGraphFileChange}
           isSaving={isSaving}
@@ -780,6 +855,7 @@ export function HeadfiLibraryContent() {
       <HeadfiAccessoryModal
         open={accessoryModalOpen}
         accessories={accessories}
+        linkedGear={accessoryLinkedGear}
         categoryOptions={HEADFI_ACCESSORY_CATEGORY_OPTIONS}
         onClose={handleAccessoryModalClose}
         onCreate={handleAccessoryCreate}
@@ -815,15 +891,15 @@ export function HeadfiLibraryContent() {
           listSearchQuery={listSearchQuery}
           setListSearchQuery={setListSearchQuery}
           listCategoryFilter={listCategoryFilter}
-          setListCategoryFilter={setListCategoryFilter}
+          setListCategoryFilter={handleListCategoryFilter}
           listType1Filter={listType1Filter}
           setListType1Filter={setListType1Filter}
           listType2Filter={listType2Filter}
           setListType2Filter={setListType2Filter}
           listStatusFilter={listStatusFilter}
-          setListStatusFilter={setListStatusFilter}
+          setListStatusFilter={handleListStatusFilter}
           listSortOption={listSortOption}
-          setListSortOption={(v) => setListSortOption(v as ListSortOption)}
+          setListSortOption={handleListSortOption}
           listCurrentPage={listCurrentPage}
           setListCurrentPage={setListCurrentPage}
           totalFilteredCount={totalFilteredCount}
@@ -834,7 +910,6 @@ export function HeadfiLibraryContent() {
           onItemClick={(item) => {
             setViewingItem(item);
           }}
-          getPairingComboLabel={getPairingComboLabel}
         />
       )}
 

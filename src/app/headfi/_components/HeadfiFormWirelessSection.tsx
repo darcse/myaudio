@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  HeadfiFormAccessoryFieldsRow,
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
   HeadfiFormPurchaseStatusRow,
@@ -75,31 +74,6 @@ export function HeadfiFormWirelessSection({
           ))}
         </select>
       </div>
-      <div>
-        <label className="block text-sm font-semibold mb-1 opacity-90">
-          {cat === '무선 헤드폰' ? '이어패드' : '이어팁'}
-        </label>
-        <input
-          type="text"
-          className={INPUT_BASE_CLASS}
-          placeholder={cat === '무선 헤드폰' ? '이어패드 (예: Dekoni Choice Suede)' : '이어팁 (예: SpinFit CP145)'}
-          value={formData.eartip}
-          onChange={(e) => setFormData({ ...formData, eartip: e.target.value })}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-semibold mb-1 opacity-90">
-          {cat === '무선 헤드폰' ? '이어패드 가격' : '이어팁 가격'}
-        </label>
-        <input
-          type="number"
-          className={INPUT_BASE_CLASS}
-          placeholder="가격"
-          value={formData.eartip_price}
-          onChange={(e) => setFormData({ ...formData, eartip_price: e.target.value })}
-        />
-      </div>
-      <HeadfiFormAccessoryFieldsRow formData={formData} setFormData={setFormData} />
       <div>
         <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
         <input

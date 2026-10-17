@@ -523,29 +523,36 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
     e.target.value = '';
   };
 
-  const handleHeadfiSave = async () => {
-    if (!headfiFormItem || !('id' in headfiFormItem && headfiFormItem.id)) return;
+  const handleHeadfiSave = async (): Promise<number | null> => {
+    if (!headfiFormItem || !('id' in headfiFormItem && headfiFormItem.id)) return null;
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
-      return;
+      return null;
     }
     setIsSavingHeadfi(true);
     try {
       const id = Number(headfiFormItem.id);
       await updateHeadfiInDB(id, headfiFormData);
-      toast.success('기기 정보가 수정되었습니다.');
-      setHeadfiFormItem(null);
-      const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
-      if (error || !data) return;
-      const updated = data as Headfi;
-      patchTimelineHeadfi(updated);
-      patchListenGearSummary(updated);
-      setViewingHeadfi(updated);
+      return id;
     } catch (err) {
       toast.error(getClientErrorMessage(err));
+      return null;
     } finally {
       setIsSavingHeadfi(false);
     }
+  };
+
+  const handleHeadfiSaveFinished = async () => {
+    if (!headfiFormItem || !('id' in headfiFormItem && headfiFormItem.id)) return;
+    const id = Number(headfiFormItem.id);
+    toast.success('기기 정보가 수정되었습니다.');
+    setHeadfiFormItem(null);
+    const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
+    if (error || !data) return;
+    const updated = data as Headfi;
+    patchTimelineHeadfi(updated);
+    patchListenGearSummary(updated);
+    setViewingHeadfi(updated);
   };
 
   const handleRefreshAlbumIntro = useCallback(async () => {
@@ -853,7 +860,8 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
           comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setHeadfiFormItem(null)}
-          onSave={() => void handleHeadfiSave()}
+          onSave={handleHeadfiSave}
+          onSaved={() => void handleHeadfiSaveFinished()}
           onImageUpload={(e) => void handleHeadfiImageUpload(e)}
           onFrGraphFileChange={(e) => void handleHeadfiFrGraphFileChange(e)}
           isSaving={isSavingHeadfi}

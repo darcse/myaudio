@@ -8,7 +8,9 @@ export type HeadfiFormProps = {
   comboOptions: { id: string; label: string }[];
   wirelessMatchingList: { id: number; brand: string; model: string }[];
   onClose: () => void;
-  onSave: () => void;
+  onSave: () => Promise<number | null | void>;
+  onSaved?: () => void;
+  onAccessoriesMutated?: () => void;
   onImageUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   onFrGraphFileChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   isSaving?: boolean;

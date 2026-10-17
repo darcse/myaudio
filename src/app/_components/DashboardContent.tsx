@@ -506,22 +506,27 @@ export function DashboardContent({
     }
   };
 
-  const handleHeadfiSave = async () => {
+  const handleHeadfiSave = async (): Promise<number | null> => {
     if (!editingHeadfi || isAuthenticated !== true) {
       toast.error('로그인이 필요합니다.');
-      return;
+      return null;
     }
     setIsSaving(true);
     try {
       await updateHeadfiInDB(editingHeadfi.id, headfiFormData);
-      toast.success('기기 정보가 수정되었습니다.');
-      setEditingHeadfi(null);
-      router.refresh();
+      return editingHeadfi.id;
     } catch (e) {
       toast.error(getClientErrorMessage(e));
+      return null;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleHeadfiSaveFinished = () => {
+    toast.success('기기 정보가 수정되었습니다.');
+    setEditingHeadfi(null);
+    router.refresh();
   };
 
   const handleRefreshAlbumIntro = useCallback(async () => {
@@ -856,7 +861,8 @@ export function DashboardContent({
           comboOptions={comboOptions}
           wirelessMatchingList={wirelessMatchingList}
           onClose={() => setEditingHeadfi(null)}
-          onSave={() => void handleHeadfiSave()}
+          onSave={handleHeadfiSave}
+          onSaved={handleHeadfiSaveFinished}
           onImageUpload={handleHeadfiImageUpload}
           onFrGraphFileChange={handleHeadfiFrGraphFileChange}
           isSaving={isSaving}

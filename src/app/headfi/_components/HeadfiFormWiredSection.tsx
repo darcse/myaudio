@@ -1,8 +1,5 @@
 'use client';
 
-import type { ChangeEvent } from 'react';
-import { HeadfiFormFrGraphSection } from './HeadfiFormFrGraphSection';
-import { HeadfiFormListeningEvaluation } from './HeadfiFormListeningEvaluation';
 import {
   HeadfiFormMemoField,
   HeadfiFormPriceStatusRow,
@@ -14,7 +11,6 @@ import { getHeadfiFormCategoryFlags, INPUT_BASE_CLASS } from './headfiFormUtils'
 
 type HeadfiFormWiredSectionProps = HeadfiFormSectionProps & {
   comboOptions: { id: string; label: string }[];
-  onFrGraphFileChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 };
 
 function MatchingComboField({
@@ -53,7 +49,6 @@ export function HeadfiFormWiredSection({
   formData,
   setFormData,
   comboOptions,
-  onFrGraphFileChange,
 }: HeadfiFormWiredSectionProps) {
   const { cat, isHeadphone, isEarphoneType } = getHeadfiFormCategoryFlags(formData.category);
 
@@ -232,34 +227,6 @@ export function HeadfiFormWiredSection({
           </div>
         </>
       ) : null}
-      <HeadfiFormTextInput label="케이블" field="cable" formData={formData} setFormData={setFormData} />
-      <HeadfiFormTextInput label="케이블 가격" field="cable_price" type="number" formData={formData} setFormData={setFormData} />
-      <>
-        <div>
-          <label className="block text-sm font-semibold mb-1 opacity-90">
-            {isHeadphone ? '이어패드' : '이어팁'}
-          </label>
-          <input
-            type="text"
-            className={INPUT_BASE_CLASS}
-            placeholder={isHeadphone ? '이어패드 (예: Dekoni Choice Suede)' : '이어팁 (예: SpinFit CP145)'}
-            value={formData.eartip}
-            onChange={(e) => setFormData({ ...formData, eartip: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold mb-1 opacity-90">
-            {isHeadphone ? '이어패드 가격' : '이어팁 가격'}
-          </label>
-          <input
-            type="number"
-            className={INPUT_BASE_CLASS}
-            placeholder="가격"
-            value={formData.eartip_price}
-            onChange={(e) => setFormData({ ...formData, eartip_price: e.target.value })}
-          />
-        </div>
-      </>
       <div>
         <label className="block text-sm font-semibold mb-1 opacity-90">유닛</label>
         <input
@@ -273,8 +240,6 @@ export function HeadfiFormWiredSection({
       <HeadfiFormTextInput label="기타" field="etc" formData={formData} setFormData={setFormData} />
       <HeadfiFormPurchaseStatusRow formData={formData} setFormData={setFormData} />
       <HeadfiFormPriceStatusRow formData={formData} setFormData={setFormData} />
-      <HeadfiFormListeningEvaluation formData={formData} setFormData={setFormData} />
-      <HeadfiFormFrGraphSection formData={formData} setFormData={setFormData} onFrGraphFileChange={onFrGraphFileChange} />
       <HeadfiFormMemoField formData={formData} setFormData={setFormData} />
     </>
   );

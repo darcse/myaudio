@@ -5,13 +5,72 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Headphones, SlidersHorizontal } from 'lucide-react';
 import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
-import type { Headfi } from '../types';
+import { createClient } from '@/lib/supabase/client';
+import { listHeadfiAccessoryLinks } from '../actions';
+import { formatKrw } from '../spendingStats';
+import type { Headfi, HeadfiAccessory } from '../types';
 import {
   HEADFI_DAC_AMP_LABELS,
   formatAmpTypeDisplay,
   formatRkDisplay,
   formatVrms,
 } from '../dacAmpSpec';
+
+function HeadfiLinkedAccessories({ headfiId }: { headfiId: number }) {
+  const [rows, setRows] = useState<{ id: string; name: string; price: number | null; released: boolean }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const links = await listHeadfiAccessoryLinks();
+        const accessoryIds = links.filter((link) => link.headfi_id === headfiId).map((link) => link.accessory_id);
+        if (accessoryIds.length === 0) {
+          if (!cancelled) setRows([]);
+          return;
+        }
+        const client = createClient();
+        const { data } = await client.from('headfi_accessories').select('*').in('id', accessoryIds);
+        const byId = new Map(((data as HeadfiAccessory[]) || []).map((item) => [item.id, item]));
+        if (cancelled) return;
+        setRows(
+          accessoryIds
+            .map((id) => byId.get(id))
+            .filter((item): item is HeadfiAccessory => Boolean(item))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              released: item.status === 'released',
+            })),
+        );
+      } catch {
+        if (!cancelled) setRows([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [headfiId]);
+
+  return (
+    <div className="col-span-2">
+      <strong>연결된 액세서리:</strong>
+      {rows.length === 0 ? (
+        <span> -</span>
+      ) : (
+        <ul className="mt-1 space-y-1">
+          {rows.map((row) => (
+            <li key={row.id} className="text-sm">
+              {row.name} + {row.price != null && Number.isFinite(Number(row.price)) ? formatKrw(Number(row.price)) : '0원'}
+              {row.released ? <span className="ml-2 text-xs opacity-60">방출</span> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 type HeadfiInfoSectionProps = {
   viewingItem: Headfi;
@@ -57,7 +116,6 @@ export function HeadfiInfoSection({
 }: HeadfiInfoSectionProps) {
   const cat = viewingItem.category;
   const isWired = cat === '헤드폰' || cat === '이어폰';
-  const isHeadphone = cat === '헤드폰';
   const isWireless = cat === '무선 헤드폰' || cat === '무선 이어폰';
   const isSpeaker = cat === '스피커';
   const isDacAmp = isDacAmpOnlyCategory(cat);
@@ -175,20 +233,6 @@ export function HeadfiInfoSection({
                 <p className="col-span-2">
                   <strong>매칭 (매칭 기기 / gain):</strong> {renderMatchingLink(true)}
                 </p>
-                <p className="col-span-2">
-                  <strong>케이블:</strong> {viewingItem.cable || '-'}
-                  {viewingItem.cable && Number(viewingItem.cable_price) > 0
-                    ? ` (${Number(viewingItem.cable_price).toLocaleString()}원)`
-                    : ''}
-                </p>
-                {isWired ? (
-                  <p className="col-span-2">
-                    <strong>{isHeadphone ? '이어패드' : '이어팁'}:</strong> {viewingItem.eartip || '-'}
-                    {viewingItem.eartip && Number(viewingItem.eartip_price) > 0
-                      ? ` (${Number(viewingItem.eartip_price).toLocaleString()}원)`
-                      : ''}
-                  </p>
-                ) : null}
                 <p>
                   <strong>유닛:</strong> {viewingItem.unit || '-'}
                 </p>
@@ -202,14 +246,6 @@ export function HeadfiInfoSection({
                 <p className="col-span-2">
                   <strong>매칭:</strong> {renderMatchingLink()}
                 </p>
-                {viewingItem.eartip?.trim() ? (
-                  <p className="col-span-2">
-                    <strong>{cat === '무선 헤드폰' ? '이어패드' : '이어팁'}:</strong> {viewingItem.eartip.trim()}
-                    {Number(viewingItem.eartip_price) > 0
-                      ? ` (${Number(viewingItem.eartip_price).toLocaleString()}원)`
-                      : ''}
-                  </p>
-                ) : null}
                 <p className="col-span-2">
                   <strong>유닛:</strong> {viewingItem.unit || '-'}
                 </p>
@@ -266,14 +302,7 @@ export function HeadfiInfoSection({
                 </div>
               </>
             ) : null}
-            {(showDacAmpSpecView || isDap || isSourceOrEtc || isWireless || isSpeaker) && viewingItem.accessory?.trim() ? (
-              <p className="col-span-2">
-                <strong>액세서리:</strong> {viewingItem.accessory.trim()}
-                {Number(viewingItem.accessory_price) > 0
-                  ? ` (${Number(viewingItem.accessory_price).toLocaleString()}원)`
-                  : ''}
-              </p>
-            ) : null}
+            <HeadfiLinkedAccessories headfiId={viewingItem.id} />
             {(isWired || isWireless || isSpeaker || showDacAmpSpecView || isDap || isSourceOrEtc) &&
             viewingItem.etc?.trim() ? (
               <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc.trim()}</p>

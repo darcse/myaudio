@@ -1,9 +1,18 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { SavingLabel } from '@/components/AsyncMutationUi';
 import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
+import { createClient } from '@/lib/supabase/client';
+import { getClientErrorMessage } from '@/lib/supabase-error';
+import { listHeadfiAccessoryLinkedGear, syncHeadfiAccessoryLinks } from '../actions';
+import type { HeadfiAccessory, HeadfiAccessoryLinkedGear } from '../types';
+import { HeadfiFormAccessoryLinks } from './HeadfiFormAccessoryLinks';
 import { HeadfiFormDacAmpSection } from './HeadfiFormDacAmpSection';
 import { HeadfiFormDapSection } from './HeadfiFormDapSection';
+import { HeadfiFormFrGraphSection } from './HeadfiFormFrGraphSection';
+import { HeadfiFormListeningEvaluation } from './HeadfiFormListeningEvaluation';
 import { HeadfiFormTextInput } from './HeadfiFormSharedFields';
 import { HeadfiFormSourceEtcSection } from './HeadfiFormSourceEtcSection';
 import { HeadfiFormSpeakerSection } from './HeadfiFormSpeakerSection';
@@ -11,6 +20,10 @@ import { HeadfiFormWiredSection } from './HeadfiFormWiredSection';
 import { HeadfiFormWirelessSection } from './HeadfiFormWirelessSection';
 import type { HeadfiFormProps } from './headfiFormTypes';
 import { getHeadfiFormCategoryFlags, INPUT_BASE_CLASS } from './headfiFormUtils';
+
+type HeadfiFormTab = 'basic' | 'analysis' | 'accessory';
+
+const TAB_GRID_CLASS = 'grid grid-cols-2 gap-x-6 gap-y-4';
 
 export function HeadfiForm({
   selectedItem,
@@ -20,77 +33,246 @@ export function HeadfiForm({
   wirelessMatchingList,
   onClose,
   onSave,
+  onSaved,
+  onAccessoriesMutated,
   onImageUpload,
   onFrGraphFileChange,
   isSaving = false,
 }: HeadfiFormProps) {
   const { hasCategory, isWired, isWireless, isSpeaker, isDap, isSourceOrEtc, isSource, showDacAmpSpecForm } =
     getHeadfiFormCategoryFlags(formData.category);
+  const gearId = 'id' in selectedItem && selectedItem.id ? Number(selectedItem.id) : null;
+  const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
+  const [linkedGear, setLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>([]);
+  const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<HeadfiFormTab>('basic');
+
+  useEffect(() => {
+    const client = createClient();
+    void client
+      .from('headfi_accessories')
+      .select('*')
+      .then(({ data }) => setAccessories((data as HeadfiAccessory[]) || []));
+    void listHeadfiAccessoryLinkedGear()
+      .then((rows) => {
+        setLinkedGear(rows);
+        setSelectedAccessoryIds((prev) => {
+          if (prev.length > 0) return prev;
+          if (gearId == null) return [];
+          return rows.filter((row) => row.headfi_id === gearId).map((row) => row.accessory_id);
+        });
+      })
+      .catch(() => {
+        setLinkedGear([]);
+      });
+  }, [gearId]);
+
+  useEffect(() => {
+    if (!hasCategory || (!isWired && activeTab === 'analysis')) {
+      setActiveTab('basic');
+    }
+  }, [hasCategory, isWired, activeTab]);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollbarGap = Math.max(0, window.innerWidth - html.clientWidth);
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPaddingRight = body.style.paddingRight;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    if (scrollbarGap > 0) {
+      const currentPad = Number.parseFloat(prevBodyPaddingRight) || 0;
+      body.style.paddingRight = `${currentPad + scrollbarGap}px`;
+    }
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.paddingRight = prevBodyPaddingRight;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+    };
+  }, []);
+
+  const handleSubmit = async () => {
+    if (isSaving || linkSaving) return;
+    setLinkSaving(true);
+    try {
+      const savedId = await onSave();
+      if (savedId == null || !Number.isFinite(Number(savedId))) return;
+      try {
+        await syncHeadfiAccessoryLinks(Number(savedId), selectedAccessoryIds);
+      } catch (error) {
+        toast.error(getClientErrorMessage(error) || '액세서리 연결 저장에 실패했습니다.');
+        return;
+      }
+      onSaved?.();
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+  const tabBtnClass = 'btn-apple flex-1 px-3 py-2 text-sm font-medium';
 
   return (
-    <div className="modal-overlay-apple fixed inset-0 flex items-center justify-center p-4 z-50">
-      <div className="modal-panel-apple max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
+    <div className="modal-overlay-apple fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="modal-panel-apple relative flex h-[72vh] max-h-[72vh] w-full max-w-4xl flex-col overflow-hidden p-8">
+        <div className="mb-4 flex shrink-0 items-center justify-between border-b pb-4" style={{ borderColor: 'var(--border)' }}>
           <h2 className="section-title text-xl">{'id' in selectedItem && selectedItem.id ? '✏️ 기기 정보 수정' : '➕ 신규 기기 등록'}</h2>
           <button type="button" className="text-2xl font-semibold opacity-60 hover:opacity-100 transition-opacity" onClick={onClose}>
             &times;
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div className={`${TAB_GRID_CLASS} shrink-0 pb-4`}>
           <HeadfiFormTextInput label="브랜드" field="brand" formData={formData} setFormData={setFormData} />
           <HeadfiFormTextInput label="모델명" field="model" formData={formData} setFormData={setFormData} />
           <div className="col-span-2">
-            <label className="block text-sm font-semibold mb-1 opacity-90">기기 이미지 (URL 또는 직접 업로드)</label>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <label className="mb-1 block text-sm font-semibold opacity-90">기기 이미지 (URL 또는 직접 업로드)</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input type="text" placeholder="이미지 URL" className={`${INPUT_BASE_CLASS} flex-1`} value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
-              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onImageUpload} className="input-apple p-2 w-full sm:w-64 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:opacity-90" />
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onImageUpload} className="input-apple w-full p-2 file:mr-2 file:rounded-lg file:border-0 file:px-3 file:py-1 file:text-sm file:font-medium file:opacity-90 sm:w-64" />
             </div>
           </div>
           <div className="col-span-2">
-            <label className="block text-sm font-semibold mb-1 opacity-90">카테고리</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+            <label className="mb-1 block text-sm font-semibold opacity-90">카테고리</label>
+            <select className="select-apple h-[42px] w-full px-3 py-2" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
               <option value="">선택</option>
               {HEADFI_CATEGORY_OPTIONS.map((categoryOption) => (
                 <option key={categoryOption} value={categoryOption}>{categoryOption}</option>
               ))}
             </select>
           </div>
-          {hasCategory && isWired ? (
-            <HeadfiFormWiredSection
-              formData={formData}
-              setFormData={setFormData}
-              comboOptions={comboOptions}
-              onFrGraphFileChange={onFrGraphFileChange}
-            />
-          ) : null}
-          {hasCategory && isWireless ? (
-            <HeadfiFormWirelessSection
-              formData={formData}
-              setFormData={setFormData}
-              wirelessMatchingList={wirelessMatchingList}
-            />
-          ) : null}
-          {hasCategory && isSpeaker ? (
-            <HeadfiFormSpeakerSection formData={formData} setFormData={setFormData} />
-          ) : null}
-          {hasCategory && showDacAmpSpecForm ? (
-            <HeadfiFormDacAmpSection formData={formData} setFormData={setFormData} />
-          ) : null}
-          {hasCategory && isDap ? (
-            <HeadfiFormDapSection formData={formData} setFormData={setFormData} />
-          ) : null}
-          {hasCategory && isSourceOrEtc && !isSource ? (
-            <HeadfiFormSourceEtcSection formData={formData} setFormData={setFormData} />
+        </div>
+        {hasCategory ? (
+          <div
+            className="mb-3 flex shrink-0 gap-1 rounded-xl p-1"
+            style={{ background: 'var(--badge-bg)' }}
+            role="tablist"
+            aria-label="기기 폼 탭"
+          >
+            <button
+              type="button"
+              role="tab"
+              className={tabBtnClass}
+              style={{
+                background: activeTab === 'basic' ? 'var(--foreground)' : 'transparent',
+                color: activeTab === 'basic' ? 'var(--background)' : 'var(--foreground)',
+              }}
+              aria-selected={activeTab === 'basic'}
+              onClick={() => setActiveTab('basic')}
+            >
+              기본 정보
+            </button>
+            {isWired ? (
+              <button
+                type="button"
+                role="tab"
+                className={tabBtnClass}
+                style={{
+                  background: activeTab === 'analysis' ? 'var(--foreground)' : 'transparent',
+                  color: activeTab === 'analysis' ? 'var(--background)' : 'var(--foreground)',
+                }}
+                aria-selected={activeTab === 'analysis'}
+                onClick={() => setActiveTab('analysis')}
+              >
+                분석
+              </button>
+            ) : null}
+            <button
+              type="button"
+              role="tab"
+              className={tabBtnClass}
+              style={{
+                background: activeTab === 'accessory' ? 'var(--foreground)' : 'transparent',
+                color: activeTab === 'accessory' ? 'var(--background)' : 'var(--foreground)',
+              }}
+              aria-selected={activeTab === 'accessory'}
+              onClick={() => setActiveTab('accessory')}
+            >
+              액세서리
+            </button>
+          </div>
+        ) : null}
+        <div className="min-h-[12rem] flex-1 overflow-y-auto pr-1">
+          {hasCategory ? (
+            <>
+              <div
+                className={`${TAB_GRID_CLASS} ${activeTab === 'basic' ? '' : 'hidden'}`}
+                role="tabpanel"
+                aria-hidden={activeTab !== 'basic'}
+              >
+                {isWired ? (
+                  <HeadfiFormWiredSection
+                    formData={formData}
+                    setFormData={setFormData}
+                    comboOptions={comboOptions}
+                  />
+                ) : null}
+                {isWireless ? (
+                  <HeadfiFormWirelessSection
+                    formData={formData}
+                    setFormData={setFormData}
+                    wirelessMatchingList={wirelessMatchingList}
+                  />
+                ) : null}
+                {isSpeaker ? (
+                  <HeadfiFormSpeakerSection formData={formData} setFormData={setFormData} />
+                ) : null}
+                {showDacAmpSpecForm ? (
+                  <HeadfiFormDacAmpSection formData={formData} setFormData={setFormData} />
+                ) : null}
+                {isDap ? (
+                  <HeadfiFormDapSection formData={formData} setFormData={setFormData} />
+                ) : null}
+                {isSourceOrEtc && !isSource ? (
+                  <HeadfiFormSourceEtcSection formData={formData} setFormData={setFormData} />
+                ) : null}
+              </div>
+              {isWired ? (
+                <div
+                  className={`${TAB_GRID_CLASS} ${activeTab === 'analysis' ? '' : 'hidden'}`}
+                  role="tabpanel"
+                  aria-hidden={activeTab !== 'analysis'}
+                >
+                  <HeadfiFormListeningEvaluation formData={formData} setFormData={setFormData} />
+                  <HeadfiFormFrGraphSection
+                    formData={formData}
+                    setFormData={setFormData}
+                    onFrGraphFileChange={onFrGraphFileChange}
+                  />
+                </div>
+              ) : null}
+              <div
+                className={`${TAB_GRID_CLASS} ${activeTab === 'accessory' ? '' : 'hidden'}`}
+                role="tabpanel"
+                aria-hidden={activeTab !== 'accessory'}
+              >
+                <HeadfiFormAccessoryLinks
+                  selectedIds={selectedAccessoryIds}
+                  onSelectedIdsChange={setSelectedAccessoryIds}
+                  accessories={accessories}
+                  linkedGear={linkedGear}
+                  currentHeadfiId={gearId}
+                  onAccessoryCreated={(item) => {
+                    setAccessories((prev) => [item, ...prev.filter((row) => row.id !== item.id)]);
+                    onAccessoriesMutated?.();
+                  }}
+                />
+              </div>
+            </>
           ) : null}
         </div>
         <button
           type="button"
-          className="btn-apple btn-apple-primary p-4 mt-8 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-          onClick={onSave}
-          disabled={isSaving}
-          aria-busy={isSaving}
+          className="btn-apple btn-apple-primary mt-4 w-full shrink-0 p-4 text-base disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => void handleSubmit()}
+          disabled={isSaving || linkSaving}
+          aria-busy={isSaving || linkSaving}
         >
-          {isSaving ? (
+          {isSaving || linkSaving ? (
             <SavingLabel />
           ) : 'id' in selectedItem && selectedItem.id ? (
             '수정 내용 저장하기'
