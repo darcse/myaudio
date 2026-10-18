@@ -8,6 +8,13 @@ import { createListenCapturedAt, fetchListenWeatherContext, LISTEN_GEO_UNAVAILAB
 import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/listenContextDebug';
 import { ListenContextMeta } from './ListenContextMeta';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
+import {
+  LISTEN_HISTORY_AMP_CATEGORIES,
+  LISTEN_HISTORY_RECEIVER_CATEGORIES,
+  LISTEN_HISTORY_SOURCE_CATEGORIES,
+  formatListenHistoryGearName,
+  formatListenHistoryOptionLabel,
+} from '@/lib/listenHistoryGear';
 
 type GearSummary = {
   id: number;
@@ -27,6 +34,8 @@ type ListenHistoryRow = {
   dac_amp_id: number | null;
   dac_amp2_id: number | null;
   headphone_id: number | null;
+  source_id: number | null;
+  source?: GearSummary | null;
   dac_amp?: GearSummary | null;
   dac_amp2?: GearSummary | null;
   headphone?: GearSummary | null;
@@ -71,12 +80,14 @@ export function AlbumListenHistorySection({
   const [listenLoading, setListenLoading] = useState(false);
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
   const [selectedHeadphoneId, setSelectedHeadphoneId] = useState('');
+  const [sourceOptions, setSourceOptions] = useState<GearOption[]>([]);
   const [dacAmpOptions, setDacAmpOptions] = useState<GearOption[]>([]);
-  const [dacAmp2Options, setDacAmp2Options] = useState<GearOption[]>([]);
   const [headphoneOptions, setHeadphoneOptions] = useState<GearOption[]>([]);
+  const [receiverError, setReceiverError] = useState<string | null>(null);
   const [listenSaving, setListenSaving] = useState(false);
   const [listenOpen, setListenOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
@@ -86,9 +97,11 @@ export function AlbumListenHistorySection({
   const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
     setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
     setListenImpression('');
+    setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
     setSelectedHeadphoneId('');
+    setReceiverError(null);
     setEditingId(null);
   }, []);
 
@@ -107,7 +120,7 @@ export function AlbumListenHistorySection({
     const { data, error } = await supabase
       .from('album_listen_history')
       .select(
-        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, dac_amp_id, dac_amp2_id, headphone_id',
+        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, source_id, dac_amp_id, dac_amp2_id, headphone_id',
       )
       .eq('album_id', albumId)
       .order('listened_at', { ascending: false })
@@ -121,10 +134,12 @@ export function AlbumListenHistorySection({
       ((data ?? []) as ListenHistoryRow[]).map((row) => ({
         ...row,
         dac_amp2_id: row.dac_amp2_id ?? null,
+        source_id: row.source_id ?? null,
       })),
     );
     const gearIds = new Set<number>();
     for (const row of rows) {
+      if (row.source_id != null) gearIds.add(row.source_id);
       if (row.dac_amp_id != null) gearIds.add(row.dac_amp_id);
       if (row.dac_amp2_id != null) gearIds.add(row.dac_amp2_id);
       if (row.headphone_id != null) gearIds.add(row.headphone_id);
@@ -155,6 +170,7 @@ export function AlbumListenHistorySection({
     setListenHistory(
       rows.map((row) => ({
         ...row,
+        source: row.source_id != null ? gearMap.get(row.source_id) ?? null : null,
         dac_amp: row.dac_amp_id != null ? gearMap.get(row.dac_amp_id) ?? null : null,
         dac_amp2: row.dac_amp2_id != null ? gearMap.get(row.dac_amp2_id) ?? null : null,
         headphone: row.headphone_id != null ? gearMap.get(row.headphone_id) ?? null : null,
@@ -183,56 +199,44 @@ export function AlbumListenHistorySection({
 
   useEffect(() => {
     if (isAuthenticated !== true) {
+      setSourceOptions([]);
       setDacAmpOptions([]);
-      setDacAmp2Options([]);
       setHeadphoneOptions([]);
       return;
     }
     const supabase = createClient();
+    const mapOptions = (rows: { id: number; brand: string | null; model: string | null }[] | null): GearOption[] =>
+      (rows ?? []).map((r) => ({
+        id: r.id,
+        brand: r.brand || '',
+        model: r.model || '',
+      }));
     void Promise.all([
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타'])
+        .in('category', [...LISTEN_HISTORY_SOURCE_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['DAC', 'AMP', 'DAC/AMP'])
+        .in('category', [...LISTEN_HISTORY_AMP_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
       supabase
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'])
+        .in('category', [...LISTEN_HISTORY_RECEIVER_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
-    ]).then(([dacRes, dac2Res, hpRes]) => {
-      setDacAmpOptions(
-        (dacRes.data ?? []).map((r) => ({
-          id: r.id,
-          brand: r.brand || '',
-          model: r.model || '',
-        })),
-      );
-      setDacAmp2Options(
-        (dac2Res.data ?? []).map((r) => ({
-          id: r.id,
-          brand: r.brand || '',
-          model: r.model || '',
-        })),
-      );
-      setHeadphoneOptions(
-        (hpRes.data ?? []).map((r) => ({
-          id: r.id,
-          brand: r.brand || '',
-          model: r.model || '',
-        })),
-      );
+    ]).then(([sourceRes, ampRes, hpRes]) => {
+      setSourceOptions(mapOptions(sourceRes.data));
+      setDacAmpOptions(mapOptions(ampRes.data));
+      setHeadphoneOptions(mapOptions(hpRes.data));
     });
   }, [isAuthenticated]);
 
@@ -280,6 +284,12 @@ export function AlbumListenHistorySection({
       toast.error('청취일을 선택해 주세요.');
       return;
     }
+    const headphoneId = parseOptionalId(selectedHeadphoneId);
+    if (editingId == null && headphoneId == null) {
+      setReceiverError('Receiver를 선택해 주세요.');
+      return;
+    }
+    setReceiverError(null);
     setListenSaving(true);
     const weatherContextPromise = editingId == null ? fetchListenWeatherContext() : null;
     try {
@@ -292,9 +302,10 @@ export function AlbumListenHistorySection({
       const payload = {
         listened_at: d,
         impression: listenImpression.trim() || null,
+        source_id: parseOptionalId(selectedSourceId),
         dac_amp_id: parseOptionalId(selectedDacAmpId),
         dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
-        headphone_id: parseOptionalId(selectedHeadphoneId),
+        headphone_id: headphoneId,
       };
       const contextSnapshot =
         editingId == null
@@ -338,15 +349,18 @@ export function AlbumListenHistorySection({
   };
 
   const startEditListenHistory = (row: ListenHistoryRow) => {
+    ensureGearOption(row.source, setSourceOptions);
     ensureGearOption(row.dac_amp, setDacAmpOptions);
-    ensureGearOption(row.dac_amp2, setDacAmp2Options);
+    ensureGearOption(row.dac_amp2, setDacAmpOptions);
     ensureGearOption(row.headphone, setHeadphoneOptions);
     setEditingId(row.id);
     setListenDate(row.listened_at?.slice(0, 10) ?? '');
     setListenImpression(row.impression ?? '');
+    setSelectedSourceId(row.source_id != null ? String(row.source_id) : '');
     setSelectedDacAmpId(row.dac_amp_id != null ? String(row.dac_amp_id) : '');
     setSelectedDacAmp2Id(row.dac_amp2_id != null ? String(row.dac_amp2_id) : '');
     setSelectedHeadphoneId(row.headphone_id != null ? String(row.headphone_id) : '');
+    setReceiverError(null);
     setFormOpen(true);
     if (variant === 'accordion') setListenOpen(true);
   };
@@ -395,13 +409,12 @@ export function AlbumListenHistorySection({
     return null;
   }
 
-  const gearDisplayName = (gear: GearSummary) => `${gear.brand} ${gear.model}`.trim() || '—';
-
   const renderGearLine = (row: ListenHistoryRow) => {
     const parts: { gear: GearSummary; name: string }[] = [];
-    if (row.dac_amp) parts.push({ gear: row.dac_amp, name: gearDisplayName(row.dac_amp) });
-    if (row.dac_amp2) parts.push({ gear: row.dac_amp2, name: gearDisplayName(row.dac_amp2) });
-    if (row.headphone) parts.push({ gear: row.headphone, name: gearDisplayName(row.headphone) });
+    if (row.source) parts.push({ gear: row.source, name: formatListenHistoryGearName(row.source) });
+    if (row.dac_amp) parts.push({ gear: row.dac_amp, name: formatListenHistoryGearName(row.dac_amp) });
+    if (row.dac_amp2) parts.push({ gear: row.dac_amp2, name: formatListenHistoryGearName(row.dac_amp2) });
+    if (row.headphone) parts.push({ gear: row.headphone, name: formatListenHistoryGearName(row.headphone) });
     if (parts.length === 0) return null;
 
     if (onHeadfiClick) {
@@ -447,7 +460,23 @@ export function AlbumListenHistorySection({
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div>
-          <label className="mb-1 block text-[11px] font-semibold opacity-70">기기 선택1 (선택)</label>
+          <label className="mb-1 block text-[11px] font-semibold opacity-70">Source</label>
+          <select
+            className="select-apple h-[42px] w-full px-3 py-2 text-sm"
+            value={selectedSourceId}
+            onChange={(e) => setSelectedSourceId(e.target.value)}
+            disabled={listenSaving}
+          >
+            <option value="">선택 안 함</option>
+            {sourceOptions.map((g) => (
+              <option key={g.id} value={String(g.id)}>
+                {formatListenHistoryOptionLabel(g)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 1</label>
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmpId}
@@ -457,13 +486,13 @@ export function AlbumListenHistorySection({
             <option value="">선택 안 함</option>
             {dacAmpOptions.map((g) => (
               <option key={g.id} value={String(g.id)}>
-                {g.brand} {g.model}
+                {formatListenHistoryOptionLabel(g)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-[11px] font-semibold opacity-70">기기 선택2 (선택)</label>
+          <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 2</label>
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmp2Id}
@@ -471,24 +500,29 @@ export function AlbumListenHistorySection({
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
-            {dacAmp2Options.map((g) => (
+            {dacAmpOptions.map((g) => (
               <option key={g.id} value={String(g.id)}>
-                {g.brand} {g.model}
+                {formatListenHistoryOptionLabel(g)}
               </option>
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-[11px] font-semibold opacity-70">헤드폰 / 이어폰 (선택)</label>
-          <ReceiverComboSelect
-            value={selectedHeadphoneId}
-            onChange={setSelectedHeadphoneId}
-            options={headphoneOptions}
-            disabled={listenSaving}
-            placeholder="리시버 선택"
-            aria-label="헤드폰 / 이어폰 (선택)"
-          />
-        </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
+        <ReceiverComboSelect
+          value={selectedHeadphoneId}
+          onChange={(value) => {
+            setSelectedHeadphoneId(value);
+            if (value) setReceiverError(null);
+          }}
+          options={headphoneOptions}
+          disabled={listenSaving}
+          placeholder="Receiver"
+          formatOptionLabel={formatListenHistoryOptionLabel}
+          aria-label="Receiver"
+        />
+        {receiverError ? <p className="mt-1 text-xs text-red-500">{receiverError}</p> : null}
       </div>
       <div>
         <label className="mb-1 block text-[11px] font-semibold opacity-70">소감 (선택)</label>

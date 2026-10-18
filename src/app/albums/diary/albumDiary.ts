@@ -25,6 +25,7 @@ export type DiaryHistoryRow = {
   dac_amp_id: number | null;
   dac_amp2_id: number | null;
   headphone_id: number | null;
+  source_id: number | null;
 };
 
 export type DiaryListenEntry = {
@@ -39,7 +40,9 @@ export type DiaryListenEntry = {
   dacAmpId: number | null;
   dacAmp2Id: number | null;
   headphoneId: number | null;
+  sourceId: number | null;
   album: Album | null;
+  source: DiaryGearSummary | null;
   dacAmp: DiaryGearSummary | null;
   dacAmp2: DiaryGearSummary | null;
   headphone: DiaryGearSummary | null;
@@ -95,7 +98,9 @@ export function buildDiaryDayGroups(
       dacAmpId: row.dac_amp_id,
       dacAmp2Id: row.dac_amp2_id,
       headphoneId: row.headphone_id,
+      sourceId: row.source_id,
       album: albumById.get(row.album_id) ?? null,
+      source: row.source_id != null ? gearById.get(row.source_id) ?? null : null,
       dacAmp: row.dac_amp_id != null ? gearById.get(row.dac_amp_id) ?? null : null,
       dacAmp2: row.dac_amp2_id != null ? gearById.get(row.dac_amp2_id) ?? null : null,
       headphone: row.headphone_id != null ? gearById.get(row.headphone_id) ?? null : null,

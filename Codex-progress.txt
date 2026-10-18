@@ -22,3 +22,4 @@
 [2026-10-17] [Cursor] fix: 액세서리 행 저장 후 카테고리 필터를 전체로 복귀 | passes: 변경 없음
 [2026-10-17] [Cursor] fix: 액세서리 저장 후에도 카테고리 필터 유지
 [2026-10-17] [Cursor] fix: 헤드파이 목록 필터가 저장 후 URL 초기값으로 되살아나지 않도록 수정 | passes: 변경 없음
+[2026-10-18] [Cursor] feat: ALBUM-035 청취 이력 Source·Amp·Receiver 선택 구조 개편 | passes: 변경 없음

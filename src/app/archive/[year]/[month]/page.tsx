@@ -30,7 +30,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
   const endExclusive = `${m === 12 ? y + 1 : y}-${pad(m === 12 ? 1 : m + 1)}-01`;
   const { data: histRows } = await supabase
     .from('album_listen_history')
-    .select('id, listened_at, impression, album_id, dac_amp_id, dac_amp2_id, headphone_id')
+    .select('id, listened_at, impression, album_id, source_id, dac_amp_id, dac_amp2_id, headphone_id')
     .gte('listened_at', start)
     .lt('listened_at', endExclusive)
     .order('listened_at', { ascending: false });
@@ -40,9 +40,11 @@ export default async function ArchiveMonthPage({ params }: Props) {
     const albumIds = [...new Set(list.map((r) => r.album_id as number).filter((id) => id != null))];
     const gearIds = new Set<number>();
     for (const r of list) {
+      const sourceId = r.source_id as number | null;
       const dacId = r.dac_amp_id as number | null;
       const dac2Id = r.dac_amp2_id as number | null;
       const hpId = r.headphone_id as number | null;
+      if (sourceId != null) gearIds.add(sourceId);
       if (dacId != null) gearIds.add(dacId);
       if (dac2Id != null) gearIds.add(dac2Id);
       if (hpId != null) gearIds.add(hpId);
@@ -71,6 +73,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
           const listenId = r.id as number | null;
           if (!listenId) return [];
           const imp = r.impression as string | null;
+          const sourceId = r.source_id as number | null;
           const dacId = r.dac_amp_id as number | null;
           const dac2Id = r.dac_amp2_id as number | null;
           const hpId = r.headphone_id as number | null;
@@ -80,6 +83,7 @@ export default async function ArchiveMonthPage({ params }: Props) {
               listened_at: (r.listened_at as string).slice(0, 10),
               impression: typeof imp === 'string' && imp.trim() !== '' ? imp : null,
               album: al,
+              source: sourceId != null ? gearMap.get(sourceId) ?? null : null,
               dac_amp: dacId != null ? gearMap.get(dacId) ?? null : null,
               dac_amp2: dac2Id != null ? gearMap.get(dac2Id) ?? null : null,
               headphone: hpId != null ? gearMap.get(hpId) ?? null : null,

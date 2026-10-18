@@ -33,6 +33,13 @@ import {
 } from '../albumDiary';
 import { AlbumDiaryCalendarView } from './AlbumDiaryCalendarView';
 import { DiaryListenEntryListItem } from './DiaryListenEntryListItem';
+import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
+import {
+  LISTEN_HISTORY_AMP_CATEGORIES,
+  LISTEN_HISTORY_RECEIVER_CATEGORIES,
+  LISTEN_HISTORY_SOURCE_CATEGORIES,
+  formatListenHistoryOptionLabel,
+} from '@/lib/listenHistoryGear';
 
 type DiaryViewMode = 'calendar' | 'list';
 
@@ -115,11 +122,12 @@ export function AlbumDiaryContent() {
   const [editingEntry, setEditingEntry] = useState<DiaryListenEntry | null>(null);
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
   const [selectedHeadphoneId, setSelectedHeadphoneId] = useState('');
+  const [sourceOptions, setSourceOptions] = useState<GearOption[]>([]);
   const [dacAmpOptions, setDacAmpOptions] = useState<GearOption[]>([]);
-  const [dacAmp2Options, setDacAmp2Options] = useState<GearOption[]>([]);
   const [headphoneOptions, setHeadphoneOptions] = useState<GearOption[]>([]);
   const [listenSaving, setListenSaving] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
@@ -136,7 +144,7 @@ export function AlbumDiaryContent() {
         client
           .from('album_listen_history')
           .select(
-            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, dac_amp_id, dac_amp2_id, headphone_id',
+            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, source_id, dac_amp_id, dac_amp2_id, headphone_id',
           ),
         client.from('headfi').select('id, brand, model'),
       ]);
@@ -158,6 +166,7 @@ export function AlbumDiaryContent() {
             weather_condition: row.weather_condition ?? null,
             temperature: row.temperature ?? null,
             dac_amp2_id: row.dac_amp2_id ?? null,
+            source_id: row.source_id ?? null,
           })),
         );
       }
@@ -196,32 +205,34 @@ export function AlbumDiaryContent() {
 
   useEffect(() => {
     if (isAuthenticated !== true) {
+      setSourceOptions([]);
       setDacAmpOptions([]);
-      setDacAmp2Options([]);
       setHeadphoneOptions([]);
       setHeadfiOwnedHeadphones([]);
       return;
     }
     const client = createClient();
+    const mapOptions = (rows: { id: number; brand: string | null; model: string | null }[] | null): GearOption[] =>
+      (rows ?? []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' }));
     void Promise.all([
       client
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타'])
+        .in('category', [...LISTEN_HISTORY_SOURCE_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
       client
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['DAC', 'AMP', 'DAC/AMP'])
+        .in('category', [...LISTEN_HISTORY_AMP_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
       client
         .from('headfi')
         .select('id, brand, model')
-        .in('category', ['헤드폰', '이어폰', '무선 헤드폰', '무선 이어폰'])
+        .in('category', [...LISTEN_HISTORY_RECEIVER_CATEGORIES])
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
@@ -232,19 +243,11 @@ export function AlbumDiaryContent() {
         .eq('status2', '보유중')
         .order('brand')
         .order('model'),
-    ]).then(([dacRes, dac2Res, hpRes, ownedHpRes]) => {
-      setDacAmpOptions(
-        (dacRes.data ?? []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
-      );
-      setDacAmp2Options(
-        (dac2Res.data ?? []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
-      );
-      setHeadphoneOptions(
-        (hpRes.data ?? []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
-      );
-      setHeadfiOwnedHeadphones(
-        (ownedHpRes.data ?? []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
-      );
+    ]).then(([sourceRes, ampRes, hpRes, ownedHpRes]) => {
+      setSourceOptions(mapOptions(sourceRes.data));
+      setDacAmpOptions(mapOptions(ampRes.data));
+      setHeadphoneOptions(mapOptions(hpRes.data));
+      setHeadfiOwnedHeadphones(mapOptions(ownedHpRes.data));
     });
   }, [isAuthenticated]);
 
@@ -345,18 +348,21 @@ export function AlbumDiaryContent() {
     setEditingEntry(null);
     setListenDate('');
     setListenImpression('');
+    setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
     setSelectedHeadphoneId('');
   };
 
   const startEditEntry = (entry: DiaryListenEntry) => {
+    ensureGearOption(entry.source, setSourceOptions);
     ensureGearOption(entry.dacAmp, setDacAmpOptions);
-    ensureGearOption(entry.dacAmp2, setDacAmp2Options);
+    ensureGearOption(entry.dacAmp2, setDacAmpOptions);
     ensureGearOption(entry.headphone, setHeadphoneOptions);
     setEditingEntry(entry);
     setListenDate(entry.listenedAt);
     setListenImpression(entry.impression ?? '');
+    setSelectedSourceId(entry.sourceId != null ? String(entry.sourceId) : '');
     setSelectedDacAmpId(entry.dacAmpId != null ? String(entry.dacAmpId) : '');
     setSelectedDacAmp2Id(entry.dacAmp2Id != null ? String(entry.dacAmp2Id) : '');
     setSelectedHeadphoneId(entry.headphoneId != null ? String(entry.headphoneId) : '');
@@ -376,6 +382,7 @@ export function AlbumDiaryContent() {
         .update({
           listened_at: d,
           impression: listenImpression.trim() || null,
+          source_id: parseOptionalId(selectedSourceId),
           dac_amp_id: parseOptionalId(selectedDacAmpId),
           dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
           headphone_id: parseOptionalId(selectedHeadphoneId),
@@ -655,9 +662,25 @@ export function AlbumDiaryContent() {
                       aria-label="청취일"
                     />
                   </div>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <div>
-                      <label className="mb-1 block text-[11px] font-semibold opacity-70">기기 선택1 (선택)</label>
+                      <label className="mb-1 block text-[11px] font-semibold opacity-70">Source</label>
+                      <select
+                        className="select-apple h-[42px] w-full px-3 py-2 text-sm"
+                        value={selectedSourceId}
+                        onChange={(e) => setSelectedSourceId(e.target.value)}
+                        disabled={listenSaving}
+                      >
+                        <option value="">선택 안 함</option>
+                        {sourceOptions.map((g) => (
+                          <option key={g.id} value={String(g.id)}>
+                            {formatListenHistoryOptionLabel(g)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 1</label>
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
                         value={selectedDacAmpId}
@@ -667,13 +690,13 @@ export function AlbumDiaryContent() {
                         <option value="">선택 안 함</option>
                         {dacAmpOptions.map((g) => (
                           <option key={g.id} value={String(g.id)}>
-                            {g.brand} {g.model}
+                            {formatListenHistoryOptionLabel(g)}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-[11px] font-semibold opacity-70">기기 선택2 (선택)</label>
+                      <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 2</label>
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
                         value={selectedDacAmp2Id}
@@ -681,31 +704,25 @@ export function AlbumDiaryContent() {
                         disabled={listenSaving}
                       >
                         <option value="">선택 안 함</option>
-                        {dacAmp2Options.map((g) => (
+                        {dacAmpOptions.map((g) => (
                           <option key={g.id} value={String(g.id)}>
-                            {g.brand} {g.model}
+                            {formatListenHistoryOptionLabel(g)}
                           </option>
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-semibold opacity-70">
-                        헤드폰 / 이어폰 (선택)
-                      </label>
-                      <select
-                        className="select-apple h-[42px] w-full px-3 py-2 text-sm"
-                        value={selectedHeadphoneId}
-                        onChange={(e) => setSelectedHeadphoneId(e.target.value)}
-                        disabled={listenSaving}
-                      >
-                        <option value="">선택 안 함</option>
-                        {headphoneOptions.map((g) => (
-                          <option key={g.id} value={String(g.id)}>
-                            {g.brand} {g.model}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
+                    <ReceiverComboSelect
+                      value={selectedHeadphoneId}
+                      onChange={setSelectedHeadphoneId}
+                      options={headphoneOptions}
+                      disabled={listenSaving}
+                      placeholder="Receiver"
+                      formatOptionLabel={formatListenHistoryOptionLabel}
+                      aria-label="Receiver"
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold opacity-70">소감 (선택)</label>

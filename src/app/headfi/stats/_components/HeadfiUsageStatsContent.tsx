@@ -74,7 +74,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
       const [historyRes, headfiRes] = await Promise.all([
         client
           .from('album_listen_history')
-          .select('album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id'),
+          .select('album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id'),
         client.from('headfi').select('id, brand, model, category, image_url'),
       ]);
       const errors: string[] = [];

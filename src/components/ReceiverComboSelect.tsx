@@ -27,6 +27,7 @@ type ReceiverComboSelectProps = {
   emptyOptionLabel?: string;
   allowEmpty?: boolean;
   className?: string;
+  formatOptionLabel?: (option: ReceiverOption) => string;
   'aria-label'?: string;
 };
 
@@ -128,6 +129,7 @@ export function ReceiverComboSelect({
   emptyOptionLabel = '선택 안 함',
   allowEmpty = true,
   className = '',
+  formatOptionLabel = formatReceiverLabel,
   'aria-label': ariaLabel,
 }: ReceiverComboSelectProps) {
   const listboxId = useId();
@@ -270,11 +272,11 @@ export function ReceiverComboSelect({
       }}
       onClick={() => handleSelect(String(option.id))}
     >
-      {formatReceiverLabel(option)}
+      {formatOptionLabel(option)}
     </button>
   );
 
-  const triggerLabel = selectedOption ? formatReceiverLabel(selectedOption) : placeholder;
+  const triggerLabel = selectedOption ? formatOptionLabel(selectedOption) : placeholder;
 
   const panelContent =
     panelPosition != null ? (

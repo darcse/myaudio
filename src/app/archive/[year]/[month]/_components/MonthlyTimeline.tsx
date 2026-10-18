@@ -53,6 +53,7 @@ export type ListenAlbumCard = {
   listened_at: string;
   impression: string | null;
   album: Album;
+  source?: ListenGearSummary | null;
   dac_amp?: ListenGearSummary | null;
   dac_amp2?: ListenGearSummary | null;
   headphone?: ListenGearSummary | null;
@@ -291,6 +292,10 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
 
   const renderListenGearLine = (row: ListenAlbumCard) => {
     const parts: { id: number; name: string }[] = [];
+    if (row.source) {
+      const name = `${row.source.brand} ${row.source.model}`.trim() || '—';
+      parts.push({ id: row.source.id, name });
+    }
     if (row.dac_amp) {
       const name = `${row.dac_amp.brand} ${row.dac_amp.model}`.trim() || '—';
       parts.push({ id: row.dac_amp.id, name });
@@ -417,6 +422,7 @@ export function MonthlyTimeline({ year, month, initialListenRows }: Props) {
     setListenRows((prev) =>
       prev.map((row) => ({
         ...row,
+        source: row.source?.id === updated.id ? summary : row.source,
         dac_amp: row.dac_amp?.id === updated.id ? summary : row.dac_amp,
         dac_amp2: row.dac_amp2?.id === updated.id ? summary : row.dac_amp2,
         headphone: row.headphone?.id === updated.id ? summary : row.headphone,

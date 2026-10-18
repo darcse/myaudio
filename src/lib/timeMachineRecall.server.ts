@@ -16,6 +16,7 @@ type ListenRow = {
   headphone_id: number | null;
   dac_amp_id: number | null;
   dac_amp2_id: number | null;
+  source_id: number | null;
   album:
     | {
         id: number;
@@ -41,16 +42,22 @@ function resolveGearLabel(
   row: ListenRow,
   gearById: Map<number, { brand: string; model: string }>,
 ): string | null {
-  if (row.headphone_id != null) {
-    const gear = gearById.get(row.headphone_id);
-    if (!gear) return null;
-    return gear.model?.trim() || `${gear.brand} ${gear.model}`.trim() || null;
+  const slots: { id: number | null; receiver: boolean }[] = [
+    { id: row.headphone_id, receiver: true },
+    { id: row.dac_amp_id, receiver: false },
+    { id: row.dac_amp2_id, receiver: false },
+    { id: row.source_id, receiver: false },
+  ];
+  for (const slot of slots) {
+    if (slot.id == null) continue;
+    const gear = gearById.get(slot.id);
+    if (!gear) continue;
+    if (slot.receiver) {
+      return gear.model?.trim() || `${gear.brand} ${gear.model}`.trim() || null;
+    }
+    return `${gear.brand} ${gear.model}`.trim() || null;
   }
-  const gearId = row.dac_amp_id ?? row.dac_amp2_id;
-  if (gearId == null) return null;
-  const gear = gearById.get(gearId);
-  if (!gear) return null;
-  return `${gear.brand} ${gear.model}`.trim() || null;
+  return null;
 }
 
 function buildListenAtWindowsOrFilter(windows: { start: string; end: string }[]): string {
@@ -69,7 +76,7 @@ export async function fetchTimeMachineRecall(
   const { data, error } = await supabase
     .from('album_listen_history')
     .select(
-      'id, listened_at, captured_at, weather_condition, temperature, album_id, headphone_id, dac_amp_id, dac_amp2_id, album:album_id(id, album_name, artist, cover_image_url)',
+      'id, listened_at, captured_at, weather_condition, temperature, album_id, headphone_id, dac_amp_id, dac_amp2_id, source_id, album:album_id(id, album_name, artist, cover_image_url)',
     )
     .or(buildListenAtWindowsOrFilter(windows));
 
@@ -96,6 +103,7 @@ export async function fetchTimeMachineRecall(
   if (picked.headphone_id != null) gearIds.add(picked.headphone_id);
   if (picked.dac_amp_id != null) gearIds.add(picked.dac_amp_id);
   if (picked.dac_amp2_id != null) gearIds.add(picked.dac_amp2_id);
+  if (picked.source_id != null) gearIds.add(picked.source_id);
 
   const gearById = new Map<number, { brand: string; model: string }>();
   if (gearIds.size > 0) {

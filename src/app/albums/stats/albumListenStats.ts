@@ -1,6 +1,7 @@
 import type { Album } from '@/app/albums/types';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import { LISTEN_HISTORY_RECEIVER_CATEGORIES } from '@/lib/listenHistoryGear';
 
 export const LISTEN_RANKING_LIMIT = 10;
 export const GEAR_LISTEN_RANKING_LIMIT = 10;
@@ -43,9 +44,10 @@ export type GearListenHistoryRow = HistoryRow & {
   headphone_id: number | null;
   dac_amp_id?: number | null;
   dac_amp2_id?: number | null;
+  source_id?: number | null;
 };
 
-export type GearCategoryFilter = 'all' | '헤드폰' | '이어폰' | '무선 헤드폰' | '무선 이어폰';
+export type GearCategoryFilter = 'all' | (typeof LISTEN_HISTORY_RECEIVER_CATEGORIES)[number];
 
 export type GearSummary = {
   id: number;
@@ -66,10 +68,7 @@ export type GearListenRankItem = {
 
 export const GEAR_CATEGORY_FILTER_OPTIONS: GearCategoryFilter[] = [
   'all',
-  '헤드폰',
-  '이어폰',
-  '무선 헤드폰',
-  '무선 이어폰',
+  ...LISTEN_HISTORY_RECEIVER_CATEGORIES,
 ];
 
 export function gearCategoryFilterLabel(filter: GearCategoryFilter): string {
@@ -78,28 +77,15 @@ export function gearCategoryFilterLabel(filter: GearCategoryFilter): string {
   if (filter === '이어폰') return 'IEM';
   if (filter === '무선 헤드폰') return 'W-HP';
   if (filter === '무선 이어폰') return 'W-IEM';
+  if (filter === '스피커') return 'SPK';
   return filter;
 }
 
 function matchesGearCategoryFilter(category: string, filter: GearCategoryFilter): boolean {
   if (filter === 'all') {
-    return (
-      category === '헤드폰' ||
-      category === '이어폰' ||
-      category === '무선 헤드폰' ||
-      category === '무선 이어폰'
-    );
+    return (LISTEN_HISTORY_RECEIVER_CATEGORIES as readonly string[]).includes(category);
   }
-  if (filter === '헤드폰') {
-    return category === '헤드폰';
-  }
-  if (filter === '이어폰') {
-    return category === '이어폰';
-  }
-  if (filter === '무선 헤드폰') {
-    return category === '무선 헤드폰';
-  }
-  return category === '무선 이어폰';
+  return category === filter;
 }
 
 export function filterGearHistoryByPeriod(
@@ -173,7 +159,7 @@ export function buildDacAmpListenRankings(
   const counts = new Map<number, number>();
 
   for (const row of historyRows) {
-    for (const headfiId of [row.dac_amp_id, row.dac_amp2_id, row.headphone_id]) {
+    for (const headfiId of [row.source_id, row.dac_amp_id, row.dac_amp2_id, row.headphone_id]) {
       if (headfiId == null) continue;
       const gear = gearById.get(headfiId);
       if (!gear || !isDacAmpDapCategory(gear.category)) continue;
