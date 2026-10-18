@@ -565,5 +565,22 @@
           "엣지: 방출 상태이거나 선택 범위 밖 카테고리의 기기가 이미 연결된 기존 이력을 수정해도 그 선택값이 사라지지 않고, 저장 후에도 유지된다"
         ],
         "passes": true
+      },
+      {
+        "id": "ALBUM-036",
+        "category": "ALBUM",
+        "title": "청취 이력 — Media(청취 매체) 선택 추가",
+        "description": "청취 이력에 Media 필드를 추가해 1줄 'Media + Source', 2줄 'Amp 1 + Amp 2 + Receiver' 구조로 재배치하고, 기존 이력은 Source 기기 기준으로 매체를 이관한다.",
+        "steps": [
+          "앨범 상세 > 청취 이력 탭의 등록 폼에서 1줄에 Media와 Source, 2줄에 Amp 1, Amp 2, Receiver가 표시된다",
+          "Media 선택지는 Apple Music, Spotify, YouTube Music, CD, LP, Cassette, FLAC, 기타 순서로 나오고 빈 값 선택지는 없다. 신규 등록 폼을 열면 Apple Music이 기본 선택되어 있다",
+          "Media를 Spotify로 바꾸고 Receiver를 선택해 등록하면 저장되고, 이력 목록에 Media가 맨 앞에 작게 표시된다. DB의 media 컬럼에 'Spotify'가 저장된다",
+          "다이어리(/albums/diary)의 청취 이력 수정 폼도 같은 배치와 같은 Media 선택지를 쓰며, 값을 바꿔 저장하면 상세 화면에도 반영된다",
+          "이관된 기존 이력을 수정으로 열면 Source가 DM13였던 건은 CD, PS-LX310BT는 LP, CP13은 Cassette, M33 R2R은 FLAC, 그 외(Source가 비어 있던 건 포함)는 Apple Music이 선택되어 있고, 아무것도 안 바꾸고 저장해도 값이 유지된다",
+          "엣지: Source와 Amp를 비워 두고 Media와 Receiver만 선택해도 등록된다 (Source·Amp 옵셔널, Receiver 필수는 ALBUM-035 동작 그대로 유지)",
+          "엣지: media 값이 비어 있거나 선택지에 없는 문자열인 이력을 수정으로 열어도 에러 없이 열리고, Media는 기본값 Apple Music으로 표시된다",
+          "ALBUM-035에서 정한 Source/Amp/Receiver 선택 범위, 표시 순서, 사용통계 집계가 이번 변경 후에도 그대로 동작한다"
+        ],
+        "passes": true
       }
   ]

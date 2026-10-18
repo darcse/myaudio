@@ -1,3 +1,33 @@
+export const LISTEN_HISTORY_DEFAULT_MEDIA = 'Apple Music' as const;
+
+export const LISTEN_HISTORY_MEDIA_OPTIONS = [
+  'Apple Music',
+  'Spotify',
+  'YouTube Music',
+  'CD',
+  'LP',
+  'Cassette',
+  'FLAC',
+  '기타',
+] as const;
+
+export type ListenHistoryMedia = (typeof LISTEN_HISTORY_MEDIA_OPTIONS)[number];
+
+export function isListenHistoryMedia(value: string | null | undefined): value is ListenHistoryMedia {
+  return (
+    typeof value === 'string' &&
+    (LISTEN_HISTORY_MEDIA_OPTIONS as readonly string[]).includes(value)
+  );
+}
+
+export function listenHistoryMediaForForm(value: string | null | undefined): ListenHistoryMedia {
+  return isListenHistoryMedia(value) ? value : LISTEN_HISTORY_DEFAULT_MEDIA;
+}
+
+export function listenHistoryMediaDisplay(value: string | null | undefined): ListenHistoryMedia | null {
+  return isListenHistoryMedia(value) ? value : null;
+}
+
 export const LISTEN_HISTORY_SOURCE_CATEGORIES = ['Source', 'DAP'] as const;
 export const LISTEN_HISTORY_AMP_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', '기타'] as const;
 export const LISTEN_HISTORY_RECEIVER_CATEGORIES = [
@@ -14,7 +44,7 @@ export type ListenHistoryGearOption = {
   model: string;
 };
 
-export function formatListenHistoryOptionLabel(gear: ListenHistoryGearOption): string {
+export function formatListenHistoryOptionLabel(gear: { model: string }): string {
   return gear.model.trim() || '—';
 }
 
@@ -32,6 +62,6 @@ type ListenHistoryGearRow = {
 export function formatListenHistoryGearLine(row: ListenHistoryGearRow): string | null {
   const parts = [row.source, row.dacAmp, row.dacAmp2, row.headphone]
     .filter((gear): gear is { brand: string; model: string } => gear != null)
-    .map(formatListenHistoryGearName);
+    .map(formatListenHistoryOptionLabel);
   return parts.length > 0 ? parts.join(' / ') : null;
 }

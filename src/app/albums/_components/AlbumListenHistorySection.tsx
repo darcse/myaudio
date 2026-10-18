@@ -1,19 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { createListenCapturedAt, fetchListenWeatherContext, LISTEN_GEO_UNAVAILABLE_TOAST, type ListenWeatherContext } from '@/lib/listenContextSnapshot';
 import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/listenContextDebug';
-import { ListenContextMeta } from './ListenContextMeta';
+import { formatListenContextMeta } from '@/lib/listenContextDisplay';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
   LISTEN_HISTORY_AMP_CATEGORIES,
+  LISTEN_HISTORY_DEFAULT_MEDIA,
+  LISTEN_HISTORY_MEDIA_OPTIONS,
   LISTEN_HISTORY_RECEIVER_CATEGORIES,
   LISTEN_HISTORY_SOURCE_CATEGORIES,
-  formatListenHistoryGearName,
   formatListenHistoryOptionLabel,
+  listenHistoryMediaDisplay,
+  listenHistoryMediaForForm,
+  type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
 
 type GearSummary = {
@@ -35,6 +39,7 @@ type ListenHistoryRow = {
   dac_amp2_id: number | null;
   headphone_id: number | null;
   source_id: number | null;
+  media: string | null;
   source?: GearSummary | null;
   dac_amp?: GearSummary | null;
   dac_amp2?: GearSummary | null;
@@ -80,6 +85,7 @@ export function AlbumListenHistorySection({
   const [listenLoading, setListenLoading] = useState(false);
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState<ListenHistoryMedia>(LISTEN_HISTORY_DEFAULT_MEDIA);
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
@@ -93,10 +99,12 @@ export function AlbumListenHistorySection({
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const editFormRef = useRef<HTMLLIElement>(null);
 
   const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
     setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
     setListenImpression('');
+    setSelectedMedia(LISTEN_HISTORY_DEFAULT_MEDIA);
     setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
@@ -120,7 +128,7 @@ export function AlbumListenHistorySection({
     const { data, error } = await supabase
       .from('album_listen_history')
       .select(
-        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, source_id, dac_amp_id, dac_amp2_id, headphone_id',
+        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id',
       )
       .eq('album_id', albumId)
       .order('listened_at', { ascending: false })
@@ -135,6 +143,7 @@ export function AlbumListenHistorySection({
         ...row,
         dac_amp2_id: row.dac_amp2_id ?? null,
         source_id: row.source_id ?? null,
+        media: row.media ?? null,
       })),
     );
     const gearIds = new Set<number>();
@@ -302,6 +311,7 @@ export function AlbumListenHistorySection({
       const payload = {
         listened_at: d,
         impression: listenImpression.trim() || null,
+        media: selectedMedia,
         source_id: parseOptionalId(selectedSourceId),
         dac_amp_id: parseOptionalId(selectedDacAmpId),
         dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
@@ -356,14 +366,23 @@ export function AlbumListenHistorySection({
     setEditingId(row.id);
     setListenDate(row.listened_at?.slice(0, 10) ?? '');
     setListenImpression(row.impression ?? '');
+    setSelectedMedia(listenHistoryMediaForForm(row.media));
     setSelectedSourceId(row.source_id != null ? String(row.source_id) : '');
     setSelectedDacAmpId(row.dac_amp_id != null ? String(row.dac_amp_id) : '');
     setSelectedDacAmp2Id(row.dac_amp2_id != null ? String(row.dac_amp2_id) : '');
     setSelectedHeadphoneId(row.headphone_id != null ? String(row.headphone_id) : '');
     setReceiverError(null);
-    setFormOpen(true);
+    setFormOpen(false);
     if (variant === 'accordion') setListenOpen(true);
   };
+
+  useEffect(() => {
+    if (editingId == null) return;
+    const frame = window.requestAnimationFrame(() => {
+      editFormRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingId]);
 
   const cancelForm = () => {
     resetFormFields();
@@ -411,10 +430,9 @@ export function AlbumListenHistorySection({
 
   const renderGearLine = (row: ListenHistoryRow) => {
     const parts: { gear: GearSummary; name: string }[] = [];
-    if (row.source) parts.push({ gear: row.source, name: formatListenHistoryGearName(row.source) });
-    if (row.dac_amp) parts.push({ gear: row.dac_amp, name: formatListenHistoryGearName(row.dac_amp) });
-    if (row.dac_amp2) parts.push({ gear: row.dac_amp2, name: formatListenHistoryGearName(row.dac_amp2) });
-    if (row.headphone) parts.push({ gear: row.headphone, name: formatListenHistoryGearName(row.headphone) });
+    if (row.source) parts.push({ gear: row.source, name: formatListenHistoryOptionLabel(row.source) });
+    if (row.dac_amp) parts.push({ gear: row.dac_amp, name: formatListenHistoryOptionLabel(row.dac_amp) });
+    if (row.dac_amp2) parts.push({ gear: row.dac_amp2, name: formatListenHistoryOptionLabel(row.dac_amp2) });
     if (parts.length === 0) return null;
 
     if (onHeadfiClick) {
@@ -458,8 +476,24 @@ export function AlbumListenHistorySection({
           style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
         />
       </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="min-w-0">
+          <label className="mb-1 block text-[11px] font-semibold opacity-70">Media</label>
+          <select
+            className="select-apple h-[42px] w-full px-3 py-2 text-sm"
+            value={selectedMedia}
+            onChange={(e) => setSelectedMedia(listenHistoryMediaForForm(e.target.value))}
+            disabled={listenSaving}
+            aria-label="Media"
+          >
+            {LISTEN_HISTORY_MEDIA_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-0">
           <label className="mb-1 block text-[11px] font-semibold opacity-70">Source</label>
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -475,7 +509,9 @@ export function AlbumListenHistorySection({
             ))}
           </select>
         </div>
-        <div>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="min-w-0">
           <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 1</label>
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -491,7 +527,7 @@ export function AlbumListenHistorySection({
             ))}
           </select>
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 2</label>
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -507,22 +543,23 @@ export function AlbumListenHistorySection({
             ))}
           </select>
         </div>
-      </div>
-      <div>
-        <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
-        <ReceiverComboSelect
-          value={selectedHeadphoneId}
-          onChange={(value) => {
-            setSelectedHeadphoneId(value);
-            if (value) setReceiverError(null);
-          }}
-          options={headphoneOptions}
-          disabled={listenSaving}
-          placeholder="Receiver"
-          formatOptionLabel={formatListenHistoryOptionLabel}
-          aria-label="Receiver"
-        />
-        {receiverError ? <p className="mt-1 text-xs text-red-500">{receiverError}</p> : null}
+        <div className="min-w-0">
+          <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
+          <ReceiverComboSelect
+            className="min-w-0 w-full"
+            value={selectedHeadphoneId}
+            onChange={(value) => {
+              setSelectedHeadphoneId(value);
+              if (value) setReceiverError(null);
+            }}
+            options={headphoneOptions}
+            disabled={listenSaving}
+            placeholder="Receiver"
+            formatOptionLabel={formatListenHistoryOptionLabel}
+            aria-label="Receiver"
+          />
+          {receiverError ? <p className="mt-1 text-xs text-red-500">{receiverError}</p> : null}
+        </div>
       </div>
       <div>
         <label className="mb-1 block text-[11px] font-semibold opacity-70">소감 (선택)</label>
@@ -612,51 +649,94 @@ export function AlbumListenHistorySection({
         </div>
       ) : listenHistory.length > 0 ? (
         <ul className="space-y-3">
-          {listenHistory.map((row) => (
-            <li
-              key={row.id}
-              className="flex gap-3 rounded-xl p-3"
-              style={{
-                background: 'var(--badge-bg)',
-                border: editingId === row.id ? '1px solid var(--foreground)' : '1px solid var(--border)',
-              }}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold tabular-nums">
-                  {new Date(row.listened_at + 'T12:00:00').toLocaleDateString('ko-KR')}
-                </p>
-                <ListenContextMeta
-                  captured_at={row.captured_at}
-                  weather_condition={row.weather_condition}
-                  temperature={row.temperature}
-                />
-                <p className="mt-1 whitespace-pre-wrap text-sm opacity-85">
-                  {row.impression?.trim() ? row.impression : '—'}
-                </p>
-                {renderGearLine(row)}
-              </div>
-              <div className="flex shrink-0 flex-col gap-1.5 self-start">
-                <button
-                  type="button"
-                  onClick={() => startEditListenHistory(row)}
-                  disabled={listenSaving}
-                  className="btn-apple shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                  aria-label="이력 수정"
-                >
-                  <Pencil className="size-3.5" strokeWidth={2} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPendingDeleteId(row.id)}
-                  disabled={listenSaving}
-                  className="btn-apple btn-apple-danger shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                  aria-label="이력 삭제"
-                >
-                  <Trash2 className="size-3.5" strokeWidth={2} />
-                </button>
-              </div>
-            </li>
-          ))}
+          {listenHistory.map((row) => {
+            if (editingId === row.id) {
+              return (
+                <li key={row.id} ref={editFormRef}>
+                  {inputForm}
+                </li>
+              );
+            }
+            const mediaLabel = listenHistoryMediaDisplay(row.media);
+            const context = formatListenContextMeta({
+              captured_at: row.captured_at,
+              weather_condition: row.weather_condition,
+              temperature: row.temperature,
+            });
+            const dateLabel = new Date(row.listened_at + 'T12:00:00').toLocaleDateString('ko-KR');
+            const receiver = row.headphone;
+            return (
+              <li
+                key={row.id}
+                className="flex gap-3 rounded-xl p-3"
+                style={{
+                  background: 'var(--badge-bg)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold tabular-nums">
+                    {context ? `${dateLabel} ${context}` : dateLabel}
+                  </p>
+                  {row.impression?.trim() ? (
+                    <p className="mt-1 whitespace-pre-wrap text-sm opacity-85">{row.impression}</p>
+                  ) : null}
+                  {mediaLabel || receiver ? (
+                    <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                      {mediaLabel ? (
+                        <span
+                          className="rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-tight opacity-80"
+                          style={{ border: '1px solid var(--border)', background: 'var(--background)' }}
+                        >
+                          {mediaLabel}
+                        </span>
+                      ) : null}
+                      {receiver ? (
+                        onHeadfiClick ? (
+                          <button
+                            type="button"
+                            onClick={() => onHeadfiClick(receiver.id)}
+                            className="max-w-full truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
+                            style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                          >
+                            {formatListenHistoryOptionLabel(receiver)}
+                          </button>
+                        ) : (
+                          <span
+                            className="max-w-full truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
+                            style={{ background: 'var(--foreground)', color: 'var(--background)' }}
+                          >
+                            {formatListenHistoryOptionLabel(receiver)}
+                          </span>
+                        )
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {renderGearLine(row)}
+                </div>
+                <div className="flex shrink-0 flex-col gap-1.5 self-start">
+                  <button
+                    type="button"
+                    onClick={() => startEditListenHistory(row)}
+                    disabled={listenSaving}
+                    className="btn-apple shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
+                    aria-label="이력 수정"
+                  >
+                    <Pencil className="size-3.5" strokeWidth={2} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteId(row.id)}
+                    disabled={listenSaving}
+                    className="btn-apple btn-apple-danger shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
+                    aria-label="이력 삭제"
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={2} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <p className="text-xs opacity-60">아직 기록된 청취 이력이 없습니다.</p>
@@ -666,7 +746,7 @@ export function AlbumListenHistorySection({
 
   const historyBody = (
     <>
-      {formOpen ? <div className="mb-4">{inputForm}</div> : null}
+      {formOpen && editingId == null ? <div className="mb-4">{inputForm}</div> : null}
       {historyList}
     </>
   );

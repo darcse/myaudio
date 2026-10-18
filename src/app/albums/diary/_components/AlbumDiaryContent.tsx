@@ -36,9 +36,13 @@ import { DiaryListenEntryListItem } from './DiaryListenEntryListItem';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
   LISTEN_HISTORY_AMP_CATEGORIES,
+  LISTEN_HISTORY_DEFAULT_MEDIA,
+  LISTEN_HISTORY_MEDIA_OPTIONS,
   LISTEN_HISTORY_RECEIVER_CATEGORIES,
   LISTEN_HISTORY_SOURCE_CATEGORIES,
   formatListenHistoryOptionLabel,
+  listenHistoryMediaForForm,
+  type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
 
 type DiaryViewMode = 'calendar' | 'list';
@@ -122,6 +126,7 @@ export function AlbumDiaryContent() {
   const [editingEntry, setEditingEntry] = useState<DiaryListenEntry | null>(null);
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
+  const [selectedMedia, setSelectedMedia] = useState<ListenHistoryMedia>(LISTEN_HISTORY_DEFAULT_MEDIA);
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
@@ -144,7 +149,7 @@ export function AlbumDiaryContent() {
         client
           .from('album_listen_history')
           .select(
-            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, source_id, dac_amp_id, dac_amp2_id, headphone_id',
+            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id',
           ),
         client.from('headfi').select('id, brand, model'),
       ]);
@@ -167,6 +172,7 @@ export function AlbumDiaryContent() {
             temperature: row.temperature ?? null,
             dac_amp2_id: row.dac_amp2_id ?? null,
             source_id: row.source_id ?? null,
+            media: row.media ?? null,
           })),
         );
       }
@@ -348,6 +354,7 @@ export function AlbumDiaryContent() {
     setEditingEntry(null);
     setListenDate('');
     setListenImpression('');
+    setSelectedMedia(LISTEN_HISTORY_DEFAULT_MEDIA);
     setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
@@ -362,6 +369,7 @@ export function AlbumDiaryContent() {
     setEditingEntry(entry);
     setListenDate(entry.listenedAt);
     setListenImpression(entry.impression ?? '');
+    setSelectedMedia(listenHistoryMediaForForm(entry.media));
     setSelectedSourceId(entry.sourceId != null ? String(entry.sourceId) : '');
     setSelectedDacAmpId(entry.dacAmpId != null ? String(entry.dacAmpId) : '');
     setSelectedDacAmp2Id(entry.dacAmp2Id != null ? String(entry.dacAmp2Id) : '');
@@ -382,6 +390,7 @@ export function AlbumDiaryContent() {
         .update({
           listened_at: d,
           impression: listenImpression.trim() || null,
+          media: selectedMedia,
           source_id: parseOptionalId(selectedSourceId),
           dac_amp_id: parseOptionalId(selectedDacAmpId),
           dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
@@ -662,8 +671,24 @@ export function AlbumDiaryContent() {
                       aria-label="청취일"
                     />
                   </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    <div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <label className="mb-1 block text-[11px] font-semibold opacity-70">Media</label>
+                      <select
+                        className="select-apple h-[42px] w-full px-3 py-2 text-sm"
+                        value={selectedMedia}
+                        onChange={(e) => setSelectedMedia(listenHistoryMediaForForm(e.target.value))}
+                        disabled={listenSaving}
+                        aria-label="Media"
+                      >
+                        {LISTEN_HISTORY_MEDIA_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="min-w-0">
                       <label className="mb-1 block text-[11px] font-semibold opacity-70">Source</label>
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -679,7 +704,9 @@ export function AlbumDiaryContent() {
                         ))}
                       </select>
                     </div>
-                    <div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="min-w-0">
                       <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 1</label>
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -695,7 +722,7 @@ export function AlbumDiaryContent() {
                         ))}
                       </select>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <label className="mb-1 block text-[11px] font-semibold opacity-70">Amp 2</label>
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
@@ -711,18 +738,19 @@ export function AlbumDiaryContent() {
                         ))}
                       </select>
                     </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
-                    <ReceiverComboSelect
-                      value={selectedHeadphoneId}
-                      onChange={setSelectedHeadphoneId}
-                      options={headphoneOptions}
-                      disabled={listenSaving}
-                      placeholder="Receiver"
-                      formatOptionLabel={formatListenHistoryOptionLabel}
-                      aria-label="Receiver"
-                    />
+                    <div className="min-w-0">
+                      <label className="mb-1 block text-[11px] font-semibold opacity-70">Receiver</label>
+                      <ReceiverComboSelect
+                        className="min-w-0 w-full"
+                        value={selectedHeadphoneId}
+                        onChange={setSelectedHeadphoneId}
+                        options={headphoneOptions}
+                        disabled={listenSaving}
+                        placeholder="Receiver"
+                        formatOptionLabel={formatListenHistoryOptionLabel}
+                        aria-label="Receiver"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold opacity-70">소감 (선택)</label>

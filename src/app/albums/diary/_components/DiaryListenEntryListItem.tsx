@@ -5,7 +5,7 @@
 import { Disc, Pencil, Trash2 } from 'lucide-react';
 import { ListenContextMeta } from '@/app/albums/_components/ListenContextMeta';
 import { type DiaryListenEntry } from '../albumDiary';
-import { formatListenHistoryGearLine } from '@/lib/listenHistoryGear';
+import { formatListenHistoryGearLine, listenHistoryMediaDisplay } from '@/lib/listenHistoryGear';
 
 type DiaryListenEntryListItemProps = {
   entry: DiaryListenEntry;
@@ -18,14 +18,27 @@ type DiaryListenEntryListItemProps = {
 };
 
 function renderGearTags(entry: DiaryListenEntry) {
+  const mediaLabel = listenHistoryMediaDisplay(entry.media);
   const line = formatListenHistoryGearLine({
     source: entry.source,
     dacAmp: entry.dacAmp,
     dacAmp2: entry.dacAmp2,
     headphone: entry.headphone,
   });
-  if (!line) return null;
-  return <p className="mt-1.5 truncate text-xs opacity-65">{line}</p>;
+  if (!mediaLabel && !line) return null;
+  return (
+    <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
+      {mediaLabel ? (
+        <span
+          className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tracking-tight opacity-80"
+          style={{ border: '1px solid var(--border)', background: 'var(--background)' }}
+        >
+          {mediaLabel}
+        </span>
+      ) : null}
+      {line ? <p className="min-w-0 truncate text-xs opacity-65">{line}</p> : null}
+    </div>
+  );
 }
 
 export function DiaryListenEntryListItem({
