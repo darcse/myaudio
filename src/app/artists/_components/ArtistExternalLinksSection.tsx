@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pencil } from 'lucide-react';
+import { AppleMusicIcon, SpotifyIcon, YoutubeIcon } from '@/components/streamingServiceIcons';
 import type { ArtistRecord } from '../types';
 
 export type ArtistLinksPatch = {
@@ -17,30 +18,6 @@ type LinkKey = keyof ArtistLinksPatch;
 type LinkIconProps = {
   className?: string;
 };
-
-function AppleMusicIcon({ className }: LinkIconProps) {
-  return (
-    <svg viewBox="0 0 457.3 512" className={className} fill="white" aria-hidden>
-      <path d="M435.3,16.2c-5.7-0.7-11.5,0.2-16.7,2.5L184,124.6v270.4c0,35.9-29.2,65.1-65.1,65.1S54.1,431,54.1,395.1 c0-35.9,29.2-65.1,65.1-65.1c11.9,0,23.3,3.3,33.2,9.5V161.4c0-7.3,5.2-13.6,12.4-14.9L403.4,26.7c7.4-1.3,14.6,3.6,15.9,11 c0.3,1.8,0.4,3.7,0.4,5.5v120.3c0,35.9-29.2,65.1-65.1,65.1c-35.9,0-65.1-29.2-65.1-65.1c0-21.4,10.7-40.4,27-51.6V126.7 l-184.8,84v220.2c0,35.9-29.2,65.1-65.1,65.1S22,431,22,395.1c0-35.9,29.2-65.1,65.1-65.1c11.9,0,23.3,3.3,33.2,9.5V113.9 c0-9.8,7.9-17.8,17.8-17.8l275-125c1.4-0.6,2.8-1.1,4.3-1.4C428.1,17,431.9,17.8,435.3,16.2z" />
-    </svg>
-  );
-}
-
-function SpotifyIcon({ className }: LinkIconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
-      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.52-.973c3.632-1.102 8.147-.568 11.233 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.794c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 01-.955 1.613z" />
-    </svg>
-  );
-}
-
-function YoutubeIcon({ className }: LinkIconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
 
 function TwitterIcon({ className }: LinkIconProps) {
   return (

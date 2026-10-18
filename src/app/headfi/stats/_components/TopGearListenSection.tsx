@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Headphones } from 'lucide-react';
 import type { GearCategoryFilter, GearListenRankItem, ListenPeriodFilter } from '@/app/albums/stats/albumListenStats';
 import {
@@ -37,40 +38,53 @@ function GearRankRow({
   item,
   rank,
   onClick,
+  leadingVisual,
 }: {
   item: GearListenRankItem;
   rank: number;
-  onClick: () => void;
+  onClick?: () => void;
+  leadingVisual?: (item: GearListenRankItem) => ReactNode;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
-    >
+  const name = `${item.brand} ${item.model}`.trim();
+  const body = (
+    <>
       <RankBadge rank={rank} />
-      <div
-        className="relative size-11 shrink-0 overflow-hidden rounded-md"
-        style={{ background: 'var(--badge-bg)' }}
-      >
-        {item.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
-        ) : (
-          <div className="flex size-full items-center justify-center opacity-40">
-            <Headphones className="size-4" strokeWidth={1.5} />
-          </div>
-        )}
-      </div>
+      {leadingVisual ? (
+        leadingVisual(item)
+      ) : (
+        <div
+          className="relative size-11 shrink-0 overflow-hidden rounded-md"
+          style={{ background: 'var(--badge-bg)' }}
+        >
+          {item.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+          ) : (
+            <div className="flex size-full items-center justify-center opacity-40">
+              <Headphones className="size-4" strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
-          {item.brand} {item.model}
-        </p>
-        <p className="truncate text-xs opacity-60">{item.category}</p>
+        <p className="truncate text-sm font-medium">{name}</p>
+        {item.category ? <p className="truncate text-xs opacity-60">{item.category}</p> : null}
       </div>
       <span className="shrink-0 text-sm font-semibold tabular-nums">{item.listenCount}회</span>
-    </button>
+    </>
   );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
+      >
+        {body}
+      </button>
+    );
+  }
+  return <div className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5">{body}</div>;
 }
 
 type TopGearListenSectionProps = {
@@ -80,8 +94,9 @@ type TopGearListenSectionProps = {
   periodFilter: ListenPeriodFilter;
   categoryFilter?: GearCategoryFilter;
   onCategoryFilterChange?: (value: GearCategoryFilter) => void;
-  onGearClick: (headfiId: number) => void;
+  onGearClick?: (headfiId: number) => void;
   emptyDetail?: string;
+  leadingVisual?: (item: GearListenRankItem) => ReactNode;
 };
 
 export function TopGearListenSection({
@@ -93,6 +108,7 @@ export function TopGearListenSection({
   onCategoryFilterChange,
   onGearClick,
   emptyDetail,
+  leadingVisual,
 }: TopGearListenSectionProps) {
   const periodLabel = formatPeriodLabel(periodFilter);
   const categoryLabel =
@@ -134,7 +150,12 @@ export function TopGearListenSection({
           <ul className="space-y-0.5">
             {items.map((item, index) => (
               <li key={item.headfiId}>
-                <GearRankRow item={item} rank={index + 1} onClick={() => onGearClick(item.headfiId)} />
+                <GearRankRow
+                  item={item}
+                  rank={index + 1}
+                  onClick={onGearClick ? () => onGearClick(item.headfiId) : undefined}
+                  leadingVisual={leadingVisual}
+                />
               </li>
             ))}
           </ul>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Cpu, Headphones, Trophy } from 'lucide-react';
+import { BarChart3, Cpu, Headphones, Music, Radio, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -13,14 +13,14 @@ import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import {
   buildDacAmpListenRankings,
   buildGearListenRankings,
-  buildWeeklyHotReceiverRankings,
+  buildMediaListenRankings,
+  buildSourceListenRankings,
   clampListenPeriodFilter,
   filterGearHistoryByPeriod,
   formatPeriodLabel,
   formatStatsMonthOptionLabel,
   getDefaultListenPeriodFilter,
   getPeriodRankingLimit,
-  getRollingSevenDayRange,
   listStatsMonths,
   listStatsYears,
   type GearCategoryFilter,
@@ -30,8 +30,8 @@ import {
   type ListenPeriodMonth,
 } from '@/app/albums/stats/albumListenStats';
 import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
+import { ListenHistoryMediaThumb } from '@/components/ListenHistoryMediaThumb';
 import { TopGearListenSection } from './TopGearListenSection';
-import { WeeklyHotReceiversSection } from './WeeklyHotReceiversSection';
 
 function filterToggleStyle(active: boolean): React.CSSProperties {
   return {
@@ -52,7 +52,6 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
   const [gearById, setGearById] = useState<Map<number, GearSummary>>(() => new Map());
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [gearCategoryFilter, setGearCategoryFilter] = useState<GearCategoryFilter>('all');
-  const [now, setNow] = useState(() => new Date());
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
   const [registeredAlbums, setRegisteredAlbums] = useState<
     { id: number; album_name: string; artist: string; cover_image_url: string | null; release_date?: string | null }[]
@@ -74,7 +73,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
       const [historyRes, headfiRes] = await Promise.all([
         client
           .from('album_listen_history')
-          .select('album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id'),
+          .select('album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, media'),
         client.from('headfi').select('id, brand, model, category, image_url'),
       ]);
       const errors: string[] = [];
@@ -118,12 +117,6 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    const id = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(id);
-  }, []);
 
   useEffect(() => {
     if (!viewingHeadfi?.id) {
@@ -211,10 +204,13 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     () => buildDacAmpListenRankings(gearById, filteredHistoryRows, rankingLimit),
     [gearById, filteredHistoryRows, rankingLimit],
   );
-  const weekRange = useMemo(() => getRollingSevenDayRange(now), [now]);
-  const weeklyHotReceivers = useMemo(
-    () => buildWeeklyHotReceiverRankings(gearById, historyRows, now),
-    [gearById, historyRows, now],
+  const sourceRanking = useMemo(
+    () => buildSourceListenRankings(gearById, filteredHistoryRows, rankingLimit),
+    [gearById, filteredHistoryRows, rankingLimit],
+  );
+  const mediaRanking = useMemo(
+    () => buildMediaListenRankings(filteredHistoryRows, rankingLimit),
+    [filteredHistoryRows, rankingLimit],
   );
 
   const handleYearChange = (year: number) => {
@@ -259,12 +255,6 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
       ) : (
         <>
           {loadError ? <p className="mb-4 text-sm opacity-70">{loadError}</p> : null}
-
-          <WeeklyHotReceiversSection
-            items={weeklyHotReceivers}
-            weekRange={weekRange}
-            onGearClick={(id) => void openHeadfiById(id)}
-          />
 
           <section
             className="mb-6 rounded-xl border"
@@ -328,12 +318,28 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
             />
 
             <TopGearListenSection
-              title={`최다 사용 DAC/AMP/DAP TOP ${rankingLimit}`}
+              title={`최다 사용 구동계 TOP ${rankingLimit}`}
               icon={<Cpu className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
               items={dacAmpRanking}
               periodFilter={periodFilter}
               onGearClick={(id) => void openHeadfiById(id)}
-              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 DAC/AMP/DAP 청취 기록이 없습니다.`}
+              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 구동계 청취 기록이 없습니다.`}
+            />
+            <TopGearListenSection
+              title={`최다 사용 소스기기 TOP ${rankingLimit}`}
+              icon={<Music className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+              items={sourceRanking}
+              periodFilter={periodFilter}
+              onGearClick={(id) => void openHeadfiById(id)}
+              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 소스기기 청취 기록이 없습니다.`}
+            />
+            <TopGearListenSection
+              title={`최다 사용 미디어 TOP ${rankingLimit}`}
+              icon={<Radio className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+              items={mediaRanking}
+              periodFilter={periodFilter}
+              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 미디어 청취 기록이 없습니다.`}
+              leadingVisual={(item) => <ListenHistoryMediaThumb media={item.model} />}
             />
           </div>
         </>

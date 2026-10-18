@@ -8,7 +8,7 @@ export type InsightsTabId = 'ranking' | 'trend' | 'usage' | 'genre' | 'archive';
 const TABS: { id: InsightsTabId; label: string }[] = [
   { id: 'ranking', label: '청취 랭킹' },
   { id: 'trend', label: '청취 추이' },
-  { id: 'usage', label: '기기 사용 통계' },
+  { id: 'usage', label: '사용 통계' },
   { id: 'genre', label: '장르 통계' },
   { id: 'archive', label: 'Archive' },
 ];

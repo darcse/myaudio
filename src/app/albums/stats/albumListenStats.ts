@@ -1,13 +1,16 @@
 import type { Album } from '@/app/albums/types';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
-import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
-import { LISTEN_HISTORY_RECEIVER_CATEGORIES } from '@/lib/listenHistoryGear';
+import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
+import {
+  LISTEN_HISTORY_MEDIA_OPTIONS,
+  LISTEN_HISTORY_RECEIVER_CATEGORIES,
+  LISTEN_HISTORY_SOURCE_CATEGORIES,
+} from '@/lib/listenHistoryGear';
 
 export const LISTEN_RANKING_LIMIT = 10;
 export const GEAR_LISTEN_RANKING_LIMIT = 10;
 export const PERIOD_RANKING_LIMIT_ALL_MONTHS = 20;
 export const WEEKLY_HOT_ALBUM_LIMIT = 5;
-export const WEEKLY_HOT_RECEIVER_LIMIT = 5;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
 export type ListenTrendUnit = 'year' | 'month' | 'week';
@@ -45,6 +48,7 @@ export type GearListenHistoryRow = HistoryRow & {
   dac_amp_id?: number | null;
   dac_amp2_id?: number | null;
   source_id?: number | null;
+  media?: string | null;
 };
 
 export type GearCategoryFilter = 'all' | (typeof LISTEN_HISTORY_RECEIVER_CATEGORIES)[number];
@@ -140,29 +144,20 @@ function sortGearListenRankItems(items: GearListenRankItem[], limit: number): Ge
     .slice(0, limit);
 }
 
-export function buildWeeklyHotReceiverRankings(
+function buildListenRankingsFromSlots(
   gearById: Map<number, GearSummary>,
   historyRows: GearListenHistoryRow[],
-  reference = new Date(),
-  limit = WEEKLY_HOT_RECEIVER_LIMIT,
-): GearListenRankItem[] {
-  const range = getRollingSevenDayRange(reference);
-  const filtered = filterHistoryByWeek(historyRows, range) as GearListenHistoryRow[];
-  return buildGearListenRankings(gearById, filtered, 'all', limit);
-}
-
-export function buildDacAmpListenRankings(
-  gearById: Map<number, GearSummary>,
-  historyRows: GearListenHistoryRow[],
-  limit = GEAR_LISTEN_RANKING_LIMIT,
+  pickIds: (row: GearListenHistoryRow) => Array<number | null | undefined>,
+  matchCategory: (category: string) => boolean,
+  limit: number,
 ): GearListenRankItem[] {
   const counts = new Map<number, number>();
 
   for (const row of historyRows) {
-    for (const headfiId of [row.source_id, row.dac_amp_id, row.dac_amp2_id, row.headphone_id]) {
+    for (const headfiId of pickIds(row)) {
       if (headfiId == null) continue;
       const gear = gearById.get(headfiId);
-      if (!gear || !isDacAmpDapCategory(gear.category)) continue;
+      if (!gear || !matchCategory(gear.category)) continue;
       counts.set(headfiId, (counts.get(headfiId) ?? 0) + 1);
     }
   }
@@ -177,6 +172,61 @@ export function buildDacAmpListenRankings(
       model: gear.model,
       category: gear.category,
       imageUrl: gear.image_url,
+      listenCount,
+    });
+  }
+
+  return sortGearListenRankItems(items, limit);
+}
+
+export function buildDacAmpListenRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  return buildListenRankingsFromSlots(
+    gearById,
+    historyRows,
+    (row) => [row.dac_amp_id, row.dac_amp2_id],
+    isDacAmpOnlyCategory,
+    limit,
+  );
+}
+
+export function buildSourceListenRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  return buildListenRankingsFromSlots(
+    gearById,
+    historyRows,
+    (row) => [row.source_id],
+    (category) => (LISTEN_HISTORY_SOURCE_CATEGORIES as readonly string[]).includes(category),
+    limit,
+  );
+}
+
+export function buildMediaListenRankings(
+  historyRows: GearListenHistoryRow[],
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  const counts = new Map<string, number>();
+  for (const row of historyRows) {
+    const media = typeof row.media === 'string' ? row.media.trim() : '';
+    if (!media) continue;
+    counts.set(media, (counts.get(media) ?? 0) + 1);
+  }
+
+  const items: GearListenRankItem[] = [];
+  for (const [media, listenCount] of counts.entries()) {
+    const knownIndex = (LISTEN_HISTORY_MEDIA_OPTIONS as readonly string[]).indexOf(media);
+    items.push({
+      headfiId: knownIndex >= 0 ? -(knownIndex + 1) : -100 - media.length,
+      brand: '',
+      model: media,
+      category: '',
+      imageUrl: null,
       listenCount,
     });
   }
