@@ -2,7 +2,7 @@
 
 myaudio는 개인이 보유하고 감상한 **음악 앨범(Albums), 아티스트(Artists), 가사 번역 노트(Lyrics), RecordShelf(CD/LP/Cassette 실물 음반), 헤드파이 기기(Head-fi), 가사·음원 플레이어(Works), 청취 통계 및 아카이브(Insights)**를 한곳에서 체계적으로 등록, 검색, 분석, 회고하는 프리미엄 개인 오디오 라이브러리 웹 애플리케이션입니다. 
 
-본 애플리케이션은 **MusicBrainz API**를 연동하여 앨범 메타데이터를 자동화하고, **Gemini / OpenAI / Anthropic** 다중 AI 프로바이더를 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다.
+본 애플리케이션은 **MusicBrainz API**를 연동하여 앨범 메타데이터를 자동화하고, **Gemini AI / OpenAI GPT / Anthropic Claude** 다중 AI 프로바이더 모델을 깊이 있게 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다.
 
 ---
 
@@ -13,16 +13,9 @@ myaudio는 개인이 보유하고 감상한 **음악 앨범(Albums), 아티스�
 *   **Database & Storage**: Supabase (PostgreSQL, Supabase Auth, Storage, RLS)
     *   *주의: 기존 mylibrary / mybooks 서비스와 동일한 Supabase 인스턴스를 공유하며, myaudio 도메인 테이블만 독립적으로 사용합니다.*
 *   **AI Integration (Multi-Provider Architecture)**:
-    *   *모델명은 이 섹션에서만 관리합니다. 기능별 프로바이더는 §5를 참조하세요.*
-    *   *코드상 기본 모델 ID는 `src/lib/aiModels.ts` 한 곳에 있습니다. 모델 교체 시 이 파일과 이 섹션을 함께 고칩니다.*
-    *   **Google Gemini** — `gemini-3.5-flash-lite`
-        *   앨범 소개·무드 분류·취향 분석·추천·포지션맵·트랙리스트·월간 코멘트 등 12개 기능 (일부 Google Search grounding 사용)
-        *   SDK: `@google/genai` 2.x (3.0 미만 고정). 모든 호출은 `gemini.ts`의 `generateGeminiText` 래퍼를 거침
-    *   **OpenAI** — `gpt-5.4-mini`
-        *   아티스트 국문 바이오 (Responses API + `web_search`)
-        *   기기 조합 매칭 스코어 (Chat Completions, web_search 없음)
-    *   **Anthropic** — `claude-sonnet-5`
-        *   FR 그래프 이미지 비전 해석, 기기 음색 성향 해석, 기기 맞춤 추천 앨범, Lyrics 가사 번역
+    *   **Google Gemini**: `gemini-3.5-flash-lite`, Gemini Vision (FR 그래프 이미지 비전 스캔 및 대역별 특성 해석)
+    *   **OpenAI**: GPT-4o / GPT-4o-mini (매칭 스코어링), GPT-5.4-mini + Web Search (아티스트 국문 바이오 생성)
+    *   **Anthropic**: Claude 3.5 Sonnet (기기 FR/음색 성향 해석, 추천 앨범 해설)
 *   **External APIs**: MusicBrainz API, Cover Art Archive, Wikipedia API
 *   **Key Libraries**:
     *   `lucide-react` (아이콘)
@@ -46,7 +39,7 @@ myaudio/
 │   │   ├── artists/                    # 아티스트 관리 (2단 레이아웃, GPT 바이오, 외부 링크, 아티스트 빠칭코)
 │   │   ├── lyrics/                     # 가사 번역 노트 (AI 번역, 원문·발음·번역, 유튜브 연동, 트랙리스트 편집)
 │   │   ├── recordshelf/                # CD / LP / Cassette Tape 실물 음반 전용 라이브러리 (리스트/장르보드)
-│   │   ├── headfi/                     # 헤드파이 기기 목록, 조합 관리, 매칭(/match), 포지션맵(/map), 판매관리
+│   │   ├── headfi/                     # 헤드파이 기기 목록, 조합 관리, 매칭(/match), 포지션맵(/map), 판매관리, 액세서리 관리
 │   │   ├── works/                      # 가사·음원 라이브러리 및 전역 HTML5 연속 오디오 플레이어
 │   │   ├── insights/                   # 청취 통계 및 아카이브 대통합 (랭킹, 추이, 사용통계, 장르통계, 아카이브)
 │   │   ├── archive/                    # (레거시 호환) /insights?tab=archive 리다이렉트
@@ -60,16 +53,10 @@ myaudio/
 │   ├── lib/                            # 유틸리티 라이브러리
 │   │   ├── supabase/                   # Supabase client / server / middleware 설정
 │   │   ├── musicbrainz.ts              # MusicBrainz API 연동 모듈
-│   │   ├── aiModels.ts                 # AI 기본 모델 ID 및 env override resolver (모델명 단일 관리)
-│   │   ├── gemini.ts                   # Gemini 호출 함수 모음 (generateGeminiText 공통 래퍼)
-│   │   ├── aiRetry.ts                  # 429 재시도 헬퍼 및 retry delay 파싱
-│   │   ├── openaiArtistBio.ts          # OpenAI 아티스트 바이오
-│   │   ├── openaiHeadfi.ts             # OpenAI 매칭 스코어
-│   │   ├── anthropicHeadfi.ts          # Anthropic FR 해석·음색 분석·추천 앨범
-│   │   ├── anthropicLyricsTranslate.ts # Anthropic 가사 번역
+│   │   ├── gemini.ts                   # Gemini API 헬퍼 및 retry 로직
+│   │   ├── listenHistoryGear.ts        # 청취 이력 Source / Amp / Receiver / Media 공용 상수·포매터
 │   │   └── timeMachineRecall.server.ts # 대시보드 과거 청취 타임머신 발굴 로직
 │   └── proxy.ts                        # 쿠키 기반 세션 갱신 및 토큰 프록시
-├── scripts/                            # 일회성 데이터 마이그레이션 스크립트 (앱 런타임 아님. migrate-null-mood-names.mjs는 레거시 SDK 의존으로 현재 실행 불가)
 ├── feature_list/                       # 하네스 검증용 JSON 파일군 (SETUP, ALBUM, GEAR, LYRICS, RecordShelf, UX, STATS, BUG 등)
 ├── public/                             # PWA 아이콘 및 정적 에셋
 ├── CONVENTIONS.md                      # 프로젝트 코딩 컨벤션 및 DB 맵핑 규칙
@@ -88,17 +75,18 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 | 테이블명 | 용도 | 설명 |
 | :--- | :--- | :--- |
 | `album` | 앨범 메타데이터 정보 | 제목, 아티스트, 발매일, 장르, 국가, 오디오 태그, 실물 음반 보유 여부(`owns_cd`, `owns_lp`, `owns_cassette`), 앨범 타입(정규/EP/싱글/라이브/리메이크/리믹스 등), AI 소개문, 커버 URL, 수동 무드 재분류 플래그(`mood_manually_set`) 등 |
-| `album_listen_history` | 앨범 청취 이력 | 사용자가 앨범을 청취한 일자, 소감(리뷰), 감상 시 날씨/온도, 감상 매칭 기기(리시버, DAC/AMP 1, DAC/AMP 2)를 누적 기록 |
+| `album_listen_history` | 앨범 청취 이력 | 청취 일자, 소감(리뷰), 감상 시 날씨/온도, 매체(`media`), 소스 기기(`source_id`), 앰프 1·2(`dac_amp_id`, `dac_amp2_id`), 리시버(`headphone_id`)를 누적 기록. 구성: Media + Source / Amp 1 + Amp 2 + Receiver |
 | `album_mood_groups` | 무드보드 그룹 캐시 | AI가 분류한 앨범들의 무드 그룹(9가지 대표 무드) 분류 데이터를 캐싱 |
 | `album_moods` | 사용자 지정 무드 이름 | 사용자가 앨범 무드 관리를 위해 커스텀 정의한 무드 키-벨류 정보 |
 | `artists` | 아티스트 메타데이터 | 아티스트명, 보조이름(`name_alt`), 프로필 이미지, 위키피디아 요약, GPT 생성 국문 Bio, 외부 공식 SNS 링크 등을 관리 |
-| `headfi` | 오디오 기기 컬렉션 | 브랜드, 모델명, 카테고리(헤드폰/이어폰/DAC/AMP/DAP/스피커/Source), 상세 스펙, 18개 청음 평점, AI 소리 성향 해석, FR 그래프 URL, 대표 매칭 콤보(`pairing_combo_id`) 등 |
+| `headfi` | 오디오 기기 컬렉션 | 브랜드, 모델명, 카테고리(헤드폰/이어폰/무선 헤드폰/무선 이어폰/스피커/DAC/AMP/DAC/AMP/DAP/Source/기타), 상세 스펙, 18개 청음 평점, AI 소리 성향 해석, FR 그래프 URL, 대표 매칭 콤보(`pairing_combo_id`) 등. 구 액세서리 컬럼(`cable`, `eartip`, `accessory` 및 각 가격)은 레거시로 남겨두며 사용하지 않음 |
 | `headfi_combos` | DAC/AMP 기기 조합 컬렉션 | DAC/AMP/DAP 기기들을 묶은 매칭 조합(콤보) 관리 CRUD 및 소프트 삭제(`deleted_at`) 지원 |
-| `headfi_accessories` | 독립 액세서리 컬렉션 | 케이블, 이어팁, 무선 액세서리, 스피커 부품 등 독립 품목 등록/수정/삭제, 보유 상태(`status`: `owned` / `released`), 소비 통계 합산 |
-| `headfi_sales` | 기기 및 액세서리 판매 관리 | 보유 기기 및 방출 독립 액세서리의 판매 이력(판매일자, 판매금액 등) 통합 관리 |
+| `headfi_accessories` | 액세서리 컬렉션 | 케이블, 이어팁, 무선 액세서리 등 품목 등록/수정/삭제, 보유 상태(`status`: `owned` / `released`), 소비 통계 합산. DAC·AMP·DAC/AMP·DAP·Source·스피커 액세서리는 "기타 케이블" 카테고리로 통합 |
+| `headfi_accessory_links` | 기기 ↔ 액세서리 연결 | 기기와 액세서리의 N:M 연결(`headfi_id`, `accessory_id`, UNIQUE 쌍). 기기·액세서리 삭제 시 연결만 CASCADE 삭제 |
+| `headfi_sales` | 기기 및 액세서리 판매 관리 | 보유 기기 및 방출 액세서리의 판매 이력(판매일자, 판매금액 등) 통합 관리 |
 | `headfi_device_settings` | 리시버-앰프 조합 세팅 | 리시버(헤드폰/이어폰) × DAC/AMP/DAP 조합별 게인(Gain) 설정 및 세팅 메모 관리 |
 | `headfi_match_cache` | 기기 조합 매칭 스코어 | 헤드폰/이어폰 × DAC/AMP/DAP 조합(combo_id) 매칭 궁합 점수 및 AI 매칭 평점 캐시 (마스터 콤보 가산점 +20점 지원) |
-| `monthly_review_comments` | 월별 AI 코멘트 캐시 | 아카이브에서 월별 활동 요약 분석 후 AI가 작성한 월간 종합 코멘트 캐싱 |
+| `monthly_review_comments` | 월별 AI 코멘트 캐시 | 아카이브에서 월별 활동 요약 분석 후 AI가 작성한 월간 종합 코멘트 캐싱 (mybooks와 공용) |
 | `lyrics` | 가사 및 음원 데이터 | 가사 텍스트, 음원 파일 URL, 커버 이미지, AI 바이브 색상/이모지 등 저장 |
 
 ### 3.2. Storage 버킷 명세
@@ -128,9 +116,15 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 *   **3탭 앨범 상세 모달**:
     *   **앨범 정보**: 메타데이터, Wikipedia 요약, AI 생성 소개문 및 태그, 무드보드 바로가기 연동.
     *   **추천 리시버**: 수동 추천 기기 및 AI 추천 리시버(헤드폰+이어폰 확장, 추천 사유 및 새로고침 지원) 노출.
-    *   **청취 이력**: 청취 일자, 소감, 날씨/온도, 감상 매칭 기기(리시버 콤보박스 연동) 기록 및 누적 타임라인.
+    *   **청취 이력**: 청취 일자, 소감, 날씨/온도, 감상 환경(**Media + Source / Amp 1 + Amp 2 + Receiver**) 기록 및 누적 타임라인.
+        *   **Media**: Apple Music, Spotify, YouTube Music, CD, LP, Cassette, FLAC, 기타 (필수).
+        *   **Source**: Source·DAP 카테고리 기기에서 선택 (필수).
+        *   **Amp 1 / Amp 2**: DAC·AMP·DAC/AMP·기타 카테고리 기기에서 선택 (선택).
+        *   **Receiver**: 헤드폰·이어폰·무선 헤드폰·무선 이어폰·스피커 중 선택 (필수).
+        *   기기 선택 옵션과 이력 카드에는 **브랜드 없이 모델명만** 표시. 슬롯별 카테고리 규칙은 `src/lib/listenHistoryGear.ts`에서 공용 관리.
+        *   이력 카드: 날짜·시간·날씨 / 소감 / 미디어·리시버 배지 / Source / Amp 1 / Amp 2 순으로 배치하며, 카드 안에서 인라인 수정 가능.
 *   **무드보드 & 장르보드 & 수동 무드 재분류 (`ALBUM-033`)**: 9가지 무드 분류 및 대표 `genre1` 기준 스택 카드 뷰 제공. AI 자동 분류 외에 사용자가 직접 앨범 무드를 드롭다운으로 변경 가능 (`mood_manually_set` 플래그로 자동분류 덮어쓰기 방지).
-*   **음감 다이어리 (`/albums/diary`, `ALBUM-032`)**: 날짜별로 그룹핑된 청취 일지 타임라인 제공. **리스트 뷰**와 **캘린더 카드 뷰** 토글 지원, 청취 이력 인라인 수정 및 삭제 지원.
+*   **음감 다이어리 (`/albums/diary`, `ALBUM-032`)**: 날짜별로 그룹핑된 청취 일지 타임라인 제공. **리스트 뷰**와 **캘린더 카드 뷰** 토글 지원, 청취 이력 인라인 수정 및 삭제 지원. 기기 표기는 브랜드 없이 모델명만 노출.
 *   **공용 리시버 콤보박스 (`ALBUM-027`)**: 검색, 최근 사용 기기, 전체보기 지원 콤보박스 UI 적용.
 
 ### 4.3. RecordShelf (실물 음반 라이브러리, `/recordshelf`)
@@ -141,38 +135,33 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 ### 4.4. 아티스트 라이브러리 (Artists)
 *   **애플 뮤직 스타일 2단 레이아웃**: 좌측 아티스트 필터링/검색 목록, 우측 상세 아티스트 프로필 정보 구성.
 *   **이름2 (`name_alt`) 지원 & 정규화**: 한국어/원어 보조이름 등록 및 NFKC 정규화 비교를 통한 중복 검사, 이름 변경 시 앨범 artist 일괄 갱신 및 기존 아티스트 병합 처리.
-*   **OpenAI Web Search 바이오**: 위키피디아와 연동 후 OpenAI Responses API + web_search 기반으로 정갈한 한국어 존대어(~습니다체) 아티스트 바이오를 자동 생성.
+*   **OpenAI GPT-5.4-mini Web Search 바이오**: 위키피디아와 연동 후 OpenAI GPT-5.4-mini Responses API + web_search 기반으로 정갈한 한국어 존대어(~습니다체) 아티스트 바이오를 자동 생성.
 *   **외부 브랜드 링크 & 빠칭코 모달**: 5대 플랫폼(Apple Music, Spotify, YouTube, X, Instagram) 브랜드 SVG 인라인 수정, 아티스트 빠칭코 무작위 추천 모달(`ALBUM-021`), 유사 아티스트 가중치 스코어링 지원.
 
 ### 4.5. 가사 번역 노트 (Lyrics, `/lyrics`)
-*   **AI 트랙 제목 및 가사 번역 (`LYRICSTRANSLATE-001`)**: 가사 등록 시 Anthropic Claude 원클릭 번역을 통해 트랙 제목과 가사 본문을 일괄 번역.
-*   **AI 트랙리스트 조회**: Gemini + Google Search로 앨범 트랙리스트를 조회해 등록 보조.
+*   **AI 트랙 제목 및 가사 번역 (`LYRICSTRANSLATE-001`)**: 가사 등록 시 AI 원클릭 번역을 통해 트랙 제목과 가사 본문을 일괄 번역.
 *   **3단 가사 뷰 & 유튜브 연동**: 상단 원문 제목 + 번역 제목 병기, 유튜브 영상 임베드 플레이어, 하단 원문-발음-번역 순차 가사 렌더링.
 *   **Lyrics 앨범 안전 제거 (`LYRICS-005`)**: 원본 앨범(`album`) 데이터는 안전하게 보존하면서 가사/트랙리스트 데이터만 깔끔하게 분리·제거.
 *   **트랙리스트 인라인 편집 (`LYRICS-006`)**: 트랙명, 순서 번호 수정 및 draft 로컬 반영 후 일괄 저장, 삭제된 트랙의 가사만 선택적 정리.
 
 ### 4.6. 헤드파이 라이브러리 & 조합/세팅/판매 (Head-fi)
-*   **카테고리별 동적 입력 폼**: 헤드폰, 이어폰, DAC, AMP, DAP, 스피커, Source 카테고리별 유동 스펙 분기 (이어폰 이어팁/케이블, 앰프 Vrms Single/BAL, 구동방식/Chipset/Rk 등).
+*   **기기 등록/수정 모달**: 상단에 브랜드, 모델명, 이미지, 카테고리 선택을 두고, 하단은 탭(**기본 정보 / 분석 / 액세서리**)으로 구성. 분석 탭은 헤드폰·이어폰 계열에서만 노출. 데스크톱은 좌우 2패널(약 3:7, 좌측 기본 정보·우측 탭 영역)이고 모바일은 단일 컬럼. 하단 저장 버튼 고정, 모달 오픈 중 배경 스크롤 잠금, 저장 후 스크롤 위치 유지. 카테고리별 유동 스펙 분기(이어폰 단자, 앰프 Vrms Single/BAL, 구동방식/Chipset/Rk 등)는 기존과 동일.
 *   **기기 매칭 조합 관리 (`headfi_combos`, `GEAR-031`)**: DAC/AMP/DAP 기기들을 묶은 매칭 조합(콤보) 관리 CRUD 및 소프트 삭제(`deleted_at`) 지원.
 *   **대표 매칭 콤보 지정 (`pairing_combo_id`, `GEAR-036`)**: 헤드폰/이어폰 등록 시 대표 매칭 조합을 지정하고, 매칭맵에서 일치 시 마스터 궁합 가산점(+20점) 계산/표시 (`GEAR-038`).
-*   **독립 액세서리 관리 (`GEAR-039`)**: 케이블, 이어팁, 무선 액세서리, 스피커 부품 등 독립 품목 행 단위 등록/수정/삭제, 보유중(`owned`) / 방출(`released`) 상태 저장 및 필터링, 지출 합산.
-*   **판매 관리 시스템 (`GEAR-040`, `headfi_sales`)**: 기기뿐만 아니라 방출된 독립 액세서리까지 판매 이력(판매일, 판매가 등) 통합 관리 및 카테고리 필터 지원.
-*   **소비 통계 모달**: Head-fi 헤더의 소비 통계 버튼(`/headfi?panel=stats`)으로만 열립니다. 서버 집계 없이 `headfi`·`headfi_accessories`·`headfi_sales` 전체를 브라우저에서 집계합니다(`src/app/headfi/spendingStats.ts`).
-    *   **용어**: 총지출 = 기기(본체+케이블+이어팁+액세서리)와 독립 액세서리의 구매 합 / 순지출 = 총지출 − 판매액. 상단 전체 지출은 순지출입니다.
-    *   **기간별 탭 — 연도별 표**: ~2024 / 2025 / 2026 / (2027+) 연도별 순지출을 표시하고, 각 행에 `(총지출 N원 − 판매 N원)` 분해값을 함께 보여줍니다. 구입일·판매일이 없는 금액은 "미분류" 행으로 표시합니다. 판매는 판매일(`sale_date`) 연도에서 차감되며 원래 구매 연도는 되돌리지 않습니다.
-    *   **기간별 탭 — 월별 구매액 차트**: 2025·2026 연도 선택. 판매 차감 없이 구매일(`purchase_date`) 월 기준 구매액만 표시합니다. 따라서 월 막대 합은 해당 연도 순지출보다 그해 판매액만큼 큽니다.
-    *   **종류별 탭**: 판매를 차감하지 않은 구매액 기준이라 순지출과 합계가 다를 수 있습니다.
-    *   날짜는 `YYYY-MM-DD` 문자열의 연·월 부분으로 판정합니다(타임존 변환 없음). 다른 형식으로 저장된 날짜는 월 집계에서 빠집니다.
+*   **액세서리 관리 (`GEAR-039`, `GEAR-041~043`)**: 케이블, 이어팁, 무선 액세서리 등 품목 행 단위 등록/수정/삭제, 보유중(`owned`) / 방출(`released`) 상태 저장 및 필터링, 지출 합산. 카테고리를 바꿔 저장해도 목록에서 사라지지 않고, 저장 후에도 현재 카테고리 필터를 유지. 기타 케이블 카테고리는 DAC·AMP·DAC/AMP·DAP·Source·스피커 액세서리를 통합한 것.
+*   **기기 ↔ 액세서리 연결 (`headfi_accessory_links`)**: 기기 모달의 액세서리 탭에서 독립 액세서리를 연결(N:M). 선택 목록은 `제품명 | 가격`, 다른 기기에 이미 연결된 경우 해당 기기(모델명만)와 방출 여부를 함께 표시. 기기 가격 합산에는 액세서리 가격을 섞지 않으며, 구 액세서리 컬럼은 읽지 않음.
+*   **판매 관리 시스템 (`GEAR-040`, `headfi_sales`)**: 기기뿐만 아니라 방출된 액세서리까지 판매 이력(판매일, 판매가 등) 통합 관리 및 카테고리 필터 지원.
 *   **4탭 헤드파이 상세 모달**:
     *   **기본 정보**: 상세 스펙, 18개 사운드 평점, 블러 배경 헤더.
-    *   **청음 평가 (레이더 차트)**: Recharts 레이더 차트 및 Anthropic Claude 기반 음색 성향 상세 해석.
-    *   **FR 그래프**: 이미지 Upload/URL 입력 프록시 우회 및 Anthropic Claude 비전 해석을 통한 대역별 밸런스 리포트.
-    *   **추천 앨범**: Anthropic Claude 추천 앨범 3선(추천 사유 포함) 및 수동 매칭 앨범 노출.
+    *   **청음 평가 (레이더 차트)**: Recharts 레이더 차트 및 Anthropic Claude 3.5 Sonnet 기반 음색 성향 상세 해석.
+    *   **FR 그래프**: 이미지 Upload/URL 입력 프록시 우회 및 Gemini Vision 이미지 비전 스캔을 통한 대역별 밸런스 리포트.
+    *   **추천 앨범**: Anthropic Claude / AI 추천 앨범 3선(추천 사유 포함) 및 수동 매칭 앨범 노출.
+*   **헤드파이 목록 카드**: 매칭 정보는 카드에 표시하지 않음.
 *   **리시버 게인 세팅 탭 (`GEAR-028`)**: 헤드폰/이어폰 × DAC/AMP/DAP 조합별 게인(Gain) 설정/메모 CRUD.
 
 ### 4.7. 매칭 및 포지션 맵 (Match & Position Map)
-*   **기기 조합 매칭 추천 (`/headfi/match`)**: DAC/AMP/DAP 조합(콤보) × 유선 헤드폰/이어폰 선택 시 Gemini 기반 궁합 앨범 5개 제안.
-*   **기기 궁합 매칭 맵 (Matrix, `/headfi/match`)**: 헤드폰(행) × 활성 콤보(열) 2차원 궁합 점수(300점 만점, OpenAI 산출) 및 캐시/실시간 분석 표도식화, 마스터 콤보 가산점(+20점) breakdown 표시, 셀 상세 모달 인라인 재분석.
+*   **기기 조합 매칭 추천 (`/headfi/match`)**: DAC/AMP/DAP 조합(콤보) × 유선 헤드폰/이어폰 선택 시 궁합 앨범 5개 제안.
+*   **기기 궁합 매칭 맵 (Matrix, `/headfi/match`)**: 헤드폰(행) × 활성 콤보(열) 2차원 궁합 점수(300점 만점) 및 캐시/실시간 분석 표도식화, 마스터 콤보 가산점(+20점) breakdown 표시, 셀 상세 모달 인라인 재분석.
 *   **포지션 맵 (`/headfi/map`)**: Warm ↔ Cool / Technical ↔ Musical X·Y축 포지션 도식화, 클러스터링 팝오버, 산점도 기기 다중 선택 필터.
 
 ### 4.8. 가사 및 전역 플레이어 (Works, `/works`)
@@ -183,7 +172,7 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 기존 분산되어 있던 앨범 통계, 기기 사용 통계, 연간/월간 아카이브를 5개 탭으로 대통합한 종합 인사이트 대시보드입니다. (구 경로 `/albums/stats`, `/headfi/stats`, `/archive` 자동 리다이렉트 지원)
 *   **청취 랭킹 탭 (`ranking`)**: 청취 랭킹 TOP20, 금주의 핫 앨범 TOP5 (오늘 기준 롤링 7일), 최다 청취 기기 TOP20 노출.
 *   **청취 추이 탭 (`trend`)**: 기간별(월별/연도별) 청취 횟수 변화를 다이내믹 SVG 그래프로 시각화.
-*   **기기 사용 통계 탭 (`usage`)**: 최다 사용 DAC/AMP/DAP 랭킹 TOP10, 리시버(HP/IEM/W-HP/W-IEM) 랭킹 TOP10 2컬럼 배치. (소비 통계 모달은 이 탭에서 열리지 않으며, Head-fi 화면에서만 열립니다. §4.6 참조)
+*   **사용 통계 탭 (`usage`, 구 "기기 사용 통계")**: 최다 사용 **구동계**(DAC / AMP / DAC/AMP, DAP 제외) TOP10, 최다 사용 **소스기기** TOP10, 최다 사용 **미디어** TOP10, 리시버(HP/IEM/W-HP/W-IEM) 랭킹 TOP10 및 소비 통계 모달 연동. 연도를 "전체"로 선택하면 TOP20으로 확장. 집계 기준은 청취 이력의 Amp 1 / Source / Media / Receiver 컬럼.
 *   **장르 통계 탭 (`genre`, `STATS-002`)**: 연도별/월별 최다 청취 장르(`album.genre1` 기준) 및 최다 청취 아티스트 구분 랭킹 시각화.
 *   **아카이브 탭 (`archive`)**: 연도별 월 활동(앨범 청취, 기기 구매, 가사 등록) 집계 카드 및 날짜별 상세 타임라인 스크롤, AI 월간 종합 리뷰 코멘트 제공.
 
@@ -192,37 +181,24 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 ## 5. AI API 연동 명세
 
 myaudio는 AI 연동 시 **다중 AI 프로바이더 (Gemini / OpenAI / Anthropic)** 체계를 구축하고, **try/catch 예외 처리, 429 에러 retry 헬퍼, AI 한국어 응답 정규화** 등의 방어코드를 적용하고 있습니다.
-모델명은 §1에서만 관리하며, 아래 표는 Route별 프로바이더만 표기합니다.
 
-### 5.1. AI 호출 Route
+### 주요 API Route 및 역할
 
-| # | Route | 역할 | 프로바이더 | 비고 |
-| :--- | :--- | :--- | :--- | :--- |
-| 1 | `/api/album-intro` | 앨범 영/국문 소개 및 대표 키워드 태그 생성 | Gemini | Google Search |
-| 2 | `/api/album-mood-assign` | 신규 앨범을 기존 9무드 중 하나에 배정 | Gemini | |
-| 3 | `/api/album-mood-groups` | 전체 앨범 라이브러리 9무드 일괄 분류 및 캐싱 | Gemini | |
-| 4 | `/api/album-headphone-recommend` | 앨범에 어울리는 보유 리시버 추천 | Gemini | Google Search |
-| 5 | `/api/mood-recommend` | 기분·날씨·시간대 감안 앨범 및 기기 제안 | Gemini | Google Search |
-| 6 | `/api/analyze-music-taste` | 장르·국가·연대 분포 기반 음악 취향 분석 | Gemini | |
-| 7 | `/api/headfi-recommended-genres` | 기기 스펙 적합 추천 장르 태그 | Gemini | Google Search |
-| 8 | `/api/headfi-album-match` | DAC/AMP 콤보 + 리시버 조합 궁합 앨범 5개 | Gemini | |
-| 9 | `/api/headfi-position` | 포지션 맵 X, Y 좌표(`-100 ~ +100`) 산출 | Gemini | Google Search |
-| 10 | `/api/lyrics-tracklist` | Lyrics 앨범 트랙리스트 조회 | Gemini | Google Search |
-| 11 | `/api/analyze-lyrics-vibe` | Works 가사 그라디언트 HEX 2종 & 이모지 산출 | Gemini | |
-| 12 | `/api/monthly-review-comment` | 아카이브 월간 종합 코멘트 생성 | Gemini | |
-| 13 | `/api/artist-bio` | 위키피디아 기반 한국어 아티스트 바이오 | OpenAI | Responses API + web_search |
-| 14 | `/api/headfi-match-score` | 콤보 × 리시버 궁합 점수(300점 만점) | OpenAI | Chat Completions |
-| 15 | `/api/headfi-fr-interpret` | FR 그래프 이미지 비전 해석, 저/중/고역 리포트 | Anthropic | 이미지 입력 |
-| 16 | `/api/headfi-sound-analysis` | 18개 사운드 점수 기반 소리 성향 풀이 | Anthropic | |
-| 17 | `/api/headfi-album-recommend` | 기기 성향 대비 보유 앨범 3선 및 추천 사유 | Anthropic | |
-| 18 | `/api/lyrics-translate` | Lyrics 트랙 제목·가사 번역 | Anthropic | |
-
-### 5.2. AI를 호출하지 않는 Route
-
-*   **`/api/headfi`**: 헤드파이 장비 등록 및 변경 사항 처리.
-*   **`/api/headfi/fr-graph`**: FR 그래프 데이터 처리.
-*   **`/api/headfi-fr-image`**: FR 그래프 이미지 프록시.
-*   **`/api/album-mood-set`**: 앨범 무드 수동 지정.
+1.  **`/api/album-intro`**: 앨범 정보를 바탕으로 AI 웹 검색 결합 앨범 영/국문 소개 및 대표 키워드 태그 생성.
+2.  **`/api/album-mood-assign`**: 신규 앨범 등록 시 백그라운드 단일 분석으로 무드보드 캐시에 동적 할당.
+3.  **`/api/album-mood-groups`**: 전체 앨범 라이브러리를 9가지 무드 기준으로 일괄 매핑 및 캐싱.
+4.  **`/api/mood-recommend`**: 사용자 기분, 날씨, 시간대 감안 맞춤형 앨범 및 오디오 기기 제안.
+5.  **`/api/analyze-music-taste`**: 앨범 장르, 국가, 연대 분포 기반 음악적 취향 종합 분석.
+6.  **`/api/artist-bio`**: **OpenAI GPT-5.4-mini (Responses API + web_search)**를 활용해 위키피디아 기반 정갈한 한국어 아티스트 생애/업적 바이오 작성.
+7.  **`/api/headfi-recommended-genres`**: 신규 오디오 장비 등록 시 스펙 적합 추천 음악 장르 태그 분석.
+8.  **`/api/headfi-album-recommend`**: **Anthropic Claude 3.5 Sonnet** 기반 기기 성향 대비 최적 궁합 보유 앨범 3선 및 추천 사유 제안.
+9.  **`/api/headfi-sound-analysis`**: **Anthropic Claude 3.5 Sonnet** 기반 기기 18개 사운드 점수를 바탕으로 전반적 소리 성향 및 밸런스 상세 풀이.
+10. **`/api/headfi-fr-interpret`**: **Gemini Vision / Claude**로 FR 그래프 이미지를 비전 스캔하여 저/중/고역 특성 리포트.
+11. **`/api/headfi-position`**: 기기 사운드 특성을 포지션 맵 X, Y축 좌표 수치(`-100 ~ +100`)로 산출.
+12. **`/api/headfi-match-score`**: **OpenAI GPT-4o / GPT-4o-mini** 기반 기기 조합(combo_id) × 헤드폰/이어폰 궁합 점수(300점 만점) 산출.
+13. **`/api/analyze-lyrics-vibe`**: 노랫말 문맥 분석 기반 **그라디언트 HEX 코드 2종 & 이모지** 산출.
+14. **`/api/monthly-review-comment`**: 아카이브 월별 청취 내역 및 라이브러리 종합 AI 월간 코멘트 생성.
+15. **`/api/headfi`**: 헤드파이 장비 등록 및 변경 사항 처리를 위한 전용 Route Handler.
 
 ---
 
@@ -234,7 +210,7 @@ myaudio는 SSR과 비로그인 게스트의 원활한 조회 경험을 보장하
 *   **미들웨어 & 세션 프록시**: `src/middleware.ts`와 `src/proxy.ts`는 Supabase Auth 토큰 쿠키 세션 주기적 갱신 (`/albums`, `/headfi`, `/works`, `/lyrics`, `/archive`, `/insights` 보호 경로 관리).
 *   **접근 권한 위계**:
     *   **비로그인 (Guest)**: 대시보드, Albums / Artists / Lyrics / RecordShelf / Head-fi / Works / Insights 기본 목록 검색 및 상세 모달 조회 (읽기 전용).
-    *   **로그인 (Owner)**: 신규 아이템 등록/수정/삭제, 청취 이력 작성/수정/삭제, 기기 조합(Combos) 및 독립 액세서리(보유/방출) 관리, 판매 관리, 게인 세팅 CRUD, AI 분석 생성 및 아카이브/통계 전체 접근 (쓰기/편집 권한).
+    *   **로그인 (Owner)**: 신규 아이템 등록/수정/삭제, 청취 이력 작성/수정/삭제, 기기 조합(Combos) 및 액세서리(보유/방출) 관리, 판매 관리, 게인 세팅 CRUD, AI 분석 생성 및 아카이브/통계 전체 접근 (쓰기/편집 권한).
     *   **Server Actions & API Route 보호**: 쓰기/수정/삭제 로직 최상단에서 서버 세션(`getCurrentUser()`)을 재검증하여 우회 입력 차단.
 
 
@@ -253,15 +229,7 @@ GEMINI_API_KEY=your_gemini_api_key
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
 MUSICBRAINZ_CONTACT_EMAIL=your_email_for_user_agent
-
-# (선택) 모델 override — 비워두면 코드 기본값(§1) 사용
-OPENAI_ARTIST_BIO_MODEL=
-OPENAI_MATCH_SCORE_MODEL=
-ANTHROPIC_HEADFI_MODEL=
-ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → 코드 기본값 순
 ```
-
-> Vercel 배포 환경에 override 키가 설정되어 있으면 실제 모델이 §1과 달라질 수 있습니다.
 
 ### 7.2. 명령어 가이드
 
@@ -277,11 +245,11 @@ ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → �
     ```bash
     npx tsc --noEmit
     ```
-*   **Next.js 빌드 (배포용)**: 실행 중인 dev 서버와 `.next`를 공유하므로 로컬 에이전트 검증에는 쓰지 않습니다.
+*   **Next.js 빌드**:
     ```bash
     npm run build
     ```
-*   **Next.js 컴파일 검증 전용**: `.next-buildcheck`에 출력해 실행 중인 dev 서버를 건드리지 않습니다.
+*   **Next.js 빌드 정적 검사 전용**:
     ```bash
     npm run build:check
     ```
