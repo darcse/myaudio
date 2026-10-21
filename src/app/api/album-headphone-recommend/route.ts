@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       supabase
         .from('headfi')
         .select(
-          'id, brand, model, category, temp, impedance, db1, db2, recommended_genres, fr_interpretation, status2',
+          'id, brand, model, category, impedance, db1, db2, recommended_genres, fr_interpretation, status2, trait_warmth, trait_brightness',
         )
         .in('category', ['헤드폰', '이어폰'])
         .eq('status2', '보유중'),
@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
       id: h.id,
       brand: h.brand || '',
       model: h.model || '',
-      temp: h.temp?.trim() || '-',
+      trait_warmth: h.trait_warmth,
+      trait_brightness: h.trait_brightness,
       impedance: formatImpedance(h.impedance),
       sensitivity: formatSensitivity(h.db1, h.db2),
       recommended_genres: Array.isArray(h.recommended_genres)

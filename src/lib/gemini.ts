@@ -13,6 +13,7 @@ import {
   type AlbumMoodUuidOptions,
 } from '@/lib/albumMoodRefs';
 import { resolveGeminiModel } from '@/lib/aiModels';
+import { formatTraitAxisForPrompt } from '@/lib/headfiSoundScores';
 import { stripHeadphoneIdSuffixes } from '@/lib/utils';
 
 export type { AlbumMoodGroupRow, AlbumMoodUuidOptions } from '@/lib/albumMoodRefs';
@@ -587,7 +588,8 @@ export async function recommendAlbumHeadphones(
     id: number;
     brand: string;
     model: string;
-    temp: string;
+    trait_warmth?: number | null;
+    trait_brightness?: number | null;
     impedance: string;
     sensitivity: string;
     recommended_genres: string;
@@ -603,7 +605,7 @@ export async function recommendAlbumHeadphones(
   const list = headphones
     .map(
       (h) =>
-        `${h.id}|${h.brand}|${h.model}|${h.temp}|${h.impedance}|${h.sensitivity}|${h.recommended_genres}|${h.fr_summary}`,
+        `${h.id}|${h.brand}|${h.model}|${formatTraitAxisForPrompt(h.trait_warmth)}|${formatTraitAxisForPrompt(h.trait_brightness)}|${h.impedance}|${h.sensitivity}|${h.recommended_genres}|${h.fr_summary}`,
     )
     .join('\n');
 
@@ -612,7 +614,7 @@ export async function recommendAlbumHeadphones(
 [앨범] ${album.artist || ''} - ${album.album_name || ''} | 장르: ${genre} | 오디오 태그: ${tags} | 무드: ${mood}
 
 [보유 리시버 목록 (헤드폰·이어폰)]
-id|브랜드|모델명|음색|임피던스|감도|추천장르|FR요약
+id|브랜드|모델명|따뜻함(-2~+2, 모름=미입력)|밝기(-2~+2, 모름=미입력)|임피던스|감도|추천장르|FR요약
 ${list}
 
 이 앨범의 음악적 특성(장르, 분위기, 사운드 텍스처)을 고려했을 때
@@ -669,12 +671,12 @@ export async function recommendHeadfiAlbumMatch(
   dacAmp: {
     name: string;
     amp_type: string;
-    temp: string;
     output_impedance: string;
   },
   headphone: {
     name: string;
-    temp: string;
+    trait_warmth?: number | null;
+    trait_brightness?: number | null;
     fr_summary: string;
     recommended_genres: string;
   },
@@ -695,8 +697,8 @@ export async function recommendHeadfiAlbumMatch(
 
   const prompt = `너는 하이파이 오디오 전문가이자 음악 큐레이터야.
 
-[DAC/AMP] ${dacAmp.name} | 앰프타입: ${dacAmp.amp_type} | 음색: ${dacAmp.temp} | 출력임피던스: ${dacAmp.output_impedance}
-[헤드폰] ${headphone.name} | 음색: ${headphone.temp} | FR요약: ${headphone.fr_summary} | 추천장르: ${headphone.recommended_genres}
+[DAC/AMP] ${dacAmp.name} | 앰프타입: ${dacAmp.amp_type} | 출력임피던스: ${dacAmp.output_impedance}
+[헤드폰] ${headphone.name} | 따뜻함:${formatTraitAxisForPrompt(headphone.trait_warmth)} 밝기:${formatTraitAxisForPrompt(headphone.trait_brightness)} | FR요약: ${headphone.fr_summary} | 추천장르: ${headphone.recommended_genres}
 
 위 조합의 음색 시너지를 분석하고 아래 앨범 중 이 조합으로 들었을 때
 가장 돋보일 앨범 5개를 추천해줘.

@@ -24,8 +24,6 @@ export const emptyHeadfiFormData: HeadfiFormData = {
   matching: '',
   pairing_combo_id: '',
   gain: '',
-  temp: '',
-  bright: '',
   bass_quantity: '',
   bass_depth: '',
   midrange_body: '',
@@ -54,7 +52,10 @@ export const emptyHeadfiFormData: HeadfiFormData = {
 };
 
 export function headfiToFormData(item: Headfi): HeadfiFormData {
-  const normalizedEntries = Object.entries(item).map(([key, value]) => {
+  const itemWithoutTone: Record<string, unknown> = { ...item };
+  delete itemWithoutTone.temp;
+  delete itemWithoutTone.bright;
+  const normalizedEntries = Object.entries(itemWithoutTone).map(([key, value]) => {
     if (value === null || value === undefined) return [key, ''];
     if (typeof value === 'number') return [key, String(value)];
     return [key, value];

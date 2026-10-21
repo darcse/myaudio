@@ -217,19 +217,10 @@ export function HeadfiInfoSection({
                   </p>
                 </div>
                 {cat === '헤드폰' ? (
-                  <div className="col-span-2 grid grid-cols-[3fr_7fr] gap-x-6">
-                    <p className="min-w-0">
-                      <strong>구동력:</strong> {viewingItem.volume || '-'} / {viewingItem.volume_type || '-'}
-                    </p>
-                    <p className="min-w-0">
-                      <strong>음색 (온도/밝기):</strong> {viewingItem.temp || '-'} / {viewingItem.bright || '-'}
-                    </p>
-                  </div>
-                ) : (
                   <p className="col-span-2">
-                    <strong>음색 (온도/밝기):</strong> {viewingItem.temp || '-'} / {viewingItem.bright || '-'}
+                    <strong>구동력:</strong> {viewingItem.volume || '-'} / {viewingItem.volume_type || '-'}
                   </p>
-                )}
+                ) : null}
                 <p className="col-span-2">
                   <strong>매칭 (매칭 기기 / gain):</strong> {renderMatchingLink(true)}
                 </p>

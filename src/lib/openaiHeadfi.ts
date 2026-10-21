@@ -21,7 +21,6 @@ function requireOpenAIApiKey(): string {
 export async function analyzeHeadfiMatchScore(
   base: {
     name: string;
-    temp: string;
     genres: string;
     drive_grade?: string;
     rk?: string;
@@ -58,9 +57,9 @@ export async function analyzeHeadfiMatchScore(
 실제 측정 데이터, 전문 리뷰, 유저 평가를 참고해서 아래 기기 조합의 궁합을 분석해줘.
 
 [기준 조합] ${base.name}${comboSection}
-[기준 조합 요약] 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
+[기준 조합 요약] 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
 [후보 기기 목록]
-id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역|musicality|warmth|brightness|vocal|decay
+id|기기명|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역|musicality|warmth|brightness|vocal|decay
 ${list}
 저역=양감·깊이·컨트롤 평균, 중역=밀도감, 고역=공기감·부드러움 평균. musicality는 1~10 품질. warmth/brightness/vocal/decay는 성향 -2~+2(0=중립, '-'=모름). 성향은 우열이 아니라 시너지 힌트다.
 

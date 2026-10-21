@@ -5,7 +5,7 @@ import { formatFrInterpretationForPrompt, selectAlbumsForHeadfiMatch } from '@/l
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 const HEADFI_ALBUM_RECOMMEND_SELECT =
-  'id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay';
+  'id, brand, model, category, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay';
 
 function isWiredHeadphoneEarphone(category: string | null | undefined): boolean {
   return category === '헤드폰' || category === '이어폰';
@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
       {
         brand: row.brand || '',
         model: row.model || '',
-        temp: row.temp?.trim() || '-',
+        trait_warmth: row.trait_warmth,
+        trait_brightness: row.trait_brightness,
         recommended_genres: Array.isArray(row.recommended_genres)
           ? row.recommended_genres.join(', ') || '-'
           : '-',

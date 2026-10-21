@@ -67,7 +67,6 @@ export function isWiredHeadphoneEarphoneCategory(category: string | null | undef
 export type CompressedCandidate = {
   id: number;
   name: string;
-  temp: string;
   rkOrImpedance: string;
   db1: string;
   vrms32: string;
@@ -134,7 +133,6 @@ export function compressCandidateRow(item: Headfi): CompressedCandidate {
   return {
     id: item.id,
     name: deviceName(item.brand, item.model),
-    temp: item.temp?.trim() || '-',
     rkOrImpedance,
     db1,
     vrms32,
@@ -151,7 +149,7 @@ export function compressCandidateRow(item: Headfi): CompressedCandidate {
 }
 
 export function candidateLine(row: CompressedCandidate): string {
-  return `${row.id}|${row.name}|${row.temp}|${row.rkOrImpedance}|${row.db1}|${row.vrms32}|${row.vrms300}|${row.low}|${row.mid}|${row.high}|${row.musicality}|${row.trait_warmth}|${row.trait_brightness}|${row.trait_vocal_position}|${row.trait_bass_decay}`;
+  return `${row.id}|${row.name}|${row.rkOrImpedance}|${row.db1}|${row.vrms32}|${row.vrms300}|${row.low}|${row.mid}|${row.high}|${row.musicality}|${row.trait_warmth}|${row.trait_brightness}|${row.trait_vocal_position}|${row.trait_bass_decay}`;
 }
 
 export function pickCandidates(items: Headfi[], limit = 20): Headfi[] {
@@ -186,7 +184,7 @@ export function buildHeadphoneListeningContextSections(items: Headfi[]): string 
 function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
   const exactName = formatExactGearName(item);
   const lines = [
-    `[${slotLabel}] 정확한 모델명: "${exactName}" | DB카테고리: ${item.category} | 음색: ${item.temp?.trim() || '-'}`,
+    `[${slotLabel}] 정확한 모델명: "${exactName}" | DB카테고리: ${item.category}`,
   ];
   if (isDacAmpDapCategory(item.category)) {
     const specs = formatDacAmpSpecsForPrompt(item);
@@ -220,7 +218,6 @@ export function buildComboBaseForPrompt(
   select2: Headfi | null,
 ): {
   name: string;
-  temp: string;
   genres: string;
   combo_specs_block: string;
 } {
@@ -237,7 +234,6 @@ export function buildComboBaseForPrompt(
   }
   return {
     name: buildComboDisplayName(select1, select2),
-    temp: '-',
     genres: '-',
     combo_specs_block: blocks.join('\n\n'),
   };

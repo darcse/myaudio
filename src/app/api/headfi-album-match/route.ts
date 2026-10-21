@@ -46,12 +46,12 @@ export async function POST(req: NextRequest) {
     const [dacRes, hpRes, albumsRes] = await Promise.all([
       supabase
         .from('headfi')
-        .select('id, brand, model, category, amp_type, temp, output_impedance, status2')
+        .select('id, brand, model, category, amp_type, output_impedance, status2')
         .eq('id', dacAmpId)
         .single(),
       supabase
         .from('headfi')
-        .select('id, brand, model, category, temp, fr_interpretation, recommended_genres, status2')
+        .select('id, brand, model, category, fr_interpretation, recommended_genres, status2, trait_warmth, trait_brightness')
         .eq('id', headphoneId)
         .single(),
       supabase.from('album').select('id, artist, genre1, genre2, audio_tags'),
@@ -92,12 +92,12 @@ export async function POST(req: NextRequest) {
       {
         name: deviceName(dacRes.data.brand, dacRes.data.model),
         amp_type: dacRes.data.amp_type?.trim() || '-',
-        temp: dacRes.data.temp?.trim() || '-',
         output_impedance: formatOutputImpedance(dacRes.data.output_impedance),
       },
       {
         name: deviceName(hpRes.data.brand, hpRes.data.model),
-        temp: hpRes.data.temp?.trim() || '-',
+        trait_warmth: hpRes.data.trait_warmth,
+        trait_brightness: hpRes.data.trait_brightness,
         fr_summary: parseFrInterpretationSummary(hpRes.data.fr_interpretation),
         recommended_genres: Array.isArray(hpRes.data.recommended_genres)
           ? hpRes.data.recommended_genres.join(', ') || '-'

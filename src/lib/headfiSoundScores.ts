@@ -80,6 +80,11 @@ export function headfiHasSoundScores(scores: HeadfiSoundScores): boolean {
   });
 }
 
+export function formatTraitAxisForPrompt(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return '모름';
+  return String(value);
+}
+
 export function buildHeadfiSoundScoresPromptBlock(headfi: HeadfiSoundScores): string | null {
   if (!headfiHasSoundScores(headfi)) return null;
   return `[청음 평가 — 성능 (1~10 품질, '-'=미입력)]

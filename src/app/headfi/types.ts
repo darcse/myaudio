@@ -197,8 +197,6 @@ export interface HeadfiFormData {
   matching: string;
   pairing_combo_id: string;
   gain: string;
-  temp: string;
-  bright: string;
   bass_quantity: string;
   bass_depth: string;
   midrange_body: string;

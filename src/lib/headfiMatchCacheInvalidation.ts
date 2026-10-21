@@ -8,7 +8,6 @@ type HeadfiMatchRow = Record<string, unknown>;
 const WIRED_HP_IEM_MATCH_FIELDS = [
   'category',
   'status2',
-  'temp',
   'impedance',
   'db1',
   'bass_quantity',
@@ -36,7 +35,6 @@ const WIRED_HP_IEM_MATCH_FIELDS = [
 const DAC_AMP_DAP_MATCH_FIELDS = [
   'category',
   'status2',
-  'temp',
   'amp_type',
   'chipset',
   'output_impedance',

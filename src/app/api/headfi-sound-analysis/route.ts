@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const { data: row, error: fetchError } = await supabase
       .from('headfi')
       .select(
-        'id, brand, model, category, type1, type2, impedance, db1, db2, unit, temp, bright, volume, volume_type, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay, fr_interpretation, ai_review_summary, ai_review_sources',
+        'id, brand, model, category, type1, type2, impedance, db1, db2, unit, volume, volume_type, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay, fr_interpretation, ai_review_summary, ai_review_sources',
       )
       .eq('id', headfiId)
       .single();
@@ -47,8 +47,6 @@ export async function POST(req: NextRequest) {
       db1: row.db1,
       db2: row.db2,
       unit: row.unit,
-      temp: row.temp,
-      bright: row.bright,
       volume: row.volume,
       volume_type: row.volume_type,
       fr_interpretation_block: formatFrInterpretationForPrompt(row.fr_interpretation),

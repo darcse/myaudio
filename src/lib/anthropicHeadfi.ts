@@ -4,6 +4,7 @@ import { resolveAnthropicHeadfiModel, resolveAnthropicThinkingOff } from '@/lib/
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import {
   buildHeadfiSoundScoresPromptBlock,
+  formatTraitAxisForPrompt,
   type HeadfiSoundScores,
 } from '@/lib/headfiSoundScores';
 import { stripHeadphoneIdSuffixes } from '@/lib/utils';
@@ -17,8 +18,6 @@ type HeadfiSoundScoresInput = HeadfiSoundScores & {
   db1?: number | null;
   db2?: number | null;
   unit?: string | null;
-  temp?: string | null;
-  bright?: string | null;
   volume?: string | null;
   volume_type?: string | null;
   fr_interpretation_block?: string | null;
@@ -80,11 +79,9 @@ function buildConfirmedFactsBlock(headfi: HeadfiSoundScoresInput): string {
   if (volume || volumeType) {
     lines.push(`구동력: ${[volume, volumeType].filter(Boolean).join(' / ') || '-'}`);
   }
-  const temp = trimFact(headfi.temp);
-  const bright = trimFact(headfi.bright);
-  if (temp || bright) {
-    lines.push(`음색(온도/밝기): ${[temp || '-', bright || '-'].join(' / ')}`);
-  }
+  lines.push(
+    `성향(따뜻함/밝기): ${formatTraitAxisForPrompt(headfi.trait_warmth)} / ${formatTraitAxisForPrompt(headfi.trait_brightness)} (NULL=모름, -2~+2)`,
+  );
   return lines.join('\n');
 }
 
@@ -292,7 +289,8 @@ export async function recommendHeadfiAlbums(
   headfi: {
     brand: string;
     model: string;
-    temp: string;
+    trait_warmth?: number | null;
+    trait_brightness?: number | null;
     recommended_genres: string;
     sound_scores_block?: string | null;
     ai_sound_analysis?: string | null;
@@ -331,7 +329,7 @@ export async function recommendHeadfiAlbums(
     : `이 기기로 들었을 때 가장 잘 어울리는 앨범 3개를 선택하고 음향적 근거를 포함한 소개를 작성해줘.`;
 
   const prompt = `너는 헤드파이 전문가이자 음악 큐레이터야.
-[기기] ${headfi.brand} ${headfi.model} | 음색:${headfi.temp} | 추천장르:${headfi.recommended_genres}${soundScoresBlock}${analysisBlock}${frBlock}
+[기기] ${headfi.brand} ${headfi.model} | 따뜻함:${formatTraitAxisForPrompt(headfi.trait_warmth)} 밝기:${formatTraitAxisForPrompt(headfi.trait_brightness)} | 추천장르:${headfi.recommended_genres}${soundScoresBlock}${analysisBlock}${frBlock}
 [보유 앨범 목록] id|artist|album_name|genre1|genre2|audio_tags
 ${list}
 
