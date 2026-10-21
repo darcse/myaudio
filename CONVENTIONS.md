@@ -196,6 +196,7 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 ### 레거시 평점 컬럼 (사용 금지, 삭제하지 않음)
 
 `bass_speed`, `dynamics_slam`, `tone_warmth`, `vocal_position`, `midrange_clarity`, `treble_brightness`, `timbre`. 폼·표시·AI·포지션·매칭·기분 추천 어디에서도 읽지 않는다. 같은 이름의 의미 변경은 하지 않고, 의미가 바뀌는 항목은 새 컬럼으로 추가한다.
+- 음색 문자열 `headfi.temp`, `headfi.bright`도 같은 레거시 규칙을 따른다. 폼·상세 표시·AI 프롬프트·매칭·추천에서 읽거나 쓰지 않는다. 폼 저장 payload에도 포함하지 않아 기존 DB 값이 지워지지 않는다. 온도/밝기가 필요하면 `trait_warmth`/`trait_brightness`를 쓴다.
 
 ### 평점을 쓰는 곳
 

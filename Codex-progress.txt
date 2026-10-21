@@ -43,3 +43,4 @@
 [2026-10-21] [Cursor] fix: 청음 AI 분석 max_tokens 2048·잘림/JSON 오류 구분 | passes: 변경 없음
 [2026-10-21] [Cursor] refactor: GEAR 검수 정리 후보 1~5 죽은 코드 제거 | passes: 변경 없음
 [2026-10-21] [Cursor] refactor: HeadfiFormData·emptySoundScores 레거시 키 제거 | passes: 변경 없음
+[2026-10-21] [Cursor] 조사: 헤드폰/이어폰 방출 상태와 청음 AI 분석 저장·노출 (코드만, 수정 없음) | passes: 변경 없음
