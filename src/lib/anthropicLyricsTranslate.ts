@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { resolveAnthropicLyricsTranslateModel } from '@/lib/aiModels';
+import {
+  resolveAnthropicLyricsTranslateModel,
+  resolveAnthropicThinkingOff,
+} from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import type { TranslatedLine } from '@/app/lyrics/types';
 
@@ -93,11 +96,12 @@ ${numbered}
 
   try {
     const client = new Anthropic({ apiKey: requireAnthropicApiKey() });
+    const model = resolveAnthropicLyricsTranslateModel();
     const message = await withRetry(() =>
       client.messages.create({
-        model: resolveAnthropicLyricsTranslateModel(),
+        model,
         max_tokens: 8192,
-        thinking: { type: 'disabled' },
+        thinking: resolveAnthropicThinkingOff(model) as { type: 'disabled' },
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       }),

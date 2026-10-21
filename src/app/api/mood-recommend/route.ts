@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const { data: headphones, error: headphonesErr } = await supabase
       .from('headfi')
-      .select('id, brand, model, tone_warmth, treble_brightness, soundstage')
+      .select('id, brand, model, trait_warmth, trait_brightness, soundstage')
       .eq('category', '헤드폰')
       .eq('status2', '보유중');
 

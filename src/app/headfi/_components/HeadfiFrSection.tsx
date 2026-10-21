@@ -43,6 +43,7 @@ type HeadfiFrSectionProps = {
   isAuthenticated: boolean | null;
   onHeadfiPatch?: (patch: Partial<Headfi>) => void;
   variant?: 'accordion' | 'tab';
+  hideTitle?: boolean;
 };
 
 export function HeadfiFrSection({
@@ -50,6 +51,7 @@ export function HeadfiFrSection({
   isAuthenticated,
   onHeadfiPatch,
   variant = 'accordion',
+  hideTitle = false,
 }: HeadfiFrSectionProps) {
   const [frOpen, setFrOpen] = useState(variant === 'tab');
   const [frInterpretLoading, setFrInterpretLoading] = useState(false);
@@ -187,10 +189,12 @@ export function HeadfiFrSection({
   if (variant === 'tab') {
     return (
       <div className="space-y-4">
-        <strong className="text-sm flex items-center gap-1.5 font-semibold">
-          <LineChart className="size-4 opacity-80 shrink-0" aria-hidden />
-          FR 그래프
-        </strong>
+        {hideTitle ? null : (
+          <strong className="text-sm flex items-center gap-1.5 font-semibold">
+            <LineChart className="size-4 opacity-80 shrink-0" aria-hidden />
+            FR 그래프
+          </strong>
+        )}
         {frContent}
       </div>
     );

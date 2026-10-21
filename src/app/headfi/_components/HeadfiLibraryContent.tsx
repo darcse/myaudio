@@ -17,7 +17,7 @@ import {
   uploadHeadfiDeviceImage,
 } from '../actions';
 import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
-import { isPositionMapCategory } from '@/lib/headfiPosition';
+import { computeWiredPositionCoords, isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -95,6 +95,14 @@ const initialFormData = {
   soundstage: '',
   imaging: '',
   timbre: '',
+  bass_control: '',
+  dynamic_range: '',
+  musicality: '',
+  listening_comfort: '',
+  trait_warmth: '',
+  trait_brightness: '',
+  trait_vocal_position: '',
+  trait_bass_decay: '',
   memo: '',
   image_url: '',
   fr_graph_url: '',
@@ -674,7 +682,12 @@ export function HeadfiLibraryContent() {
           .catch(() => {});
       }
     }
-    if (isNew && isPositionMapCategory(formData.category)) {
+    if (
+      isNew &&
+      isPositionMapCategory(formData.category) &&
+      updatedRow &&
+      computeWiredPositionCoords(updatedRow as Headfi)
+    ) {
       void fetch('/api/headfi-position', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

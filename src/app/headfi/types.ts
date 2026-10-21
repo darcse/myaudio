@@ -56,7 +56,18 @@ export interface Headfi {
   soundstage?: number | null;
   imaging?: number | null;
   timbre?: number | null;
+  bass_control?: number | null;
+  dynamic_range?: number | null;
+  musicality?: number | null;
+  listening_comfort?: number | null;
+  trait_warmth?: number | null;
+  trait_brightness?: number | null;
+  trait_vocal_position?: number | null;
+  trait_bass_decay?: number | null;
   ai_sound_analysis?: string | null;
+  ai_review_summary?: string | null;
+  ai_review_sources?: { title: string; url: string }[] | null;
+  ai_review_fetched_at?: string | null;
   ai_recommended_album_ids?: number[] | null;
   ai_recommended_album_reason?: string | null;
   ai_recommended_genres?: string[] | null;
@@ -210,6 +221,14 @@ export interface HeadfiFormData {
   soundstage: string;
   imaging: string;
   timbre: string;
+  bass_control: string;
+  dynamic_range: string;
+  musicality: string;
+  listening_comfort: string;
+  trait_warmth: string;
+  trait_brightness: string;
+  trait_vocal_position: string;
+  trait_bass_decay: string;
   memo: string;
   image_url: string;
   /** FR 그래프: Storage 공개 URL 또는 외부 이미지 URL (유선 헤드폰·이어폰만 폼에서 편집) */

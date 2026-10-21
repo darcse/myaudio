@@ -12,7 +12,7 @@
 - Framework: Next.js 15 App Router + TailwindCSS v4
 - Database: Supabase (Auth + PostgreSQL + RLS) — mylibrary / mybooks와 동일 인스턴스 공유
 - Deployment: Vercel
-- AI: Gemini API (`gemini-3.1-flash-lite-preview`), Gemini Vision (FR 그래프 해석)
+- AI: Gemini / OpenAI / Anthropic. 모델 기본값·env 오버라이드는 `src/lib/aiModels.ts`
 - External API: MusicBrainz, Cover Art Archive
 - Font: Pretendard
 
@@ -181,6 +181,13 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
+GEMINI_MODEL=                # 선택. 미설정 시 aiModels.ts 기본값
+OPENAI_API_KEY=
+OPENAI_ARTIST_BIO_MODEL=     # 선택
+OPENAI_MATCH_SCORE_MODEL=    # 선택
+ANTHROPIC_API_KEY=
+ANTHROPIC_HEADFI_MODEL=      # 선택. 미설정 시 aiModels.ts 기본값
+ANTHROPIC_LYRICS_TRANSLATE_MODEL=  # 선택. 미설정 시 HEADFI → 기본값
 MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 필수 권장, 미설정 시 로그인 사용자 이메일 fallback)
 ```
 
@@ -221,7 +228,7 @@ MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 �
 - `withRetry` 헬퍼로 429 에러 처리 (retry delay는 에러 메시지에서 파싱)
 - AI 편향 방지: 후보 아이템 전달 전 random shuffle + slice 적용
 - 응답 JSON이 markdown 코드블록으로 감싸진 경우 파싱 전 제거
-- Gemini Vision (FR 해석): `gemini-3.1-flash-lite-preview` 사용, 이미지는 base64 또는 URL 전달
+- Gemini Vision (FR 해석): `resolveGeminiModel()` (`src/lib/aiModels.ts`), 이미지는 base64 또는 URL 전달
 - `googleSearch: {}` vs `googleSearchRetrieval: {}` — SDK 버전 확인 후 사용
 
 ---

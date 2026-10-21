@@ -1,17 +1,17 @@
 const GEMINI_3_5_FLASH_LITE = 'gemini-3.5-flash-lite';
 const GPT_5_4_MINI = 'gpt-5.4-mini';
-const CLAUDE_SONNET_5 = 'claude-sonnet-5';
+const CLAUDE_SONNET_5_5 = 'claude-sonnet-5-5';
 
 export const AI_MODELS = {
   gemini: GEMINI_3_5_FLASH_LITE,
   openaiArtistBio: GPT_5_4_MINI,
   openaiMatchScore: GPT_5_4_MINI,
-  anthropicHeadfi: CLAUDE_SONNET_5,
-  anthropicLyricsTranslate: CLAUDE_SONNET_5,
+  anthropicHeadfi: CLAUDE_SONNET_5_5,
+  anthropicLyricsTranslate: CLAUDE_SONNET_5_5,
 } as const;
 
 export function resolveGeminiModel(): string {
-  return AI_MODELS.gemini;
+  return process.env.GEMINI_MODEL?.trim() || AI_MODELS.gemini;
 }
 
 export function resolveOpenAIArtistBioModel(): string {
@@ -32,4 +32,14 @@ export function resolveAnthropicLyricsTranslateModel(): string {
     process.env.ANTHROPIC_HEADFI_MODEL?.trim() ||
     AI_MODELS.anthropicLyricsTranslate
   );
+}
+
+export type AnthropicThinkingOff = { type: 'disabled' } | { type: 'between_tools' };
+
+export function resolveAnthropicThinkingOff(model: string): AnthropicThinkingOff {
+  const id = model.trim().toLowerCase();
+  if (id.includes('claude-sonnet-5-5')) {
+    return { type: 'between_tools' };
+  }
+  return { type: 'disabled' };
 }

@@ -51,7 +51,12 @@ async function withRetry(fn, retries = 3, delayMs = 2000) {
   throw new Error('Max retries exceeded');
 }
 
-async function pickAlbumMoodGroupName(genAI, album, moodNames, modelName = 'gemini-3.1-flash-lite') {
+async function pickAlbumMoodGroupName(
+  genAI,
+  album,
+  moodNames,
+  modelName = process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite',
+) {
   if (moodNames.length === 0) return null;
   const model = genAI.getGenerativeModel({ model: modelName });
   const tags = Array.isArray(album.audio_tags) ? JSON.stringify(album.audio_tags) : '[]';

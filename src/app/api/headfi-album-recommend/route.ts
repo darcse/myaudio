@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recommendHeadfiAlbums } from '@/lib/anthropicHeadfi';
-import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
+import { buildHeadfiSoundScoresPromptBlock, pickHeadfiSoundScores } from '@/lib/headfiSoundScores';
 import { formatFrInterpretationForPrompt, selectAlbumsForHeadfiMatch } from '@/lib/headfiAlbumMatch';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 const HEADFI_ALBUM_RECOMMEND_SELECT =
-  'id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre';
+  'id, brand, model, category, temp, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay';
 
 function isWiredHeadphoneEarphone(category: string | null | undefined): boolean {
   return category === '헤드폰' || category === '이어폰';
@@ -53,29 +53,7 @@ export async function POST(req: NextRequest) {
       wired && typeof row.ai_sound_analysis === 'string'
         ? row.ai_sound_analysis.trim() || null
         : null;
-    const soundScoresBlock = wired
-      ? buildHeadfiSoundScoresPromptBlock({
-          brand: row.brand || '',
-          model: row.model || '',
-          category: row.category || '',
-          bass_quantity: row.bass_quantity,
-          bass_depth: row.bass_depth,
-          bass_speed: row.bass_speed,
-          dynamics_slam: row.dynamics_slam,
-          midrange_body: row.midrange_body,
-          tone_warmth: row.tone_warmth,
-          vocal_position: row.vocal_position,
-          midrange_clarity: row.midrange_clarity,
-          treble_brightness: row.treble_brightness,
-          treble_smoothness: row.treble_smoothness,
-          treble_airiness: row.treble_airiness,
-          resolution: row.resolution,
-          separation: row.separation,
-          soundstage: row.soundstage,
-          imaging: row.imaging,
-          timbre: row.timbre,
-        })
-      : null;
+    const soundScoresBlock = wired ? buildHeadfiSoundScoresPromptBlock(pickHeadfiSoundScores(row)) : null;
     const frInterpretationBlock = wired ? formatFrInterpretationForPrompt(row.fr_interpretation) : null;
     const candidates = selectAlbumsForHeadfiMatch(
       albums,

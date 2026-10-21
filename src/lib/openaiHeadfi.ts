@@ -60,12 +60,13 @@ export async function analyzeHeadfiMatchScore(
 [기준 조합] ${base.name}${comboSection}
 [기준 조합 요약] 음색:${base.temp} | 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
 [후보 기기 목록]
-id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역
+id|기기명|음색|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역|musicality|warmth|brightness|vocal|decay
 ${list}
+저역=양감·깊이·컨트롤 평균, 중역=밀도감, 고역=공기감·부드러움 평균. musicality는 1~10 품질. warmth/brightness/vocal/decay는 성향 -2~+2(0=중립, '-'=모름). 성향은 우열이 아니라 시너지 힌트다.
 
 각 후보 기기와의 조합을 아래 기준으로 100점 만점 평가:
 - drive: 해당 DAC/AMP/DAP가 헤드폰을 충분히 구동할 수 있는지 (정합 임피던스 Rk, Vrms@32Ω·Vrms@300Ω, 헤드폰 임피던스·감도 매칭)
-- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지 (청음 평가 점수·AI 분석·FR 분석이 있으면 반드시 참고)
+- synergy: 두 기기의 음색 성향이 서로 보완하거나 시너지를 내는지 (성능 점수·성향 4축·musicality·AI 분석·FR 분석이 있으면 반드시 참고. 성향은 취향 거리로만)
 - genre: 조합이 특정 장르에서 강점을 보이는지
 
 평가 시 주의사항:

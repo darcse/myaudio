@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeHeadfiSound } from '@/lib/anthropicHeadfi';
-import { headfiHasSoundScores } from '@/lib/headfiSoundScores';
+import { formatFrInterpretationForPrompt } from '@/lib/headfiAlbumMatch';
+import { parseHeadfiReviewSources } from '@/lib/headfiReviewSources';
+import { headfiHasSoundScores, pickHeadfiSoundScores } from '@/lib/headfiSoundScores';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
     const { data: row, error: fetchError } = await supabase
       .from('headfi')
       .select(
-        'id, brand, model, category, type1, type2, impedance, db1, db2, unit, temp, bright, volume, volume_type, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre',
+        'id, brand, model, category, type1, type2, impedance, db1, db2, unit, temp, bright, volume, volume_type, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay, fr_interpretation, ai_review_summary, ai_review_sources',
       )
       .eq('id', headfiId)
       .single();
@@ -38,9 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const scores = {
-      brand: row.brand || '',
-      model: row.model || '',
-      category: row.category || '',
+      ...pickHeadfiSoundScores(row),
       type1: row.type1,
       type2: row.type2,
       impedance: row.impedance,
@@ -51,22 +51,9 @@ export async function POST(req: NextRequest) {
       bright: row.bright,
       volume: row.volume,
       volume_type: row.volume_type,
-      bass_quantity: row.bass_quantity,
-      bass_depth: row.bass_depth,
-      bass_speed: row.bass_speed,
-      dynamics_slam: row.dynamics_slam,
-      midrange_body: row.midrange_body,
-      tone_warmth: row.tone_warmth,
-      vocal_position: row.vocal_position,
-      midrange_clarity: row.midrange_clarity,
-      treble_brightness: row.treble_brightness,
-      treble_smoothness: row.treble_smoothness,
-      treble_airiness: row.treble_airiness,
-      resolution: row.resolution,
-      separation: row.separation,
-      soundstage: row.soundstage,
-      imaging: row.imaging,
-      timbre: row.timbre,
+      fr_interpretation_block: formatFrInterpretationForPrompt(row.fr_interpretation),
+      review_summary: typeof row.ai_review_summary === 'string' ? row.ai_review_summary : null,
+      review_sources: parseHeadfiReviewSources(row.ai_review_sources),
     };
 
     if (!headfiHasSoundScores(scores)) {
@@ -74,8 +61,8 @@ export async function POST(req: NextRequest) {
     }
 
     const generated = await analyzeHeadfiSound(scores);
-    if (!generated) {
-      return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+    if (!generated.ok) {
+      return NextResponse.json({ error: generated.error }, { status: 500 });
     }
 
     const { error: updateError } = await supabase

@@ -21,6 +21,7 @@ import { HeadfiFormWiredSection } from './HeadfiFormWiredSection';
 import { HeadfiFormWirelessSection } from './HeadfiFormWirelessSection';
 import type { HeadfiFormProps } from './headfiFormTypes';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { getListeningEvaluationFormError } from '../listeningEvaluation';
 import { getHeadfiFormCategoryFlags, INPUT_BASE_CLASS } from './headfiFormUtils';
 
 type HeadfiFormTab = 'basic' | 'analysis' | 'accessory';
@@ -54,6 +55,7 @@ export function HeadfiForm({
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
   const [linkSaving, setLinkSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<HeadfiFormTab>('basic');
+  const [listenError, setListenError] = useState<string | null>(null);
 
   useEffect(() => {
     const client = createClient();
@@ -85,6 +87,15 @@ export function HeadfiForm({
 
   const handleSubmit = async () => {
     if (isSaving || linkSaving) return;
+    if (isWired) {
+      const evaluationError = getListeningEvaluationFormError(formData);
+      if (evaluationError) {
+        setListenError(evaluationError);
+        toast.error(evaluationError);
+        return;
+      }
+    }
+    setListenError(null);
     setLinkSaving(true);
     try {
       const savedId = await onSave();
@@ -251,6 +262,11 @@ export function HeadfiForm({
                   aria-hidden={activeTab !== 'analysis'}
                 >
                   <HeadfiFormListeningEvaluation formData={formData} setFormData={setFormData} />
+                  {listenError ? (
+                    <p className="col-span-2 text-sm" style={{ color: 'var(--destructive, #dc2626)' }}>
+                      {listenError}
+                    </p>
+                  ) : null}
                   <HeadfiFormFrGraphSection
                     formData={formData}
                     setFormData={setFormData}

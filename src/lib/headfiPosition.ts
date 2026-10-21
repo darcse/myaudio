@@ -1,6 +1,12 @@
 import type { Headfi, HeadfiFrInterpretation } from '@/app/headfi/types';
 import { formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
+import {
+  buildHeadfiSoundScoresPromptBlock,
+  pickHeadfiSoundScores,
+  type HeadfiSoundScores,
+} from '@/lib/headfiSoundScores';
+import { readNullableScore } from '@/app/headfi/listeningEvaluation';
 
 export const POSITION_MAP_CATEGORIES = ['헤드폰', '이어폰'] as const;
 
@@ -33,15 +39,70 @@ export function parseFrInterpretationFields(raw: string | null | undefined): Hea
   }
 }
 
-function formatScore(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(Number(value))) return '-';
-  return String(value);
+export const WIRED_POSITION_DISPLAY_SCALE = 100;
+
+export const WIRED_POSITION_WEIGHTS = {
+  xWarmth: 0.5,
+  xBrightness: 0.5,
+} as const;
+
+export const WIRED_POSITION_TRAIT_ABS_MAX = 2;
+export const WIRED_POSITION_SCORE_DIFF_MAX = 9;
+
+export type WiredPositionCoords = {
+  x: number;
+  y: number;
+  xDisplay: number;
+  yDisplay: number;
+};
+
+export function computeWiredPositionCoords(
+  item: Pick<
+    Headfi,
+    | 'trait_warmth'
+    | 'trait_brightness'
+    | 'resolution'
+    | 'separation'
+    | 'imaging'
+    | 'musicality'
+  >,
+): WiredPositionCoords | null {
+  const warmth = readNullableScore(item.trait_warmth);
+  const brightness = readNullableScore(item.trait_brightness);
+  const resolution = readNullableScore(item.resolution);
+  const separation = readNullableScore(item.separation);
+  const imaging = readNullableScore(item.imaging);
+  const musicality = readNullableScore(item.musicality);
+  if (
+    warmth == null ||
+    brightness == null ||
+    resolution == null ||
+    separation == null ||
+    imaging == null ||
+    musicality == null
+  ) {
+    return null;
+  }
+
+  const xWarm = (-warmth / WIRED_POSITION_TRAIT_ABS_MAX) * WIRED_POSITION_WEIGHTS.xWarmth;
+  const xCool = (brightness / WIRED_POSITION_TRAIT_ABS_MAX) * WIRED_POSITION_WEIGHTS.xBrightness;
+  const x = clampPositionCoord(xWarm + xCool);
+
+  const technical = (resolution + separation + imaging) / 3;
+  const y = clampPositionCoord((technical - musicality) / WIRED_POSITION_SCORE_DIFF_MAX);
+
+  return {
+    x,
+    y,
+    xDisplay: Math.round(x * WIRED_POSITION_DISPLAY_SCALE),
+    yDisplay: Math.round(y * WIRED_POSITION_DISPLAY_SCALE),
+  };
 }
 
-function avgScore(...values: (number | null | undefined)[]): number {
-  const nums = values.filter((v): v is number => v != null && Number.isFinite(Number(v)));
-  if (nums.length === 0) return 0;
-  return Math.round((nums.reduce((acc, v) => acc + Number(v), 0) / nums.length) * 10) / 10;
+export function fallbackWiredPositionLabel(x: number, y: number): string {
+  const temp = x < -0.25 ? '따뜻한' : x > 0.25 ? '차가운' : '온도 중립의';
+  const axis = y < -0.25 ? '음악적인' : y > 0.25 ? '분석적인' : '균형 잡힌';
+  return `${temp} ${axis} 성향`;
 }
 
 export function buildDacAmpPositionPromptInput(
@@ -73,47 +134,20 @@ export function isPositionAnalyzableCategory(category: string | null | undefined
   return isPositionMapCategory(category) || isDacAmpDapCategory(category);
 }
 
-export function buildPositionPromptInput(
-  item: Pick<
-    Headfi,
-    | 'brand'
-    | 'model'
-    | 'category'
-    | 'bass_quantity'
-    | 'bass_depth'
-    | 'bass_speed'
-    | 'dynamics_slam'
-    | 'midrange_body'
-    | 'tone_warmth'
-    | 'vocal_position'
-    | 'midrange_clarity'
-    | 'treble_brightness'
-    | 'treble_smoothness'
-    | 'treble_airiness'
-    | 'resolution'
-    | 'separation'
-    | 'soundstage'
-    | 'imaging'
-    | 'timbre'
-    | 'fr_interpretation'
-    | 'ai_sound_analysis'
-  >,
+export function buildWiredPositionLabelPromptInput(
+  item: Pick<Headfi, 'brand' | 'model' | 'category' | 'fr_interpretation' | 'ai_sound_analysis'> &
+    HeadfiSoundScores & { x: number; y: number },
 ) {
-  const bass = avgScore(item.bass_quantity, item.bass_depth);
-  const mid = avgScore(item.midrange_body, item.midrange_clarity);
-  const treble = avgScore(item.treble_brightness, item.treble_airiness);
   const fr = parseFrInterpretationFields(item.fr_interpretation);
+  const scores = pickHeadfiSoundScores(item);
   return {
-    profile: 'wired' as const,
+    profile: 'wired_label' as const,
     brand: item.brand || '',
     model: item.model || '',
     category: item.category || '',
-    bass: formatScore(bass),
-    mid: formatScore(mid),
-    treble: formatScore(treble),
-    resolution: formatScore(item.resolution),
-    separation: formatScore(item.separation),
-    soundstage: formatScore(item.soundstage),
+    x: item.x,
+    y: item.y,
+    scoresBlock: buildHeadfiSoundScoresPromptBlock(scores) ?? '-',
     frSummary: fr.summary,
     aiSoundAnalysis: item.ai_sound_analysis?.trim() || '-',
   };

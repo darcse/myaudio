@@ -13,9 +13,10 @@ myaudio는 개인이 보유하고 감상한 **음악 앨범(Albums), 아티스�
 *   **Database & Storage**: Supabase (PostgreSQL, Supabase Auth, Storage, RLS)
     *   *주의: 기존 mylibrary / mybooks 서비스와 동일한 Supabase 인스턴스를 공유하며, myaudio 도메인 테이블만 독립적으로 사용합니다.*
 *   **AI Integration (Multi-Provider Architecture)**:
-    *   **Google Gemini**: `gemini-3.5-flash-lite`, Gemini Vision (FR 그래프 이미지 비전 스캔 및 대역별 특성 해석)
-    *   **OpenAI**: GPT-4o / GPT-4o-mini (매칭 스코어링), GPT-5.4-mini + Web Search (아티스트 국문 바이오 생성)
-    *   **Anthropic**: Claude 3.5 Sonnet (기기 FR/음색 성향 해석, 추천 앨범 해설)
+    *   **모델 기본값**: `src/lib/aiModels.ts` (`resolveGeminiModel` / `resolveOpenAI*` / `resolveAnthropic*`). env로 덮을 수 있다.
+    *   **Google Gemini**: FR 그래프 비전 스캔 및 대역별 특성 해석 등
+    *   **OpenAI**: 매칭 스코어링, 아티스트 국문 바이오
+    *   **Anthropic**: 기기 FR/음색 성향 해석, 추천 앨범 해설, 가사 번역
 *   **External APIs**: MusicBrainz API, Cover Art Archive, Wikipedia API
 *   **Key Libraries**:
     *   `lucide-react` (아이콘)
@@ -226,8 +227,13 @@ myaudio는 SSR과 비로그인 게스트의 원활한 조회 경험을 보장하
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_ARTIST_BIO_MODEL=
+OPENAI_MATCH_SCORE_MODEL=
 ANTHROPIC_API_KEY=your_anthropic_api_key
+ANTHROPIC_HEADFI_MODEL=
+ANTHROPIC_LYRICS_TRANSLATE_MODEL=
 MUSICBRAINZ_CONTACT_EMAIL=your_email_for_user_agent
 ```
 

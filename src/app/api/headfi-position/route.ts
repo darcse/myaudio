@@ -2,87 +2,80 @@ import { NextRequest, NextResponse } from 'next/server';
 import { analyzeHeadfiPosition } from '@/lib/gemini';
 import {
   buildDacAmpPositionPromptInput,
-  buildPositionPromptInput,
+  buildWiredPositionLabelPromptInput,
   clampPositionCoord,
+  computeWiredPositionCoords,
+  fallbackWiredPositionLabel,
   hasPositionCoordinates,
   isPositionAnalyzableCategory,
   POSITION_MAP_CATEGORIES,
 } from '@/lib/headfiPosition';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import type { Headfi } from '@/app/headfi/types';
 
-type HeadfiPositionRow = {
-  id: number;
+type HeadfiPositionRow = Headfi & {
   brand: string | null;
   model: string | null;
   category: string | null;
-  position_x: number | null;
-  position_y: number | null;
-  position_label: string | null;
-  bass_quantity: number | null;
-  bass_depth: number | null;
-  bass_speed: number | null;
-  dynamics_slam: number | null;
-  midrange_body: number | null;
-  tone_warmth: number | null;
-  vocal_position: number | null;
-  midrange_clarity: number | null;
-  treble_brightness: number | null;
-  treble_smoothness: number | null;
-  treble_airiness: number | null;
-  resolution: number | null;
-  separation: number | null;
-  soundstage: number | null;
-  imaging: number | null;
-  timbre: number | null;
-  fr_interpretation: string | null;
-  ai_sound_analysis: string | null;
-  amp_type: string | null;
-  chipset: string | null;
-  output_impedance: number | null;
-  vrms_bal: number | null;
-  vrms_single: number | null;
-  memo: string | null;
 };
 
 const POSITION_SELECT =
-  'id, brand, model, category, position_x, position_y, position_label, bass_quantity, bass_depth, bass_speed, dynamics_slam, midrange_body, tone_warmth, vocal_position, midrange_clarity, treble_brightness, treble_smoothness, treble_airiness, resolution, separation, soundstage, imaging, timbre, fr_interpretation, ai_sound_analysis, amp_type, chipset, output_impedance, vrms_bal, vrms_single, memo';
-
-function buildAnalyzeInput(row: HeadfiPositionRow) {
-  if (isDacAmpDapCategory(row.category)) {
-    return buildDacAmpPositionPromptInput({
-      ...row,
-      brand: row.brand ?? '',
-      model: row.model ?? '',
-      category: row.category ?? '',
-    });
-  }
-  return buildPositionPromptInput({
-    ...row,
-    brand: row.brand ?? '',
-    model: row.model ?? '',
-    category: row.category ?? '',
-  });
-}
+  'id, brand, model, category, position_x, position_y, position_label, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay, fr_interpretation, ai_sound_analysis, amp_type, chipset, output_impedance, vrms_bal, vrms_single, memo';
 
 async function analyzeAndSavePosition(
   supabase: Awaited<ReturnType<typeof createClient>>,
   row: HeadfiPositionRow,
 ): Promise<{ id: number; x: number; y: number; label: string } | null> {
-  const generated = await analyzeHeadfiPosition(buildAnalyzeInput(row));
-  if (!generated) return null;
+  const brand = row.brand ?? '';
+  const model = row.model ?? '';
+  const category = row.category ?? '';
 
-  const position_x = clampPositionCoord(generated.x);
-  const position_y = clampPositionCoord(generated.y);
-  const position_label = generated.label;
+  if (isDacAmpDapCategory(row.category)) {
+    const generated = await analyzeHeadfiPosition(
+      buildDacAmpPositionPromptInput({
+        ...row,
+        brand,
+        model,
+        category,
+      }),
+    );
+    if (!generated) return null;
+    const position_x = clampPositionCoord(generated.x);
+    const position_y = clampPositionCoord(generated.y);
+    const position_label = generated.label;
+    const { error } = await supabase
+      .from('headfi')
+      .update({ position_x, position_y, position_label })
+      .eq('id', row.id);
+    if (error) return null;
+    return { id: row.id, x: position_x, y: position_y, label: position_label };
+  }
 
+  const coords = computeWiredPositionCoords(row);
+  if (!coords) return null;
+
+  const generated = await analyzeHeadfiPosition(
+    buildWiredPositionLabelPromptInput({
+      ...row,
+      brand,
+      model,
+      category,
+      x: coords.x,
+      y: coords.y,
+    }),
+  );
+  const position_label = generated?.label?.trim() || fallbackWiredPositionLabel(coords.x, coords.y);
   const { error } = await supabase
     .from('headfi')
-    .update({ position_x, position_y, position_label })
+    .update({
+      position_x: coords.x,
+      position_y: coords.y,
+      position_label,
+    })
     .eq('id', row.id);
-
   if (error) return null;
-  return { id: row.id, x: position_x, y: position_y, label: position_label };
+  return { id: row.id, x: coords.x, y: coords.y, label: position_label };
 }
 
 export async function POST(req: NextRequest) {
@@ -116,14 +109,19 @@ export async function POST(req: NextRequest) {
 
       const results: { id: number; x: number; y: number; label: string }[] = [];
       const failed: number[] = [];
+      const skipped: number[] = [];
 
       for (const row of (rows ?? []) as HeadfiPositionRow[]) {
+        if (!computeWiredPositionCoords(row)) {
+          skipped.push(row.id);
+          continue;
+        }
         const saved = await analyzeAndSavePosition(supabase, row);
         if (saved) results.push(saved);
         else failed.push(row.id);
       }
 
-      return NextResponse.json({ results, failed, total: (rows ?? []).length });
+      return NextResponse.json({ results, failed, skipped, total: (rows ?? []).length });
     }
 
     if (!Number.isFinite(headfiId)) {
@@ -171,17 +169,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '포지션 분석 대상 카테고리가 아닙니다.' }, { status: 400 });
     }
 
-    if (!force && hasPositionCoordinates(row)) {
+    const typedRow = row as HeadfiPositionRow;
+
+    if (!force && hasPositionCoordinates(typedRow)) {
       return NextResponse.json({
-        id: row.id,
-        x: Number(row.position_x),
-        y: Number(row.position_y),
-        label: row.position_label || '',
+        id: typedRow.id,
+        x: Number(typedRow.position_x),
+        y: Number(typedRow.position_y),
+        label: typedRow.position_label || '',
         cached: true,
       });
     }
 
-    const saved = await analyzeAndSavePosition(supabase, row as HeadfiPositionRow);
+    if (!isDacAmpDapCategory(typedRow.category) && !computeWiredPositionCoords(typedRow)) {
+      if (hasPositionCoordinates(typedRow)) {
+        return NextResponse.json({
+          id: typedRow.id,
+          x: Number(typedRow.position_x),
+          y: Number(typedRow.position_y),
+          label: typedRow.position_label || '',
+          preserved: true,
+        });
+      }
+      return NextResponse.json(
+        { error: '좌표 계산에 필요한 청음 평가(성향 온기·밝기, 해상도·분리도·정위감, 음악적 매력)가 없습니다.' },
+        { status: 400 },
+      );
+    }
+
+    const saved = await analyzeAndSavePosition(supabase, typedRow);
     if (!saved) {
       return NextResponse.json({ error: '포지션 분석에 실패했습니다.' }, { status: 500 });
     }

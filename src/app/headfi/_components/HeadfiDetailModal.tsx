@@ -10,13 +10,12 @@ import { createClient } from '@/lib/supabase/client';
 import { DeletingLabel } from '@/components/AsyncMutationUi';
 import type { Headfi } from '../types';
 import { HeadfiInfoSection, HeadfiInfoHeroSection } from './HeadfiInfoSection';
-import { HeadfiFrSection } from './HeadfiFrSection';
 import { HeadfiRadarSection } from './HeadfiRadarSection';
 import { HeadfiMatchedAlbumsSection } from './HeadfiMatchedAlbumsSection';
 import { HeadfiSettingsSection } from './HeadfiSettingsSection';
 import { isWiredHeadphoneEarphoneCategory } from '@/lib/headfiMatchScore';
 
-type DetailTab = 'info' | 'listen' | 'fr' | 'albums' | 'settings';
+type DetailTab = 'info' | 'listen' | 'albums' | 'settings';
 
 const HIDE_ALBUMS_TAB_CATEGORIES = new Set(['스피커', 'DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source', '기타']);
 
@@ -85,18 +84,16 @@ export function HeadfiDetailModal({
 
   const showListenTab =
     viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
-  const showFrTab = viewingItem.category === '헤드폰' || viewingItem.category === '이어폰';
   const showAlbumsTab = !HIDE_ALBUMS_TAB_CATEGORIES.has(viewingItem.category);
   const showSettingsTab = isWiredHeadphoneEarphoneCategory(viewingItem.category);
 
   const tabItems = useMemo(() => {
     const items: { id: DetailTab; label: string }[] = [{ id: 'info', label: '기본 정보' }];
     if (showListenTab) items.push({ id: 'listen', label: '청음 평가' });
-    if (showFrTab) items.push({ id: 'fr', label: 'FR 그래프' });
     if (showAlbumsTab) items.push({ id: 'albums', label: '추천 앨범' });
     if (showSettingsTab) items.push({ id: 'settings', label: '세팅' });
     return items;
-  }, [showListenTab, showFrTab, showAlbumsTab, showSettingsTab]);
+  }, [showListenTab, showAlbumsTab, showSettingsTab]);
 
   useLockBodyScroll();
 
@@ -321,17 +318,6 @@ export function HeadfiDetailModal({
                       onHeadfiPatch={onHeadfiPatch}
                       variant="tab"
                       mode="radar"
-                    />
-                  </div>
-                ) : null}
-
-                {showFrTab ? (
-                  <div className={activeTab === 'fr' ? '' : 'hidden'} aria-hidden={activeTab !== 'fr'}>
-                    <HeadfiFrSection
-                      viewingItem={viewingItem}
-                      isAuthenticated={isAuthenticated}
-                      onHeadfiPatch={onHeadfiPatch}
-                      variant="tab"
                     />
                   </div>
                 ) : null}

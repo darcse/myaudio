@@ -75,6 +75,11 @@ export type CompressedCandidate = {
   low: string;
   mid: string;
   high: string;
+  musicality: string;
+  trait_warmth: string;
+  trait_brightness: string;
+  trait_vocal_position: string;
+  trait_bass_decay: string;
 };
 
 function deviceName(brand: string | null, model: string | null): string {
@@ -85,18 +90,23 @@ export function formatExactGearName(item: Headfi): string {
   return deviceName(item.brand, item.model);
 }
 
-function avgScore(...values: (number | null | undefined)[]): number {
-  const nums = values.filter((v): v is number => v != null && Number.isFinite(Number(v)));
-  if (nums.length === 0) return 0;
-  const sum = nums.reduce((acc, v) => acc + Number(v), 0);
-  return Math.round((sum / nums.length) * 10) / 10;
+function formatScoreOrDash(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return '-';
+  return String(value);
 }
 
-export function compressHeadfiAudioBands(item: Headfi): { low: number; mid: number; high: number } {
+function avgScoreOrDash(...values: (number | null | undefined)[]): string {
+  const nums = values.filter((v): v is number => v != null && Number.isFinite(Number(v)));
+  if (nums.length === 0) return '-';
+  const sum = nums.reduce((acc, v) => acc + Number(v), 0);
+  return String(Math.round((sum / nums.length) * 10) / 10);
+}
+
+export function compressHeadfiAudioBands(item: Headfi): { low: string; mid: string; high: string } {
   return {
-    low: avgScore(item.bass_quantity, item.bass_depth),
-    mid: avgScore(item.midrange_body, item.midrange_clarity),
-    high: avgScore(item.treble_brightness, item.treble_airiness),
+    low: avgScoreOrDash(item.bass_quantity, item.bass_depth, item.bass_control),
+    mid: avgScoreOrDash(item.midrange_body),
+    high: avgScoreOrDash(item.treble_airiness, item.treble_smoothness),
   };
 }
 
@@ -129,14 +139,19 @@ export function compressCandidateRow(item: Headfi): CompressedCandidate {
     db1,
     vrms32,
     vrms300,
-    low: bands ? String(bands.low) : '-',
-    mid: bands ? String(bands.mid) : '-',
-    high: bands ? String(bands.high) : '-',
+    low: bands ? bands.low : '-',
+    mid: bands ? bands.mid : '-',
+    high: bands ? bands.high : '-',
+    musicality: isWired ? formatScoreOrDash(item.musicality) : '-',
+    trait_warmth: isWired ? formatScoreOrDash(item.trait_warmth) : '-',
+    trait_brightness: isWired ? formatScoreOrDash(item.trait_brightness) : '-',
+    trait_vocal_position: isWired ? formatScoreOrDash(item.trait_vocal_position) : '-',
+    trait_bass_decay: isWired ? formatScoreOrDash(item.trait_bass_decay) : '-',
   };
 }
 
 export function candidateLine(row: CompressedCandidate): string {
-  return `${row.id}|${row.name}|${row.temp}|${row.rkOrImpedance}|${row.db1}|${row.vrms32}|${row.vrms300}|${row.low}|${row.mid}|${row.high}`;
+  return `${row.id}|${row.name}|${row.temp}|${row.rkOrImpedance}|${row.db1}|${row.vrms32}|${row.vrms300}|${row.low}|${row.mid}|${row.high}|${row.musicality}|${row.trait_warmth}|${row.trait_brightness}|${row.trait_vocal_position}|${row.trait_bass_decay}`;
 }
 
 export function pickCandidates(items: Headfi[], limit = 20): Headfi[] {
@@ -147,27 +162,7 @@ export function buildHeadphoneListeningContextForPrompt(item: Headfi): string | 
   if (!isWiredHeadphoneEarphoneCategory(item.category)) return null;
 
   const parts: string[] = [];
-  const scoresBlock = buildHeadfiSoundScoresPromptBlock({
-    brand: item.brand,
-    model: item.model,
-    category: item.category,
-    bass_quantity: item.bass_quantity,
-    bass_depth: item.bass_depth,
-    bass_speed: item.bass_speed,
-    dynamics_slam: item.dynamics_slam,
-    midrange_body: item.midrange_body,
-    tone_warmth: item.tone_warmth,
-    vocal_position: item.vocal_position,
-    midrange_clarity: item.midrange_clarity,
-    treble_brightness: item.treble_brightness,
-    treble_smoothness: item.treble_smoothness,
-    treble_airiness: item.treble_airiness,
-    resolution: item.resolution,
-    separation: item.separation,
-    soundstage: item.soundstage,
-    imaging: item.imaging,
-    timbre: item.timbre,
-  });
+  const scoresBlock = buildHeadfiSoundScoresPromptBlock(item);
   if (scoresBlock) parts.push(scoresBlock);
 
   const ai = item.ai_sound_analysis?.trim();
@@ -197,27 +192,7 @@ export function buildHeadphoneBaseListeningContext(item: Headfi): {
     return { sound_scores_block: null, ai_sound_analysis: null, fr_interpretation_block: null };
   }
   return {
-    sound_scores_block: buildHeadfiSoundScoresPromptBlock({
-      brand: item.brand,
-      model: item.model,
-      category: item.category,
-      bass_quantity: item.bass_quantity,
-      bass_depth: item.bass_depth,
-      bass_speed: item.bass_speed,
-      dynamics_slam: item.dynamics_slam,
-      midrange_body: item.midrange_body,
-      tone_warmth: item.tone_warmth,
-      vocal_position: item.vocal_position,
-      midrange_clarity: item.midrange_clarity,
-      treble_brightness: item.treble_brightness,
-      treble_smoothness: item.treble_smoothness,
-      treble_airiness: item.treble_airiness,
-      resolution: item.resolution,
-      separation: item.separation,
-      soundstage: item.soundstage,
-      imaging: item.imaging,
-      timbre: item.timbre,
-    }),
+    sound_scores_block: buildHeadfiSoundScoresPromptBlock(item),
     ai_sound_analysis: item.ai_sound_analysis?.trim() || null,
     fr_interpretation_block: formatFrInterpretationForPrompt(item.fr_interpretation),
   };

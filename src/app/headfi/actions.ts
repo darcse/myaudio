@@ -3,6 +3,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
 import type { HeadfiAccessoryFormData, HeadfiAccessoryLink, HeadfiAccessoryLinkedGear, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import { wiredListeningScoreColumns } from './listeningEvaluation';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
@@ -41,6 +42,14 @@ function emptySoundScores() {
     soundstage: null as number | null,
     imaging: null as number | null,
     timbre: null as number | null,
+    bass_control: null as number | null,
+    dynamic_range: null as number | null,
+    musicality: null as number | null,
+    listening_comfort: null as number | null,
+    trait_warmth: null as number | null,
+    trait_brightness: null as number | null,
+    trait_vocal_position: null as number | null,
+    trait_bass_decay: null as number | null,
   };
 }
 
@@ -225,22 +234,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       gain: data.gain ?? null,
       temp: data.temp,
       bright: data.bright,
-      bass_quantity: parseIntOrNull(data.bass_quantity),
-      bass_depth: parseIntOrNull(data.bass_depth),
-      bass_speed: parseIntOrNull(data.bass_speed),
-      dynamics_slam: parseIntOrNull(data.dynamics_slam),
-      midrange_body: parseIntOrNull(data.midrange_body),
-      tone_warmth: parseIntOrNull(data.tone_warmth),
-      vocal_position: parseIntOrNull(data.vocal_position),
-      midrange_clarity: parseIntOrNull(data.midrange_clarity),
-      treble_brightness: parseIntOrNull(data.treble_brightness),
-      treble_smoothness: parseIntOrNull(data.treble_smoothness),
-      treble_airiness: parseIntOrNull(data.treble_airiness),
-      resolution: parseIntOrNull(data.resolution),
-      separation: parseIntOrNull(data.separation),
-      soundstage: parseIntOrNull(data.soundstage),
-      imaging: parseIntOrNull(data.imaging),
-      timbre: parseIntOrNull(data.timbre),
+      ...wiredListeningScoreColumns(data),
       fr_graph_url: fr,
       speaker_type1: '',
       speaker_type2: '',
@@ -270,22 +264,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       gain: data.gain ?? null,
       temp: data.temp,
       bright: data.bright,
-      bass_quantity: parseIntOrNull(data.bass_quantity),
-      bass_depth: parseIntOrNull(data.bass_depth),
-      bass_speed: parseIntOrNull(data.bass_speed),
-      dynamics_slam: parseIntOrNull(data.dynamics_slam),
-      midrange_body: parseIntOrNull(data.midrange_body),
-      tone_warmth: parseIntOrNull(data.tone_warmth),
-      vocal_position: parseIntOrNull(data.vocal_position),
-      midrange_clarity: parseIntOrNull(data.midrange_clarity),
-      treble_brightness: parseIntOrNull(data.treble_brightness),
-      treble_smoothness: parseIntOrNull(data.treble_smoothness),
-      treble_airiness: parseIntOrNull(data.treble_airiness),
-      resolution: parseIntOrNull(data.resolution),
-      separation: parseIntOrNull(data.separation),
-      soundstage: parseIntOrNull(data.soundstage),
-      imaging: parseIntOrNull(data.imaging),
-      timbre: parseIntOrNull(data.timbre),
+      ...wiredListeningScoreColumns(data),
       fr_graph_url: fr,
       speaker_type1: '',
       speaker_type2: '',

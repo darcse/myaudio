@@ -30,3 +30,14 @@
 [2026-10-18] [Cursor] style: 다이어리 청취 이력 기기 표시를 모델명만 사용 | passes: 변경 없음
 [2026-10-18] [Cursor] feat: Insights 사용 통계 구동계·소스·미디어 TOP 개편 | passes: 변경 없음
 [2026-10-18] [Cursor] style: 사용 통계에서 금주의 핫 리시버 제거, 미디어 TOP 매체별 아이콘 | passes: 변경 없음
+[2026-10-21] [Cursor] 조사: 헤드파이 청음 평가 18항목 저장·사용처 전수 (코드만, 수정 없음) | passes: 변경 없음
+[2026-10-21] [Cursor] feat: GEAR-044 청음 평가 성능13+성향4 폼·저장 | passes: 변경 없음
+[2026-10-21] [Cursor] feat: GEAR-045 청음 평가 탭 13축 레이더·성향 표시 | passes: 변경 없음
+[2026-10-21] [Cursor] feat: GEAR-046 AI·포지션 공식·매칭·기분추천을 성능13+성향4로 교체 | passes: 변경 없음
+[2026-10-21] [Cursor] chore: Anthropic 기본 모델을 claude-sonnet-5-5로 교체, GEMINI_MODEL 오버라이드 | passes: 변경 없음
+[2026-10-21] [Cursor] style: 청음 레이더 7점 점선 범례·그룹 평균 칩 축소 | passes: 변경 없음
+[2026-10-21] [Cursor] 조사: 청음 AI 분석에 외부 리뷰 요약을 붙일 현재 구조 (코드만, 수정 없음) | passes: 변경 없음
+[2026-10-21] [Cursor] feat: GEAR-047 청음 AI 분석에 외부 리뷰 요약·FR 종합 | passes: 변경 없음
+[2026-10-21] [Cursor] style: 청음 평가 탭을 청음/AI/외부평가 세그먼트로 분리 | passes: 변경 없음
+[2026-10-21] [Cursor] style: FR를 청음 하위 세그먼트로 이동, 필을 청음/FR/리뷰/AI로 | passes: 변경 없음
+[2026-10-21] [Cursor] fix: 청음 AI 분석 max_tokens 2048·잘림/JSON 오류 구분 | passes: 변경 없음

@@ -33,6 +33,36 @@ type GenerateGeminiTextOptions = {
   temperature?: number;
 };
 
+export type GeminiGroundingSource = {
+  title: string;
+  url: string;
+};
+
+type GeminiTextResult = {
+  text: string;
+  sources: GeminiGroundingSource[];
+};
+
+function extractGeminiGroundingSources(response: {
+  candidates?: Array<{
+    groundingMetadata?: {
+      groundingChunks?: Array<{ web?: { uri?: string | null; title?: string | null } }>;
+    };
+  }>;
+}): GeminiGroundingSource[] {
+  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+  const seen = new Set<string>();
+  const sources: GeminiGroundingSource[] = [];
+  for (const chunk of chunks) {
+    const url = chunk.web?.uri?.trim() ?? '';
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    const title = chunk.web?.title?.trim() || url;
+    sources.push({ title, url });
+  }
+  return sources;
+}
+
 function logGeminiFailure(fnName: string, error: unknown) {
   const err = error as { status?: number; message?: string };
   const raw = typeof err.message === 'string' && err.message ? err.message : String(error);
@@ -43,7 +73,7 @@ function logGeminiFailure(fnName: string, error: unknown) {
   });
 }
 
-async function generateGeminiText(options: GenerateGeminiTextOptions): Promise<string> {
+async function generateGeminiText(options: GenerateGeminiTextOptions): Promise<GeminiTextResult> {
   try {
     return await withRetry(async () => {
       const response = await genAI.models.generateContent({
@@ -60,7 +90,7 @@ async function generateGeminiText(options: GenerateGeminiTextOptions): Promise<s
       if (!text) {
         throw new Error('Empty Gemini response text');
       }
-      return text;
+      return { text, sources: extractGeminiGroundingSources(response) };
     });
   } catch (error) {
     logGeminiFailure(options.fnName, error);
@@ -102,7 +132,7 @@ ${albumSummary}
   `;
 
   try {
-    const text = await generateGeminiText({ fnName: 'analyzeMusicTaste', prompt });
+    const { text } = await generateGeminiText({ fnName: 'analyzeMusicTaste', prompt });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     return JSON.parse(jsonRaw) as unknown;
@@ -159,7 +189,7 @@ album_intro 작성 시 반드시 지킬 것:
   `;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'generateAlbumIntroAndTags',
       prompt,
       systemInstruction:
@@ -197,8 +227,8 @@ export async function recommendByMood(
     id: number;
     brand: string;
     model: string;
-    tone_warmth?: number | null;
-    treble_brightness?: number | null;
+    trait_warmth?: number | null;
+    trait_brightness?: number | null;
     soundstage?: number | null;
   }[],
   timeSlot = '',
@@ -210,10 +240,13 @@ export async function recommendByMood(
     )
     .join('\n');
 
+  const formatMoodAxis = (value: number | null | undefined): string =>
+    value == null || !Number.isFinite(Number(value)) ? '모름' : String(value);
+
   const headphoneList = headphones
     .map(
       (h) =>
-        `ID:${h.id} | ${h.brand} ${h.model} | 온도:${h.tone_warmth ?? '?'} 밝기:${h.treble_brightness ?? '?'} 무대감:${h.soundstage ?? '?'}`,
+        `ID:${h.id} | ${h.brand} ${h.model} | 온도:${formatMoodAxis(h.trait_warmth)} 밝기:${formatMoodAxis(h.trait_brightness)} 무대감:${formatMoodAxis(h.soundstage)}`,
     )
     .join('\n');
 
@@ -235,6 +268,12 @@ ${albumList}
 아래는 사용자가 보유한 헤드폰 목록이야:
 ${headphoneList}
 
+헤드폰 성향 스케일(품질이 아님):
+- 온도 trait_warmth: -2 차가움 ~ 0 중립 ~ +2 따뜻함
+- 밝기 trait_brightness: -2 어두움 ~ 0 중립 ~ +2 밝음
+- 무대감 soundstage: 1~10 품질, 값이 클수록 무대가 넓음
+- 값이 "모름"이면 그 축은 추정하지 말고 나머지 정보만 사용한다.
+
 1. 지금 이 순간 듣기 가장 좋은 앨범 1개
 2. 그 앨범과 기분/날씨에 가장 어울리는 헤드폰 1개
 3. 왜 이 조합이 어울리는지 한 문장
@@ -249,7 +288,7 @@ reason 작성 시 헤드폰은 "브랜드 모델명" 형식으로만 언급하�
   `;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'recommendByMood',
       prompt,
       googleSearch: true,
@@ -294,7 +333,7 @@ recommended_genres는 1개 이상, 최대 4개 배열. 항목은 모두 한국�
   `;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'recommendHeadfiListeningGenres',
       prompt,
       googleSearch: true,
@@ -307,6 +346,59 @@ recommended_genres는 1개 이상, 최대 4개 배열. 항목은 모두 한국�
       : [];
     const trimmed = arr.map((s) => s.trim()).slice(0, 4);
     return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function summarizeHeadfiExternalReviews(gear: {
+  brand: string;
+  model: string;
+  category: string;
+  type1?: string | null;
+  impedance?: number | null;
+  db1?: number | null;
+}): Promise<{ summary: string; sources: GeminiGroundingSource[] } | null> {
+  const brand = gear.brand.trim();
+  const model = gear.model.trim();
+  const specs = [
+    gear.category.trim() || null,
+    gear.type1?.trim() || null,
+    gear.impedance != null && Number.isFinite(Number(gear.impedance))
+      ? `${gear.impedance}Ω`
+      : null,
+    gear.db1 != null && Number.isFinite(Number(gear.db1)) ? `${gear.db1} dB/V` : null,
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(' | ');
+
+  const prompt = `Google Search로 "${brand} ${model}" 헤드폰/이어폰의 전문 리뷰·측정·커뮤니티 평가를 검색해 한국어로 요약해.
+
+[대상] ${brand} ${model}
+[스펙 힌트] ${specs || '-'}
+
+규칙:
+- 모델명이 이 기기와 정확히 일치하는 리뷰만 사용한다. HD 600과 HD 6XX처럼 유사 모델, 리비전·후속작을 섞지 마라.
+- 대상이 맞는지 확정할 수 없으면 summary는 정확히 "확인 불가"만 쓴다.
+- 확정되면 음색(저/중/고), 측정에서 반복되는 특성, 호평/혹평 합의를 서술한다. URL을 쓰지 마라. 출처는 검색 도구가 첨부한다.
+- 추측·일반론·다른 모델 지식을 채우지 마라.
+
+JSON만 응답:
+{"summary":"한국어 요약 또는 확인 불가"}`;
+
+  try {
+    const { text, sources } = await generateGeminiText({
+      fnName: 'summarizeHeadfiExternalReviews',
+      prompt,
+      googleSearch: true,
+      maxOutputTokens: 1024,
+    });
+    const jsonRaw = extractJsonObjectFromText(text);
+    if (!jsonRaw) return null;
+    const parsed = JSON.parse(jsonRaw) as { summary?: unknown };
+    const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+    if (!summary) return null;
+    return { summary, sources };
   } catch {
     return null;
   }
@@ -343,7 +435,7 @@ export async function analyzeLyricsVibe(lyrics: string): Promise<{
 `;
 
   try {
-    const text = await generateGeminiText({ fnName: 'analyzeLyricsVibe', prompt });
+    const { text } = await generateGeminiText({ fnName: 'analyzeLyricsVibe', prompt });
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { colors?: unknown; emoji?: unknown };
@@ -410,7 +502,7 @@ ${moodNames.join('\n')}
 
 위 무드 그룹 중 가장 적합한 하나의 mood_name만 반환해. 다른 텍스트 없이 목록에 있는 무드명 그대로만 출력해.`;
   try {
-    const text = await generateGeminiText({ fnName: 'pickAlbumMoodGroupName', prompt });
+    const { text } = await generateGeminiText({ fnName: 'pickAlbumMoodGroupName', prompt });
     return resolvePickedMoodName(text, moodNames);
   } catch {
     return null;
@@ -463,7 +555,7 @@ export async function generateAlbumMoodGroups(
     });
   const user = `${allowedUuidHeader}다음 앨범 메타를 참고해 9개 무드로 분류해줘:\n${metaLines.join('\n')}`;
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'generateAlbumMoodGroups',
       prompt: user,
       systemInstruction: system,
@@ -539,7 +631,7 @@ JSON만 응답:
 {"headphone_ids": [1, 2], "reason": "구체적 근거를 포함한 2~3줄 추천 이유"}`;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'recommendAlbumHeadphones',
       prompt,
       googleSearch: true,
@@ -622,7 +714,7 @@ JSON만 응답: [{"album_id": 123, "reason": "추천 이유 2~3줄"}]
 ${albumList}`;
 
   try {
-    const text = await generateGeminiText({ fnName: 'recommendHeadfiAlbumMatch', prompt });
+    const { text } = await generateGeminiText({ fnName: 'recommendHeadfiAlbumMatch', prompt });
     const jsonRaw = extractJsonArrayFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as unknown;
@@ -652,16 +744,13 @@ export type HeadfiPositionResult = {
 };
 
 type HeadfiWiredPositionInput = {
-  profile: 'wired';
+  profile: 'wired_label';
   brand: string;
   model: string;
   category: string;
-  bass: string;
-  mid: string;
-  treble: string;
-  resolution: string;
-  separation: string;
-  soundstage: string;
+  x: number;
+  y: number;
+  scoresBlock: string;
   frSummary: string;
   aiSoundAnalysis: string;
 };
@@ -696,22 +785,24 @@ export async function analyzeHeadfiPosition(input: HeadfiPositionInput): Promise
 - position_label: 이 기기의 음색·출력 성향 한 줄 요약
 
 JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향"}`
-      : `너는 헤드파이 전문 분석가야. 아래 기기의 음향 특성을 분석해서 포지션맵 좌표를 생성해줘.
+      : `너는 헤드파이 전문 분석가야. 좌표는 이미 공식으로 계산되어 있다. x·y를 바꾸지 말고 한 줄 라벨만 작성해.
 
 [기기] ${input.brand} ${input.model} | 카테고리: ${input.category}
-[청음 평가] 저역:${input.bass} 중역:${input.mid} 고역:${input.treble} 해상력:${input.resolution} 분리도:${input.separation} 음장:${input.soundstage}
+[확정 좌표] x:${input.x} ( -1 따뜻함 ~ +1 차가움 ) y:${input.y} ( -1 음악적 ~ +1 분석적 )
+${input.scoresBlock}
 [FR 해석] ${input.frSummary}
 [AI 분석] ${input.aiSoundAnalysis}
 
-실제 리뷰와 측정 데이터를 검색해서 참고하고 아래 기준으로 -1.0~1.0 사이 좌표를 생성해줘:
-- x축: -1.0(매우 따뜻함/warm) ~ 1.0(매우 차가움/cool)
-- y축: -1.0(매우 음악적/감성적) ~ 1.0(매우 분석적/모니터링)
-- position_label: 이 기기의 음색 성향 한 줄 요약 (예: "따뜻하고 분석적인 올라운더")
+규칙:
+- 성능 점수는 품질, 성향은 성격이다. 성향을 우열로 읽지 마라.
+- '-' 와 미입력은 추정하지 마라.
+- 좌표 숫자를 라벨에 쓰지 마라.
+- position_label: 음색 성향 한 줄 요약 (예: "따뜻하고 분석적인 올라운더")
 
-JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향"}`;
+JSON만 응답: {"label": "따뜻하고 음악적인 성향"}`;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'analyzeHeadfiPosition',
       prompt,
       googleSearch: true,
@@ -719,10 +810,14 @@ JSON만 응답: {"x": 0.3, "y": -0.2, "label": "따뜻하고 음악적인 성향
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) return null;
     const parsed = JSON.parse(jsonRaw) as { x?: unknown; y?: unknown; label?: unknown };
+    const label = typeof parsed.label === 'string' ? parsed.label.trim() : '';
+    if (!label) return null;
+    if (input.profile === 'wired_label') {
+      return { x: input.x, y: input.y, label };
+    }
     const x = typeof parsed.x === 'number' ? parsed.x : null;
     const y = typeof parsed.y === 'number' ? parsed.y : null;
-    const label = typeof parsed.label === 'string' ? parsed.label.trim() : '';
-    if (x == null || y == null || !label) return null;
+    if (x == null || y == null) return null;
     return {
       x: Math.min(1, Math.max(-1, Math.round(x * 100) / 100)),
       y: Math.min(1, Math.max(-1, Math.round(y * 100) / 100)),
@@ -756,7 +851,7 @@ export async function fetchAlbumTracklist(album: {
 }`;
 
   try {
-    const text = await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'fetchAlbumTracklist',
       prompt,
       googleSearch: true,
@@ -798,11 +893,12 @@ export async function generateMonthlyReviewComment(
   if (!trimmed) return null;
   const user = `${year}년 ${month}월 활동:\n${trimmed}`;
   try {
-    return await generateGeminiText({
+    const { text } = await generateGeminiText({
       fnName: 'generateMonthlyReviewComment',
       prompt: user,
       systemInstruction,
     });
+    return text;
   } catch {
     return null;
   }

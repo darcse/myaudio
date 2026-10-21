@@ -15,7 +15,7 @@ MusicBrainz 기반 앨범 메타데이터 자동 완성, Gemini 기반 앨범 �
 - 스타일링: Tailwind CSS v4, CSS 변수 기반 라이트/다크/자동 테마, Pretendard
 - DB/Auth/Storage: Supabase PostgreSQL, Supabase Auth, @supabase/ssr, Supabase Storage
 - 배포: Vercel
-- AI: Gemini API (`gemini-3.1-flash-lite-preview`), Gemini Vision (FR 그래프 해석)
+- AI: Gemini / OpenAI / Anthropic. 모델 기본값·env 오버라이드는 `src/lib/aiModels.ts`
 - 외부 API: MusicBrainz, Cover Art Archive
 - 주요 라이브러리: lucide-react, sonner, react-markdown, recharts
 
