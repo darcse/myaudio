@@ -12,7 +12,7 @@
 - Framework: Next.js 15 App Router + TailwindCSS v4
 - Database: Supabase (Auth + PostgreSQL + RLS) — mylibrary / mybooks와 동일 인스턴스 공유
 - Deployment: Vercel
-- AI: Gemini / OpenAI / Anthropic. 모델 기본값·env 오버라이드는 `src/lib/aiModels.ts`
+- AI: Gemini (`gemini-3.5-flash-lite`), OpenAI (`gpt-5.4-mini`), Anthropic Claude Sonnet. 모델명 기본값은 `src/lib/aiModels.ts` 한 곳에서 관리
 - External API: MusicBrainz, Cover Art Archive
 - Font: Pretendard
 
@@ -44,6 +44,8 @@ myaudio/
 │   │       ├── headfi-fr-image/route.ts
 │   │       ├── headfi-fr-interpret/route.ts
 │   │       ├── headfi-recommended-genres/route.ts
+│   │       ├── headfi-sound-analysis/route.ts
+│   │       ├── headfi-review-summary/route.ts
 │   │       └── monthly-review-comment/route.ts
 │   ├── components/
 │   │   ├── ui/
@@ -53,9 +55,13 @@ myaudio/
 │   │   ├── supabase/
 │   │   │   ├── client.ts
 │   │   │   └── server.ts
+│   │   ├── aiModels.ts           # AI 모델명 기본값 단일 관리
 │   │   ├── musicbrainz.ts
 │   │   ├── gemini.ts
 │   │   ├── listenHistoryGear.ts  # 청취 이력 Source/Amp/Receiver/Media 공용 상수·포매터
+│   │   ├── headfiSoundScores.ts  # 청음 평점 AI 프롬프트 블록 공용 정의
+│   │   ├── headfiPosition.ts     # 포지션 맵 좌표 공식
+│   │   ├── headfiReviewSources.ts # 외부 리뷰 요약 출처 파싱·길이 상한·캐시 판정
 │   │   └── utils.ts
 │   ├── hooks/
 │   └── types/
@@ -89,7 +95,7 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 | 테이블 | 용도 |
 |--------|------|
 | `album` | 음악 앨범 컬렉션 |
-| `headfi` | 헤드파이 기기 컬렉션 |
+| `headfi` | 헤드파이 기기 컬렉션 (청음 평가, AI 분석, 외부 리뷰 요약, 포지션 좌표 포함) |
 | `headfi_accessories` | 독립 액세서리 (id uuid, 카테고리·이름·가격·구매일, `status`: `owned` / `released`) |
 | `headfi_accessory_links` | 기기 ↔ 액세서리 연결 (N:M). `headfi_id` int FK, `accessory_id` uuid FK, 둘 다 ON DELETE CASCADE, UNIQUE(headfi_id, accessory_id), user_id 기반 RLS |
 | `headfi_combos`, `headfi_sales`, `headfi_device_settings`, `headfi_match_cache` | 조합 / 판매 / 게인 세팅 / 매칭 점수 캐시 |
@@ -114,6 +120,8 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 - `headfi.id`: integer
 - `headfi_accessories.id`: uuid
 - `album_listen_history.id`: uuid, `album_id`: bigint, 기기 컬럼(`source_id` / `dac_amp_id` / `dac_amp2_id` / `headphone_id`): integer
+- `headfi_match_cache`: `id` uuid, `base_gear_id` / `target_gear_id` integer, `combo_id` uuid
+- `headfi` 청음 평점 컬럼은 모두 smallint, NULL 허용, 기본값 없음
 - 그 외 테이블은 추측하지 말고 조회 후 확인한다.
 
 ---
@@ -141,6 +149,68 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 - 모바일은 기존 단일 컬럼 구조를 유지한다.
 - 하단 저장 버튼은 고정한다. 모달이 열린 동안 배경 스크롤은 잠그고, 저장 후 스크롤 위치가 바뀌지 않아야 한다.
 - 액세서리 선택 목록 표기: `제품명 | 가격`, 다른 기기에 연결된 경우 연결 기기를 모델명만(브랜드 제외) 표시한다.
+
+### 기기 상세 모달
+
+- 상위 탭: 기본 정보 / 청음 평가 / 추천 앨범 / 세팅.
+- 청음 평가 탭 안의 세그먼트: 청음 평가 / FR 그래프 / 외부 리뷰 / AI 분석.
+
+---
+
+## 청음 평가 규칙
+
+대상은 유선 헤드폰·이어폰이다. 무선·스피커 등 다른 카테고리로 바꿔 저장하면 청음 평가 값은 초기화(NULL)된다.
+
+### 성능 13개 (1~10 정수, 높을수록 좋음, 총점 없음)
+
+| 그룹 | 컬럼 |
+|------|------|
+| 저역 | `bass_quantity`, `bass_depth`, `bass_control` |
+| 중역 | `midrange_body` |
+| 고역 | `treble_airiness`, `treble_smoothness` |
+| 기술·공간 | `resolution`, `dynamic_range`, `separation`, `soundstage`, `imaging` |
+| 종합 | `musicality`, `listening_comfort` |
+
+- 점수 기준: 5 = 같은 가격대 평균, 7 = 가격대 대비 우수, 9 = 보유 기기 중 최상위급, 10 = 들어본 것 중 최고.
+- 양 계열 항목(`bass_quantity`, `midrange_body`, `treble_airiness`)은 "많을수록 좋음"이 아니라 "빈약하지 않은가"를 평가한다. 과다·치우침은 성향이 담당한다.
+- 신규 컬럼 DB CHECK: 1~10. (기존 승계 9개 컬럼에는 DB CHECK가 없고 앱에서 검증)
+
+### 성향 4개 (-2~+2 정수, 좋고 나쁨 없음, 평균·총점 제외)
+
+| 컬럼 | -2 | +2 |
+|------|----|----|
+| `trait_warmth` | 차가움 | 따뜻함 |
+| `trait_brightness` | 어두움 | 밝음 |
+| `trait_vocal_position` | 후방 | 전진 |
+| `trait_bass_decay` | 타이트 | 풍성 |
+
+- 신규 컬럼 DB CHECK: -2~+2.
+- **미입력은 NULL, 중립은 0이다.** `?? 0`, `|| 0`, `> 0`으로 두 값을 뭉개지 않는다. NULL은 "모르는 값"이며 AI에도 추정하지 않게 전달한다.
+
+### 표시
+
+- 레이더(성능 13축)는 13개를 모두 입력해야 표시한다. 일부만 입력하면 안내 문구만 보이고, 미입력 축을 0으로 그리지 않는다. 7점 우수선을 표시한다.
+- 그룹 평균은 입력된 항목만 평균하고 "n개 평가"를 함께 표시한다. 단일 총점은 만들지 않는다.
+- 성향은 점 표시 4줄과 한 줄 태그 요약(0·미입력은 요약에서 제외)이다. 성향은 레이더에 넣지 않는다.
+
+### 레거시 평점 컬럼 (사용 금지, 삭제하지 않음)
+
+`bass_speed`, `dynamics_slam`, `tone_warmth`, `vocal_position`, `midrange_clarity`, `treble_brightness`, `timbre`. 폼·표시·AI·포지션·매칭·기분 추천 어디에서도 읽지 않는다. 같은 이름의 의미 변경은 하지 않고, 의미가 바뀌는 항목은 새 컬럼으로 추가한다.
+
+### 평점을 쓰는 곳
+
+- 청음 AI 분석, 추천 앨범: 성능 13(품질 평가) + 성향 4(소리의 성격, 우열 아님)를 구분해 전달.
+- 매칭 점수: 후보 헤드폰 한 줄 요약의 저/중/고 밴드와 성향 4개, Musicality를 synergy 힌트로 사용.
+- 기분 추천: `trait_warmth`, `trait_brightness`, `soundstage`.
+- 포지션 맵: 유선 HP/IEM 좌표는 공식으로 계산한다 (`src/lib/headfiPosition.ts`). X는 `trait_warmth`와 `trait_brightness`, Y는 `resolution`·`separation`·`imaging` 평균 대비 `musicality`. 필요한 6개 값 중 하나라도 NULL이면 계산하지 않고 기존 좌표를 유지한다. AI(Gemini)는 라벨 문구만 생성한다. DAC/AMP 좌표는 출력 스펙 기반 AI 추정을 유지한다.
+- 평점 저장 시 해당 기기의 `headfi_match_cache`는 삭제된다. `ai_sound_analysis`, `position_*`, 앨범 추천 결과는 자동으로 갱신되지 않으며 각 새로고침 시 재생성된다.
+
+### 외부 리뷰와 AI 분석
+
+- 외부 리뷰 검색은 Gemini(Google Search 연동)만 담당한다. 결과 요약과 출처, 수집 시각을 `ai_review_summary`, `ai_review_sources`, `ai_review_fetched_at`에 저장한다. 출처는 검색 근거(grounding) URL만 저장하며 화면에는 표시하지 않는다.
+- 요약이 있으면 재검색하지 않는다. 갱신은 "리뷰 갱신" 버튼으로만 수행하며 일괄 실행 경로는 만들지 않는다. 요약 길이 상한이 있고, 모델명이 정확히 일치하는 리뷰만 사용한다.
+- 청음 AI 분석(Anthropic)은 스펙(확정 사실) + 성능/성향 + FR 해석(있을 때) + 외부 리뷰 요약(있을 때)을 입력으로 한다. 리뷰·FR이 없으면 해당 블록을 생략하고 "없음"으로 명시한다. 확정 사실(스펙)과 리뷰가 충돌하면 확정 사실이 우선하고, 청음 평가와 리뷰가 다르면 차이로 명시한다.
+- 검색(리뷰 수집)과 분석은 별도 요청으로 분리한다. 한 서버 요청에서 함께 수행하지 않는다 (타임아웃 방지).
 
 ---
 
@@ -181,15 +251,18 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
-GEMINI_MODEL=                # 선택. 미설정 시 aiModels.ts 기본값
 OPENAI_API_KEY=
-OPENAI_ARTIST_BIO_MODEL=     # 선택
-OPENAI_MATCH_SCORE_MODEL=    # 선택
 ANTHROPIC_API_KEY=
-ANTHROPIC_HEADFI_MODEL=      # 선택. 미설정 시 aiModels.ts 기본값
-ANTHROPIC_LYRICS_TRANSLATE_MODEL=  # 선택. 미설정 시 HEADFI → 기본값
 MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 필수 권장, 미설정 시 로그인 사용자 이메일 fallback)
+
+# (선택) 모델명 덮어쓰기 — 설정하면 src/lib/aiModels.ts 기본값보다 우선한다.
+ANTHROPIC_HEADFI_MODEL=
+ANTHROPIC_LYRICS_TRANSLATE_MODEL=   # 미설정 시 ANTHROPIC_HEADFI_MODEL → 상수 순으로 폴백
+OPENAI_ARTIST_BIO_MODEL=
+OPENAI_MATCH_SCORE_MODEL=
 ```
+
+- 모델을 교체할 때는 로컬 `.env.local`과 Vercel 환경변수에 옛 모델명이 남아 있지 않은지 함께 확인한다. 환경변수가 코드의 새 기본값을 덮어쓴다.
 
 ---
 
@@ -200,7 +273,7 @@ MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 �
 | `SETUP-` | 프로젝트 초기 세팅 |
 | `ALBUM-` | 앨범 / 무드 / 청취 이력 |
 | `RECORDSHELF-` | CD·LP·Cassette 실물 음반 |
-| `GEAR-` | 헤드파이 기기 (기기·조합·매칭·판매·액세서리) |
+| `GEAR-` | 헤드파이 기기 (기기·조합·매칭·판매·액세서리·청음 평가) |
 | `STATS-` | Insights 통계 |
 | `LYRICS-` | Lyrics 메뉴 |
 | `LYRICSTRANSLATE-` | 가사 번역 |
@@ -222,14 +295,32 @@ MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 �
 
 ---
 
-## AI (Gemini) 규칙
+## AI 규칙
 
-- Gemini API 호출은 반드시 try/catch로 감싼다
-- `withRetry` 헬퍼로 429 에러 처리 (retry delay는 에러 메시지에서 파싱)
+### 공통
+
+- AI API 호출은 반드시 try/catch로 감싼다. 실패 시 원인이 화면에 구분되어 보이게 한다 (예: 출력 길이 초과, 파싱 실패, 호출 실패).
+- 모델명은 `src/lib/aiModels.ts`에서만 정의한다. 다른 파일에 모델명 문자열을 하드코딩하지 않는다.
+- `withRetry` 헬퍼로 429/503 에러 처리 (최대 3회, retry delay는 에러 메시지에서 파싱)
 - AI 편향 방지: 후보 아이템 전달 전 random shuffle + slice 적용
-- 응답 JSON이 markdown 코드블록으로 감싸진 경우 파싱 전 제거
-- Gemini Vision (FR 해석): `resolveGeminiModel()` (`src/lib/aiModels.ts`), 이미지는 base64 또는 URL 전달
+- 네이티브 JSON 모드는 쓰지 않는다. 프롬프트에서 JSON을 요청하고, markdown 코드블록이나 잡텍스트는 파싱 전에 제거(`extractJsonObjectFromText` / `extractJsonArrayFromText`)한다.
+- 응답이 길어질 수 있는 호출은 `max_tokens` 한도에 걸려 JSON이 잘리는지 확인한다. 한도에 걸리면 `stop_reason`으로 구분해 "출력 길이 초과"로 처리하고, 프롬프트에 분량 가이드를 둔다.
+- 미입력(NULL) 값은 "모름"으로 전달하고 추정하게 하지 않는다.
+
+### Gemini
+
 - `googleSearch: {}` vs `googleSearchRetrieval: {}` — SDK 버전 확인 후 사용
+- 검색 출처 URL은 프롬프트로 생성하게 하지 않고 검색 근거(grounding) 메타데이터만 사용한다.
+- 외부 리뷰 검색, 앨범 소개, 장르 추천, 트랙리스트 등 검색이 필요한 기능은 Gemini가 담당한다.
+
+### Anthropic
+
+- 청음 AI 분석, 앨범 추천, FR 그래프 비전 해석, 가사 번역에 사용한다. 호출은 `thinking: disabled`로 한다.
+- FR 해석은 Anthropic 비전(이미지 + 텍스트)이다. Gemini Vision은 사용하지 않는다.
+
+### OpenAI
+
+- 매칭 점수는 Chat Completions, 아티스트 바이오는 Responses API + web_search를 사용한다.
 
 ---
 
