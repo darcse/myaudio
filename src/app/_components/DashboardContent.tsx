@@ -13,6 +13,7 @@ import { updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData } from '@/app/albums/types';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import type { Headfi } from '@/app/headfi/types';
+import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
 import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
@@ -104,72 +105,6 @@ const initialAlbumFormData: AlbumFormData = {
   owns_cassette: false,
 };
 
-const initialHeadfiFormData = {
-  brand: '',
-  model: '',
-  category: '',
-  type1: '',
-  type2: '',
-  impedance: '',
-  db1: '',
-  db2: '',
-  volume: '',
-  volume_type: '',
-  purchase_date: '',
-  price: '',
-  status1: '',
-  status2: '',
-  cable: '',
-  cable_price: '',
-  eartip: '',
-  eartip_price: '',
-  accessory: '',
-  accessory_price: '',
-  unit: '',
-  etc: '',
-  speaker_type1: '',
-  speaker_type2: '',
-  dap_spec: '',
-  dap_output: '',
-  matching: '',
-  pairing_combo_id: '',
-  gain: '',
-  temp: '',
-  bright: '',
-  bass_quantity: '',
-  bass_depth: '',
-  bass_speed: '',
-  dynamics_slam: '',
-  midrange_body: '',
-  tone_warmth: '',
-  vocal_position: '',
-  midrange_clarity: '',
-  treble_brightness: '',
-  treble_smoothness: '',
-  treble_airiness: '',
-  resolution: '',
-  separation: '',
-  soundstage: '',
-  imaging: '',
-  timbre: '',
-  bass_control: '',
-  dynamic_range: '',
-  musicality: '',
-  listening_comfort: '',
-  trait_warmth: '',
-  trait_brightness: '',
-  trait_vocal_position: '',
-  trait_bass_decay: '',
-  memo: '',
-  image_url: '',
-  fr_graph_url: '',
-  amp_type: '',
-  output_impedance: '',
-  chipset: '',
-  vrms_bal: '',
-  vrms_single: '',
-};
-
 function formYearsFromAlbum(year: Album['year']): string[] {
   if (year == null) return ['2026'];
   if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
@@ -203,15 +138,6 @@ function albumFormDataFromItem(item: Album): AlbumFormData {
     owns_lp: Boolean(item.owns_lp),
     owns_cassette: Boolean(item.owns_cassette),
   };
-}
-
-function headfiFormDataFromItem(item: Headfi) {
-  const normalizedEntries = Object.entries(item).map(([key, value]) => {
-    if (value === null || value === undefined) return [key, ''];
-    if (typeof value === 'number') return [key, String(value)];
-    return [key, value];
-  });
-  return { ...initialHeadfiFormData, ...Object.fromEntries(normalizedEntries) };
 }
 
 export function DashboardContent({
@@ -251,7 +177,7 @@ export function DashboardContent({
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
   const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
   const [editingHeadfi, setEditingHeadfi] = useState<Headfi | null>(null);
-  const [headfiFormData, setHeadfiFormData] = useState(initialHeadfiFormData);
+  const [headfiFormData, setHeadfiFormData] = useState(emptyHeadfiFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
@@ -449,7 +375,7 @@ export function DashboardContent({
     const item = viewingHeadfi;
     setViewingHeadfi(null);
     setEditingHeadfi(item);
-    setHeadfiFormData(headfiFormDataFromItem(item));
+    setHeadfiFormData(headfiToFormData(item));
   }, [viewingHeadfi, isAuthenticated]);
 
   const handleAlbumImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

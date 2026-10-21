@@ -46,86 +46,11 @@ import {
   triggerHeadfiDacAmpPositionAnalysis,
   useHeadfiDacAmpMapLazyAnalysis,
 } from '../useHeadfiDacAmpMapLazyAnalysis';
-
-const initialFormData = {
-  brand: '',
-  model: '',
-  category: '',
-  type1: '',
-  type2: '',
-  impedance: '',
-  db1: '',
-  db2: '',
-  volume: '',
-  volume_type: '',
-  purchase_date: '',
-  price: '',
-  status1: '',
-  status2: '',
-  cable: '',
-  cable_price: '',
-  eartip: '',
-  eartip_price: '',
-  accessory: '',
-  accessory_price: '',
-  unit: '',
-  etc: '',
-  speaker_type1: '',
-  speaker_type2: '',
-  dap_spec: '',
-  dap_output: '',
-  matching: '',
-  pairing_combo_id: '',
-  gain: '',
-  temp: '',
-  bright: '',
-  bass_quantity: '',
-  bass_depth: '',
-  bass_speed: '',
-  dynamics_slam: '',
-  midrange_body: '',
-  tone_warmth: '',
-  vocal_position: '',
-  midrange_clarity: '',
-  treble_brightness: '',
-  treble_smoothness: '',
-  treble_airiness: '',
-  resolution: '',
-  separation: '',
-  soundstage: '',
-  imaging: '',
-  timbre: '',
-  bass_control: '',
-  dynamic_range: '',
-  musicality: '',
-  listening_comfort: '',
-  trait_warmth: '',
-  trait_brightness: '',
-  trait_vocal_position: '',
-  trait_bass_decay: '',
-  memo: '',
-  image_url: '',
-  fr_graph_url: '',
-  amp_type: '',
-  output_impedance: '',
-  chipset: '',
-  vrms_bal: '',
-  vrms_single: '',
-};
+import { emptyHeadfiFormData, headfiToFormData } from '../utils';
 
 type ListSortOption = 'created_desc' | 'created_asc' | 'purchase_desc' | 'purchase_asc';
 
 const ITEMS_PER_PAGE = 20;
-
-function normalizeFormData(item: Headfi | null) {
-  const safeItem = item || {};
-  const normalizedEntries = Object.entries(safeItem).map(([key, value]) => {
-    if (value === null || value === undefined) return [key, ''];
-    if (typeof value === 'number') return [key, String(value)];
-    return [key, value];
-  });
-  return { ...initialFormData, ...Object.fromEntries(normalizedEntries) };
-}
 
 export function HeadfiLibraryContent() {
   const [library, setLibrary] = useState<Headfi[]>([]);
@@ -136,7 +61,7 @@ export function HeadfiLibraryContent() {
   const [selectedItem, setSelectedItem] = useState<SelectedHeadfi | null>(null);
   const [viewingItem, setViewingItem] = useState<Headfi | null>(null);
   const isAuthenticated = useAuthState();
-  const [formData, setFormData] = useState<HeadfiFormData>(initialFormData);
+  const [formData, setFormData] = useState<HeadfiFormData>(emptyHeadfiFormData);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -524,7 +449,7 @@ export function HeadfiLibraryContent() {
     }
     createdGearIdRef.current = null;
     setSelectedItem({ isManual: true });
-    setFormData(initialFormData);
+    setFormData(emptyHeadfiFormData);
   };
 
   const handleAccessoryRegisterOpen = () => {
@@ -593,7 +518,7 @@ export function HeadfiLibraryContent() {
       return;
     }
     setSelectedItem(viewingItem);
-    setFormData(normalizeFormData(viewingItem));
+    setFormData(viewingItem ? headfiToFormData(viewingItem) : emptyHeadfiFormData);
     handleCloseView();
   };
 

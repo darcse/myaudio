@@ -41,3 +41,5 @@
 [2026-10-21] [Cursor] style: 청음 평가 탭을 청음/AI/외부평가 세그먼트로 분리 | passes: 변경 없음
 [2026-10-21] [Cursor] style: FR를 청음 하위 세그먼트로 이동, 필을 청음/FR/리뷰/AI로 | passes: 변경 없음
 [2026-10-21] [Cursor] fix: 청음 AI 분석 max_tokens 2048·잘림/JSON 오류 구분 | passes: 변경 없음
+[2026-10-21] [Cursor] refactor: GEAR 검수 정리 후보 1~5 죽은 코드 제거 | passes: 변경 없음
+[2026-10-21] [Cursor] refactor: HeadfiFormData·emptySoundScores 레거시 키 제거 | passes: 변경 없음

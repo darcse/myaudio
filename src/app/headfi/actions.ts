@@ -28,20 +28,13 @@ function emptySoundScores() {
   return {
     bass_quantity: null as number | null,
     bass_depth: null as number | null,
-    bass_speed: null as number | null,
-    dynamics_slam: null as number | null,
     midrange_body: null as number | null,
-    tone_warmth: null as number | null,
-    vocal_position: null as number | null,
-    midrange_clarity: null as number | null,
-    treble_brightness: null as number | null,
     treble_smoothness: null as number | null,
     treble_airiness: null as number | null,
     resolution: null as number | null,
     separation: null as number | null,
     soundstage: null as number | null,
     imaging: null as number | null,
-    timbre: null as number | null,
     bass_control: null as number | null,
     dynamic_range: null as number | null,
     musicality: null as number | null,
@@ -63,13 +56,6 @@ function emptyDacColumns() {
   };
 }
 
-function accessoryFields(data: HeadfiFormData) {
-  return {
-    accessory: data.accessory?.trim() ?? '',
-    accessory_price: parseInt(data.accessory_price, 10) || 0,
-  };
-}
-
 function emptyWiredFields() {
   return {
     type1: '',
@@ -79,12 +65,6 @@ function emptyWiredFields() {
     db2: null as number | null,
     volume: '',
     volume_type: '',
-    cable: '',
-    cable_price: 0,
-    eartip: '',
-    eartip_price: 0,
-    accessory: '',
-    accessory_price: 0,
     unit: '',
     matching: '',
     pairing_combo_id: null as string | null,
@@ -145,7 +125,6 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
       etc: data.etc?.trim() ?? '',
       amp_type: data.amp_type?.trim() ?? '',
       output_impedance: optionalFiniteNumber(data.output_impedance),
@@ -159,7 +138,6 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
       chipset: data.chipset?.trim() ?? '',
       output_impedance: optionalFiniteNumber(data.output_impedance),
       vrms_bal: optionalFiniteNumber(data.vrms_bal),
@@ -173,7 +151,6 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
       speaker_type1: data.speaker_type1?.trim() ?? '',
       speaker_type2: data.speaker_type2?.trim() ?? '',
     };
@@ -183,11 +160,8 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
       type1: data.type1,
       type2: data.type2,
-      eartip: data.eartip?.trim() ?? '',
-      eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
     };
@@ -197,7 +171,6 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
       amp_type: data.amp_type?.trim() ?? '',
       output_impedance: optionalFiniteNumber(data.output_impedance),
       chipset: data.chipset?.trim() ?? '',
@@ -210,7 +183,6 @@ function mapHeadfiData(data: HeadfiFormData) {
     return {
       ...base,
       ...emptyWiredFields(),
-      ...accessoryFields(data),
     };
   }
 
@@ -224,10 +196,6 @@ function mapHeadfiData(data: HeadfiFormData) {
       db2: parseFloatOrNull(data.db2),
       volume: data.volume,
       volume_type: data.volume_type,
-      cable: data.cable,
-      cable_price: parseInt(data.cable_price, 10) || 0,
-      eartip: data.eartip?.trim() ?? '',
-      eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
       pairing_combo_id: data.pairing_combo_id?.trim() || null,
@@ -254,10 +222,6 @@ function mapHeadfiData(data: HeadfiFormData) {
       db2: parseFloatOrNull(data.db2),
       volume: '',
       volume_type: '',
-      cable: data.cable,
-      cable_price: parseInt(data.cable_price, 10) || 0,
-      eartip: data.eartip?.trim() ?? '',
-      eartip_price: parseInt(data.eartip_price, 10) || 0,
       unit: data.unit?.trim() ?? '',
       matching: data.matching,
       pairing_combo_id: data.pairing_combo_id?.trim() || null,

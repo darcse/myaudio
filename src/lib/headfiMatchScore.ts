@@ -183,21 +183,6 @@ export function buildHeadphoneListeningContextSections(items: Headfi[]): string 
   return `[후보 헤드폰/이어폰 청음·FR 상세 (있는 항목만)]\n\n${blocks.join('\n\n')}`;
 }
 
-export function buildHeadphoneBaseListeningContext(item: Headfi): {
-  sound_scores_block: string | null;
-  ai_sound_analysis: string | null;
-  fr_interpretation_block: string | null;
-} {
-  if (!isWiredHeadphoneEarphoneCategory(item.category)) {
-    return { sound_scores_block: null, ai_sound_analysis: null, fr_interpretation_block: null };
-  }
-  return {
-    sound_scores_block: buildHeadfiSoundScoresPromptBlock(item),
-    ai_sound_analysis: item.ai_sound_analysis?.trim() || null,
-    fr_interpretation_block: formatFrInterpretationForPrompt(item.fr_interpretation),
-  };
-}
-
 function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
   const exactName = formatExactGearName(item);
   const lines = [
