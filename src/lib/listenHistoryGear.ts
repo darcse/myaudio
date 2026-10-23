@@ -13,6 +13,10 @@ export const LISTEN_HISTORY_MEDIA_OPTIONS = [
 
 export type ListenHistoryMedia = (typeof LISTEN_HISTORY_MEDIA_OPTIONS)[number];
 
+const LISTEN_HISTORY_MEDIA_LABELS: { [K in ListenHistoryMedia]?: string } = {
+  FLAC: 'FLAC/MP3',
+};
+
 export function isListenHistoryMedia(value: string | null | undefined): value is ListenHistoryMedia {
   return (
     typeof value === 'string' &&
@@ -24,8 +28,12 @@ export function listenHistoryMediaForForm(value: string | null | undefined): Lis
   return isListenHistoryMedia(value) ? value : LISTEN_HISTORY_DEFAULT_MEDIA;
 }
 
-export function listenHistoryMediaDisplay(value: string | null | undefined): ListenHistoryMedia | null {
-  return isListenHistoryMedia(value) ? value : null;
+export function formatListenHistoryMediaLabel(value: string): string {
+  return isListenHistoryMedia(value) ? (LISTEN_HISTORY_MEDIA_LABELS[value] ?? value) : value;
+}
+
+export function listenHistoryMediaDisplay(value: string | null | undefined): string | null {
+  return isListenHistoryMedia(value) ? formatListenHistoryMediaLabel(value) : null;
 }
 
 export const LISTEN_HISTORY_SOURCE_CATEGORIES = ['Source', 'DAP'] as const;

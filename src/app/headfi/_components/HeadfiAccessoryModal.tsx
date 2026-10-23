@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type {
   HeadfiAccessory,
   HeadfiAccessoryFormData,
@@ -119,10 +120,13 @@ export function HeadfiAccessoryModal({
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [statusFilter, setStatusFilter] = useState<'전체' | HeadfiAccessoryStatus>('전체');
+  const [linkFilter, setLinkFilter] = useState<'전체' | '연결됨' | '미연결'>('전체');
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
   const [listNotice, setListNotice] = useState<string | null>(null);
   const wasOpenRef = useRef(false);
+
+  useLockBodyScroll(open);
 
   useEffect(() => {
     if (!open) {
@@ -134,6 +138,7 @@ export function HeadfiAccessoryModal({
     if (justOpened) {
       setCategoryFilter('전체');
       setStatusFilter('전체');
+      setLinkFilter('전체');
       setDiscardConfirmOpen(false);
       setPendingDeleteKey(null);
       setListNotice(null);
@@ -161,12 +166,18 @@ export function HeadfiAccessoryModal({
       persistedRows.filter((row) => {
         if (categoryFilter !== '전체' && row.originalCategory !== categoryFilter) return false;
         if (statusFilter !== '전체' && row.status !== statusFilter) return false;
+        if (linkFilter !== '전체') {
+          const linked = row.id != null && (linkedGearByAccessoryId[row.id]?.length ?? 0) > 0;
+          if (linkFilter === '연결됨' && !linked) return false;
+          if (linkFilter === '미연결' && linked) return false;
+        }
         return true;
       }),
-    [persistedRows, categoryFilter, statusFilter],
+    [persistedRows, categoryFilter, statusFilter, linkFilter, linkedGearByAccessoryId],
   );
   const displayedCount = filteredPersistedRows.length;
-  const hasActiveFilter = categoryFilter !== '전체' || statusFilter !== '전체';
+  const hasActiveFilter =
+    categoryFilter !== '전체' || statusFilter !== '전체' || linkFilter !== '전체';
 
   useEffect(() => {
     if (!listNotice) return;
@@ -191,8 +202,8 @@ export function HeadfiAccessoryModal({
   const categoryFilterBar = (
     <div className="flex flex-wrap items-center justify-between gap-3 py-1">
       <span className="shrink-0 text-sm font-medium tabular-nums opacity-70">총 {displayedCount}건</span>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
-        <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <label htmlFor="accessory-category-filter" className="shrink-0 text-xs font-semibold opacity-60">
             카테고리
           </label>
@@ -210,7 +221,7 @@ export function HeadfiAccessoryModal({
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <label htmlFor="accessory-status-filter" className="shrink-0 text-xs font-semibold opacity-60">
             상태
           </label>
@@ -226,6 +237,24 @@ export function HeadfiAccessoryModal({
             <option value="전체">전체</option>
             <option value="owned">보유중</option>
             <option value="released">방출</option>
+          </select>
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <label htmlFor="accessory-link-filter" className="shrink-0 text-xs font-semibold opacity-60">
+            기기 연결
+          </label>
+          <select
+            id="accessory-link-filter"
+            className="select-apple h-[34px] min-w-0 px-2.5 py-1.5 text-sm"
+            value={linkFilter}
+            onChange={(e) => {
+              const value = e.target.value;
+              setLinkFilter(value === '연결됨' || value === '미연결' ? value : '전체');
+            }}
+          >
+            <option value="전체">전체</option>
+            <option value="연결됨">연결됨</option>
+            <option value="미연결">미연결</option>
           </select>
         </div>
       </div>

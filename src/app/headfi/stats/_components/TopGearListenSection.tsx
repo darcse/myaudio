@@ -8,6 +8,7 @@ import {
   gearCategoryFilterLabel,
   formatPeriodLabel,
 } from '@/app/albums/stats/albumListenStats';
+import { formatListenHistoryMediaLabel } from '@/lib/listenHistoryGear';
 
 function filterToggleStyle(active: boolean): React.CSSProperties {
   return {
@@ -45,7 +46,7 @@ function GearRankRow({
   onClick?: () => void;
   leadingVisual?: (item: GearListenRankItem) => ReactNode;
 }) {
-  const name = `${item.brand} ${item.model}`.trim();
+  const name = `${item.brand} ${formatListenHistoryMediaLabel(item.model)}`.trim();
   const body = (
     <>
       <RankBadge rank={rank} />

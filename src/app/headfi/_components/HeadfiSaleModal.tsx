@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiAccessory, HeadfiSale, HeadfiSaleFormData } from '../types';
 import { formatKrw } from '../spendingStats';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
@@ -178,6 +179,8 @@ export function HeadfiSaleModal({
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [pendingDeleteKey, setPendingDeleteKey] = useState<string | null>(null);
+
+  useLockBodyScroll(open);
 
   useEffect(() => {
     if (!open) return;

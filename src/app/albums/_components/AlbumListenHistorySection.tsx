@@ -14,6 +14,7 @@ import {
   LISTEN_HISTORY_MEDIA_OPTIONS,
   LISTEN_HISTORY_RECEIVER_CATEGORIES,
   LISTEN_HISTORY_SOURCE_CATEGORIES,
+  formatListenHistoryMediaLabel,
   formatListenHistoryOptionLabel,
   listenHistoryMediaDisplay,
   listenHistoryMediaForForm,
@@ -488,7 +489,7 @@ export function AlbumListenHistorySection({
           >
             {LISTEN_HISTORY_MEDIA_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {formatListenHistoryMediaLabel(option)}
               </option>
             ))}
           </select>

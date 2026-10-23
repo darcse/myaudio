@@ -40,6 +40,7 @@ import {
   LISTEN_HISTORY_MEDIA_OPTIONS,
   LISTEN_HISTORY_RECEIVER_CATEGORIES,
   LISTEN_HISTORY_SOURCE_CATEGORIES,
+  formatListenHistoryMediaLabel,
   formatListenHistoryOptionLabel,
   listenHistoryMediaForForm,
   type ListenHistoryMedia,
@@ -683,7 +684,7 @@ export function AlbumDiaryContent() {
                       >
                         {LISTEN_HISTORY_MEDIA_OPTIONS.map((option) => (
                           <option key={option} value={option}>
-                            {option}
+                            {formatListenHistoryMediaLabel(option)}
                           </option>
                         ))}
                       </select>
