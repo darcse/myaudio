@@ -3,6 +3,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Music, RefreshCw } from 'lucide-react';
+import {
+  albumLotteryCoverAsAlbum,
+  fetchCatalogAlbumLotteryDraw,
+} from '../albumLotteryDraw';
 import type { Album } from '../types';
 
 function pickRandomAlbum(pool: Album[], exclude: Album | null = null): Album {
@@ -21,7 +25,8 @@ type LotteryPhase = 'idle' | 'spinning' | 'result';
 type AlbumLotteryModalProps = {
   open: boolean;
   onClose: () => void;
-  lotteryPool: Album[];
+  lotteryPool?: Album[];
+  mode?: 'pool' | 'catalog';
   yearLabel?: string;
   subtitle?: string;
   title?: string;
@@ -33,7 +38,8 @@ type AlbumLotteryModalProps = {
 export function AlbumLotteryModal({
   open,
   onClose,
-  lotteryPool,
+  lotteryPool = [],
+  mode = 'pool',
   yearLabel,
   subtitle,
   title = '랜덤 앨범 추천',
@@ -41,10 +47,14 @@ export function AlbumLotteryModal({
   emptyMessage = '추천할 앨범이 없습니다.',
   onAlbumClick,
 }: AlbumLotteryModalProps) {
+  const isCatalog = mode === 'catalog';
+  const showRedraw = !isCatalog;
   const [phase, setPhase] = useState<LotteryPhase>(autoStart ? 'spinning' : 'idle');
   const [spinAlbum, setSpinAlbum] = useState<Album | null>(null);
   const [resultAlbum, setResultAlbum] = useState<Album | null>(null);
   const [metaVisible, setMetaVisible] = useState(false);
+  const [catalogEmpty, setCatalogEmpty] = useState(false);
+  const [drawError, setDrawError] = useState<string | null>(null);
   const spinTimersRef = useRef<number[]>([]);
 
   const clearSpinTimers = useCallback(() => {
@@ -53,12 +63,12 @@ export function AlbumLotteryModal({
   }, []);
 
   const runSpinAnimation = useCallback(
-    (pool: Album[], exclude: Album | null) =>
+    (pool: Album[], finalAlbum: Album) =>
       new Promise<Album>((resolve) => {
         clearSpinTimers();
         setPhase('spinning');
         setMetaVisible(false);
-        const finalAlbum = pickRandomAlbum(pool, exclude);
+        const visualPool = pool.length > 0 ? pool : [finalAlbum];
         const totalSteps = 18 + Math.floor(Math.random() * 6);
         let step = 0;
 
@@ -70,14 +80,14 @@ export function AlbumLotteryModal({
             resolve(finalAlbum);
             return;
           }
-          setSpinAlbum(pickRandomAlbum(pool));
+          setSpinAlbum(pickRandomAlbum(visualPool));
           const delay = Math.min(40 + step * step * 5, 420);
           step += 1;
           const id = window.setTimeout(tick, delay);
           spinTimersRef.current.push(id);
         };
 
-        setSpinAlbum(pickRandomAlbum(pool));
+        setSpinAlbum(pickRandomAlbum(visualPool));
         tick();
       }),
     [clearSpinTimers],
@@ -85,10 +95,10 @@ export function AlbumLotteryModal({
 
   const startLottery = useCallback(
     (exclude: Album | null) => {
-      if (lotteryPool.length === 0) return;
-      void runSpinAnimation(lotteryPool, exclude);
+      if (isCatalog || lotteryPool.length === 0) return;
+      void runSpinAnimation(lotteryPool, pickRandomAlbum(lotteryPool, exclude));
     },
-    [lotteryPool, runSpinAnimation],
+    [isCatalog, lotteryPool, runSpinAnimation],
   );
 
   useEffect(() => () => clearSpinTimers(), [clearSpinTimers]);
@@ -100,8 +110,11 @@ export function AlbumLotteryModal({
       setSpinAlbum(null);
       setResultAlbum(null);
       setMetaVisible(false);
+      setCatalogEmpty(false);
+      setDrawError(null);
       return;
     }
+    if (isCatalog) return;
     if (lotteryPool.length === 0) return;
     if (autoStart) {
       startLottery(null);
@@ -111,7 +124,38 @@ export function AlbumLotteryModal({
       setResultAlbum(null);
       setMetaVisible(false);
     }
-  }, [open, autoStart, clearSpinTimers, lotteryPool.length, startLottery]);
+  }, [open, autoStart, clearSpinTimers, isCatalog, lotteryPool.length, startLottery]);
+
+  useEffect(() => {
+    if (!open || !isCatalog) return;
+    let cancelled = false;
+    setPhase('spinning');
+    setSpinAlbum(null);
+    setResultAlbum(null);
+    setMetaVisible(false);
+    setCatalogEmpty(false);
+    setDrawError(null);
+
+    void fetchCatalogAlbumLotteryDraw().then((draw) => {
+      if (cancelled) return;
+      if (draw.status === 'empty') {
+        setCatalogEmpty(true);
+        setPhase('idle');
+        return;
+      }
+      if (draw.status === 'error') {
+        setDrawError(draw.message);
+        setPhase('idle');
+        return;
+      }
+      const visualPool = draw.spinCovers.map(albumLotteryCoverAsAlbum);
+      void runSpinAnimation(visualPool, draw.winner);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isCatalog, runSpinAnimation]);
 
   const caption = subtitle ?? (yearLabel ? `${yearLabel} 기준` : null);
 
@@ -152,7 +196,7 @@ export function AlbumLotteryModal({
           <h2 id="album-lottery-title" className="section-title text-xl shrink-0">
             {title}
           </h2>
-          {lotteryPool.length > 0 && (autoStart || phase === 'result') ? (
+          {showRedraw && lotteryPool.length > 0 && (autoStart || phase === 'result') ? (
             <button
               type="button"
               disabled={phase === 'spinning'}
@@ -168,13 +212,17 @@ export function AlbumLotteryModal({
         </div>
         {caption ? <p className="text-sm opacity-70 mb-6">{caption}</p> : <div className="mb-6" />}
 
-        {lotteryPool.length === 0 ? (
+        {drawError ? (
+          <p className="text-center text-sm opacity-70 py-12">{drawError}</p>
+        ) : isCatalog && catalogEmpty ? (
+          <p className="text-center text-sm opacity-60 py-12">등록된 앨범이 없습니다.</p>
+        ) : !isCatalog && lotteryPool.length === 0 ? (
           <p className="text-center text-sm opacity-60 py-12">{emptyMessage}</p>
         ) : lotteryPool.length === 1 && !autoStart ? (
           <p className="mb-4 text-center text-xs opacity-60">이 무드에 속한 앨범이 1장입니다.</p>
         ) : null}
 
-        {lotteryPool.length > 0 ? (
+        {drawError || catalogEmpty || (!isCatalog && lotteryPool.length === 0) ? null : isCatalog || lotteryPool.length > 0 ? (
           <>
             {phase === 'idle' ? (
               <div className="flex flex-col items-center gap-6">
@@ -259,6 +307,20 @@ export function AlbumLotteryModal({
                   </div>
                 ) : null}
               </button>
+            ) : phase === 'spinning' ? (
+              <div className="flex flex-col items-center">
+                <div
+                  className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-xl"
+                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', background: 'var(--badge-bg)' }}
+                >
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Music className="size-16 opacity-30" strokeWidth={1.5} aria-hidden />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <span className="text-sm font-semibold text-white">추천 중…</span>
+                  </div>
+                </div>
+              </div>
             ) : null}
           </>
         ) : null}

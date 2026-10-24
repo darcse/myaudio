@@ -47,3 +47,4 @@
 [2026-10-23] [Cursor] fix: 액세서리·판매 관리 모달 배경 스크롤 잠금 | passes: 변경 없음
 [2026-10-23] [Cursor] feat: 액세서리 관리 모달에 기기 연결 여부 필터 | passes: 변경 없음
 [2026-10-23] [Cursor] style: 청취 이력 Media FLAC 표시명을 FLAC/MP3로 | passes: 변경 없음
+[2026-10-24] [Cursor] feat: ALBUM-037 앨범 메뉴 랜덤 추천(전체 추첨) | passes: 변경 없음

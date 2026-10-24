@@ -13,7 +13,7 @@ import { AlbumList } from './AlbumList';
 import { AlbumMoodboard } from './AlbumMoodboard';
 import { AlbumGenreboard } from './AlbumGenreboard';
 import type { LibraryViewMode } from './albumBoardShared';
-import { MoodRecommendModal } from './MoodRecommendModal';
+import { AlbumLotteryModal } from './AlbumLotteryModal';
 import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
 import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumPageHeader } from './AlbumPageHeader';
@@ -111,7 +111,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     { id: number; brand: string; model: string; image_url?: string | null }[]
   >([]);
   const [audioTags, setAudioTags] = useState<string[]>([]);
-  const [moodModalOpen, setMoodModalOpen] = useState(false);
+  const [randomLotteryOpen, setRandomLotteryOpen] = useState(false);
   const [tasteModalOpen, setTasteModalOpen] = useState(false);
   const [tasteResult, setTasteResult] = useState<TasteResult | null>(null);
   const [tasteLoading, setTasteLoading] = useState(false);
@@ -155,7 +155,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
 
   useEffect(() => {
     const panel = searchParams.get('panel');
-    if (panel === 'mood') setMoodModalOpen(true);
+    if (panel === 'random') setRandomLotteryOpen(true);
   }, [searchParams]);
 
   useEffect(() => {
@@ -519,7 +519,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
         showAlbumNav={!physicalOwnedOnly}
         isAuthenticated={isAuthenticated}
         showRegister={!physicalOwnedOnly}
-        onMoodClick={physicalOwnedOnly ? undefined : () => setMoodModalOpen(true)}
+        onRandomClick={physicalOwnedOnly ? undefined : () => setRandomLotteryOpen(true)}
         onTasteClick={physicalOwnedOnly ? undefined : () => void handleAnalyzeTaste()}
         onRegisterClick={physicalOwnedOnly ? undefined : handleManualRegister}
       />
@@ -642,15 +642,14 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
         />
       )}
 
-      {moodModalOpen && (
-        <MoodRecommendModal
-          onClose={() => setMoodModalOpen(false)}
-          onAlbumClick={(albumId) => {
-            const album = library.find((a) => a.id === albumId);
-            if (album) openAlbumDetail(album);
-          }}
-        />
-      )}
+      <AlbumLotteryModal
+        open={randomLotteryOpen}
+        mode="catalog"
+        onClose={() => setRandomLotteryOpen(false)}
+        onAlbumClick={(album) => {
+          openAlbumDetail(album);
+        }}
+      />
 
       {viewingItem && (
         <AlbumDetailModal

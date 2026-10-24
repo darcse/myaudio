@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen, ChevronLeft, Disc, Sparkles } from 'lucide-react';
+import { BookOpen, ChevronLeft, Disc, Shuffle, Sparkles } from 'lucide-react';
 
 export type AlbumNavId = 'diary';
 
@@ -14,7 +14,7 @@ type AlbumPageHeaderProps = {
   isAuthenticated: boolean | null;
   showRegister?: boolean;
   showDivider?: boolean;
-  onMoodClick?: () => void;
+  onRandomClick?: () => void;
   onTasteClick?: () => void;
   onRegisterClick?: () => void;
 };
@@ -32,11 +32,11 @@ export function AlbumPageHeader({
   isAuthenticated,
   showRegister = false,
   showDivider = false,
-  onMoodClick,
+  onRandomClick,
   onTasteClick,
   onRegisterClick,
 }: AlbumPageHeaderProps) {
-  const moodHref = '/albums?panel=mood';
+  const randomHref = '/albums?panel=random';
   const tasteHref = '/albums?panel=taste';
 
   return (
@@ -55,20 +55,20 @@ export function AlbumPageHeader({
           <BookOpen className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
           <span className="hidden sm:inline">다이어리</span>
         </Link>
-        {onMoodClick ? (
+        {onRandomClick ? (
           <button
             type="button"
             className={navButtonClass(false)}
-            onClick={onMoodClick}
-            aria-label="기분 추천"
+            onClick={onRandomClick}
+            aria-label="랜덤 추천"
           >
-            <span className="text-base leading-none">🎵</span>
-            <span className="hidden sm:inline">기분 추천</span>
+            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+            <span className="hidden sm:inline">랜덤 추천</span>
           </button>
         ) : (
-          <Link href={moodHref} className={navButtonClass(false)} aria-label="기분 추천">
-            <span className="text-base leading-none">🎵</span>
-            <span className="hidden sm:inline">기분 추천</span>
+          <Link href={randomHref} className={navButtonClass(false)} aria-label="랜덤 추천">
+            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+            <span className="hidden sm:inline">랜덤 추천</span>
           </Link>
         )}
         {onTasteClick ? (
