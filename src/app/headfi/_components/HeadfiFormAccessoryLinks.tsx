@@ -13,6 +13,7 @@ type HeadfiFormAccessoryLinksProps = {
   onSelectedIdsChange: (ids: string[]) => void;
   accessories: HeadfiAccessory[];
   linkedGear: HeadfiAccessoryLinkedGear[];
+  linksLoading?: boolean;
   currentHeadfiId: number | null;
   onAccessoryCreated: (item: HeadfiAccessory) => void;
 };
@@ -36,6 +37,7 @@ export function HeadfiFormAccessoryLinks({
   onSelectedIdsChange,
   accessories,
   linkedGear,
+  linksLoading = false,
   currentHeadfiId,
   onAccessoryCreated,
 }: HeadfiFormAccessoryLinksProps) {
@@ -162,13 +164,21 @@ export function HeadfiFormAccessoryLinks({
             setRegisterOpen(false);
             setRegisterError(null);
           }}
+          disabled={linksLoading}
         >
           <Plus className="size-3.5" strokeWidth={1.75} />
           액세서리 추가
         </button>
       </div>
 
-      {selectedItems.length === 0 ? (
+      {linksLoading ? (
+        <div className="flex items-center py-1" role="status" aria-label="액세서리 연결 불러오는 중">
+          <div
+            className="h-4 w-4 animate-spin rounded-full border-2"
+            style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
+          />
+        </div>
+      ) : selectedItems.length === 0 ? (
         <p className="text-sm opacity-60">연결된 액세서리가 없습니다.</p>
       ) : (
         <ul className="space-y-1.5">
@@ -244,8 +254,8 @@ export function HeadfiFormAccessoryLinks({
                           return (
                             <span key={gear.headfi_id} className="mt-0.5 flex min-w-0 items-center gap-1 text-xs opacity-60">
                               <span className="min-w-0 truncate">{model}</span>
-                              {gear.status2 === '방출' ? (
-                                <span className="shrink-0 text-[10px] font-semibold">방출</span>
+                              {gear.status2 === '방출' || gear.status2 === '양도' ? (
+                                <span className="shrink-0 text-[10px] font-semibold">{gear.status2}</span>
                               ) : null}
                             </span>
                           );

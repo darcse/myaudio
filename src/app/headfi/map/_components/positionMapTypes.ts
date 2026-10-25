@@ -38,5 +38,5 @@ export type ActivePopover = {
   items: Headfi[];
 };
 
-export type StatusFilter = '전체' | '보유중' | '방출';
+export type StatusFilter = '전체' | '보유중' | '방출' | '양도';
 export type CategoryFilter = '전체' | '헤드폰' | '이어폰';

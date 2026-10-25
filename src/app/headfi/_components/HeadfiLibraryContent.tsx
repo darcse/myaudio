@@ -16,6 +16,7 @@ import {
   updateHeadfiSaleInDB,
   uploadHeadfiDeviceImage,
 } from '../actions';
+import { applyGearAccessoryLinks } from '../accessoryLinksCache';
 import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { computeWiredPositionCoords, isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
@@ -56,6 +57,7 @@ export function HeadfiLibraryContent() {
   const [library, setLibrary] = useState<Headfi[]>([]);
   const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
   const [accessoryLinkedGear, setAccessoryLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>([]);
+  const [accessoryCacheReady, setAccessoryCacheReady] = useState(false);
   const [sales, setSales] = useState<HeadfiSale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<SelectedHeadfi | null>(null);
@@ -122,8 +124,9 @@ export function HeadfiLibraryContent() {
   const fetchAccessoryLinkedGear = useCallback(async () => {
     try {
       setAccessoryLinkedGear(await listHeadfiAccessoryLinkedGear());
+      return true;
     } catch {
-      setAccessoryLinkedGear([]);
+      return false;
     }
   }, []);
 
@@ -152,12 +155,16 @@ export function HeadfiLibraryContent() {
   }, [fetchLibrary]);
 
   useEffect(() => {
-    void fetchAccessories();
-  }, [fetchAccessories]);
-
-  useEffect(() => {
-    void fetchAccessoryLinkedGear();
-  }, [fetchAccessoryLinkedGear]);
+    let cancelled = false;
+    void Promise.all([fetchAccessories(), fetchAccessoryLinkedGear()]).then(([, linkedOk]) => {
+      if (cancelled) return;
+      if (!linkedOk) setAccessoryLinkedGear([]);
+      setAccessoryCacheReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchAccessories, fetchAccessoryLinkedGear]);
 
   useEffect(() => {
     void fetchSales();
@@ -779,9 +786,21 @@ export function HeadfiLibraryContent() {
           }}
           onSave={handleSave}
           onSaved={() => void handleSaveFinished()}
+          accessories={accessories}
+          linkedGear={accessoryLinkedGear}
+          accessoryCacheReady={accessoryCacheReady}
           onAccessoriesMutated={() => {
             void fetchAccessories();
             void fetchAccessoryLinkedGear();
+          }}
+          onAccessoryLinksCommitted={(headfiId, accessoryIds) => {
+            setAccessoryLinkedGear((prev) =>
+              applyGearAccessoryLinks(prev, headfiId, accessoryIds, {
+                brand: formData.brand,
+                model: formData.model,
+                status2: formData.status2 || null,
+              }),
+            );
           }}
           onImageUpload={handleImageUpload}
           onFrGraphFileChange={handleFrGraphFileChange}
@@ -903,6 +922,10 @@ export function HeadfiLibraryContent() {
           matchedMatchingDevice={matchedMatchingDevice}
           pairingComboLabel={viewingPairingComboLabel}
           matchedHeadphones={matchedHeadphones}
+          accessories={accessories}
+          linkedGear={accessoryLinkedGear}
+          accessoryCacheReady={accessoryCacheReady}
+          sales={sales}
           onClose={handleCloseView}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}

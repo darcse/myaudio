@@ -491,8 +491,8 @@ export function HeadfiAccessoryModal({
                     style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
                   >
                     <span className="min-w-0 truncate">{gearDisplayName(item)}</span>
-                    {item.status2 === '방출' ? (
-                      <span className="shrink-0 text-[10px] font-semibold opacity-70">방출</span>
+                    {item.status2 === '방출' || item.status2 === '양도' ? (
+                      <span className="shrink-0 text-[10px] font-semibold opacity-70">{item.status2}</span>
                     ) : null}
                   </li>
                 ))}

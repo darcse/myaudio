@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Cable, CircleDollarSign, List, X } from 'lucide-react';
 import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
+import { isHeadfiOutOfCollectionStatus } from '../headfiStatus';
 import type { Headfi } from '../types';
 
 type HeadfiListProps = {
@@ -217,6 +218,7 @@ export function HeadfiList({
             <option value="전체">상태: 전체</option>
             <option value="보유중">보유중</option>
             <option value="방출">방출</option>
+            <option value="양도">양도</option>
           </select>
           <select
             className="select-apple px-3 py-2 text-sm h-[38px]"
@@ -298,14 +300,18 @@ export function HeadfiList({
                       type="button"
                       className="text-xs font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
                       style={{
-                        color: item.status2 === '방출' ? 'var(--muted)' : '#005bc1',
+                        color: isHeadfiOutOfCollectionStatus(item.status2) ? 'var(--muted)' : '#005bc1',
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (item.status2) setListStatusFilter(item.status2);
                       }}
                     >
-                      {item.status2 === '방출' ? 'Archived' : 'In Collection'}
+                      {item.status2 === '양도'
+                        ? '양도'
+                        : isHeadfiOutOfCollectionStatus(item.status2)
+                          ? 'Archived'
+                          : 'In Collection'}
                     </button>
                   </div>
                 </div>

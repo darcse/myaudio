@@ -7,8 +7,10 @@ import { Headphones, SlidersHorizontal } from 'lucide-react';
 import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import { createClient } from '@/lib/supabase/client';
 import { listHeadfiAccessoryLinks } from '../actions';
+import { displayLinkedAccessoriesForGear } from '../accessoryLinksCache';
+import { HEADFI_STATUS2_RELEASED, formatHeadfiStatus2Display, latestHeadfiGearSalePrice } from '../headfiStatus';
 import { formatKrw } from '../spendingStats';
-import type { Headfi, HeadfiAccessory } from '../types';
+import type { Headfi, HeadfiAccessory, HeadfiAccessoryLinkedGear, HeadfiSale } from '../types';
 import {
   HEADFI_DAC_AMP_LABELS,
   formatAmpTypeDisplay,
@@ -16,17 +18,45 @@ import {
   formatVrms,
 } from '../dacAmpSpec';
 
-function HeadfiLinkedAccessories({ headfiId }: { headfiId: number }) {
+function AccessoryLinksSpinner() {
+  return (
+    <span className="ml-2 inline-flex align-middle" role="status" aria-label="액세서리 연결 불러오는 중">
+      <span
+        className="inline-block size-3.5 animate-spin rounded-full border-2"
+        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
+      />
+    </span>
+  );
+}
+
+function HeadfiLinkedAccessories({
+  headfiId,
+  accessories,
+  linkedGear,
+  accessoryCacheReady,
+}: {
+  headfiId: number;
+  accessories?: HeadfiAccessory[];
+  linkedGear?: HeadfiAccessoryLinkedGear[];
+  accessoryCacheReady?: boolean;
+}) {
+  const useCache = accessoryCacheReady !== undefined;
   const [rows, setRows] = useState<{ id: string; name: string; price: number | null; released: boolean }[]>([]);
+  const [loading, setLoading] = useState(!useCache);
 
   useEffect(() => {
+    if (useCache) return;
     let cancelled = false;
+    setLoading(true);
     void (async () => {
       try {
         const links = await listHeadfiAccessoryLinks();
         const accessoryIds = links.filter((link) => link.headfi_id === headfiId).map((link) => link.accessory_id);
         if (accessoryIds.length === 0) {
-          if (!cancelled) setRows([]);
+          if (!cancelled) {
+            setRows([]);
+            setLoading(false);
+          }
           return;
         }
         const client = createClient();
@@ -44,23 +74,34 @@ function HeadfiLinkedAccessories({ headfiId }: { headfiId: number }) {
               released: item.status === 'released',
             })),
         );
+        setLoading(false);
       } catch {
-        if (!cancelled) setRows([]);
+        if (!cancelled) {
+          setRows([]);
+          setLoading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [headfiId]);
+  }, [headfiId, useCache]);
+
+  const displayRows = useCache
+    ? displayLinkedAccessoriesForGear(headfiId, accessories ?? [], linkedGear ?? [])
+    : rows;
+  const showLoading = useCache ? accessoryCacheReady === false : loading;
 
   return (
     <div className="col-span-2">
       <strong>연결된 액세서리:</strong>
-      {rows.length === 0 ? (
+      {showLoading ? (
+        <AccessoryLinksSpinner />
+      ) : displayRows.length === 0 ? (
         <span> -</span>
       ) : (
         <ul className="mt-1 space-y-1">
-          {rows.map((row) => (
+          {displayRows.map((row) => (
             <li key={row.id} className="text-sm">
               {row.name} | {row.price != null && Number.isFinite(Number(row.price)) ? formatKrw(Number(row.price)) : '0원'}
               {row.released ? <span className="ml-2 text-xs opacity-60">방출</span> : null}
@@ -77,10 +118,38 @@ type HeadfiInfoSectionProps = {
   matchedMatchingDevice: { id: number; brand: string; model: string } | null;
   pairingComboLabel?: string | null;
   matchedHeadphones: { id: number; brand: string; model: string; category: string; image_url?: string | null }[];
+  accessories?: HeadfiAccessory[];
+  linkedGear?: HeadfiAccessoryLinkedGear[];
+  accessoryCacheReady?: boolean;
+  sales?: HeadfiSale[];
   variant?: 'default' | 'tab';
 };
 
-export function HeadfiInfoHeroSection({ viewingItem }: Pick<HeadfiInfoSectionProps, 'viewingItem'>) {
+function HeadfiPurchaseInfoLine({
+  viewingItem,
+  sales = [],
+}: {
+  viewingItem: Headfi;
+  sales?: HeadfiSale[];
+}) {
+  const salePrice =
+    viewingItem.status2 === HEADFI_STATUS2_RELEASED
+      ? latestHeadfiGearSalePrice(sales, viewingItem.id)
+      : null;
+  return (
+    <p>
+      <strong>구매 정보:</strong>{' '}
+      {viewingItem.status1 || '-'} /{' '}
+      {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
+      <span className="font-semibold">{formatHeadfiStatus2Display(viewingItem.status2, salePrice)}</span>
+    </p>
+  );
+}
+
+export function HeadfiInfoHeroSection({
+  viewingItem,
+  sales,
+}: Pick<HeadfiInfoSectionProps, 'viewingItem' | 'sales'>) {
   return (
     <div className="flex flex-col gap-6 px-6 pt-3 sm:flex-row">
       {viewingItem.image_url ? (
@@ -96,12 +165,7 @@ export function HeadfiInfoHeroSection({ viewingItem }: Pick<HeadfiInfoSectionPro
         <p><strong>모델명:</strong> {viewingItem.model}</p>
         <p><strong>카테고리:</strong> {viewingItem.category}</p>
         <p><strong>구입일:</strong> {viewingItem.purchase_date || '-'}</p>
-        <p>
-          <strong>구매 정보:</strong>{' '}
-          {viewingItem.status1 || '-'} /{' '}
-          {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
-          <span className="font-semibold">{viewingItem.status2 || '-'}</span>
-        </p>
+        <HeadfiPurchaseInfoLine viewingItem={viewingItem} sales={sales} />
       </div>
     </div>
   );
@@ -112,6 +176,10 @@ export function HeadfiInfoSection({
   matchedMatchingDevice,
   pairingComboLabel = null,
   matchedHeadphones,
+  accessories,
+  linkedGear,
+  accessoryCacheReady,
+  sales,
   variant = 'default',
 }: HeadfiInfoSectionProps) {
   const cat = viewingItem.category;
@@ -171,12 +239,7 @@ export function HeadfiInfoSection({
             <p><strong>모델명:</strong> {viewingItem.model}</p>
             <p><strong>카테고리:</strong> {viewingItem.category}</p>
             <p><strong>구입일:</strong> {viewingItem.purchase_date || '-'}</p>
-            <p>
-              <strong>구매 정보:</strong>{' '}
-              {viewingItem.status1 || '-'} /{' '}
-              {viewingItem.price ? `${Number(viewingItem.price).toLocaleString()}원` : '-'} /{' '}
-              <span className="font-semibold">{viewingItem.status2 || '-'}</span>
-            </p>
+            <HeadfiPurchaseInfoLine viewingItem={viewingItem} sales={sales} />
           </div>
         </div>
       ) : null}
@@ -293,7 +356,12 @@ export function HeadfiInfoSection({
                 </div>
               </>
             ) : null}
-            <HeadfiLinkedAccessories headfiId={viewingItem.id} />
+            <HeadfiLinkedAccessories
+              headfiId={viewingItem.id}
+              accessories={accessories}
+              linkedGear={linkedGear}
+              accessoryCacheReady={accessoryCacheReady}
+            />
             {(isWired || isWireless || isSpeaker || showDacAmpSpecView || isDap || isSourceOrEtc) &&
             viewingItem.etc?.trim() ? (
               <p className="col-span-2"><strong>기타:</strong> {viewingItem.etc.trim()}</p>

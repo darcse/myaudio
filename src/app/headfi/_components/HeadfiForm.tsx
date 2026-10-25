@@ -8,6 +8,7 @@ import { HEADFI_CATEGORY_OPTIONS } from '@/lib/headfiMatchScore';
 import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { listHeadfiAccessoryLinkedGear, syncHeadfiAccessoryLinks } from '../actions';
+import { accessoryIdsLinkedToGear } from '../accessoryLinksCache';
 import type { HeadfiAccessory, HeadfiAccessoryLinkedGear } from '../types';
 import { HeadfiFormAccessoryLinks } from './HeadfiFormAccessoryLinks';
 import { HeadfiFormDacAmpSection } from './HeadfiFormDacAmpSection';
@@ -43,6 +44,10 @@ export function HeadfiForm({
   onSave,
   onSaved,
   onAccessoriesMutated,
+  onAccessoryLinksCommitted,
+  accessories: accessoriesProp,
+  linkedGear: linkedGearProp,
+  accessoryCacheReady,
   onImageUpload,
   onFrGraphFileChange,
   isSaving = false,
@@ -50,32 +55,59 @@ export function HeadfiForm({
   const { hasCategory, isWired, isWireless, isSpeaker, isDap, isSourceOrEtc, isSource, showDacAmpSpecForm } =
     getHeadfiFormCategoryFlags(formData.category);
   const gearId = 'id' in selectedItem && selectedItem.id ? Number(selectedItem.id) : null;
-  const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
-  const [linkedGear, setLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>([]);
+  const usingAccessoryCache = accessoryCacheReady !== undefined;
+  const [accessories, setAccessories] = useState<HeadfiAccessory[]>(accessoriesProp ?? []);
+  const [linkedGear, setLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>(linkedGearProp ?? []);
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
+  const [linksLoading, setLinksLoading] = useState(usingAccessoryCache ? !accessoryCacheReady : true);
   const [linkSaving, setLinkSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<HeadfiFormTab>('basic');
   const [listenError, setListenError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!usingAccessoryCache) return;
+    if (accessoriesProp) setAccessories(accessoriesProp);
+    if (linkedGearProp) setLinkedGear(linkedGearProp);
+    setLinksLoading(!accessoryCacheReady);
+    if (!accessoryCacheReady) return;
+    setSelectedAccessoryIds((prev) => {
+      if (prev.length > 0) return prev;
+      if (gearId == null) return [];
+      return accessoryIdsLinkedToGear(linkedGearProp ?? [], gearId);
+    });
+  }, [usingAccessoryCache, accessoryCacheReady, accessoriesProp, linkedGearProp, gearId]);
+
+  useEffect(() => {
+    if (usingAccessoryCache) return;
+    let cancelled = false;
+    setLinksLoading(true);
     const client = createClient();
     void client
       .from('headfi_accessories')
       .select('*')
-      .then(({ data }) => setAccessories((data as HeadfiAccessory[]) || []));
+      .then(({ data }) => {
+        if (!cancelled) setAccessories((data as HeadfiAccessory[]) || []);
+      });
     void listHeadfiAccessoryLinkedGear()
       .then((rows) => {
+        if (cancelled) return;
         setLinkedGear(rows);
         setSelectedAccessoryIds((prev) => {
           if (prev.length > 0) return prev;
           if (gearId == null) return [];
-          return rows.filter((row) => row.headfi_id === gearId).map((row) => row.accessory_id);
+          return accessoryIdsLinkedToGear(rows, gearId);
         });
+        setLinksLoading(false);
       })
       .catch(() => {
+        if (cancelled) return;
         setLinkedGear([]);
+        setLinksLoading(false);
       });
-  }, [gearId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [usingAccessoryCache, gearId]);
 
   useEffect(() => {
     if (!hasCategory || (!isWired && activeTab === 'analysis')) {
@@ -106,6 +138,7 @@ export function HeadfiForm({
         toast.error(getClientErrorMessage(error) || '액세서리 연결 저장에 실패했습니다.');
         return;
       }
+      onAccessoryLinksCommitted?.(Number(savedId), selectedAccessoryIds);
       onSaved?.();
     } finally {
       setLinkSaving(false);
@@ -284,6 +317,7 @@ export function HeadfiForm({
                   onSelectedIdsChange={setSelectedAccessoryIds}
                   accessories={accessories}
                   linkedGear={linkedGear}
+                  linksLoading={linksLoading}
                   currentHeadfiId={gearId}
                   onAccessoryCreated={(item) => {
                     setAccessories((prev) => [item, ...prev.filter((row) => row.id !== item.id)]);

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { createClient } from '@/lib/supabase/client';
 import { DeletingLabel } from '@/components/AsyncMutationUi';
-import type { Headfi } from '../types';
+import type { Headfi, HeadfiAccessory, HeadfiAccessoryLinkedGear, HeadfiSale } from '../types';
 import { HeadfiInfoSection, HeadfiInfoHeroSection } from './HeadfiInfoSection';
 import { HeadfiRadarSection } from './HeadfiRadarSection';
 import { HeadfiMatchedAlbumsSection } from './HeadfiMatchedAlbumsSection';
@@ -25,6 +25,10 @@ type HeadfiDetailModalProps = {
   matchedMatchingDevice: { id: number; brand: string; model: string } | null;
   pairingComboLabel?: string | null;
   matchedHeadphones: { id: number; brand: string; model: string; category: string; image_url?: string | null }[];
+  accessories?: HeadfiAccessory[];
+  linkedGear?: HeadfiAccessoryLinkedGear[];
+  accessoryCacheReady?: boolean;
+  sales?: HeadfiSale[];
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -64,6 +68,10 @@ export function HeadfiDetailModal({
   matchedMatchingDevice,
   pairingComboLabel = null,
   matchedHeadphones,
+  accessories,
+  linkedGear,
+  accessoryCacheReady,
+  sales,
   onClose,
   onEdit,
   onDelete,
@@ -212,7 +220,7 @@ export function HeadfiDetailModal({
             <h2 className="section-title pr-10 text-xl">{viewingItem.model}</h2>
           </div>
 
-          <HeadfiInfoHeroSection viewingItem={viewingItem} />
+          <HeadfiInfoHeroSection viewingItem={viewingItem} sales={sales} />
 
           <div className="mt-4 shrink-0 border-b px-6" style={{ borderColor: 'var(--border)' }}>
             <div className="-mb-px flex items-center justify-between gap-1.5 sm:gap-2">
@@ -299,6 +307,10 @@ export function HeadfiDetailModal({
                     matchedMatchingDevice={matchedMatchingDevice}
                     pairingComboLabel={pairingComboLabel}
                     matchedHeadphones={matchedHeadphones}
+                    accessories={accessories}
+                    linkedGear={linkedGear}
+                    accessoryCacheReady={accessoryCacheReady}
+                    sales={sales}
                     variant="tab"
                   />
                   <HeadfiRadarSection

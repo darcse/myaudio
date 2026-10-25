@@ -99,6 +99,7 @@ export function HeadfiFormPurchaseStatusRow({ formData, setFormData }: HeadfiFor
           <option value="">선택</option>
           <option value="보유중">보유중</option>
           <option value="방출">방출</option>
+          <option value="양도">양도</option>
         </select>
       </div>
     </>

@@ -66,7 +66,7 @@ export default async function Home() {
     await Promise.all([
       supabase.from('album').select('*', { count: 'exact', head: true }),
       supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
-      supabase.from('headfi').select('category, status2').neq('status2', '방출'),
+      supabase.from('headfi').select('category, status2').not('status2', 'in', '(방출,양도)'),
       supabase.from('album_listen_history').select('*', { count: 'exact', head: true }),
       supabase
         .from('album_listen_history')

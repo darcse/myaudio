@@ -48,3 +48,7 @@
 [2026-10-23] [Cursor] feat: 액세서리 관리 모달에 기기 연결 여부 필터 | passes: 변경 없음
 [2026-10-23] [Cursor] style: 청취 이력 Media FLAC 표시명을 FLAC/MP3로 | passes: 변경 없음
 [2026-10-24] [Cursor] feat: ALBUM-037 앨범 메뉴 랜덤 추천(전체 추첨) | passes: 변경 없음
+[2026-10-25] [Cursor] 조사: 헤드파이 기기 모달 액세서리 연결 표시 지연 (코드만, 수정 없음) | passes: 변경 없음
+[2026-10-25] [Cursor] fix: 헤드파이 상세·폼 액세서리 연결을 부모 캐시로 표시 | passes: 변경 없음
+[2026-10-25] [Cursor] feat: headfi.status2에 양도 추가, 판매관리에서 제외 | passes: 변경 없음
+[2026-10-25] [Cursor] feat: 상세 구매정보에 방출(판매가) 표시 | passes: 변경 없음

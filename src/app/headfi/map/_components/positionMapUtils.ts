@@ -31,7 +31,7 @@ export const POSITION_DOT_LEGEND = [
   { label: '기타/미분류', color: '#888888' },
 ] as const;
 
-export const STATUS_FILTER_OPTIONS: StatusFilter[] = ['전체', '보유중', '방출'];
+export const STATUS_FILTER_OPTIONS: StatusFilter[] = ['전체', '보유중', '방출', '양도'];
 export const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
 export function toPlotX(value: number): number {
