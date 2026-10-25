@@ -504,8 +504,28 @@ ${moodNames.join('\n')}
 위 무드 그룹 중 가장 적합한 하나의 mood_name만 반환해. 다른 텍스트 없이 목록에 있는 무드명 그대로만 출력해.`;
   try {
     const { text } = await generateGeminiText({ fnName: 'pickAlbumMoodGroupName', prompt });
-    return resolvePickedMoodName(text, moodNames);
-  } catch {
+    const picked = resolvePickedMoodName(text, moodNames);
+    if (!picked) {
+      console.error('[album-mood-assign]', {
+        reason: 'mood_name_mismatch',
+        artist: album.artist,
+        album_name: album.album_name,
+        raw: text.replace(/\s+/g, ' ').slice(0, 500),
+        candidates: moodNames,
+      });
+    }
+    return picked;
+  } catch (error) {
+    const err = error as { status?: number; message?: string };
+    console.error('[album-mood-assign]', {
+      reason: 'gemini_error',
+      artist: album.artist,
+      album_name: album.album_name,
+      status: err.status,
+      error: (typeof err.message === 'string' && err.message ? err.message : String(error))
+        .replace(/\s+/g, ' ')
+        .slice(0, 300),
+    });
     return null;
   }
 }
@@ -563,7 +583,13 @@ export async function generateAlbumMoodGroups(
     });
     const fenced = text.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/);
     const jsonMatch = fenced?.[1] ? [fenced[1]] : text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.error('[album-mood-groups]', {
+        reason: 'generate_json_missing',
+        raw: text.replace(/\s+/g, ' ').slice(0, 500),
+      });
+      return null;
+    }
     const parsed = JSON.parse(jsonMatch[0]) as unknown;
     if (!Array.isArray(parsed) || parsed.length !== 9) {
       throw new Error(MOOD_GROUP_MUST_BE_NINE_MSG);
@@ -571,6 +597,13 @@ export async function generateAlbumMoodGroups(
     return parseGeminiAlbumMoodJson(parsed, catalog);
   } catch (e) {
     if (e instanceof Error && e.message === MOOD_GROUP_MUST_BE_NINE_MSG) throw e;
+    const err = e as { message?: string };
+    console.error('[album-mood-groups]', {
+      reason: 'generate_error',
+      error: (typeof err.message === 'string' && err.message ? err.message : String(e))
+        .replace(/\s+/g, ' ')
+        .slice(0, 300),
+    });
     return null;
   }
 }

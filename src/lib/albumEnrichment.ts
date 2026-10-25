@@ -74,6 +74,7 @@ export async function runAlbumMoodAssign(
     .map((r) => String((r as { mood_name?: unknown }).mood_name ?? '').trim())
     .filter(Boolean);
   if (moodNames.length === 0) {
+    console.error('[album-mood-assign]', { reason: 'mood_groups_empty', albumId });
     return { ok: false, error: 'Mood groups not found' };
   }
 
@@ -173,7 +174,44 @@ export async function setAlbumMoodManually(
 }
 
 export async function runNewAlbumEnrichment(albumId: number): Promise<void> {
+  const started = Date.now();
+  console.log('[album-enrichment]', { step: 'start', albumId });
+
+  const introStarted = Date.now();
   const intro = await runAlbumIntroGeneration(albumId);
-  if (!intro.ok) return;
-  await runAlbumMoodAssign(albumId);
+  const introMs = Date.now() - introStarted;
+  if (!intro.ok) {
+    console.error('[album-enrichment]', {
+      step: 'intro_failed',
+      albumId,
+      error: intro.error,
+      introMs,
+      totalMs: Date.now() - started,
+    });
+    return;
+  }
+  console.log('[album-enrichment]', { step: 'intro_ok', albumId, introMs });
+
+  console.log('[album-enrichment]', { step: 'mood_start', albumId });
+  const moodStarted = Date.now();
+  const mood = await runAlbumMoodAssign(albumId);
+  const moodMs = Date.now() - moodStarted;
+  if (!mood.ok) {
+    console.error('[album-enrichment]', {
+      step: 'mood_failed',
+      albumId,
+      error: mood.error,
+      moodMs,
+      totalMs: Date.now() - started,
+    });
+    return;
+  }
+  console.log('[album-enrichment]', {
+    step: 'mood_ok',
+    albumId,
+    mood_name: mood.mood_name,
+    skipped: mood.skipped === true,
+    moodMs,
+    totalMs: Date.now() - started,
+  });
 }

@@ -3,7 +3,11 @@ import {
   refineMoodGroupsForDb,
   type AlbumMoodUuidOptions,
 } from '@/lib/albumMoodRefs';
-import { mergeManualPinsIntoMoodGroups, type ManualMoodPin } from '@/lib/albumMoodMembership';
+import {
+  mergeManualPinsIntoMoodGroups,
+  normalizeAlbumIdList,
+  type ManualMoodPin,
+} from '@/lib/albumMoodMembership';
 import { createClient } from '@/lib/supabase/server';
 import { generateAlbumMoodGroups, type AlbumMoodGroupRow } from '@/lib/gemini';
 
@@ -73,7 +77,23 @@ export async function ensureAlbumMoodGroups(
     return [] as MoodGroupRow[];
   }
   const cached = await fetchMyMoodGroups(supabase);
-  if (!forceRegenerate && cached.length === 9) return cached;
+  if (!forceRegenerate && cached.length === 9) {
+    const inCache = new Set<number>();
+    for (const group of cached) {
+      for (const id of normalizeAlbumIdList(group.album_ids)) inCache.add(id);
+    }
+    const missingAlbumIds = albumRows
+      .map((row) => (typeof row.id === 'number' ? row.id : parseInt(String(row.id), 10)))
+      .filter((id) => Number.isInteger(id) && !inCache.has(id));
+    if (missingAlbumIds.length > 0) {
+      console.error('[album-mood-groups]', {
+        reason: 'cache_hit_missing_albums',
+        missingAlbumIds,
+        cachedGroupCount: cached.length,
+      });
+    }
+    return cached;
+  }
 
   const manualPins = await fetchManualMoodPins(supabase);
   const manualIdSet = new Set(manualPins.map((p) => p.id));
@@ -117,6 +137,10 @@ export async function ensureAlbumMoodGroups(
     };
     generated = await generateAlbumMoodGroups(autoRows, moodUuidOptions);
     if (!generated) {
+      console.error('[album-mood-groups]', {
+        reason: 'generate_failed',
+        autoRowCount: autoRows.length,
+      });
       throw new Error('무드 분류에 실패했습니다.');
     }
     generated = refineMoodGroupsForDb(generated, autoRows, moodUuidOptions);

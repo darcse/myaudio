@@ -212,8 +212,15 @@ export async function saveAlbumToDB(data: AlbumFormData) {
   after(async () => {
     try {
       await runNewAlbumEnrichment(albumId);
-    } catch {
-      // background enrichment — ignore
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error('[album-enrichment]', {
+        step: 'unhandled',
+        albumId,
+        error: (typeof err.message === 'string' && err.message ? err.message : String(error))
+          .replace(/\s+/g, ' ')
+          .slice(0, 300),
+      });
     }
   });
 
@@ -231,6 +238,7 @@ export async function updateAlbumInDB(id: number, data: AlbumFormData) {
     .eq('id', id);
 
   if (error) throw error;
+  console.error('[album-enrichment]', { reason: 'update_no_assign', albumId: id });
   return result;
 }
 
