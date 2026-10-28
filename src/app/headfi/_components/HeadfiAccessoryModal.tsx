@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import {
+  headfiAccessoryOutOfCollectionLabel,
+  isHeadfiAccessoryOutOfCollection,
+  isHeadfiAccessoryStatus,
+  normalizeHeadfiAccessoryStatus,
+} from '../headfiStatus';
 import type {
   HeadfiAccessory,
   HeadfiAccessoryFormData,
@@ -42,7 +48,7 @@ function gearDisplayName(item: HeadfiAccessoryLinkedGear): string {
 }
 
 function normalizeAccessoryStatus(status: string | null | undefined): HeadfiAccessoryStatus {
-  return status === 'released' ? 'released' : 'owned';
+  return normalizeHeadfiAccessoryStatus(status);
 }
 
 function createDraftRow(): AccessoryRow {
@@ -101,6 +107,7 @@ function AccessoryStatusSelect({
     >
       <option value="owned">보유중</option>
       <option value="released">방출</option>
+      <option value="transferred">양도</option>
     </select>
   );
 }
@@ -231,12 +238,13 @@ export function HeadfiAccessoryModal({
             value={statusFilter}
             onChange={(e) => {
               const value = e.target.value;
-              setStatusFilter(value === 'released' || value === 'owned' ? value : '전체');
+              setStatusFilter(isHeadfiAccessoryStatus(value) ? value : '전체');
             }}
           >
             <option value="전체">전체</option>
             <option value="owned">보유중</option>
             <option value="released">방출</option>
+            <option value="transferred">양도</option>
           </select>
         </div>
         <div className="flex min-w-0 items-center gap-2">
@@ -376,7 +384,8 @@ export function HeadfiAccessoryModal({
 
   const renderRow = (row: AccessoryRow) => {
     const busy = savingKey === row.key || deletingKey === row.key;
-    const released = row.status === 'released';
+    const outOfCollection = isHeadfiAccessoryOutOfCollection(row.status);
+    const statusBadge = headfiAccessoryOutOfCollectionLabel(row.status);
     const linked = row.id != null ? (linkedGearByAccessoryId[row.id] ?? []) : [];
     return (
       <div
@@ -385,7 +394,7 @@ export function HeadfiAccessoryModal({
         style={{
           borderColor: 'var(--border)',
           background: 'var(--background)',
-          opacity: released ? 0.55 : 1,
+          opacity: outOfCollection ? 0.55 : 1,
         }}
       >
         <div className={rowGridClass}>
@@ -412,12 +421,12 @@ export function HeadfiAccessoryModal({
               placeholder="이름"
               readOnly={busy}
             />
-            {released ? (
+            {statusBadge ? (
               <span
                 className="badge-apple shrink-0 px-2 py-0.5 text-[10px] font-semibold"
                 style={{ opacity: 1 }}
               >
-                방출
+                {statusBadge}
               </span>
             ) : null}
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, Save, Trash2 } from 'lucide-react';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiAccessory, HeadfiSale, HeadfiSaleFormData } from '../types';
+import { HEADFI_ACCESSORY_STATUS_RELEASED, normalizeHeadfiAccessoryStatus } from '../headfiStatus';
 import { formatKrw } from '../spendingStats';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
@@ -100,8 +101,8 @@ function accessoryLabel(item: HeadfiAccessory): string {
   return name || category || `#${item.id}`;
 }
 
-function normalizeAccessoryStatus(status: string | null | undefined): 'owned' | 'released' {
-  return status === 'released' ? 'released' : 'owned';
+function normalizeAccessoryStatus(status: string | null | undefined) {
+  return normalizeHeadfiAccessoryStatus(status);
 }
 
 function addTakenId(taken: Set<string>, raw: string | number | null | undefined) {
@@ -137,7 +138,7 @@ function getSaleOptions(
 
   if (isHeadfiSaleAccessoryCategory(category)) {
     const released = accessories
-      .filter((item) => normalizeAccessoryStatus(item.status) === 'released')
+      .filter((item) => normalizeAccessoryStatus(item.status) === HEADFI_ACCESSORY_STATUS_RELEASED)
       .map((item) => ({ id: String(item.id), label: accessoryLabel(item) }))
       .filter((item) => isAvailable(item.id));
     if (selectedId && !released.some((item) => item.id === selectedId)) {

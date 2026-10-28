@@ -4,6 +4,10 @@ import { useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { formatKrw, HEADFI_ACCESSORY_CATEGORY_OPTIONS } from '../spendingStats';
 import { saveHeadfiAccessoryToDB } from '../actions';
+import {
+  headfiAccessoryOutOfCollectionLabel,
+  isHeadfiAccessoryOutOfCollection,
+} from '../headfiStatus';
 import type { HeadfiAccessory, HeadfiAccessoryLinkedGear } from '../types';
 import { INPUT_BASE_CLASS } from './headfiFormUtils';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -23,13 +27,10 @@ function accessoryLabel(item: HeadfiAccessory): string {
   return `${item.name} | ${price}`;
 }
 
-
-function isReleased(item: HeadfiAccessory): boolean {
-  return item.status === 'released';
-}
-
-function ReleasedBadge() {
-  return <span className="shrink-0 text-[10px] font-semibold">방출</span>;
+function AccessoryStatusBadge({ item }: { item: HeadfiAccessory }) {
+  const label = headfiAccessoryOutOfCollectionLabel(item.status);
+  if (!label) return null;
+  return <span className="shrink-0 text-[10px] font-semibold">{label}</span>;
 }
 
 export function HeadfiFormAccessoryLinks({
@@ -85,7 +86,11 @@ export function HeadfiFormAccessoryLinks({
       accessories
         .filter((item) => !pickerCategory || item.category === pickerCategory)
         .slice()
-        .sort((a, b) => Number(isReleased(a)) - Number(isReleased(b))),
+        .sort(
+          (a, b) =>
+            Number(isHeadfiAccessoryOutOfCollection(a.status)) -
+            Number(isHeadfiAccessoryOutOfCollection(b.status)),
+        ),
     [accessories, pickerCategory],
   );
 
@@ -190,7 +195,7 @@ export function HeadfiFormAccessoryLinks({
             >
               <span className="flex min-w-0 items-center gap-1">
                 <span className="min-w-0 truncate">{accessoryLabel(item)}</span>
-                {isReleased(item) ? <ReleasedBadge /> : null}
+                <AccessoryStatusBadge item={item} />
               </span>
               <button
                 type="button"
@@ -246,7 +251,7 @@ export function HeadfiFormAccessoryLinks({
                       <span className="min-w-0">
                         <span className="flex min-w-0 items-center gap-1">
                           <span className="min-w-0 truncate">{accessoryLabel(item)}</span>
-                          {isReleased(item) ? <ReleasedBadge /> : null}
+                          <AccessoryStatusBadge item={item} />
                         </span>
                         {(otherGearByAccessoryId.get(item.id) ?? []).map((gear) => {
                           const model = gear.model.trim();

@@ -94,7 +94,7 @@ export interface Headfi {
   [key: string]: unknown;
 }
 
-export type HeadfiAccessoryStatus = 'owned' | 'released';
+export type HeadfiAccessoryStatus = 'owned' | 'released' | 'transferred';
 
 export interface HeadfiAccessory {
   id: string;

@@ -3,6 +3,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
 import type { HeadfiAccessoryFormData, HeadfiAccessoryLink, HeadfiAccessoryLinkedGear, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import { normalizeHeadfiAccessoryStatus } from './headfiStatus';
 import { wiredListeningScoreColumns } from './listeningEvaluation';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
@@ -359,7 +360,7 @@ function mapHeadfiAccessoryData(data: HeadfiAccessoryFormData) {
   const name = data.name.trim();
   if (!category) throw new Error('카테고리를 선택해 주세요.');
   if (!name) throw new Error('액세서리 이름을 입력해 주세요.');
-  const status = data.status === 'released' ? 'released' : 'owned';
+  const status = normalizeHeadfiAccessoryStatus(data.status);
   return {
     category,
     name,

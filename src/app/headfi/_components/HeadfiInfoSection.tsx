@@ -8,7 +8,12 @@ import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import { createClient } from '@/lib/supabase/client';
 import { listHeadfiAccessoryLinks } from '../actions';
 import { displayLinkedAccessoriesForGear } from '../accessoryLinksCache';
-import { HEADFI_STATUS2_RELEASED, formatHeadfiStatus2Display, latestHeadfiGearSalePrice } from '../headfiStatus';
+import {
+  HEADFI_STATUS2_RELEASED,
+  formatHeadfiStatus2Display,
+  headfiAccessoryOutOfCollectionLabel,
+  latestHeadfiGearSalePrice,
+} from '../headfiStatus';
 import { formatKrw } from '../spendingStats';
 import type { Headfi, HeadfiAccessory, HeadfiAccessoryLinkedGear, HeadfiSale } from '../types';
 import {
@@ -41,7 +46,7 @@ function HeadfiLinkedAccessories({
   accessoryCacheReady?: boolean;
 }) {
   const useCache = accessoryCacheReady !== undefined;
-  const [rows, setRows] = useState<{ id: string; name: string; price: number | null; released: boolean }[]>([]);
+  const [rows, setRows] = useState<{ id: string; name: string; price: number | null; statusLabel: string | null }[]>([]);
   const [loading, setLoading] = useState(!useCache);
 
   useEffect(() => {
@@ -71,7 +76,7 @@ function HeadfiLinkedAccessories({
               id: item.id,
               name: item.name,
               price: item.price,
-              released: item.status === 'released',
+              statusLabel: headfiAccessoryOutOfCollectionLabel(item.status),
             })),
         );
         setLoading(false);
@@ -104,7 +109,7 @@ function HeadfiLinkedAccessories({
           {displayRows.map((row) => (
             <li key={row.id} className="text-sm">
               {row.name} | {row.price != null && Number.isFinite(Number(row.price)) ? formatKrw(Number(row.price)) : '0원'}
-              {row.released ? <span className="ml-2 text-xs opacity-60">방출</span> : null}
+              {row.statusLabel ? <span className="ml-2 text-xs opacity-60">{row.statusLabel}</span> : null}
             </li>
           ))}
         </ul>

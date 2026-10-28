@@ -1,4 +1,5 @@
 import type { HeadfiAccessory, HeadfiAccessoryLinkedGear } from './types';
+import { headfiAccessoryOutOfCollectionLabel } from './headfiStatus';
 
 export function accessoryIdsLinkedToGear(
   linkedGear: HeadfiAccessoryLinkedGear[],
@@ -29,7 +30,7 @@ export function displayLinkedAccessoriesForGear(
   headfiId: number,
   accessories: HeadfiAccessory[],
   linkedGear: HeadfiAccessoryLinkedGear[],
-): { id: string; name: string; price: number | null; released: boolean }[] {
+): { id: string; name: string; price: number | null; statusLabel: string | null }[] {
   const accessoryById = new Map(accessories.map((item) => [item.id, item]));
   return accessoryIdsLinkedToGear(linkedGear, headfiId)
     .map((id) => accessoryById.get(id))
@@ -38,6 +39,6 @@ export function displayLinkedAccessoriesForGear(
       id: item.id,
       name: item.name,
       price: item.price,
-      released: item.status === 'released',
+      statusLabel: headfiAccessoryOutOfCollectionLabel(item.status),
     }));
 }
