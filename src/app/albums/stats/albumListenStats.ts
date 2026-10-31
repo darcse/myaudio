@@ -10,7 +10,7 @@ import {
 export const LISTEN_RANKING_LIMIT = 10;
 export const GEAR_LISTEN_RANKING_LIMIT = 10;
 export const PERIOD_RANKING_LIMIT_ALL_MONTHS = 20;
-export const WEEKLY_HOT_ALBUM_LIMIT = 5;
+export const WEEKLY_HOT_ALBUM_LIMIT = 3;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
 export type ListenTrendUnit = 'year' | 'month' | 'week';
@@ -33,6 +33,17 @@ export type AlbumListenRankItem = {
   coverImageUrl: string | null;
   listenCount: number;
 };
+
+export type WeeklyHotArtistItem = {
+  artistName: string;
+  listenCount: number;
+  albumCount: number;
+};
+
+function isVariousArtistName(name: string): boolean {
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, ' ');
+  return normalized === 'various artist' || normalized === 'various artists';
+}
 
 export type ArtistListenRankItem = {
   artistName: string;
@@ -486,6 +497,41 @@ export function buildWeeklyHotAlbumRankings(
   return buildAlbumListenRankings(albums, filtered, limit);
 }
 
+export function buildWeeklyHotArtist(
+  albums: Album[],
+  historyRows: HistoryRow[],
+  reference = new Date(),
+): WeeklyHotArtistItem | null {
+  const range = getRollingSevenDayRange(reference);
+  const filtered = filterHistoryByWeek(historyRows, range);
+  const index = buildListenHistoryIndex(filtered);
+  const artistMap = new Map<string, { listenCount: number; albumCount: number }>();
+
+  for (const album of albums) {
+    const entry = index.get(album.id);
+    if (!entry || entry.count <= 0) continue;
+    const name = album.artist?.trim();
+    if (!name || isVariousArtistName(name)) continue;
+    const prev = artistMap.get(name) ?? { listenCount: 0, albumCount: 0 };
+    artistMap.set(name, {
+      listenCount: prev.listenCount + entry.count,
+      albumCount: prev.albumCount + 1,
+    });
+  }
+
+  const ranked = [...artistMap.entries()]
+    .map(([artistName, data]) => ({ artistName, ...data }))
+    .sort((a, b) => {
+      const byCount = b.listenCount - a.listenCount;
+      if (byCount !== 0) return byCount;
+      const byAlbums = b.albumCount - a.albumCount;
+      if (byAlbums !== 0) return byAlbums;
+      return a.artistName.localeCompare(b.artistName, 'ko');
+    });
+
+  return ranked[0] ?? null;
+}
+
 function releaseDateMs(releaseDate: string | null | undefined): number {
   if (!releaseDate?.trim()) return 0;
   const ms = Date.parse(releaseDate.trim());
@@ -678,9 +724,12 @@ export function buildGenreListenRankings(
   );
 }
 
-export function buildGenre2ListenRankings(
-  albums: Pick<Album, 'id' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>[],
+function buildGenreFieldListenRankings(
+  albums: Pick<Album, 'id' | 'genre1' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>[],
   historyRows: HistoryRow[],
+  getLabel: (
+    album: Pick<Album, 'id' | 'genre1' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>,
+  ) => string | null,
   limit = LISTEN_RANKING_LIMIT,
   artistsPerGenre = 5,
   albumsPerGenre = 5,
@@ -693,7 +742,7 @@ export function buildGenre2ListenRankings(
   for (const album of albums) {
     const entry = index.get(album.id);
     if (!entry || entry.count <= 0) continue;
-    const label = album.genre2?.trim();
+    const label = getLabel(album);
     if (!label) continue;
 
     const prev = labelMap.get(label) ?? { listenCount: 0, albumCount: 0 };
@@ -756,4 +805,38 @@ export function buildGenre2ListenRankings(
       .slice(0, albumsPerGenre);
     return { ...item, rank: competitionRank, topArtists, topAlbums };
   });
+}
+
+export function buildGenre1ListenRankings(
+  albums: Pick<Album, 'id' | 'genre1' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>[],
+  historyRows: HistoryRow[],
+  limit = LISTEN_RANKING_LIMIT,
+  artistsPerGenre = 5,
+  albumsPerGenre = 5,
+): Genre2ListenRankItem[] {
+  return buildGenreFieldListenRankings(
+    albums,
+    historyRows,
+    (album) => album.genre1?.trim() || null,
+    limit,
+    artistsPerGenre,
+    albumsPerGenre,
+  );
+}
+
+export function buildGenre2ListenRankings(
+  albums: Pick<Album, 'id' | 'genre1' | 'genre2' | 'artist' | 'album_name' | 'cover_image_url'>[],
+  historyRows: HistoryRow[],
+  limit = LISTEN_RANKING_LIMIT,
+  artistsPerGenre = 5,
+  albumsPerGenre = 5,
+): Genre2ListenRankItem[] {
+  return buildGenreFieldListenRankings(
+    albums,
+    historyRows,
+    (album) => album.genre2?.trim() || null,
+    limit,
+    artistsPerGenre,
+    albumsPerGenre,
+  );
 }

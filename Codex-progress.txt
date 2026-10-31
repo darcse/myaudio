@@ -56,3 +56,17 @@
 [2026-10-25] [Cursor] 조사: 앨범 무드/소개 자동생성 실패 로그 추가 | passes: 변경 없음
 [2026-10-25] [Cursor] 조사: 수정 저장 후 무드 경로 재추적·로그 | passes: 변경 없음
 [2026-10-28] [Cursor] feat: 액세서리 status에 양도(transferred) 추가 | passes: 변경 없음
+[2026-10-31] [Cursor] feat: Insights 장르 통계를 장르1/장르2 2열로 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 장르1 카드를 아티스트/앨범 2줄로 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 장르 통계 좌우 열 높이 stretch 맞춤 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 장르1 카드 아티스트·앨범 3개로 축소 | passes: 변경 없음
+[2026-10-31] [Cursor] feat: 장르 통계를 목록+디테일·장르 토글로 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 장르 디테일 앨범 3개·3열 확대 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 장르 통계 3:7 + 디테일 5명/5장 | passes: 변경 없음
+[2026-10-31] [Cursor] feat: 금주 핫 앨범 4분할+핫 아티스트 | passes: 변경 없음
+[2026-10-31] [Cursor] style: 금주 핫 영역 축소·아티스트 카드 강조 | passes: 변경 없음
+[2026-10-31] [Cursor] style: Weekly Hot 좌 아티스트·우 앨범3 | passes: 변경 없음
+[2026-10-31] [Cursor] style: Weekly Hot 3:7·앨범 가로 카드 | passes: 변경 없음
+[2026-10-31] [Cursor] style: Weekly Hot 세로 앨범+소제목 | passes: 변경 없음
+[2026-10-31] [Cursor] style: Weekly Hot 아티스트/앨범 패널 분리 | passes: 변경 없음
+[2026-10-31] [Cursor] style: Weekly Hot 앨범 커버 오버레이 카드 | passes: 변경 없음

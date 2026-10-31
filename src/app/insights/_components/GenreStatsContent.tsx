@@ -1,63 +1,42 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
-import { Disc, Music2, Trophy, UserCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Disc, Trophy, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
-import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
-import { AlbumForm } from '@/app/albums/_components/AlbumForm';
-import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
-import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
-import { albumToFormData } from '@/app/albums/utils';
-import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
-import { shouldRetargetAlbumArtist } from '@/app/artists/lib/updateArtistNames';
-import { buildListenHistoryIndex } from '@/app/artists/utils';
+import type { Album } from '@/app/albums/types';
 import {
+  buildGenre1ListenRankings,
   buildGenre2ListenRankings,
   clampListenPeriodFilter,
   filterHistoryByPeriod,
   formatPeriodLabel,
   formatStatsMonthOptionLabel,
   getDefaultListenPeriodFilter,
-  getPeriodRankingLimit,
   listStatsMonths,
   listStatsYears,
   type Genre2ListenRankItem,
   type GenreLabelAlbum,
+  type GenreLabelArtist,
   type ListenPeriodFilter,
   type ListenPeriodMonth,
 } from '@/app/albums/stats/albumListenStats';
 
 type HistoryRow = { album_id: number | null; listened_at: string | null };
+type GenreField = 'genre1' | 'genre2';
 
-const initialAlbumFormData: AlbumFormData = {
-  artist: '',
-  artist_type: '',
-  country: '',
-  album_name: '',
-  album_type: '',
-  year: ['2026'],
-  release_date: '',
-  genre1: '',
-  genre2: '',
-  cover_image_url: '',
-  matching1: '',
-  matching2: '',
-  title_song_url: '',
-  wiki_url: '',
-  album_intro: '',
-  recommended_hp1: '',
-  recommended_hp2: '',
-  recommended_hp3: '',
-  mood_names: [],
-  owns_cd: false,
-  owns_lp: false,
-  owns_cassette: false,
-};
+const DETAIL_ARTIST_LIMIT = 5;
+const DETAIL_ALBUM_LIMIT = 5;
+const DETAIL_SLOT_COUNT = 5;
+const DETAIL_THUMB_MAX_CLASS = 'max-h-[7.5rem] max-w-[7.5rem]';
 
-function filterToggleStyle(active: boolean): React.CSSProperties {
+function padDetailSlots<T>(items: T[]): Array<T | null> {
+  return Array.from({ length: DETAIL_SLOT_COUNT }, (_, index) => items[index] ?? null);
+}
+
+function filterToggleStyle(active: boolean): CSSProperties {
   return {
     fontSize: '12px',
     background: active ? 'var(--foreground)' : 'var(--badge-bg)',
@@ -82,195 +61,160 @@ function RankBadge({ rank }: { rank: number }) {
   );
 }
 
-function RankingPanel({
-  title,
-  icon,
-  children,
+function GenreListItem({
+  item,
+  selected,
+  onSelect,
 }: {
-  title: string;
-  icon: ReactNode;
-  children: ReactNode;
+  item: Genre2ListenRankItem;
+  selected: boolean;
+  onSelect: (label: string) => void;
 }) {
   return (
-    <section
-      className="flex min-h-[20rem] flex-col rounded-xl border"
-      style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+    <button
+      type="button"
+      onClick={() => onSelect(item.label)}
+      aria-pressed={selected}
+      className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors"
+      style={{
+        background: selected ? 'var(--badge-bg)' : 'transparent',
+      }}
     >
-      <div
-        className="flex items-center gap-2 border-b px-4 py-3 text-sm font-semibold"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        {icon}
-        {title}
+      <RankBadge rank={item.rank} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{item.label}</p>
+        <p className="mt-0.5 text-xs opacity-60 tabular-nums">앨범 {item.albumCount}장</p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">{children}</div>
-    </section>
+      <span className="shrink-0 text-sm font-semibold tabular-nums">{item.listenCount}회</span>
+    </button>
   );
 }
 
-function GenreArtistThumb({
-  name,
+function DetailArtistCard({
+  artist,
   profileImageUrl,
-  onSelect,
 }: {
-  name: string;
+  artist: GenreLabelArtist;
   profileImageUrl: string | null;
-  onSelect: (name: string) => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const showImage = Boolean(profileImageUrl && !imageError);
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(name)}
-      className="flex w-full min-w-0 flex-col items-center gap-1.5 text-center transition-opacity hover:opacity-90 sm:gap-2"
-    >
-      <div className="flex w-full justify-center">
-        <div
-          className="aspect-square w-full max-w-[4.75rem] overflow-hidden rounded-full lg:max-w-[5.5rem]"
-          style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-        >
-          {showImage ? (
-            <img
-              src={profileImageUrl!}
-              alt={`${name} 프로필`}
-              loading="lazy"
-              className="size-full object-cover"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="flex size-full items-center justify-center">
-              <UserCircle className="size-[55%] max-w-12 opacity-35" strokeWidth={1.25} aria-hidden />
-            </div>
-          )}
-        </div>
-      </div>
-      <p className="w-full truncate text-[10px] font-medium leading-tight sm:text-[11px] lg:text-xs">{name}</p>
-    </button>
-  );
-}
-
-function GenreAlbumThumb({
-  album,
-  onSelect,
-}: {
-  album: GenreLabelAlbum;
-  onSelect: (albumId: number) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(album.albumId)}
-      className="flex w-full min-w-0 flex-col items-center gap-1.5 text-center transition-opacity hover:opacity-90 sm:gap-2"
-    >
-      <div className="flex w-full justify-center">
-        <div
-          className="relative aspect-square w-full max-w-[4.75rem] overflow-hidden rounded-md lg:max-w-[5.5rem]"
-          style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-        >
-          {album.coverImageUrl ? (
-            <img
-              src={album.coverImageUrl}
-              alt=""
-              loading="lazy"
-              className="absolute inset-0 size-full object-cover"
-            />
-          ) : (
-            <div className="flex size-full items-center justify-center">
-              <Disc className="size-[40%] max-w-8 opacity-40" strokeWidth={1.5} aria-hidden />
-            </div>
-          )}
-        </div>
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <div
+        className={`aspect-square w-full overflow-hidden rounded-full ${DETAIL_THUMB_MAX_CLASS}`}
+        style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+      >
+        {showImage ? (
+          <img
+            src={profileImageUrl!}
+            alt={`${artist.name} 프로필`}
+            loading="lazy"
+            className="size-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center">
+            <UserCircle className="size-[55%] opacity-35" strokeWidth={1.25} aria-hidden />
+          </div>
+        )}
       </div>
       <div className="w-full min-w-0">
-        <p className="truncate text-[10px] font-medium leading-tight sm:text-[11px] lg:text-xs">
-          {album.albumName}
-        </p>
-        <p className="mt-0.5 truncate text-[10px] tabular-nums opacity-55">
-          {album.listenCount}회
-        </p>
+        <p className="truncate text-xs font-medium leading-tight">{artist.name}</p>
+        <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-55">{artist.listenCount}회</p>
       </div>
-    </button>
+    </div>
   );
 }
 
-const GENRE_MEDIA_SLOTS = 5;
+function DetailAlbumCard({ album }: { album: GenreLabelAlbum }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <div
+        className={`relative aspect-square w-full overflow-hidden rounded-lg ${DETAIL_THUMB_MAX_CLASS}`}
+        style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+      >
+        {album.coverImageUrl ? (
+          <img
+            src={album.coverImageUrl}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center">
+            <Disc className="size-[40%] max-w-10 opacity-40" strokeWidth={1.5} aria-hidden />
+          </div>
+        )}
+      </div>
+      <div className="w-full min-w-0">
+        <p className="truncate text-xs font-medium leading-tight">{album.albumName}</p>
+        <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-55">{album.listenCount}회</p>
+      </div>
+    </div>
+  );
+}
 
-function GenreRankRow({
+function GenreDetailPanel({
   item,
   artistProfileUrls,
-  onSelectArtist,
-  onSelectAlbum,
 }: {
-  item: Genre2ListenRankItem;
+  item: Genre2ListenRankItem | null;
   artistProfileUrls: Record<string, string | null>;
-  onSelectArtist: (name: string) => void;
-  onSelectAlbum: (albumId: number) => void;
 }) {
-  const artistSlots = Array.from(
-    { length: GENRE_MEDIA_SLOTS },
-    (_, i) => item.topArtists[i] ?? null,
-  );
-  const albumSlots = Array.from(
-    { length: GENRE_MEDIA_SLOTS },
-    (_, i) => item.topAlbums[i] ?? null,
-  );
-  const hasArtists = item.topArtists.length > 0;
-  const hasAlbums = item.topAlbums.length > 0;
+  if (!item) {
+    return (
+      <p className="px-2 py-8 text-center text-sm opacity-60">선택된 장르가 없습니다.</p>
+    );
+  }
+
+  const artistSlots = padDetailSlots(item.topArtists);
+  const albumSlots = padDetailSlots(item.topAlbums);
 
   return (
-    <div className="rounded-lg px-2 py-2.5">
-      <div className="flex w-full items-center gap-3">
-        <RankBadge rank={item.rank} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{item.label}</p>
-          <p className="mt-0.5 text-xs opacity-60 tabular-nums">앨범 {item.albumCount}장</p>
-        </div>
-        <span className="shrink-0 text-sm font-semibold tabular-nums">{item.listenCount}회</span>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0">
+        <h3 className="text-lg font-semibold">{item.label}</h3>
+        <p className="mt-1 text-sm opacity-70 tabular-nums">
+          앨범 {item.albumCount}장 · 청취 {item.listenCount}회
+        </p>
       </div>
-      {hasArtists || hasAlbums ? (
-        <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-3">
-          {hasArtists ? (
-            <div className="grid min-w-0 flex-1 grid-cols-5 gap-1 sm:gap-2">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <p className="mb-3 text-xs font-semibold opacity-60">대표 아티스트</p>
+          {item.topArtists.length > 0 ? (
+            <div className="grid grid-cols-3 items-start gap-2 sm:gap-3 lg:grid-cols-5">
               {artistSlots.map((artist, index) => (
                 <div key={artist?.name ?? `artist-empty-${index}`} className="min-w-0">
                   {artist ? (
-                    <GenreArtistThumb
-                      name={artist.name}
+                    <DetailArtistCard
+                      artist={artist}
                       profileImageUrl={artistProfileUrls[artist.name] ?? null}
-                      onSelect={onSelectArtist}
                     />
                   ) : null}
                 </div>
               ))}
             </div>
-          ) : null}
-          {hasArtists && hasAlbums ? (
-            <>
-              <div
-                className="border-t lg:hidden"
-                style={{ borderColor: 'var(--border)' }}
-                aria-hidden
-              />
-              <div
-                className="hidden w-px shrink-0 self-stretch lg:block"
-                style={{ background: 'var(--border)' }}
-                aria-hidden
-              />
-            </>
-          ) : null}
-          {hasAlbums ? (
-            <div className="grid min-w-0 flex-1 grid-cols-5 gap-1 sm:gap-2">
+          ) : (
+            <p className="text-sm opacity-55">대표 아티스트가 없습니다.</p>
+          )}
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <p className="mb-3 text-xs font-semibold opacity-60">대표 앨범</p>
+          {item.topAlbums.length > 0 ? (
+            <div className="grid grid-cols-3 items-start gap-2 sm:gap-3 lg:grid-cols-5">
               {albumSlots.map((album, index) => (
                 <div key={album?.albumId ?? `album-empty-${index}`} className="min-w-0">
-                  {album ? <GenreAlbumThumb album={album} onSelect={onSelectAlbum} /> : null}
+                  {album ? <DetailAlbumCard album={album} /> : null}
                 </div>
               ))}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-sm opacity-55">대표 앨범이 없습니다.</p>
+          )}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -280,22 +224,11 @@ export function GenreStatsContent() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
-  const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
-  const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
-  const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
-  const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
-  const [recommendedHeadphones, setRecommendedHeadphones] = useState<
-    { id: number; brand: string; model: string; image_url?: string | null }[]
-  >([]);
-  const [audioTags, setAudioTags] = useState<string[]>([]);
-  const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
-    { id: number; brand: string; model: string }[]
-  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
-  const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
-    useAlbumMutations({ isAuthenticated });
+  const [genreField, setGenreField] = useState<GenreField>('genre1');
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -351,17 +284,6 @@ export function GenreStatsContent() {
     }
   }, []);
 
-  const refreshHistory = useCallback(async () => {
-    const { data, error } = await createClient()
-      .from('album_listen_history')
-      .select('album_id, listened_at');
-    if (error) {
-      toast.error('청취 기록을 불러오지 못했습니다.');
-      return;
-    }
-    setHistoryRows((data ?? []) as HistoryRow[]);
-  }, []);
-
   useEffect(() => {
     if (isAuthenticated !== true) {
       setIsLoading(false);
@@ -370,185 +292,56 @@ export function GenreStatsContent() {
     void fetchData();
   }, [isAuthenticated, fetchData]);
 
-  useEffect(() => {
-    if (isAuthenticated !== true) {
-      setHeadfiOwnedHeadphones([]);
-      return;
-    }
-    void createClient()
-      .from('headfi')
-      .select('id, brand, model')
-      .in('category', ['헤드폰', '이어폰'])
-      .eq('status2', '보유중')
-      .order('brand')
-      .order('model')
-      .then(({ data }) => {
-        setHeadfiOwnedHeadphones(
-          (data ?? []).map((row) => ({
-            id: row.id,
-            brand: row.brand || '',
-            model: row.model || '',
-          })),
-        );
-      });
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!viewingAlbum?.id) {
-      setRecommendedHeadphones([]);
-      setAudioTags([]);
-      return;
-    }
-    setAudioTags(viewingAlbum.audio_tags ?? []);
-    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
-    if (ids.length === 0) {
-      setRecommendedHeadphones([]);
-      return;
-    }
-    void createClient()
-      .from('headfi')
-      .select('id, brand, model, image_url')
-      .in('id', ids)
-      .then(({ data }) => {
-        const ordered = ids
-          .map((id) => (data || []).find((h) => h.id === id))
-          .filter(
-            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
-          )
-          .map((h) => ({
-            id: h.id,
-            brand: h.brand || '',
-            model: h.model || '',
-            image_url: h.image_url ?? null,
-          }));
-        setRecommendedHeadphones(ordered);
-      });
-  }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
-
   const yearOptions = useMemo(() => listStatsYears(), []);
   const monthOptions = useMemo(() => listStatsMonths(periodFilter.year), [periodFilter.year]);
-  const rankingLimit = useMemo(
-    () => getPeriodRankingLimit(periodFilter.month),
-    [periodFilter.month],
-  );
+  const isAllMonths = periodFilter.month === 'all';
+  const rankingLimit = isAllMonths ? 20 : 10;
 
   const filteredHistoryRows = useMemo(
     () => filterHistoryByPeriod(historyRows, periodFilter),
     [historyRows, periodFilter],
   );
 
-  const listenHistoryIndex = useMemo(
-    () => buildListenHistoryIndex(filteredHistoryRows),
-    [filteredHistoryRows],
+  const ranking = useMemo(
+    () =>
+      genreField === 'genre1'
+        ? buildGenre1ListenRankings(
+            albums,
+            filteredHistoryRows,
+            rankingLimit,
+            DETAIL_ARTIST_LIMIT,
+            DETAIL_ALBUM_LIMIT,
+          )
+        : buildGenre2ListenRankings(
+            albums,
+            filteredHistoryRows,
+            rankingLimit,
+            DETAIL_ARTIST_LIMIT,
+            DETAIL_ALBUM_LIMIT,
+          ),
+    [albums, filteredHistoryRows, genreField, rankingLimit],
   );
 
-  const genreRanking = useMemo(
-    () => buildGenre2ListenRankings(albums, filteredHistoryRows, rankingLimit),
-    [albums, filteredHistoryRows, rankingLimit],
-  );
+  const selectedItem =
+    ranking.find((item) => item.label === selectedLabel) ?? ranking[0] ?? null;
+  const activeLabel = selectedItem?.label ?? null;
 
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = filteredHistoryRows.length > 0;
 
-  const openAlbum = useCallback(
-    (albumId: number) => {
-      const cached = albums.find((album) => album.id === albumId);
-      if (cached) {
-        setViewingAlbum(cached);
-        return;
-      }
-      void createClient()
-        .from('album')
-        .select('*')
-        .eq('id', albumId)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (error || !data) {
-            toast.error('앨범 정보를 불러오지 못했습니다.');
-            return;
-          }
-          setViewingAlbum(data as Album);
-        });
-    },
-    [albums],
-  );
-
-  const closeAlbumModal = () => {
-    setViewingAlbum(null);
-    void refreshHistory();
-  };
-
-  const handleAlbumEditClick = () => {
-    if (!viewingAlbum) return;
-    if (isAuthenticated === false) {
-      toast.error('로그인이 필요합니다.');
-      return;
-    }
-    const item = viewingAlbum;
-    setViewingAlbum(null);
-    setAlbumFormItem(item);
-    setAlbumFormData(
-      albumToFormData(item, {
-        album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
-      }),
-    );
-  };
-
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
-
-  const handleAlbumSave = async () => {
-    if (!albumFormItem) return;
-    const result = await saveAlbum({ formItem: albumFormItem, formData: albumFormData });
-    if (result.status === 'updated') {
-      if (result.album) {
-        setAlbums((prev) => prev.map((album) => (album.id === result.album!.id ? result.album! : album)));
-        setViewingAlbum(result.album);
-        setAudioTags(result.album.audio_tags ?? []);
-      }
-      setAlbumFormItem(null);
-      return;
-    }
-    if (result.status === 'created') {
-      await fetchData();
-      setAlbumFormItem(null);
-    }
-  };
-
-  const handleDeleteFromModal = async () => {
-    if (!viewingAlbum) return;
-    const deletedId = viewingAlbum.id;
-    const deleted = await deleteAlbum({ albumId: deletedId });
-    if (!deleted) return;
-    setViewingAlbum(null);
-    setAlbums((prev) => prev.filter((album) => album.id !== deletedId));
-    await refreshHistory();
-  };
-
-  const handleRefreshAlbumIntro = async () => {
-    if (!viewingAlbum) return;
-    await refreshAlbumIntro({
-      album: viewingAlbum,
-      onUpdated: (updated, tags) => {
-        setViewingAlbum(updated);
-        setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
-        setAudioTags(tags);
-      },
-    });
+  const handleGenreFieldChange = (field: GenreField) => {
+    setGenreField(field);
+    setSelectedLabel(null);
   };
 
   const handleYearChange = (year: number) => {
     setPeriodFilter((prev) => clampListenPeriodFilter({ year, month: prev.month }));
+    setSelectedLabel(null);
   };
 
   const handleMonthChange = (month: ListenPeriodMonth) => {
     setPeriodFilter((prev) => clampListenPeriodFilter({ year: prev.year, month }));
+    setSelectedLabel(null);
   };
 
   if (isAuthenticated !== true) {
@@ -641,93 +434,71 @@ export function GenreStatsContent() {
               <p className="mt-2 text-sm opacity-60">다른 연도나 월을 선택해 보세요.</p>
             </div>
           ) : (
-            <RankingPanel
-              title={`장르 TOP ${rankingLimit}`}
-              icon={<Music2 className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
-            >
-              {genreRanking.length > 0 ? (
-                <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                  {genreRanking.map((item) => (
-                    <li key={item.label} style={{ borderColor: 'var(--border)' }}>
-                      <GenreRankRow
-                        item={item}
-                        artistProfileUrls={artistProfileUrls}
-                        onSelectArtist={setViewingArtistName}
-                        onSelectAlbum={openAlbum}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-2 py-8 text-center text-sm opacity-60">
-                  장르(장르2)가 설정된 앨범의 청취 기록이 없습니다.
-                </p>
-              )}
-            </RankingPanel>
+            <div className="grid grid-cols-1 gap-4 lg:h-[min(70vh,40rem)] lg:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] lg:items-stretch">
+              <section
+                className="flex min-h-0 flex-col rounded-xl border lg:h-full"
+                style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+              >
+                <div
+                  className="flex shrink-0 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-b px-2.5 py-2.5"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleGenreFieldChange('genre1')}
+                      className="shrink-0 rounded-full px-2 py-1 font-medium transition-colors"
+                      style={filterToggleStyle(genreField === 'genre1')}
+                      aria-pressed={genreField === 'genre1'}
+                    >
+                      장르1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleGenreFieldChange('genre2')}
+                      className="shrink-0 rounded-full px-2 py-1 font-medium transition-colors"
+                      style={filterToggleStyle(genreField === 'genre2')}
+                      aria-pressed={genreField === 'genre2'}
+                    >
+                      장르2
+                    </button>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold opacity-60">TOP {rankingLimit}</span>
+                </div>
+                <div className="min-h-0 max-h-80 flex-1 overflow-y-auto lg:max-h-none">
+                  {ranking.length > 0 ? (
+                    <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                      {ranking.map((item) => (
+                        <li key={item.label} style={{ borderColor: 'var(--border)' }}>
+                          <GenreListItem
+                            item={item}
+                            selected={item.label === activeLabel}
+                            onSelect={setSelectedLabel}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-2 py-8 text-center text-sm opacity-60">
+                      {genreField === 'genre1'
+                        ? '장르1이 설정된 앨범의 청취 기록이 없습니다.'
+                        : '장르2가 설정된 앨범의 청취 기록이 없습니다.'}
+                    </p>
+                  )}
+                </div>
+              </section>
+              <section
+                className="flex min-h-0 flex-col rounded-xl border lg:h-full"
+                style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+              >
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+                  <GenreDetailPanel item={selectedItem} artistProfileUrls={artistProfileUrls} />
+                </div>
+              </section>
+            </div>
           )}
         </>
       )}
-
-      {viewingAlbum ? (
-        <AlbumDetailModal
-          viewingItem={viewingAlbum}
-          recommendedHeadphones={recommendedHeadphones}
-          albumIntro={(viewingAlbum.album_intro ?? '').trim()}
-          audioTags={audioTags}
-          albumIntroLoading={albumIntroLoading}
-          onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
-          onClose={closeAlbumModal}
-          onEdit={handleAlbumEditClick}
-          onDelete={() => void handleDeleteFromModal()}
-          isDeleting={isDeleting}
-          isAuthenticated={isAuthenticated}
-          onAlbumPatch={(updated) => {
-            setViewingAlbum(updated);
-            setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
-          }}
-        />
-      ) : null}
-
-      {viewingArtistName ? (
-        <ArtistDetailModal
-          artistName={viewingArtistName}
-          albums={albums}
-          listenHistoryIndex={listenHistoryIndex}
-          isAuthenticated={isAuthenticated}
-          onClose={() => {
-            setViewingArtistName(null);
-            void refreshHistory();
-          }}
-          onAlbumClick={(album) => {
-            setViewingArtistName(null);
-            setViewingAlbum(album);
-          }}
-          onSelectArtist={setViewingArtistName}
-          onArtistNamesUpdated={({ albumArtistName, recordArtistName, newName }) => {
-            setViewingArtistName(newName);
-            setAlbums((prev) =>
-              prev.map((album) =>
-                shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
-                  ? { ...album, artist: newName }
-                  : album,
-              ),
-            );
-          }}
-        />
-      ) : null}
-
-      {albumFormItem ? (
-        <AlbumForm
-          selectedItem={albumFormItem}
-          formData={albumFormData}
-          setFormData={setAlbumFormData}
-          headfiOwnedHeadphones={headfiOwnedHeadphones}
-          onClose={() => setAlbumFormItem(null)}
-          onSave={() => void handleAlbumSave()}
-          onImageUpload={handleAlbumImageUpload}
-          isSaving={isSaving}
-        />
-      ) : null}
     </div>
   );
 }

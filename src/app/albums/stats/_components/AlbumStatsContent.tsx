@@ -26,6 +26,7 @@ import {
   buildAlbumListenRankings,
   buildArtistListenRankings,
   buildWeeklyHotAlbumRankings,
+  buildWeeklyHotArtist,
   clampListenPeriodFilter,
   filterHistoryByPeriod,
   formatPeriodLabel,
@@ -450,6 +451,10 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
     () => buildWeeklyHotAlbumRankings(albums, historyRows, now),
     [albums, historyRows, now],
   );
+  const weeklyHotArtist = useMemo(
+    () => buildWeeklyHotArtist(albums, historyRows, now),
+    [albums, historyRows, now],
+  );
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = albumRanking.length > 0 || artistRanking.length > 0;
 
@@ -797,6 +802,10 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
         <>
           <WeeklyHotAlbumsSection
             items={weeklyHotAlbums}
+            hotArtist={weeklyHotArtist}
+            artistProfileUrl={
+              weeklyHotArtist ? (artistProfileUrls[weeklyHotArtist.artistName] ?? null) : null
+            }
             weekRange={weekRange}
             onAlbumClick={openAlbum}
           />
