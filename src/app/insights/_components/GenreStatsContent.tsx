@@ -1,12 +1,19 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
 import { Disc, Trophy, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
-import type { Album } from '@/app/albums/types';
+import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
+import { AlbumForm } from '@/app/albums/_components/AlbumForm';
+import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
+import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
+import { albumToFormData } from '@/app/albums/utils';
+import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
+import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
+import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildGenre1ListenRankings,
   buildGenre2ListenRankings,
@@ -31,6 +38,35 @@ const DETAIL_ARTIST_LIMIT = 5;
 const DETAIL_ALBUM_LIMIT = 5;
 const DETAIL_SLOT_COUNT = 5;
 const DETAIL_THUMB_MAX_CLASS = 'max-h-[7.5rem] max-w-[7.5rem]';
+
+const initialAlbumFormData: AlbumFormData = {
+  artist: '',
+  artist_type: '',
+  country: '',
+  album_name: '',
+  album_type: '',
+  year: ['2026'],
+  release_date: '',
+  genre1: '',
+  genre2: '',
+  composer: '',
+  composer_country: '',
+  composer_era: '',
+  composer_wiki_url: '',
+  cover_image_url: '',
+  matching1: '',
+  matching2: '',
+  title_song_url: '',
+  wiki_url: '',
+  album_intro: '',
+  recommended_hp1: '',
+  recommended_hp2: '',
+  recommended_hp3: '',
+  mood_names: [],
+  owns_cd: false,
+  owns_lp: false,
+  owns_cassette: false,
+};
 
 function padDetailSlots<T>(items: T[]): Array<T | null> {
   return Array.from({ length: DETAIL_SLOT_COUNT }, (_, index) => items[index] ?? null);
@@ -93,15 +129,21 @@ function GenreListItem({
 function DetailArtistCard({
   artist,
   profileImageUrl,
+  onClick,
 }: {
   artist: GenreLabelArtist;
   profileImageUrl: string | null;
+  onClick: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
   const showImage = Boolean(profileImageUrl && !imageError);
 
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-w-0 w-full cursor-pointer flex-col items-center gap-2 text-center transition-opacity hover:opacity-80"
+    >
       <div
         className={`aspect-square w-full overflow-hidden rounded-full ${DETAIL_THUMB_MAX_CLASS}`}
         style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
@@ -124,13 +166,23 @@ function DetailArtistCard({
         <p className="truncate text-xs font-medium leading-tight">{artist.name}</p>
         <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-55">{artist.listenCount}회</p>
       </div>
-    </div>
+    </button>
   );
 }
 
-function DetailAlbumCard({ album }: { album: GenreLabelAlbum }) {
+function DetailAlbumCard({
+  album,
+  onClick,
+}: {
+  album: GenreLabelAlbum;
+  onClick: () => void;
+}) {
   return (
-    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-w-0 w-full cursor-pointer flex-col items-center gap-2 text-center transition-opacity hover:opacity-80"
+    >
       <div
         className={`relative aspect-square w-full overflow-hidden rounded-lg ${DETAIL_THUMB_MAX_CLASS}`}
         style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
@@ -152,16 +204,20 @@ function DetailAlbumCard({ album }: { album: GenreLabelAlbum }) {
         <p className="truncate text-xs font-medium leading-tight">{album.albumName}</p>
         <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-55">{album.listenCount}회</p>
       </div>
-    </div>
+    </button>
   );
 }
 
 function GenreDetailPanel({
   item,
   artistProfileUrls,
+  onArtistClick,
+  onAlbumClick,
 }: {
   item: Genre2ListenRankItem | null;
   artistProfileUrls: Record<string, string | null>;
+  onArtistClick: (name: string) => void;
+  onAlbumClick: (albumId: number) => void;
 }) {
   if (!item) {
     return (
@@ -191,6 +247,7 @@ function GenreDetailPanel({
                     <DetailArtistCard
                       artist={artist}
                       profileImageUrl={artistProfileUrls[artist.name] ?? null}
+                      onClick={() => onArtistClick(artist.name)}
                     />
                   ) : null}
                 </div>
@@ -206,7 +263,9 @@ function GenreDetailPanel({
             <div className="grid grid-cols-3 items-start gap-2 sm:gap-3 lg:grid-cols-5">
               {albumSlots.map((album, index) => (
                 <div key={album?.albumId ?? `album-empty-${index}`} className="min-w-0">
-                  {album ? <DetailAlbumCard album={album} /> : null}
+                  {album ? (
+                    <DetailAlbumCard album={album} onClick={() => onAlbumClick(album.albumId)} />
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -229,6 +288,19 @@ export function GenreStatsContent() {
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [genreField, setGenreField] = useState<GenreField>('genre1');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
+  const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
+  const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
+  const [albumFormData, setAlbumFormData] = useState<AlbumFormData>(initialAlbumFormData);
+  const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
+    { id: number; brand: string; model: string }[]
+  >([]);
+  const [recommendedHeadphones, setRecommendedHeadphones] = useState<
+    { id: number; brand: string; model: string; image_url?: string | null }[]
+  >([]);
+  const [audioTags, setAudioTags] = useState<string[]>([]);
+  const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
+    useAlbumMutations({ isAuthenticated });
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -292,6 +364,165 @@ export function GenreStatsContent() {
     void fetchData();
   }, [isAuthenticated, fetchData]);
 
+  useEffect(() => {
+    if (isAuthenticated !== true) {
+      setHeadfiOwnedHeadphones([]);
+      return;
+    }
+    void createClient()
+      .from('headfi')
+      .select('id, brand, model')
+      .in('category', ['헤드폰', '이어폰'])
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) => {
+        setHeadfiOwnedHeadphones(
+          (data ?? []).map((row) => ({
+            id: row.id,
+            brand: row.brand || '',
+            model: row.model || '',
+          })),
+        );
+      });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!viewingAlbum?.id) {
+      setRecommendedHeadphones([]);
+      setAudioTags([]);
+      return;
+    }
+    setAudioTags(viewingAlbum.audio_tags ?? []);
+    const ids = (viewingAlbum.manual_recommended_headphone_ids ?? []).slice(0, 2);
+    if (ids.length === 0) {
+      setRecommendedHeadphones([]);
+      return;
+    }
+    void createClient()
+      .from('headfi')
+      .select('id, brand, model, image_url')
+      .in('id', ids)
+      .then(({ data }) => {
+        const ordered = ids
+          .map((id) => (data || []).find((h) => h.id === id))
+          .filter(
+            (h): h is { id: number; brand: string; model: string; image_url: string | null } => !!h,
+          )
+          .map((h) => ({
+            id: h.id,
+            brand: h.brand || '',
+            model: h.model || '',
+            image_url: h.image_url ?? null,
+          }));
+        setRecommendedHeadphones(ordered);
+      });
+  }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
+
+  const refreshHistory = useCallback(async () => {
+    const { data, error } = await createClient()
+      .from('album_listen_history')
+      .select('album_id, listened_at');
+    if (error) {
+      toast.error('청취 기록을 불러오지 못했습니다.');
+      return;
+    }
+    setHistoryRows((data ?? []) as HistoryRow[]);
+  }, []);
+
+  const openAlbum = useCallback(
+    (albumId: number) => {
+      const cached = albums.find((album) => album.id === albumId);
+      if (cached) {
+        setViewingAlbum(cached);
+        return;
+      }
+      void createClient()
+        .from('album')
+        .select('*')
+        .eq('id', albumId)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (error || !data) {
+            toast.error('앨범 정보를 불러오지 못했습니다.');
+            return;
+          }
+          setViewingAlbum(data as Album);
+        });
+    },
+    [albums],
+  );
+
+  const closeAlbumModal = () => {
+    setViewingAlbum(null);
+    void refreshHistory();
+  };
+
+  const handleAlbumEditClick = () => {
+    if (!viewingAlbum) return;
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    const item = viewingAlbum;
+    setViewingAlbum(null);
+    setAlbumFormItem(item);
+    setAlbumFormData(
+      albumToFormData(item, {
+        album_intro: item.album_intro ?? item.ai_recommended_headphone_reason ?? '',
+      }),
+    );
+  };
+
+  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () =>
+      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  const handleAlbumSave = async () => {
+    if (!albumFormItem) return;
+    const result = await saveAlbum({ formItem: albumFormItem, formData: albumFormData });
+    if (result.status === 'updated') {
+      if (result.album) {
+        setAlbums((prev) => prev.map((album) => (album.id === result.album!.id ? result.album! : album)));
+        setViewingAlbum(result.album);
+        setAudioTags(result.album.audio_tags ?? []);
+      }
+      setAlbumFormItem(null);
+      return;
+    }
+    if (result.status === 'created') {
+      await fetchData();
+      setAlbumFormItem(null);
+    }
+  };
+
+  const handleDeleteFromModal = async () => {
+    if (!viewingAlbum) return;
+    const deletedId = viewingAlbum.id;
+    const deleted = await deleteAlbum({ albumId: deletedId });
+    if (!deleted) return;
+    setViewingAlbum(null);
+    setAlbums((prev) => prev.filter((album) => album.id !== deletedId));
+    await refreshHistory();
+  };
+
+  const handleRefreshAlbumIntro = async () => {
+    if (!viewingAlbum) return;
+    await refreshAlbumIntro({
+      album: viewingAlbum,
+      onUpdated: (updated, tags) => {
+        setViewingAlbum(updated);
+        setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
+        setAudioTags(tags);
+      },
+    });
+  };
+
   const yearOptions = useMemo(() => listStatsYears(), []);
   const monthOptions = useMemo(() => listStatsMonths(periodFilter.year), [periodFilter.year]);
   const isAllMonths = periodFilter.month === 'all';
@@ -325,6 +556,17 @@ export function GenreStatsContent() {
   const selectedItem =
     ranking.find((item) => item.label === selectedLabel) ?? ranking[0] ?? null;
   const activeLabel = selectedItem?.label ?? null;
+  const listenHistoryIndex = useMemo(
+    () => buildListenHistoryIndex(historyRows),
+    [historyRows],
+  );
+
+  useEffect(() => {
+    if (selectedLabel == null) return;
+    if (!ranking.some((item) => item.label === selectedLabel)) {
+      setSelectedLabel(null);
+    }
+  }, [ranking, selectedLabel]);
 
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = filteredHistoryRows.length > 0;
@@ -492,13 +734,86 @@ export function GenreStatsContent() {
                 style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
               >
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
-                  <GenreDetailPanel item={selectedItem} artistProfileUrls={artistProfileUrls} />
+                  <GenreDetailPanel
+                    item={selectedItem}
+                    artistProfileUrls={artistProfileUrls}
+                    onArtistClick={setViewingArtistName}
+                    onAlbumClick={openAlbum}
+                  />
                 </div>
               </section>
             </div>
           )}
         </>
       )}
+
+      {viewingAlbum ? (
+        <AlbumDetailModal
+          viewingItem={viewingAlbum}
+          recommendedHeadphones={recommendedHeadphones}
+          albumIntro={(viewingAlbum.album_intro ?? '').trim()}
+          audioTags={audioTags}
+          albumIntroLoading={albumIntroLoading}
+          onRefreshAlbumIntro={() => void handleRefreshAlbumIntro()}
+          onClose={closeAlbumModal}
+          onEdit={handleAlbumEditClick}
+          onDelete={() => void handleDeleteFromModal()}
+          isDeleting={isDeleting}
+          isAuthenticated={isAuthenticated}
+          onAlbumPatch={(updated) => {
+            setViewingAlbum(updated);
+            setAlbums((prev) => prev.map((album) => (album.id === updated.id ? updated : album)));
+          }}
+        />
+      ) : null}
+
+      {viewingArtistName ? (
+        <ArtistDetailModal
+          artistName={viewingArtistName}
+          albums={albums}
+          listenHistoryIndex={listenHistoryIndex}
+          isAuthenticated={isAuthenticated}
+          onClose={() => {
+            setViewingArtistName(null);
+            void refreshHistory();
+          }}
+          onAlbumClick={(album) => {
+            setViewingArtistName(null);
+            setViewingAlbum(album);
+          }}
+          onSelectArtist={setViewingArtistName}
+          onArtistNamesUpdated={({ albumArtistName, recordArtistName, newName }) => {
+            setViewingArtistName(newName);
+            setAlbums((prev) =>
+              prev.map((album) =>
+                applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
+              ),
+            );
+            setArtistProfileUrls((prev) => {
+              const next = { ...prev };
+              const sourceKey = albumArtistName in next ? albumArtistName : recordArtistName;
+              if (sourceKey in next) {
+                next[newName] = next[sourceKey];
+                if (sourceKey !== newName) delete next[sourceKey];
+              }
+              return next;
+            });
+          }}
+        />
+      ) : null}
+
+      {albumFormItem ? (
+        <AlbumForm
+          selectedItem={albumFormItem}
+          formData={albumFormData}
+          setFormData={setAlbumFormData}
+          headfiOwnedHeadphones={headfiOwnedHeadphones}
+          onClose={() => setAlbumFormItem(null)}
+          onSave={() => void handleAlbumSave()}
+          onImageUpload={handleAlbumImageUpload}
+          isSaving={isSaving}
+        />
+      ) : null}
     </div>
   );
 }

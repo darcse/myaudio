@@ -812,6 +812,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
             }
             weekRange={weekRange}
             onAlbumClick={openAlbum}
+            onArtistClick={setViewingArtistName}
           />
 
           <div

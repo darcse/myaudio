@@ -19,6 +19,7 @@ type WeeklyHotAlbumsSectionProps = {
   artistProfileUrl: string | null;
   weekRange: WeekRange;
   onAlbumClick: (albumId: number) => void;
+  onArtistClick: (artistName: string) => void;
 };
 
 function HotPanel({
@@ -95,20 +96,23 @@ function WeeklyHotAlbumCard({
 function WeeklyHotArtistCard({
   artist,
   profileImageUrl,
+  onClick,
 }: {
   artist: WeeklyHotArtistItem | null;
   profileImageUrl: string | null;
+  onClick?: () => void;
 }) {
   const showImage = Boolean(artist && profileImageUrl);
+  const className = `relative h-40 w-full overflow-hidden rounded-xl border text-left lg:h-full ${
+    artist ? 'cursor-pointer transition-opacity hover:opacity-90' : ''
+  }`;
+  const style = {
+    borderColor: 'var(--border)',
+    background: showImage ? 'var(--badge-bg)' : ARTIST_CARD_FALLBACK_BG,
+  };
 
-  return (
-    <div
-      className="relative h-40 w-full overflow-hidden rounded-xl border lg:h-full"
-      style={{
-        borderColor: 'var(--border)',
-        background: showImage ? 'var(--badge-bg)' : ARTIST_CARD_FALLBACK_BG,
-      }}
-    >
+  const content = (
+    <>
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -138,6 +142,20 @@ function WeeklyHotArtistCard({
           <p className="text-sm font-medium drop-shadow-sm">집계할 아티스트가 없습니다</p>
         )}
       </div>
+    </>
+  );
+
+  if (artist && onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} style={style}>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className} style={style}>
+      {content}
     </div>
   );
 }
@@ -148,6 +166,7 @@ export function WeeklyHotAlbumsSection({
   artistProfileUrl,
   weekRange,
   onAlbumClick,
+  onArtistClick,
 }: WeeklyHotAlbumsSectionProps) {
   const albumSlots = Array.from(
     { length: WEEKLY_HOT_ALBUM_LIMIT },
@@ -186,7 +205,11 @@ export function WeeklyHotAlbumsSection({
             icon={<Crown className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />}
           >
             <div className="min-h-0 flex-1">
-              <WeeklyHotArtistCard artist={hotArtist} profileImageUrl={artistProfileUrl} />
+              <WeeklyHotArtistCard
+                artist={hotArtist}
+                profileImageUrl={artistProfileUrl}
+                onClick={hotArtist ? () => onArtistClick(hotArtist.artistName) : undefined}
+              />
             </div>
           </HotPanel>
           <HotPanel
