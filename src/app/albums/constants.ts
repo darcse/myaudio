@@ -16,6 +16,8 @@ export const countryOptions = [
   { name: '스위스', flag: '🇨🇭' },
   { name: '벨기에', flag: '🇧🇪' },
   { name: '아이슬란드', flag: '🇮🇸' },
+  { name: '오스트리아', flag: '🇦🇹' },
+  { name: '이탈리아', flag: '🇮🇹' },
   { name: '기타', flag: '🏳️' },
 ] as const;
 

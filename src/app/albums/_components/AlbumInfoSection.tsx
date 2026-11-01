@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Music } from 'lucide-react';
 import { toast } from 'sonner';
 import { countryOptions } from '../constants';
-import { getYoutubeId } from '../utils';
+import { getYoutubeId, isClassicGenre } from '../utils';
 import type { Album } from '../types';
 import { getMoodVibeEmoji, MoodMiniCard } from './albumDetailMoodMiniCard';
 import { AlbumCoverBlurBackdrop } from './AlbumCoverBlurBackdrop';
@@ -392,6 +392,9 @@ export function AlbumInfoSection({
         <div className="flex flex-col gap-y-2 min-w-0 flex-1 opacity-90">
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
+          {isClassicGenre(viewingItem.genre1) && viewingItem.composer?.trim() ? (
+            <p><strong>작곡가:</strong> {viewingItem.composer.trim()}</p>
+          ) : null}
         </div>
       </div>
 

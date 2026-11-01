@@ -70,3 +70,4 @@
 [2026-10-31] [Cursor] style: Weekly Hot 세로 앨범+소제목 | passes: 변경 없음
 [2026-10-31] [Cursor] style: Weekly Hot 아티스트/앨범 패널 분리 | passes: 변경 없음
 [2026-10-31] [Cursor] style: Weekly Hot 앨범 커버 오버레이 카드 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-038 Classic 작곡가 + 오스트리아/이탈리아 | passes: 변경 없음

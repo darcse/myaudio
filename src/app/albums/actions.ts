@@ -5,6 +5,7 @@ import { extractDominantColorsFromCoverUrl } from '@/lib/albumCoverColors.server
 import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
+import { isClassicGenre } from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
   if (!dateStr) return null;
@@ -48,6 +49,9 @@ function mapAlbumData(data: AlbumFormData) {
     owns_cd: Boolean(data.owns_cd),
     owns_lp: Boolean(data.owns_lp),
     owns_cassette: Boolean(data.owns_cassette),
+    ...(isClassicGenre(data.genre1)
+      ? { composer: data.composer.trim() || null }
+      : {}),
   };
 }
 

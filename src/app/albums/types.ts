@@ -9,6 +9,7 @@ export interface Album {
   year?: string[] | null;
   genre1: string | null;
   genre2: string | null;
+  composer?: string | null;
   cover_image_url: string | null;
   dominant_colors?: string[] | null;
   matching1: string | null;
@@ -50,6 +51,7 @@ export interface AlbumFormData {
   release_date: string;
   genre1: string;
   genre2: string;
+  composer: string;
   cover_image_url: string;
   matching1: string;
   matching2: string;

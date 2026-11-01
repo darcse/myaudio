@@ -1,5 +1,9 @@
 import type { Album, AlbumFormData } from './types';
 
+export function isClassicGenre(genre1: string | null | undefined): boolean {
+  return genre1?.trim() === 'Classic';
+}
+
 function formYearsFromAlbum(year: Album['year']): string[] {
   if (year == null) return ['2026'];
   if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
@@ -19,6 +23,7 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     release_date: item.release_date ?? '',
     genre1: item.genre1 ?? '',
     genre2: item.genre2 ?? '',
+    composer: item.composer ?? '',
     cover_image_url: item.cover_image_url ?? '',
     matching1: item.matching1 ?? '',
     matching2: item.matching2 ?? '',

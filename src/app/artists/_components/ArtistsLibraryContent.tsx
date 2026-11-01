@@ -44,6 +44,7 @@ const initialAlbumFormData: AlbumFormData = {
   release_date: '',
   genre1: '',
   genre2: '',
+  composer: '',
   cover_image_url: '',
   matching1: '',
   matching2: '',

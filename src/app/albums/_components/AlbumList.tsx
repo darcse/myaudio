@@ -244,7 +244,7 @@ export function AlbumList({
           <div className={`relative min-w-0 ${isRecordshelf ? 'w-[320px] max-w-full' : 'flex-1 lg:w-[320px]'}`}>
             <input
               className="input-apple px-3 py-2 text-sm w-full h-[38px] pr-8"
-              placeholder="앨범명, 아티스트 검색..."
+              placeholder="앨범명, 아티스트, 작곡가 검색..."
               value={listSearchQuery}
               onChange={(e) => setListSearchQuery(e.target.value)}
             />

@@ -5,6 +5,7 @@ import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import { countryOptions, genreOptions } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
+import { isClassicGenre } from '../utils';
 
 interface AlbumFormProps {
   selectedItem: SelectedAlbum;
@@ -71,7 +72,13 @@ export function AlbumForm({
       : false;
   const isAllTime = formData.year.includes('All Time');
 
-  const renderInput = (label: string, field: keyof AlbumFormData, apiField?: string, type: string = 'text') => {
+  const renderInput = (
+    label: string,
+    field: keyof AlbumFormData,
+    apiField?: string,
+    type: string = 'text',
+    hint?: string,
+  ) => {
     const isReadOnly =
       apiField && !isEdit && !('isManual' in selectedItem)
         ? !!(selectedItem as Record<string, unknown>)?.[apiField]
@@ -87,6 +94,7 @@ export function AlbumForm({
           onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
           readOnly={isReadOnly}
         />
+        {hint ? <p className="mt-1 text-[11px] opacity-60">{hint}</p> : null}
       </div>
     );
   };
@@ -102,7 +110,13 @@ export function AlbumForm({
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           {renderInput('앨범명', 'album_name', 'album_name')}
-          {renderInput('아티스트', 'artist', 'artist')}
+          {renderInput(
+            '아티스트',
+            'artist',
+            'artist',
+            'text',
+            isClassicGenre(formData.genre1) ? '연주자(지휘자/솔리스트)를 입력하세요' : undefined,
+          )}
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">아티스트 구분</label>
             <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.artist_type} onChange={(e) => setFormData({ ...formData, artist_type: e.target.value })}>
@@ -241,6 +255,7 @@ export function AlbumForm({
             </select>
           </div>
           {renderInput('하위 장르 (직접 입력)', 'genre2')}
+          {isClassicGenre(formData.genre1) ? renderInput('작곡가', 'composer') : null}
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div>
               <label className="block text-sm font-semibold mb-1 opacity-90">타이틀곡 URL (유튜브)</label>
