@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Music, Play, Tv } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
 import { getYoutubeId, isClassicGenre } from '../utils';
 import type { Album } from '../types';
@@ -114,6 +115,8 @@ export function AlbumInfoHeroSection({
                         artist: viewingItem.artist ?? '',
                         coverImageUrl: viewingItem.cover_image_url,
                         playlistId,
+                        country: viewingItem.country,
+                        cachedTracks: parseYoutubeTracks(viewingItem.youtube_tracks),
                       })
                     }
                     className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors"

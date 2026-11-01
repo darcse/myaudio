@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useLyricsPlayer } from '@/contexts/LyricsPlayerContext';
+import type { YoutubeTrack } from '@/lib/youtubeTracks';
 
 export type AlbumPlayerAlbum = {
   id: number;
@@ -17,6 +18,8 @@ export type AlbumPlayerAlbum = {
   artist: string;
   coverImageUrl: string | null;
   playlistId: string;
+  country?: string | null;
+  cachedTracks?: YoutubeTrack[];
 };
 
 export type AlbumPlayerContextValue = {

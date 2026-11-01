@@ -16,6 +16,7 @@ export type YoutubePlayer = {
   getPlayerState: () => number;
   setSize: (width: number, height: number) => void;
   loadPlaylist: (args: { list: string; listType?: string; index?: number }) => void;
+  playVideoAt: (index: number) => void;
   destroy: () => void;
   getIframe?: () => HTMLIFrameElement;
 };
@@ -82,7 +83,7 @@ export function createYoutubePlaylistIframe(playlistId: string): HTMLIFrameEleme
   const iframe = document.createElement('iframe');
   const origin = encodeURIComponent(window.location.origin);
   const list = encodeURIComponent(playlistId);
-  iframe.src = `https://www.youtube.com/embed/videoseries?list=${list}&enablejsapi=1&autoplay=1&playsinline=1&rel=0&origin=${origin}`;
+  iframe.src = `https://www.youtube.com/embed/videoseries?list=${list}&enablejsapi=1&autoplay=1&playsinline=1&rel=0&controls=0&origin=${origin}`;
   iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
   iframe.referrerPolicy = 'strict-origin-when-cross-origin';
   iframe.allowFullscreen = true;

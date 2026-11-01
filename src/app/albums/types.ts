@@ -19,6 +19,7 @@ export interface Album {
   matching2: string | null;
   title_song_url: string | null;
   youtube_playlist_id?: string | null;
+  youtube_tracks?: { videoId: string; title: string }[] | null;
   wiki_url?: string | null;
   created_at?: string;
   audio_tags?: string[] | null;

@@ -6,6 +6,7 @@ import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
+import type { YoutubeTrack } from '@/lib/youtubeTracks';
 import { isClassicGenre } from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
@@ -243,14 +244,40 @@ export async function updateAlbumInDB(id: number, data: AlbumFormData) {
   if (!user) throw new Error('Unauthorized');
   const supabase = await createClient();
   const dominant_colors = await resolveDominantColors(data.cover_image_url);
+  const mapped = mapAlbumData(data);
+  const { data: existing } = await supabase
+    .from('album')
+    .select('youtube_playlist_id')
+    .eq('id', id)
+    .maybeSingle();
+  const previousId =
+    existing && typeof existing.youtube_playlist_id === 'string'
+      ? existing.youtube_playlist_id
+      : null;
+  const playlistChanged = previousId !== (mapped.youtube_playlist_id ?? null);
   const { data: result, error } = await supabase
     .from('album')
-    .update({ ...mapAlbumData(data), dominant_colors })
+    .update({
+      ...mapped,
+      dominant_colors,
+      ...(playlistChanged ? { youtube_tracks: null } : {}),
+    })
     .eq('id', id);
 
   if (error) throw error;
   console.error('[album-enrichment]', { reason: 'update_no_assign', albumId: id });
   return result;
+}
+
+export async function saveAlbumYoutubeTracks(albumId: number, tracks: YoutubeTrack[]) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('album')
+    .update({ youtube_tracks: tracks })
+    .eq('id', albumId);
+  if (error) throw error;
 }
 
 export async function deleteAlbumFromDB(id: number) {
