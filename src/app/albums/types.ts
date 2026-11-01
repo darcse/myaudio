@@ -18,6 +18,7 @@ export interface Album {
   matching1: string | null;
   matching2: string | null;
   title_song_url: string | null;
+  youtube_playlist_id?: string | null;
   wiki_url?: string | null;
   created_at?: string;
   audio_tags?: string[] | null;
@@ -62,6 +63,7 @@ export interface AlbumFormData {
   matching1: string;
   matching2: string;
   title_song_url: string;
+  youtube_playlist_id?: string;
   wiki_url?: string | null;
   album_intro: string;
   recommended_hp1: string;

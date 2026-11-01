@@ -5,6 +5,7 @@ import { extractDominantColorsFromCoverUrl } from '@/lib/albumCoverColors.server
 import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
+import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import { isClassicGenre } from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
@@ -43,6 +44,7 @@ function mapAlbumData(data: AlbumFormData) {
     matching1: data.matching1,
     matching2: data.matching2,
     title_song_url: data.title_song_url,
+    youtube_playlist_id: parseYoutubePlaylistInput(data.youtube_playlist_id ?? '').id,
     wiki_url: data.wiki_url || null,
     album_intro: data.album_intro?.trim() || null,
     manual_recommended_headphone_ids: manualIds.length > 0 ? manualIds : null,

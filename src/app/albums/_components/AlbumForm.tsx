@@ -11,6 +11,7 @@ import {
   isClassicFormOption,
 } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
+import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import { isClassicGenre } from '../utils';
 import { ComposerComboSelect } from './ComposerComboSelect';
 
@@ -44,10 +45,12 @@ export function AlbumForm({
 }: AlbumFormProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [classicFormError, setClassicFormError] = useState(false);
+  const [playlistError, setPlaylistError] = useState(false);
 
   useEffect(() => {
     setDeleteConfirmOpen(false);
     setClassicFormError(false);
+    setPlaylistError(false);
   }, [selectedItem]);
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -94,7 +97,7 @@ export function AlbumForm({
         : false;
     if (field === 'cover_image_url') return null;
     return (
-      <div className={label === '앨범명' || label === '타이틀곡 URL' ? 'col-span-2' : ''}>
+      <div className={label === '타이틀곡 URL' ? 'col-span-2' : ''}>
         <label className="block text-sm font-semibold mb-1 opacity-90">{label}</label>
         <input
           type={type}
@@ -118,7 +121,28 @@ export function AlbumForm({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-          {renderInput('앨범명', 'album_name', 'album_name')}
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            {renderInput('앨범명', 'album_name', 'album_name')}
+            <div className="min-w-0">
+              <label className="block text-sm font-semibold mb-1 opacity-90">유튜브 뮤직 재생목록</label>
+              <input
+                type="text"
+                className={inputBaseClass}
+                value={formData.youtube_playlist_id ?? ''}
+                onChange={(e) => {
+                  setFormData({ ...formData, youtube_playlist_id: e.target.value });
+                  if (playlistError) setPlaylistError(false);
+                }}
+                placeholder="music.youtube.com 주소 또는 OLAK5uy_..."
+                aria-invalid={playlistError}
+              />
+              {playlistError ? (
+                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                  유튜브 재생목록 주소 또는 ID를 확인해 주세요.
+                </p>
+              ) : null}
+            </div>
+          </div>
           {renderInput(
             '아티스트',
             'artist',
@@ -404,7 +428,12 @@ export function AlbumForm({
                 setClassicFormError(true);
                 return;
               }
+              if (parseYoutubePlaylistInput(formData.youtube_playlist_id ?? '').status === 'invalid') {
+                setPlaylistError(true);
+                return;
+              }
               setClassicFormError(false);
+              setPlaylistError(false);
               onSave();
             }}
             disabled={isSaving || isDeleting}

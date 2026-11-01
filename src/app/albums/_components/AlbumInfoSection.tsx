@@ -4,8 +4,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Music } from 'lucide-react';
+import { Music, Play, Tv } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { countryOptions } from '../constants';
 import { getYoutubeId, isClassicGenre } from '../utils';
 import type { Album } from '../types';
@@ -26,6 +27,8 @@ export function AlbumInfoHeroSection({
   onClose,
 }: Pick<AlbumInfoSectionProps, 'viewingItem' | 'onClose'>) {
   const [youtubeOpen, setYoutubeOpen] = useState(false);
+  const { playAlbum } = useAlbumPlayer();
+  const playlistId = viewingItem.youtube_playlist_id?.trim() ?? '';
 
   useEffect(() => {
     setYoutubeOpen(false);
@@ -87,25 +90,42 @@ export function AlbumInfoHeroSection({
                 )}
               </p>
             </div>
-            {viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) && (
-              <button
-                type="button"
-                onClick={() => setYoutubeOpen((o) => !o)}
-                className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-full transition-colors"
-                style={{ background: youtubeOpen ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)' }}
-                title="타이틀 곡 재생"
-              >
-                {youtubeOpen ? (
-                  <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5 text-white fill-current ml-0.5" viewBox="0 0 24 24" aria-hidden>
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-              </button>
-            )}
+            {playlistId || (viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url)) ? (
+              <div className="flex shrink-0 items-center gap-2">
+                {viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) ? (
+                  <button
+                    type="button"
+                    onClick={() => setYoutubeOpen((o) => !o)}
+                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+                    style={{ background: youtubeOpen ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)' }}
+                    title="타이틀곡 영상"
+                    aria-label="타이틀곡 영상"
+                  >
+                    <Tv className="size-5 text-white" strokeWidth={1.75} />
+                  </button>
+                ) : null}
+                {playlistId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      playAlbum({
+                        id: viewingItem.id,
+                        albumName: viewingItem.album_name,
+                        artist: viewingItem.artist ?? '',
+                        coverImageUrl: viewingItem.cover_image_url,
+                        playlistId,
+                      })
+                    }
+                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                    title="앨범 전체 재생"
+                    aria-label="앨범 전체 재생"
+                  >
+                    <Play className="size-5 ml-0.5 fill-current text-white" strokeWidth={2} />
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -94,3 +94,7 @@
 [2026-11-01] [Cursor] feat: 아티스트 구분에 연주자·지휘자 추가 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: 아티스트 구분에 음악감독 추가 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: Classic 작곡가 콤보박스 검색·자동채우기 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-043 유튜브 뮤직 전역 앨범 플레이어 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: 앨범 플레이어 닫기 시 타이머 정리 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: 유튜브 플레이어 준비 전 getCurrentTime 호출 | passes: 변경 없음
+[2026-11-01] [Cursor] style: 앨범 히어로 재생 버튼·폼 재생목록 위치 | passes: 변경 없음

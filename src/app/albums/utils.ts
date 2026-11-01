@@ -101,6 +101,7 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     matching1: item.matching1 ?? '',
     matching2: item.matching2 ?? '',
     title_song_url: item.title_song_url ?? '',
+    youtube_playlist_id: item.youtube_playlist_id ?? '',
     wiki_url: item.wiki_url ?? '',
     album_intro: item.album_intro ?? '',
     recommended_hp1: mids[0] != null ? String(mids[0]) : '',
