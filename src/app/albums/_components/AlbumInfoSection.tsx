@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Music, Play, Tv } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
 import { getYoutubeId, isClassicGenre } from '../utils';
@@ -34,6 +35,11 @@ export function AlbumInfoHeroSection({
   useEffect(() => {
     setYoutubeOpen(false);
   }, [viewingItem.id]);
+
+  useEffect(() => {
+    if (!playlistId) return;
+    void loadYoutubeIframeApi().catch(() => {});
+  }, [playlistId]);
 
   return (
     <>

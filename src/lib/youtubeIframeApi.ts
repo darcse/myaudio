@@ -45,6 +45,12 @@ type YoutubeWindow = Window & {
 
 let loadPromise: Promise<YoutubeApiReady> | null = null;
 
+export function getYoutubeIframeApiIfReady(): YoutubeApiReady | null {
+  if (typeof window === 'undefined') return null;
+  const api = (window as YoutubeWindow).YT;
+  return api?.Player ? api : null;
+}
+
 export function loadYoutubeIframeApi(): Promise<YoutubeApiReady> {
   if (typeof window === 'undefined') {
     return Promise.reject(new Error('YouTube API는 브라우저에서만 사용할 수 있습니다.'));

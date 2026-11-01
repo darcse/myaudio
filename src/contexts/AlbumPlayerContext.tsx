@@ -6,7 +6,9 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type MutableRefObject,
   type ReactNode,
 } from 'react';
 import { useLyricsPlayer } from '@/contexts/LyricsPlayerContext';
@@ -22,13 +24,20 @@ export type AlbumPlayerAlbum = {
   cachedTracks?: YoutubeTrack[];
 };
 
+export type AlbumPlayerCommands = {
+  startAlbum: (album: AlbumPlayerAlbum) => boolean;
+  pauseIfPlaying: () => void;
+};
+
 export type AlbumPlayerContextValue = {
   current: AlbumPlayerAlbum | null;
   session: number;
   expanded: boolean;
   playAlbum: (album: AlbumPlayerAlbum) => void;
+  pauseIfPlaying: () => void;
   close: () => void;
   setExpanded: (expanded: boolean) => void;
+  commandsRef: MutableRefObject<AlbumPlayerCommands>;
 };
 
 const AlbumPlayerContext = createContext<AlbumPlayerContextValue | null>(null);
@@ -38,6 +47,10 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<AlbumPlayerAlbum | null>(null);
   const [session, setSession] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const commandsRef = useRef<AlbumPlayerCommands>({
+    startAlbum: () => false,
+    pauseIfPlaying: () => {},
+  });
 
   useEffect(() => {
     if (!playingTrack) return;
@@ -48,12 +61,17 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
   const playAlbum = useCallback(
     (album: AlbumPlayerAlbum) => {
       stopPlayback();
+      commandsRef.current.startAlbum(album);
       setCurrent(album);
       setExpanded(false);
       setSession((value) => value + 1);
     },
     [stopPlayback],
   );
+
+  const pauseIfPlaying = useCallback(() => {
+    commandsRef.current.pauseIfPlaying();
+  }, []);
 
   const close = useCallback(() => {
     setCurrent(null);
@@ -66,10 +84,12 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
       session,
       expanded,
       playAlbum,
+      pauseIfPlaying,
       close,
       setExpanded,
+      commandsRef,
     }),
-    [current, session, expanded, playAlbum, close],
+    [current, session, expanded, playAlbum, pauseIfPlaying, close],
   );
 
   return <AlbumPlayerContext.Provider value={value}>{children}</AlbumPlayerContext.Provider>;

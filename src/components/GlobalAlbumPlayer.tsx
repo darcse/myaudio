@@ -1,20 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
-import { Maximize2, Minimize2, Pause, Play, RefreshCw, SkipBack, SkipForward, X } from 'lucide-react';
+import { ExternalLink, Maximize2, Minimize2, Pause, Play, RefreshCw, SkipBack, SkipForward, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumYoutubeTracks } from '@/app/albums/actions';
-import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { useAlbumPlayer, type AlbumPlayerAlbum } from '@/contexts/AlbumPlayerContext';
 import { useAuthState } from '@/hooks/useAuthState';
 import {
   applyYoutubeReferrerPolicy,
   createYoutubePlaylistIframe,
+  getYoutubeIframeApiIfReady,
   isYoutubePlayerReady,
   loadYoutubeIframeApi,
   YT_PLAYER_STATE,
   type YoutubePlayer,
 } from '@/lib/youtubeIframeApi';
-import { youtubePlaylistOpenUrl } from '@/lib/youtubePlaylist';
+import { youtubeMusicPlaylistUrl, youtubePlaylistOpenUrl } from '@/lib/youtubePlaylist';
 import {
   fallbackTrackTitle,
   tracksMatchPlaylist,
@@ -33,7 +34,7 @@ function formatTime(seconds: number): string {
 }
 
 export function GlobalAlbumPlayer() {
-  const { current, session, expanded, close, setExpanded } = useAlbumPlayer();
+  const { current, session, expanded, close, setExpanded, commandsRef } = useAlbumPlayer();
   const isAuthenticated = useAuthState();
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YoutubePlayer | null>(null);
@@ -46,6 +47,9 @@ export function GlobalAlbumPlayer() {
   const expandedRef = useRef(expanded);
   const tracksRef = useRef<YoutubeTrack[]>([]);
   const resolveTracksRef = useRef<(videoIds: string[], force: boolean) => void>(() => {});
+  const cancelledRef = useRef(false);
+  const startedSyncRef = useRef('');
+  const playStartedRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -56,6 +60,7 @@ export function GlobalAlbumPlayer() {
   const [tracksLoading, setTracksLoading] = useState(false);
   const [tracksRefreshing, setTracksRefreshing] = useState(false);
   const [unplayableIds, setUnplayableIds] = useState<string[]>([]);
+  const [gestureHint, setGestureHint] = useState(false);
   tracksRef.current = tracks;
   expandedRef.current = expanded;
 
@@ -114,6 +119,103 @@ export function GlobalAlbumPlayer() {
       syncProgress(player);
     }, 250);
   }, [stopProgressTimer, syncProgress]);
+
+  const bindPlayer = useCallback((iframe: HTMLIFrameElement, host: HTMLElement) => {
+    const api = getYoutubeIframeApiIfReady();
+    if (!api) return false;
+    new api.Player(iframe, {
+      events: {
+        onReady: (event) => {
+          if (cancelledRef.current) return;
+          applyYoutubeReferrerPolicy(event.target, hostRef.current ?? host);
+          playerRef.current = event.target;
+          readyRef.current = true;
+          resizePlayer();
+          event.target.playVideo();
+          syncProgress(event.target);
+          startProgressTimer();
+          const playlist = typeof event.target.getPlaylist === 'function' ? event.target.getPlaylist() : undefined;
+          if (!playlist || playlist.length === 0) {
+            emptyCheckTimerRef.current = window.setTimeout(() => {
+              emptyCheckTimerRef.current = null;
+              if (!isYoutubePlayerReady(event.target)) return;
+              const later = event.target.getPlaylist();
+              if (!later || later.length === 0) setFatalError(true);
+            }, 1500);
+          }
+        },
+        onStateChange: (event) => {
+          if (!isYoutubePlayerReady(event.target)) return;
+          const playing = event.data === YT_PLAYER_STATE.PLAYING;
+          if (playing) {
+            playStartedRef.current = true;
+            setGestureHint(false);
+          }
+          setIsPlaying(playing);
+          syncProgress(event.target);
+          if (event.data === YT_PLAYER_STATE.ENDED) {
+            setIsPlaying(false);
+          }
+        },
+        onError: (event) => {
+          if (!isYoutubePlayerReady(event.target)) {
+            setFatalError(true);
+            return;
+          }
+          const embedBlocked = event.data === 101 || event.data === 150;
+          if (embedBlocked) {
+            const playlist = event.target.getPlaylist() ?? [];
+            const index = event.target.getPlaylistIndex();
+            const videoId = playlist[index];
+            if (videoId) {
+              skippedRef.current.add(videoId);
+              setUnplayableIds((prev) => (prev.includes(videoId) ? prev : [...prev, videoId]));
+            }
+            toast.error('이 곡은 임베드가 차단되어 다음 곡으로 넘어갑니다.');
+            if (playlist.length > 0 && skippedRef.current.size >= playlist.length) {
+              setFatalError(true);
+              event.target.pauseVideo();
+              return;
+            }
+            event.target.nextVideo();
+            return;
+          }
+          setFatalError(true);
+        },
+      },
+    });
+    return true;
+  }, [resizePlayer, syncProgress, startProgressTimer]);
+
+  const startAlbum = useCallback((album: AlbumPlayerAlbum): boolean => {
+    const existing = playerRef.current;
+    if (isYoutubePlayerReady(existing)) {
+      try {
+        existing.loadPlaylist({ list: album.playlistId, listType: 'playlist', index: 0 });
+        existing.playVideo();
+        applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
+        startedSyncRef.current = album.playlistId;
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    const host = hostRef.current;
+    if (!getYoutubeIframeApiIfReady() || !host) return false;
+    try {
+      cancelledRef.current = false;
+      readyRef.current = false;
+      stopProgressTimer();
+      playerRef.current = null;
+      const iframe = createYoutubePlaylistIframe(album.playlistId);
+      host.replaceChildren(iframe);
+      if (!bindPlayer(iframe, host)) return false;
+      startedSyncRef.current = album.playlistId;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [bindPlayer, stopProgressTimer]);
 
   const teardownPlayer = useCallback(() => {
     stopProgressTimer();
@@ -193,16 +295,29 @@ export function GlobalAlbumPlayer() {
   }, [current, isAuthenticated]);
 
   resolveTracksRef.current = resolveTracks;
+  commandsRef.current.startAlbum = startAlbum;
+  commandsRef.current.pauseIfPlaying = () => {
+    const player = playerRef.current;
+    if (!readyRef.current || !isYoutubePlayerReady(player)) return;
+    try {
+      player.pauseVideo();
+    } catch {
+    }
+  };
 
   useEffect(() => {
     if (!current) {
+      cancelledRef.current = true;
       teardownPlayer();
+      startedSyncRef.current = '';
+      playStartedRef.current = false;
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
       setTrackIndex(0);
       setTrackCount(0);
       setFatalError(false);
+      setGestureHint(false);
       setTracks([]);
       setTracksLoading(false);
       setTracksRefreshing(false);
@@ -212,6 +327,7 @@ export function GlobalAlbumPlayer() {
       return;
     }
 
+    cancelledRef.current = false;
     if (resolvedKeyRef.current && !resolvedKeyRef.current.startsWith(`${current.id}:`)) {
       resolvedKeyRef.current = '';
       resolveInFlightRef.current = '';
@@ -221,8 +337,9 @@ export function GlobalAlbumPlayer() {
     setTracksRefreshing(false);
     setUnplayableIds([]);
     clearEmptyCheckTimer();
-    let cancelled = false;
     skippedRef.current = new Set();
+    playStartedRef.current = false;
+    setGestureHint(false);
     setFatalError(false);
     setIsPlaying(false);
     setCurrentTime(0);
@@ -230,16 +347,29 @@ export function GlobalAlbumPlayer() {
     setTrackIndex(1);
     setTrackCount(0);
 
+    const startedSync = startedSyncRef.current === current.playlistId;
+    if (startedSync) startedSyncRef.current = '';
     const existing = playerRef.current;
     if (isYoutubePlayerReady(existing)) {
-      try {
-        existing.loadPlaylist({ list: current.playlistId, listType: 'playlist', index: 0 });
-        existing.playVideo();
-        applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
-      } catch {
-        setFatalError(true);
+      if (!startedSync) {
+        try {
+          existing.loadPlaylist({ list: current.playlistId, listType: 'playlist', index: 0 });
+          existing.playVideo();
+          applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
+        } catch {
+          setFatalError(true);
+        }
       }
-      return;
+      return () => {
+        cancelledRef.current = true;
+        clearEmptyCheckTimer();
+      };
+    }
+    if (hostRef.current?.querySelector('iframe')) {
+      return () => {
+        cancelledRef.current = true;
+        clearEmptyCheckTimer();
+      };
     }
 
     readyRef.current = false;
@@ -250,76 +380,34 @@ export function GlobalAlbumPlayer() {
     if (!host) return;
 
     void loadYoutubeIframeApi()
-      .then((api) => {
-        if (cancelled || !hostRef.current) return;
+      .then(() => {
+        if (cancelledRef.current || !hostRef.current) return;
         const iframe = createYoutubePlaylistIframe(current.playlistId);
         hostRef.current.replaceChildren(iframe);
-        new api.Player(iframe, {
-          events: {
-            onReady: (event) => {
-              if (cancelled) return;
-              applyYoutubeReferrerPolicy(event.target, hostRef.current ?? host);
-              playerRef.current = event.target;
-              readyRef.current = true;
-              resizePlayer();
-              event.target.playVideo();
-              syncProgress(event.target);
-              startProgressTimer();
-              const playlist = typeof event.target.getPlaylist === 'function' ? event.target.getPlaylist() : undefined;
-              if (!playlist || playlist.length === 0) {
-                emptyCheckTimerRef.current = window.setTimeout(() => {
-                  emptyCheckTimerRef.current = null;
-                  if (!isYoutubePlayerReady(event.target)) return;
-                  const later = event.target.getPlaylist();
-                  if (!later || later.length === 0) setFatalError(true);
-                }, 1500);
-              }
-            },
-            onStateChange: (event) => {
-              if (!isYoutubePlayerReady(event.target)) return;
-              setIsPlaying(event.data === YT_PLAYER_STATE.PLAYING);
-              syncProgress(event.target);
-              if (event.data === YT_PLAYER_STATE.ENDED) {
-                setIsPlaying(false);
-              }
-            },
-            onError: (event) => {
-              if (!isYoutubePlayerReady(event.target)) {
-                setFatalError(true);
-                return;
-              }
-              const embedBlocked = event.data === 101 || event.data === 150;
-              if (embedBlocked) {
-                const playlist = event.target.getPlaylist() ?? [];
-                const index = event.target.getPlaylistIndex();
-                const videoId = playlist[index];
-                if (videoId) {
-                  skippedRef.current.add(videoId);
-                  setUnplayableIds((prev) => (prev.includes(videoId) ? prev : [...prev, videoId]));
-                }
-                toast.error('이 곡은 임베드가 차단되어 다음 곡으로 넘어갑니다.');
-                if (playlist.length > 0 && skippedRef.current.size >= playlist.length) {
-                  setFatalError(true);
-                  event.target.pauseVideo();
-                  return;
-                }
-                event.target.nextVideo();
-                return;
-              }
-              setFatalError(true);
-            },
-          },
-        });
+        if (!bindPlayer(iframe, hostRef.current)) {
+          setFatalError(true);
+        }
       })
       .catch(() => {
-        if (!cancelled) setFatalError(true);
+        if (!cancelledRef.current) setFatalError(true);
       });
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       clearEmptyCheckTimer();
     };
-  }, [current, session, resizePlayer, syncProgress, teardownPlayer, clearEmptyCheckTimer, stopProgressTimer, startProgressTimer]);
+  }, [current, session, bindPlayer, teardownPlayer, clearEmptyCheckTimer, stopProgressTimer]);
+
+  useEffect(() => {
+    if (!current || fatalError) {
+      setGestureHint(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (!playStartedRef.current) setGestureHint(true);
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [current, session, fatalError]);
 
   useEffect(() => {
     if (!current) return;
@@ -350,8 +438,6 @@ export function GlobalAlbumPlayer() {
     };
   }, [expanded]);
 
-  if (!current) return null;
-
   const seekFillPct =
     duration > 0 && Number.isFinite(currentTime)
       ? `${Math.min(100, Math.max(0, (currentTime / duration) * 100))}%`
@@ -360,7 +446,8 @@ export function GlobalAlbumPlayer() {
   const currentTitle =
     tracks[trackIndex - 1]?.title?.trim() ||
     (trackIndex > 0 ? fallbackTrackTitle(trackIndex - 1) : '');
-  const openUrl = youtubePlaylistOpenUrl(current.playlistId);
+  const openUrl = current ? youtubePlaylistOpenUrl(current.playlistId) : '';
+  const musicUrl = current ? youtubeMusicPlaylistUrl(current.playlistId) : '';
 
   const callPlayer = (fn: (player: YoutubePlayer) => void) => {
     const player = playerRef.current;
@@ -401,10 +488,12 @@ export function GlobalAlbumPlayer() {
     });
   };
 
-  const playerBoxClass = expanded
-    ? 'relative size-[200px] shrink-0 overflow-hidden rounded-xl bg-black'
-    : 'size-12 shrink-0 overflow-hidden rounded-lg bg-black sm:size-14';
-  const playerCropStyle = expanded
+  const playerBoxClass = !current
+    ? 'h-full w-full'
+    : expanded
+      ? 'relative size-[200px] shrink-0 overflow-hidden rounded-xl bg-black'
+      : 'size-12 shrink-0 overflow-hidden rounded-lg bg-black sm:size-14';
+  const playerCropStyle = current && expanded
     ? {
         position: 'absolute' as const,
         top: 0,
@@ -480,32 +569,39 @@ export function GlobalAlbumPlayer() {
 
   return (
     <>
-      {expanded ? <div className="fixed inset-0 z-[80] bg-black/45" onClick={() => setExpanded(false)} /> : null}
+      {current && expanded ? <div className="fixed inset-0 z-[80] bg-black/45" onClick={() => setExpanded(false)} /> : null}
       <div
         className={
-          expanded
-            ? 'fixed inset-0 z-[81] flex items-center justify-center p-4'
-            : 'fixed bottom-0 left-0 right-0 z-[60] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]'
+          !current
+            ? 'pointer-events-none fixed bottom-0 left-0 z-0 size-12 overflow-hidden opacity-0'
+            : expanded
+              ? 'fixed inset-0 z-[81] flex items-center justify-center p-4'
+              : 'fixed bottom-0 left-0 right-0 z-[60] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]'
         }
         style={
-          expanded
+          !current || expanded
             ? undefined
             : { borderColor: 'var(--border)', background: 'var(--card-bg)' }
         }
+        aria-hidden={!current}
       >
         <div
           className={
-            expanded
-              ? 'modal-panel-apple relative flex max-h-[min(90dvh,56rem)] w-full max-w-3xl flex-col gap-4 overflow-hidden p-4 sm:p-6'
-              : 'mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-3 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-4'
+            !current
+              ? 'h-full w-full'
+              : expanded
+                ? 'modal-panel-apple relative flex max-h-[min(90dvh,56rem)] w-full max-w-3xl flex-col gap-4 overflow-hidden p-4 sm:p-6'
+                : 'mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-3 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-4'
           }
-          onClick={expanded ? (event) => event.stopPropagation() : undefined}
+          onClick={current && expanded ? (event) => event.stopPropagation() : undefined}
         >
           <div
             className={
-              expanded
-                ? 'flex min-w-0 shrink-0 flex-col gap-3 min-[480px]:min-h-[200px] min-[480px]:flex-row min-[480px]:items-stretch min-[480px]:pr-14'
-                : 'flex min-w-0 shrink-0 items-center gap-3 sm:w-[min(100%,280px)]'
+              !current
+                ? 'h-full w-full'
+                : expanded
+                  ? 'flex min-w-0 shrink-0 flex-col gap-3 min-[480px]:min-h-[200px] min-[480px]:flex-row min-[480px]:items-stretch min-[480px]:pr-14'
+                  : 'flex min-w-0 shrink-0 items-center gap-3 sm:w-[min(100%,280px)]'
             }
           >
             <div className={playerBoxClass}>
@@ -513,6 +609,7 @@ export function GlobalAlbumPlayer() {
                 <div ref={hostRef} className="h-full w-full" />
               </div>
             </div>
+            {current ? (
             <div
               className={
                 expanded
@@ -532,6 +629,9 @@ export function GlobalAlbumPlayer() {
               ) : (
                 <p className="mt-0.5 text-[11px] tabular-nums opacity-60">{trackLabel}</p>
               )}
+              {gestureHint && !expanded && !fatalError ? (
+                <p className="mt-1 text-[11px] leading-tight opacity-70">재생 버튼을 눌러 시작하세요</p>
+              ) : null}
               {expanded ? (
                 fatalError ? (
                   <p className="text-xs" style={{ color: '#ff3b30' }}>
@@ -551,8 +651,9 @@ export function GlobalAlbumPlayer() {
                 )
               ) : null}
             </div>
+            ) : null}
           </div>
-          {expanded ? null : (
+          {current && !expanded ? (
             <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-2">
               {fatalError ? (
                 <p className="w-full text-center text-xs" style={{ color: '#ff3b30' }}>
@@ -571,7 +672,8 @@ export function GlobalAlbumPlayer() {
                 controls
               )}
             </div>
-          )}
+          ) : null}
+          {current ? (
           <div
             className={
               expanded
@@ -579,6 +681,17 @@ export function GlobalAlbumPlayer() {
                 : 'flex w-full shrink-0 items-center justify-end gap-1 sm:w-auto'
             }
           >
+            <a
+              href={musicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => commandsRef.current.pauseIfPlaying()}
+              className="rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/10 sm:p-2"
+              title="유튜브 뮤직에서 열기"
+              aria-label="유튜브 뮤직에서 열기"
+            >
+              <ExternalLink className="size-5 opacity-90" strokeWidth={1.75} />
+            </a>
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
@@ -604,7 +717,8 @@ export function GlobalAlbumPlayer() {
               <X className="size-5 opacity-80" />
             </button>
           </div>
-          {expanded ? (
+          ) : null}
+          {current && expanded ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
                 <p className="text-sm font-semibold">트랙</p>

@@ -41,3 +41,7 @@ export function parseYoutubePlaylistInput(raw: string): YoutubePlaylistParseResu
 export function youtubePlaylistOpenUrl(id: string): string {
   return `https://www.youtube.com/playlist?list=${encodeURIComponent(id)}`;
 }
+
+export function youtubeMusicPlaylistUrl(id: string): string {
+  return `https://music.youtube.com/playlist?list=${encodeURIComponent(id)}`;
+}
