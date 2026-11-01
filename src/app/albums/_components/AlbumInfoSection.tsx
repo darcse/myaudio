@@ -393,7 +393,19 @@ export function AlbumInfoSection({
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
           {isClassicGenre(viewingItem.genre1) && viewingItem.composer?.trim() ? (
-            <p><strong>작곡가:</strong> {viewingItem.composer.trim()}</p>
+            <p>
+              <strong>작곡가:</strong> {viewingItem.composer.trim()}
+              {viewingItem.composer_country?.trim() ? (
+                <span className="ml-1.5">
+                  {`${countryOptions.find((c) => c.name === viewingItem.composer_country?.trim())?.flag ?? ''} ${viewingItem.composer_country.trim()}`.trim()}
+                </span>
+              ) : null}
+              {viewingItem.composer_era?.trim() ? (
+                <span className="ml-1.5">{viewingItem.composer_era.trim()}</span>
+              ) : null}
+            </p>
+          ) : isClassicGenre(viewingItem.genre1) && viewingItem.composer_era?.trim() ? (
+            <p><strong>시대:</strong> {viewingItem.composer_era.trim()}</p>
           ) : null}
         </div>
       </div>

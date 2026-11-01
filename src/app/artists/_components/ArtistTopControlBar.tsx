@@ -9,12 +9,17 @@ import {
   type Genre2Tag,
 } from '../_hooks/useArtistFilters';
 import { ArtistGenre2TagCloud } from './ArtistGenre2TagCloud';
+import type { ArtistLibraryRole } from '../types';
 
 type ArtistTopControlBarProps = {
+  role?: ArtistLibraryRole;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   countryFilter: string;
   setCountryFilter: (value: string) => void;
+  eraFilter?: string;
+  setEraFilter?: (value: string) => void;
+  eraOptions?: string[];
   typeFilter: string;
   setTypeFilter: (value: string) => void;
   genreFilter: string;
@@ -39,10 +44,14 @@ const sortSelectClassName =
   'select-apple h-9 min-w-0 flex-1 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium sm:max-w-[8.5rem] sm:flex-none sm:shrink-0';
 
 export function ArtistTopControlBar({
+  role = 'artist',
   searchQuery,
   setSearchQuery,
   countryFilter,
   setCountryFilter,
+  eraFilter = '전체',
+  setEraFilter,
+  eraOptions = [],
   typeFilter,
   setTypeFilter,
   genreFilter,
@@ -57,6 +66,7 @@ export function ArtistTopControlBar({
   onGenre2TagSelect,
   onResetFilters,
 }: ArtistTopControlBarProps) {
+  const isComposer = role === 'composer';
   const [tagOpen, setTagOpen] = useState(false);
   const tagPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -103,7 +113,7 @@ export function ArtistTopControlBar({
       <div className="relative w-full sm:min-w-[10rem] sm:flex-1 sm:basis-[12rem]">
         <input
           className="input-apple h-9 w-full px-3 py-1.5 pr-8 text-sm"
-          placeholder="아티스트·앨범명 검색..."
+          placeholder={isComposer ? '작곡가·앨범명 검색...' : '아티스트·앨범명 검색...'}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -134,36 +144,56 @@ export function ArtistTopControlBar({
             </option>
           ))}
         </select>
-        <select
-          className={filterSelectClassName}
-          style={{ background: 'var(--surface-elevated)' }}
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          aria-label="아티스트 타입 필터"
-          title={typeFilter === '전체' ? '타입 전체' : typeFilter}
-        >
-          <option value="전체">타입</option>
-          {typeSelectOptions.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
-        <select
-          className={filterSelectClassName}
-          style={{ background: 'var(--surface-elevated)' }}
-          value={genreFilter}
-          onChange={(e) => setGenreFilter(e.target.value)}
-          aria-label="장르 필터"
-          title={genreFilter === '전체' ? '장르 전체' : genreFilter}
-        >
-          <option value="전체">장르</option>
-          {genreSelectOptions.map((genre) => (
-            <option key={genre} value={genre}>
-              {genre}
-            </option>
-          ))}
-        </select>
+        {isComposer ? (
+          <select
+            className={filterSelectClassName}
+            style={{ background: 'var(--surface-elevated)' }}
+            value={eraFilter}
+            onChange={(e) => setEraFilter?.(e.target.value)}
+            aria-label="시대 필터"
+            title={eraFilter === '전체' ? '시대 전체' : eraFilter}
+          >
+            <option value="전체">시대</option>
+            {eraOptions.map((era) => (
+              <option key={era} value={era}>
+                {era}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <select
+              className={filterSelectClassName}
+              style={{ background: 'var(--surface-elevated)' }}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              aria-label="아티스트 타입 필터"
+              title={typeFilter === '전체' ? '타입 전체' : typeFilter}
+            >
+              <option value="전체">타입</option>
+              {typeSelectOptions.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <select
+              className={filterSelectClassName}
+              style={{ background: 'var(--surface-elevated)' }}
+              value={genreFilter}
+              onChange={(e) => setGenreFilter(e.target.value)}
+              aria-label="장르 필터"
+              title={genreFilter === '전체' ? '장르 전체' : genreFilter}
+            >
+              <option value="전체">장르</option>
+              {genreSelectOptions.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
       <div className="flex w-full items-center gap-2 sm:contents">
         <select

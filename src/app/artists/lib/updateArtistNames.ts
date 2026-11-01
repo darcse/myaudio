@@ -49,9 +49,22 @@ async function updateAlbumArtistNames(
   newName: string,
 ): Promise<{ error?: string }> {
   for (const oldName of oldNames) {
-    const { error } = await supabase.from('album').update({ artist: newName }).eq('artist', oldName);
-    if (error) {
-      return { error: error.message };
+    const { error: artistError } = await supabase
+      .from('album')
+      .update({ artist: newName })
+      .eq('artist', oldName);
+    if (artistError) {
+      return { error: `연주자 이름(album.artist) 갱신에 실패했습니다. ${artistError.message}` };
+    }
+
+    const { error: composerError } = await supabase
+      .from('album')
+      .update({ composer: newName })
+      .eq('composer', oldName);
+    if (composerError) {
+      return {
+        error: `연주자 이름은 반영됐지만 작곡가 이름(album.composer) 갱신에 실패했습니다. ${composerError.message}`,
+      };
     }
   }
   return {};
@@ -231,4 +244,20 @@ export function shouldRetargetAlbumArtist(
     isSameArtistName(artist, albumArtistName) ||
     isSameArtistName(artist, recordArtistName)
   );
+}
+
+export function applyAlbumNameRetarget<T extends { artist?: string | null; composer?: string | null }>(
+  album: T,
+  albumArtistName: string,
+  recordArtistName: string,
+  newName: string,
+): T {
+  const nextArtist = shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
+    ? newName
+    : album.artist;
+  const nextComposer = shouldRetargetAlbumArtist(album.composer, albumArtistName, recordArtistName)
+    ? newName
+    : album.composer;
+  if (nextArtist === album.artist && nextComposer === album.composer) return album;
+  return { ...album, artist: nextArtist, composer: nextComposer };
 }

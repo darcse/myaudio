@@ -5,8 +5,8 @@ import { ChevronLeft } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
 import { AlbumCoverBlurBackdrop } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
 import type { Album } from '@/app/albums/types';
-import { countryFlag, findArtistWikiUrl, getPrimaryGenre1 } from '../utils';
-import type { ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
+import { countryFlag, findArtistWikiUrl, findComposerWikiUrl, getPrimaryGenre1 } from '../utils';
+import type { ArtistLibraryRole, ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
 import { ArtistExternalLinksSection, type ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistNameEditPopover } from './ArtistNameEditPopover';
@@ -16,6 +16,7 @@ import { ArtistStatsSection } from './ArtistStatsSection';
 import { ArtistWikiSection } from './ArtistWikiSection';
 
 type ArtistDetailPanelProps = {
+  role?: ArtistLibraryRole;
   artist: ArtistSummary | null;
   artistRecord: ArtistRecord | null;
   artistStats: ArtistStats | null;
@@ -38,6 +39,7 @@ type ArtistDetailPanelProps = {
 };
 
 export function ArtistDetailPanel({
+  role = 'artist',
   artist,
   artistRecord,
   artistStats,
@@ -70,13 +72,18 @@ export function ArtistDetailPanel({
         className="flex min-h-[20rem] flex-1 items-center justify-center rounded-xl border p-8 text-center"
         style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
       >
-        <p className="text-sm opacity-60">아티스트를 선택하면 상세 정보가 표시됩니다.</p>
+        <p className="text-sm opacity-60">
+          {role === 'composer'
+            ? '작곡가를 선택하면 상세 정보가 표시됩니다.'
+            : '아티스트를 선택하면 상세 정보가 표시됩니다.'}
+        </p>
       </div>
     );
   }
 
   const flag = countryFlag(artist.country);
-  const wikiUrl = findArtistWikiUrl(artist.albums);
+  const wikiUrl =
+    role === 'composer' ? findComposerWikiUrl(artist.albums) : findArtistWikiUrl(artist.albums);
   const primaryGenre1 = getPrimaryGenre1(artist);
   const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
   const nameAltDisplay = nameAlt?.trim() || null;
@@ -142,7 +149,19 @@ export function ArtistDetailPanel({
             {artist.country}
           </span>
         ) : null}
-        {artist.artistType ? (
+        {role === 'composer' && artist.era ? (
+          <span
+            className={
+              hasProfileBackdrop
+                ? backdropTagClassName
+                : 'badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold'
+            }
+            style={hasProfileBackdrop ? backdropTagStyle : undefined}
+          >
+            {artist.era}
+          </span>
+        ) : null}
+        {role !== 'composer' && artist.artistType ? (
           <span
             className={
               hasProfileBackdrop
@@ -256,6 +275,7 @@ export function ArtistDetailPanel({
         <ArtistRelatedSection
           relatedArtists={relatedArtists}
           onSelectArtist={onSelectArtist}
+          title={role === 'composer' ? '유사한 작곡가' : '유사한 아티스트'}
         />
       </div>
     </section>

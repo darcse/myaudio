@@ -109,6 +109,44 @@ export function buildArtistSummaries(albums: Album[]): ArtistSummary[] {
   return summaries.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 }
 
+export function buildComposerSummaries(albums: Album[]): ArtistSummary[] {
+  const map = new Map<string, Album[]>();
+
+  for (const album of albums) {
+    const name = album.composer?.trim();
+    if (!name) continue;
+    const rows = map.get(name) ?? [];
+    rows.push(album);
+    map.set(name, rows);
+  }
+
+  const summaries: ArtistSummary[] = [];
+  for (const [name, composerAlbums] of map) {
+    const sortedAlbums = [...composerAlbums].sort((a, b) =>
+      (b.release_date || '').localeCompare(a.release_date || ''),
+    );
+    const genres = [
+      ...new Set(
+        composerAlbums
+          .map((a) => a.genre1?.trim())
+          .filter((g): g is string => !!g),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'ko'));
+    summaries.push({
+      name,
+      nameAlt: null,
+      albumCount: composerAlbums.length,
+      country: pickMostCommon(composerAlbums.map((a) => a.composer_country ?? '')),
+      artistType: null,
+      era: pickMostCommon(composerAlbums.map((a) => a.composer_era ?? '')),
+      genres,
+      albums: sortedAlbums,
+    });
+  }
+
+  return summaries.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
 export function getArtistMetaFromAlbums(
   albums: { country?: string | null; artist_type?: string | null; genre1?: string | null }[],
 ): { country: string | null; artistType: string | null; genres: string[] } {
@@ -132,6 +170,43 @@ export function findArtistWikiUrl(albums: Album[]): string | null {
     if (url) return url;
   }
   return null;
+}
+
+export function findComposerWikiUrl(albums: Album[]): string | null {
+  const filled = albums
+    .map((album) => ({
+      url: album.composer_wiki_url?.trim() ?? '',
+      createdAt: album.created_at ?? '',
+      id: album.id,
+    }))
+    .filter((row) => row.url);
+  if (filled.length === 0) return null;
+
+  const counts = new Map<string, number>();
+  for (const row of filled) {
+    counts.set(row.url, (counts.get(row.url) ?? 0) + 1);
+  }
+
+  let bestUrl: string | null = null;
+  let bestCount = 0;
+  let bestCreatedAt = '';
+  let bestId = Number.NEGATIVE_INFINITY;
+
+  for (const row of filled) {
+    const count = counts.get(row.url) ?? 0;
+    const isBetter =
+      count > bestCount ||
+      (count === bestCount &&
+        (row.createdAt > bestCreatedAt || (row.createdAt === bestCreatedAt && row.id > bestId)));
+    if (isBetter) {
+      bestUrl = row.url;
+      bestCount = count;
+      bestCreatedAt = row.createdAt;
+      bestId = row.id;
+    }
+  }
+
+  return bestUrl;
 }
 
 export function buildListenHistoryIndex(

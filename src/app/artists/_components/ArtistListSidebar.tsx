@@ -7,9 +7,15 @@ type ArtistListSidebarProps = {
   artists: ArtistSummary[];
   selectedName: string | null;
   onSelect: (name: string) => void;
+  emptyMessage?: string;
 };
 
-export function ArtistListSidebar({ artists, selectedName, onSelect }: ArtistListSidebarProps) {
+export function ArtistListSidebar({
+  artists,
+  selectedName,
+  onSelect,
+  emptyMessage = '표시할 아티스트가 없습니다.',
+}: ArtistListSidebarProps) {
   return (
     <aside
       className="flex h-full max-h-[calc(100dvh-14rem)] min-h-[20rem] flex-col rounded-xl border lg:max-h-[calc(100dvh-10rem)]"
@@ -24,7 +30,7 @@ export function ArtistListSidebar({ artists, selectedName, onSelect }: ArtistLis
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {artists.length === 0 ? (
-          <p className="px-2 py-6 text-center text-sm opacity-60">표시할 아티스트가 없습니다.</p>
+          <p className="px-2 py-6 text-center text-sm opacity-60">{emptyMessage}</p>
         ) : (
           <ul className="space-y-1">
             {artists.map((artist) => {

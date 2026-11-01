@@ -32,6 +32,7 @@ type ArtistLotteryModalProps = {
   onClose: () => void;
   lotteryPool: ArtistLotteryEntry[];
   onArtistClick: (name: string) => void;
+  title?: string;
 };
 
 function ArtistProfileSpin({
@@ -72,6 +73,7 @@ export function ArtistLotteryModal({
   onClose,
   lotteryPool,
   onArtistClick,
+  title = '추천 아티스트',
 }: ArtistLotteryModalProps) {
   const [phase, setPhase] = useState<LotteryPhase>('idle');
   const [spinArtist, setSpinArtist] = useState<ArtistLotteryEntry | null>(null);
@@ -171,7 +173,7 @@ export function ArtistLotteryModal({
 
         <div className="flex items-center gap-1.5 mb-6 pr-8">
           <h2 id="artist-lottery-title" className="section-title text-xl shrink-0">
-            추천 아티스트
+            {title}
           </h2>
           {lotteryPool.length > 0 && phase === 'result' ? (
             <button

@@ -10,6 +10,7 @@ type ArtistBioInput = {
   country: string;
   artist_type: string;
   genre: string;
+  role?: 'artist' | 'composer';
 };
 
 function requireOpenAIApiKey(): string {
@@ -34,10 +35,14 @@ function buildArtistBioPrompt(artist: ArtistBioInput, strictKorean: boolean): st
     ? `\n\n이전 응답이 일본어였습니다. bio는 한글 문장으로만 다시 작성하세요. 히라가나·카타카나·영어 본문 문장은 절대 쓰지 마세요.`
     : '';
 
-  return `웹 검색으로 "${artist.artist_name}" 아티스트를 조사해.
+  const isComposer = artist.role === 'composer';
+  const subject = isComposer ? '작곡가' : '아티스트';
+
+  return `웹 검색으로 "${artist.artist_name}" ${subject}를 조사해.
 검색 결과가 일본어·영어여도 bio 본문은 반드시 한국어로 번역·서술해.
-아티스트명이 일본어·로마자여도 소개 문장은 한국어로만 작성하고, 일본어·영어 문장을 그대로 쓰지 마.
+${subject}명이 일본어·로마자여도 소개 문장은 한국어로만 작성하고, 일본어·영어 문장을 그대로 쓰지 마.
 검색으로 확인되지 않은 구체적인 곡명·앨범명은 언급하지 말고, 지어내지 마.
+${isComposer ? '작곡가로서의 생애와 대표작·사조를 중심으로 서술하고, 연주자·지휘자 활동은 확인된 경우에만 짧게 언급해.\n' : ''}
 
 문체:
 - 반드시 존대어(~습니다, ~였습니다, ~입니다 등 격식체)로 작성하고, "~한다", "~이다", "~하고 있다" 같은 반말·평서체는 사용하지 마.
@@ -50,13 +55,18 @@ function buildArtistBioPrompt(artist: ArtistBioInput, strictKorean: boolean): st
 [작성 예시 — 문체·톤·길이 참고]
 {"bio": "2005년 결성된 ℃-ute는 헬로! 프로젝트 소속의 일본 아이돌 그룹으로, 뛰어난 퍼포먼스 실력과 가창력을 바탕으로 '아이돌이 동경하는 아이돌'이라 불렸습니다. 펑키하고 세련된 댄스 팝을 주력 사운드로 선보이며 'Dance de Bakoon!' 등 수많은 히트곡을 남겼습니다. 2017년 해산까지 약 12년간 왕성하게 활동하며 일본 아이돌 음악계에 뚜렷한 음악적 족적과 높은 예술적 평가를 남겼습니다."}
 
-[아티스트] ${artist.artist_name} | 국적: ${artist.country || '-'} | 타입: ${artist.artist_type || '-'} | 주요 장르: ${artist.genre || '-'}
+[${subject}] ${artist.artist_name} | 국적: ${artist.country || '-'} | ${isComposer ? '시대' : '타입'}: ${artist.artist_type || '-'} | ${isComposer ? '주요 형식' : '주요 장르'}: ${artist.genre || '-'}
 
 다음을 참고해 3~4줄 소개를 작성해 (해당 정보가 확인된 경우에만 포함):
-- 활동 시작 시기와 배경
+${isComposer
+    ? `- 생애와 활동 시기
+- 음악적 특징과 사조
+- 대표작
+- 후대에 미친 영향`
+    : `- 활동 시작 시기와 배경
 - 음악적 특징과 대표 사운드
 - 대표작 또는 주요 활동
-- 국내외 평가나 영향력
+- 국내외 평가나 영향력`}
 
 bio 필드는 한글(한국어) 문장으로만 구성해. 히라가나·카타카나·영어 본문 문장 금지. 아티스트명·앨범명 등 고유명사만 원어 표기 가능.
 
@@ -65,7 +75,7 @@ bio 필드는 한글(한국어) 문장으로만 구성해. 히라가나·카타�
 }
 
 function buildFallbackBio(artist: ArtistBioInput): string {
-  const typeLabel = artist.artist_type || '아티스트';
+  const typeLabel = artist.role === 'composer' ? '작곡가' : artist.artist_type || '아티스트';
   if (artist.country && artist.genre) {
     return `${artist.country} 출신 ${artist.genre} ${typeLabel} ${artist.artist_name}으로, 음악 활동을 이어가고 있습니다.`;
   }

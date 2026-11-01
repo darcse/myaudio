@@ -8,6 +8,7 @@ import type { RelatedArtist } from '../types';
 type ArtistRelatedSectionProps = {
   relatedArtists: RelatedArtist[];
   onSelectArtist: (name: string) => void;
+  title?: string;
 };
 
 function SimilarArtistItem({
@@ -49,12 +50,13 @@ function SimilarArtistItem({
 export function ArtistRelatedSection({
   relatedArtists,
   onSelectArtist,
+  title = '유사한 아티스트',
 }: ArtistRelatedSectionProps) {
   if (relatedArtists.length === 0) return null;
 
   return (
     <div className="mt-10 border-t pt-6" style={{ borderColor: 'var(--border)' }}>
-      <h3 className="mb-3 text-sm font-semibold opacity-90">유사한 아티스트</h3>
+      <h3 className="mb-3 text-sm font-semibold opacity-90">{title}</h3>
       <div className="scrollbar-hide -mx-1 flex gap-4 overflow-x-auto px-1 pb-1">
         {relatedArtists.map((item) => (
           <SimilarArtistItem key={item.name} item={item} onSelect={onSelectArtist} />

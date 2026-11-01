@@ -15,24 +15,44 @@ export async function POST(req: NextRequest) {
     if (!artistName) {
       return NextResponse.json({ error: 'artistName required' }, { status: 400 });
     }
+    const role = body.role === 'composer' ? 'composer' : 'artist';
 
     const supabase = await createClient();
 
-    const { data: albums, error: albumsError } = await supabase
-      .from('album')
-      .select('country, artist_type, genre1')
-      .eq('artist', artistName);
-
-    if (albumsError) {
-      return NextResponse.json({ error: albumsError.message }, { status: 500 });
+    let meta: ReturnType<typeof getArtistMetaFromAlbums>;
+    if (role === 'composer') {
+      const { data: albums, error: albumsError } = await supabase
+        .from('album')
+        .select('composer_country, composer_era, genre1, genre2')
+        .eq('composer', artistName);
+      if (albumsError) {
+        return NextResponse.json({ error: albumsError.message }, { status: 500 });
+      }
+      meta = getArtistMetaFromAlbums(
+        (albums ?? []).map((album) => ({
+          country: typeof album.composer_country === 'string' ? album.composer_country : null,
+          artist_type: typeof album.composer_era === 'string' ? album.composer_era : '작곡가',
+          genre1:
+            (typeof album.genre2 === 'string' && album.genre2.trim()) ||
+            (typeof album.genre1 === 'string' ? album.genre1 : null),
+        })),
+      );
+    } else {
+      const { data: albums, error: albumsError } = await supabase
+        .from('album')
+        .select('country, artist_type, genre1')
+        .eq('artist', artistName);
+      if (albumsError) {
+        return NextResponse.json({ error: albumsError.message }, { status: 500 });
+      }
+      meta = getArtistMetaFromAlbums(albums ?? []);
     }
-
-    const meta = getArtistMetaFromAlbums(albums ?? []);
     const generated = await generateArtistBio({
       artist_name: artistName,
       country: meta.country ?? '',
       artist_type: meta.artistType ?? '',
       genre: meta.genres.join(', '),
+      role,
     });
 
     if (!generated) {

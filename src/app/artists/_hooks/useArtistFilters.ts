@@ -46,6 +46,7 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
   const [typeFilter, setTypeFilter] = useState('전체');
   const [genreFilter, setGenreFilter] = useState('전체');
   const [genre2Filter, setGenre2Filter] = useState('전체');
+  const [eraFilter, setEraFilter] = useState('전체');
   const [sortOption, setSortOption] = useState<ArtistSortOption>('nameAsc');
 
   const countryOptions = useMemo(() => {
@@ -68,6 +69,14 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     const set = new Set<string>();
     for (const artist of summaries) {
       for (const genre of artist.genres) set.add(genre);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ko'));
+  }, [summaries]);
+
+  const eraOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const artist of summaries) {
+      if (artist.era?.trim()) set.add(artist.era.trim());
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'ko'));
   }, [summaries]);
@@ -103,6 +112,7 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     setTypeFilter('전체');
     setGenreFilter('전체');
     setGenre2Filter('전체');
+    setEraFilter('전체');
     setSortOption('nameAsc');
   }, []);
 
@@ -110,6 +120,7 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     const q = searchQuery.trim().toLowerCase();
     const filtered = summaries.filter((artist) => {
       if (countryFilter !== '전체' && artist.country !== countryFilter) return false;
+      if (eraFilter !== '전체' && artist.era !== eraFilter) return false;
       if (typeFilter !== '전체' && artist.artistType !== typeFilter) return false;
       if (genreFilter !== '전체' && !artist.genres.includes(genreFilter)) return false;
       if (genre2Filter !== '전체') {
@@ -125,13 +136,16 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
       );
     });
     return sortArtists(filtered, sortOption);
-  }, [summaries, searchQuery, countryFilter, typeFilter, genreFilter, genre2Filter, sortOption]);
+  }, [summaries, searchQuery, countryFilter, eraFilter, typeFilter, genreFilter, genre2Filter, sortOption]);
 
   return {
     searchQuery,
     setSearchQuery,
     countryFilter,
     setCountryFilter,
+    eraFilter,
+    setEraFilter,
+    eraOptions,
     typeFilter,
     setTypeFilter,
     genreFilter,

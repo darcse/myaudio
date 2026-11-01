@@ -75,3 +75,11 @@
 [2026-11-01] [Cursor] feat: Album Library 헤더 + 태그 필터 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: 랜덤 추천 조건 선택 후 실행 | passes: 변경 없음
 [2026-11-01] [Cursor] fix: 랜덤 추천 모달 오픈 직후 클릭 불가 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-039 Classic 작곡가 국적 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: 국가 선택지 체코·폴란드 등 6개 추가 | passes: 변경 없음
+[2026-11-01] [Cursor] 조사: 아티스트/작곡가 토글 구조 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-041 Classic 형식·시대 셀렉트 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-040 1단계 아티스트/작곡가 토글 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-040 2단계 작곡가 이름·바이오 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: ALBUM-042 작곡가 위키피디아 URL | passes: 변경 없음
+[2026-11-01] [Cursor] style: 앨범 폼 장르·작곡가 2열 재배치 | passes: 변경 없음

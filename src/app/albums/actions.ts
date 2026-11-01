@@ -50,7 +50,12 @@ function mapAlbumData(data: AlbumFormData) {
     owns_lp: Boolean(data.owns_lp),
     owns_cassette: Boolean(data.owns_cassette),
     ...(isClassicGenre(data.genre1)
-      ? { composer: data.composer.trim() || null }
+      ? {
+          composer: data.composer.trim() || null,
+          composer_country: data.composer_country.trim() || null,
+          composer_era: data.composer_era.trim() || null,
+          composer_wiki_url: data.composer_wiki_url.trim() || null,
+        }
       : {}),
   };
 }

@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
-import { countryOptions, genreOptions } from '../constants';
+import {
+  CLASSIC_FORM_OPTIONS,
+  COMPOSER_ERA_OPTIONS,
+  countryOptions,
+  genreOptions,
+  isClassicFormOption,
+} from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
 import { isClassicGenre } from '../utils';
 
@@ -36,9 +42,11 @@ export function AlbumForm({
   isDeleting = false,
 }: AlbumFormProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [classicFormError, setClassicFormError] = useState(false);
 
   useEffect(() => {
     setDeleteConfirmOpen(false);
+    setClassicFormError(false);
   }, [selectedItem]);
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -245,17 +253,6 @@ export function AlbumForm({
               </label>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1 opacity-90">장르</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.genre1} onChange={(e) => setFormData({ ...formData, genre1: e.target.value })}>
-              <option value="">선택</option>
-              {genreOptions.map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-          {renderInput('하위 장르 (직접 입력)', 'genre2')}
-          {isClassicGenre(formData.genre1) ? renderInput('작곡가', 'composer') : null}
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div>
               <label className="block text-sm font-semibold mb-1 opacity-90">타이틀곡 URL (유튜브)</label>
@@ -268,6 +265,83 @@ export function AlbumForm({
               />
             </div>
             {renderInput('Wikipedia URL', 'wiki_url')}
+            <div>
+              <label className="block text-sm font-semibold mb-1 opacity-90">장르</label>
+              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.genre1} onChange={(e) => {
+                setFormData({ ...formData, genre1: e.target.value });
+                setClassicFormError(false);
+              }}>
+                <option value="">선택</option>
+                {genreOptions.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            {isClassicGenre(formData.genre1) ? (
+              <div>
+                <label className="block text-sm font-semibold mb-1 opacity-90">형식</label>
+                <select
+                  className="select-apple px-3 py-2 w-full h-[42px]"
+                  value={formData.genre2}
+                  onChange={(e) => {
+                    setFormData({ ...formData, genre2: e.target.value });
+                    if (isClassicFormOption(e.target.value)) setClassicFormError(false);
+                  }}
+                  aria-invalid={classicFormError}
+                >
+                  <option value="">형식 선택</option>
+                  {formData.genre2.trim() && !isClassicFormOption(formData.genre2) ? (
+                    <option value={formData.genre2}>{formData.genre2}</option>
+                  ) : null}
+                  {CLASSIC_FORM_OPTIONS.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {classicFormError ? (
+                  <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                    Classic 앨범은 형식을 선택해야 저장할 수 있습니다.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              renderInput('하위 장르 (직접 입력)', 'genre2')
+            )}
+            {isClassicGenre(formData.genre1) ? (
+              <>
+                {renderInput('작곡가', 'composer')}
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">작곡가 국적</label>
+                  <select
+                    className="select-apple px-3 py-2 w-full h-[42px]"
+                    value={formData.composer_country}
+                    onChange={(e) => setFormData({ ...formData, composer_country: e.target.value })}
+                  >
+                    <option value="">선택 안 함</option>
+                    {countryOptions.map((c) => (
+                      <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">시대</label>
+                  <select
+                    className="select-apple px-3 py-2 w-full h-[42px]"
+                    value={formData.composer_era}
+                    onChange={(e) => setFormData({ ...formData, composer_era: e.target.value })}
+                  >
+                    <option value="">선택 안 함</option>
+                    {formData.composer_era.trim() &&
+                    !(COMPOSER_ERA_OPTIONS as readonly string[]).includes(formData.composer_era) ? (
+                      <option value={formData.composer_era}>{formData.composer_era}</option>
+                    ) : null}
+                    {COMPOSER_ERA_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                {renderInput('작곡가 위키피디아 URL', 'composer_wiki_url')}
+              </>
+            ) : null}
           </div>
           <div className="col-span-2">
             <label className="block text-sm font-semibold mb-1 opacity-90">앨범 소개 · 사운드 성향</label>
@@ -306,7 +380,14 @@ export function AlbumForm({
           <button
             type="button"
             className="btn-apple btn-apple-primary p-4 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-            onClick={onSave}
+            onClick={() => {
+              if (isClassicGenre(formData.genre1) && !isClassicFormOption(formData.genre2)) {
+                setClassicFormError(true);
+                return;
+              }
+              setClassicFormError(false);
+              onSave();
+            }}
             disabled={isSaving || isDeleting}
             aria-busy={isSaving}
           >

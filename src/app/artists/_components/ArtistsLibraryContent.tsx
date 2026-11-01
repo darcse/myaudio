@@ -13,13 +13,15 @@ import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
-import { updateArtistNames, shouldRetargetAlbumArtist } from '../lib/updateArtistNames';
+import { updateArtistNames, applyAlbumNameRetarget } from '../lib/updateArtistNames';
 import {
   applyArtistNameAltMap,
   buildArtistSummaries,
+  buildComposerSummaries,
   buildArtistNameAltMap,
   buildListenHistoryIndex,
   findArtistWikiUrl,
+  findComposerWikiUrl,
   getArtistStats,
   getPrimaryGenre1,
   getPopularAlbumId,
@@ -27,7 +29,7 @@ import {
   isSameArtistName,
   normalizeArtistNameAlt,
 } from '../utils';
-import type { ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
+import type { ArtistLibraryRole, ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
@@ -45,6 +47,9 @@ const initialAlbumFormData: AlbumFormData = {
   genre1: '',
   genre2: '',
   composer: '',
+  composer_country: '',
+  composer_era: '',
+  composer_wiki_url: '',
   cover_image_url: '',
   matching1: '',
   matching2: '',
@@ -60,7 +65,21 @@ const initialAlbumFormData: AlbumFormData = {
   owns_cassette: false,
 };
 
-function albumFormDataFromArtist(artist: ArtistSummary): AlbumFormData {
+function albumFormDataFromArtist(
+  artist: ArtistSummary,
+  role: ArtistLibraryRole = 'artist',
+): AlbumFormData {
+  if (role === 'composer') {
+    return {
+      ...initialAlbumFormData,
+      composer: artist.name,
+      genre1: 'Classic',
+      composer_country: artist.country ?? '',
+      composer_era: artist.era ?? '',
+      composer_wiki_url: findComposerWikiUrl(artist.albums) ?? '',
+      wiki_url: findArtistWikiUrl(artist.albums) ?? '',
+    };
+  }
   return {
     ...initialAlbumFormData,
     artist: artist.name,
@@ -75,6 +94,9 @@ export function ArtistsLibraryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const artistQuery = searchParams.get('artist')?.trim() || null;
+  const [role, setRole] = useState<ArtistLibraryRole>(
+    searchParams.get('role') === 'composer' ? 'composer' : 'artist',
+  );
   const isAuthenticated = useAuthState();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [listenHistoryIndex, setListenHistoryIndex] = useState<Map<number, ListenHistoryEntry>>(
@@ -107,8 +129,12 @@ export function ArtistsLibraryContent() {
   const [artistLotteryOpen, setArtistLotteryOpen] = useState(false);
 
   const summaries = useMemo(
-    () => applyArtistNameAltMap(buildArtistSummaries(albums), artistNameAltByName),
-    [albums, artistNameAltByName],
+    () =>
+      applyArtistNameAltMap(
+        role === 'composer' ? buildComposerSummaries(albums) : buildArtistSummaries(albums),
+        artistNameAltByName,
+      ),
+    [albums, artistNameAltByName, role],
   );
   const artistLotteryPool = useMemo(
     () =>
@@ -131,6 +157,9 @@ export function ArtistsLibraryContent() {
     setSearchQuery,
     countryFilter,
     setCountryFilter,
+    eraFilter,
+    setEraFilter,
+    eraOptions,
     typeFilter,
     setTypeFilter,
     genreFilter,
@@ -325,6 +354,15 @@ export function ArtistsLibraryContent() {
     setMobileTab('detail');
   };
 
+  const handleRoleChange = (next: ArtistLibraryRole) => {
+    if (next === role) return;
+    setRole(next);
+    resetFilters();
+    setSelectedName(null);
+    setArtistRecord(null);
+    setMobileTab('list');
+  };
+
   const handleRefreshBio = async () => {
     if (!selectedName || isAuthenticated !== true) return;
     setBioLoading(true);
@@ -332,7 +370,7 @@ export function ArtistsLibraryContent() {
       const res = await fetch('/api/artist-bio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistName: selectedName }),
+        body: JSON.stringify({ artistName: selectedName, role }),
       });
       const payload = (await res.json().catch(() => ({}))) as { error?: string; bio?: string };
       if (!res.ok) {
@@ -350,7 +388,7 @@ export function ArtistsLibraryContent() {
       } else if (bio) {
         setArtistRecord((prev) => (prev ? { ...prev, bio } : prev));
       }
-      toast.success('아티스트 소개를 갱신했습니다.');
+      toast.success(role === 'composer' ? '작곡가 소개를 갱신했습니다.' : '아티스트 소개를 갱신했습니다.');
     } catch {
       toast.error('소개 생성에 실패했습니다.');
     } finally {
@@ -433,9 +471,7 @@ export function ArtistsLibraryContent() {
       const nameChanged = !isSameArtistName(newName, albumArtistName);
       setAlbums((prev) =>
         prev.map((album) =>
-          shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
-            ? { ...album, artist: newName }
-            : album,
+          applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
         ),
       );
 
@@ -509,7 +545,7 @@ export function ArtistsLibraryContent() {
     }
     if (!selectedArtist) return;
     setAlbumFormItem({ isManual: true });
-    setAlbumFormData(albumFormDataFromArtist(selectedArtist));
+    setAlbumFormData(albumFormDataFromArtist(selectedArtist, role));
   };
 
   const navigateToMood = (moodName: string) => {
@@ -675,15 +711,20 @@ export function ArtistsLibraryContent() {
       artists={filteredArtists}
       selectedName={selectedName}
       onSelect={handleSelectArtist}
+      emptyMessage={role === 'composer' ? '표시할 작곡가가 없습니다.' : undefined}
     />
   );
 
   const topControlBar = (
     <ArtistTopControlBar
+      role={role}
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}
       countryFilter={countryFilter}
       setCountryFilter={setCountryFilter}
+      eraFilter={eraFilter}
+      setEraFilter={setEraFilter}
+      eraOptions={eraOptions}
       typeFilter={typeFilter}
       setTypeFilter={setTypeFilter}
       genreFilter={genreFilter}
@@ -702,6 +743,7 @@ export function ArtistsLibraryContent() {
 
   const detail = (
     <ArtistDetailPanel
+      role={role}
       artist={selectedArtist}
       artistRecord={artistRecord}
       artistStats={selectedArtistStats}
@@ -732,15 +774,42 @@ export function ArtistsLibraryContent() {
           Artists
         </h1>
         <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="flex items-center gap-1.5"
+            role="group"
+            aria-label="아티스트 역할"
+          >
+            {(['artist', 'composer'] as const).map((value) => {
+              const active = role === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleRoleChange(value)}
+                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                  style={{
+                    background: active ? 'var(--foreground)' : 'var(--badge-bg)',
+                    color: active ? 'var(--background)' : 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                  aria-pressed={active}
+                >
+                  {value === 'composer' ? '작곡가' : '아티스트'}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             disabled={summaries.length === 0}
             onClick={() => setArtistLotteryOpen(true)}
             className="btn-apple btn-apple-secondary flex h-[42px] items-center justify-center gap-1.5 px-3 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="추천 아티스트"
+            aria-label={role === 'composer' ? '추천 작곡가' : '추천 아티스트'}
           >
             <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">추천 아티스트</span>
+            <span className="hidden sm:inline">
+              {role === 'composer' ? '추천 작곡가' : '추천 아티스트'}
+            </span>
           </button>
         </div>
       </div>
@@ -748,7 +817,11 @@ export function ArtistsLibraryContent() {
       {isLoading ? (
         <div className="flex min-h-[16rem] items-center justify-center text-sm opacity-70">로딩 중...</div>
       ) : summaries.length === 0 ? (
-        <p className="text-sm opacity-70">등록된 앨범이 없어 아티스트를 표시할 수 없습니다.</p>
+        <p className="text-sm opacity-70">
+          {role === 'composer'
+            ? '작곡가가 등록된 앨범이 없습니다.'
+            : '등록된 앨범이 없어 아티스트를 표시할 수 없습니다.'}
+        </p>
       ) : (
         <>
           {topControlBar}
@@ -806,6 +879,7 @@ export function ArtistsLibraryContent() {
         onClose={() => setArtistLotteryOpen(false)}
         lotteryPool={artistLotteryPool}
         onArtistClick={handleSelectArtist}
+        title={role === 'composer' ? '추천 작곡가' : '추천 아티스트'}
       />
     </div>
   );

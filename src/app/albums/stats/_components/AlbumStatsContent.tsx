@@ -13,7 +13,7 @@ import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
-import { shouldRetargetAlbumArtist } from '@/app/artists/lib/updateArtistNames';
+import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
@@ -66,6 +66,9 @@ const initialAlbumFormData: AlbumFormData = {
   genre1: '',
   genre2: '',
   composer: '',
+  composer_country: '',
+  composer_era: '',
+  composer_wiki_url: '',
   cover_image_url: '',
   matching1: '',
   matching2: '',
@@ -986,9 +989,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
             setViewingArtistName(newName);
             setAlbums((prev) =>
               prev.map((album) =>
-                shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
-                  ? { ...album, artist: newName }
-                  : album,
+                applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
               ),
             );
           }}

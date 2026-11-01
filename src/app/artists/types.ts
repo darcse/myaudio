@@ -14,12 +14,15 @@ export interface ArtistRecord {
   created_at?: string;
 }
 
+export type ArtistLibraryRole = 'artist' | 'composer';
+
 export interface ArtistSummary {
   name: string;
   nameAlt: string | null;
   albumCount: number;
   country: string | null;
   artistType: string | null;
+  era?: string | null;
   genres: string[];
   albums: Album[];
 }
