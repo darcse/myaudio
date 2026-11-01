@@ -134,6 +134,8 @@ export function AlbumForm({
               <option value="밴드">밴드</option>
               <option value="걸스 밴드">걸스 밴드</option>
               <option value="그룹">그룹</option>
+              <option value="연주자">연주자</option>
+              <option value="지휘자">지휘자</option>
               <option value="기타">기타</option>
             </select>
           </div>
