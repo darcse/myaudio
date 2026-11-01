@@ -307,6 +307,8 @@ export function ArtistDetailModal({
             onSaveLinks={handleSaveLinks}
             onSaveProfileImage={handleSaveProfileImage}
             onSaveNames={handleSaveNames}
+            nameHref={`/artists?role=artist&artist=${encodeURIComponent(artist?.name ?? artistName)}`}
+            onNameClick={onClose}
           />
         </div>
       </div>

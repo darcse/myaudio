@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
 import { AlbumCoverBlurBackdrop } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
@@ -36,6 +37,8 @@ type ArtistDetailPanelProps = {
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
   onSaveProfileImage: (profileImageUrl: string | null) => Promise<boolean>;
   onSaveNames: (patch: { name: string; nameAlt: string | null }) => Promise<boolean>;
+  nameHref?: string;
+  onNameClick?: () => void;
 };
 
 export function ArtistDetailPanel({
@@ -59,6 +62,8 @@ export function ArtistDetailPanel({
   onSaveLinks,
   onSaveProfileImage,
   onSaveNames,
+  nameHref,
+  onNameClick,
 }: ArtistDetailPanelProps) {
   const [linksEditing, setLinksEditing] = useState(false);
 
@@ -107,7 +112,17 @@ export function ArtistDetailPanel({
     <div className="flex min-w-0 items-start gap-2">
       <div className="min-w-0">
         <h2 className="min-w-0 text-2xl font-bold tracking-tight">
-          {artist.name}
+          {nameHref ? (
+            <Link
+              href={nameHref}
+              onClick={onNameClick}
+              className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
+            >
+              {artist.name}
+            </Link>
+          ) : (
+            artist.name
+          )}
           {nameAltDisplay ? (
             <span className="hidden text-base font-medium opacity-60 sm:inline">
               {' '}

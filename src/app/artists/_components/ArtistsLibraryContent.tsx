@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mic2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -94,17 +94,13 @@ export function ArtistsLibraryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const artistQuery = searchParams.get('artist')?.trim() || null;
-  const [role, setRole] = useState<ArtistLibraryRole>(
-    searchParams.get('role') === 'composer' ? 'composer' : 'artist',
-  );
+  const role: ArtistLibraryRole = searchParams.get('role') === 'composer' ? 'composer' : 'artist';
   const isAuthenticated = useAuthState();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [listenHistoryIndex, setListenHistoryIndex] = useState<Map<number, ListenHistoryEntry>>(
     () => new Map(),
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [initialSelectionReady, setInitialSelectionReady] = useState(!artistQuery);
   const [artistRecord, setArtistRecord] = useState<ArtistRecord | null>(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [linksSaving, setLinksSaving] = useState(false);
@@ -127,6 +123,17 @@ export function ArtistsLibraryContent() {
     { id: number; brand: string; model: string }[]
   >([]);
   const [artistLotteryOpen, setArtistLotteryOpen] = useState(false);
+  const lastRoleRef = useRef(role);
+
+  const replaceLibraryUrl = useCallback(
+    (nextRole: ArtistLibraryRole, name?: string | null) => {
+      const params = new URLSearchParams();
+      params.set('role', nextRole);
+      if (name) params.set('artist', name);
+      router.replace(`/artists?${params.toString()}`);
+    },
+    [router],
+  );
 
   const summaries = useMemo(
     () =>
@@ -175,6 +182,13 @@ export function ArtistsLibraryContent() {
     genreOptions,
     filteredArtists,
   } = useArtistFilters(summaries);
+
+  const selectedName = useMemo(() => {
+    if (artistQuery && summaries.some((artist) => artist.name === artistQuery)) {
+      return artistQuery;
+    }
+    return filteredArtists[0]?.name ?? null;
+  }, [artistQuery, summaries, filteredArtists]);
 
   const selectedArtist = useMemo(
     () => summaries.find((artist) => artist.name === selectedName) ?? null,
@@ -245,43 +259,20 @@ export function ArtistsLibraryContent() {
   }, [fetchLibrary]);
 
   useEffect(() => {
-    if (isLoading || initialSelectionReady) return;
-
-    if (artistQuery && summaries.some((artist) => artist.name === artistQuery)) {
-      setSelectedName(artistQuery);
-      setMobileTab('detail');
-    } else if (artistQuery) {
-      setSelectedName(null);
-    } else if (filteredArtists.length > 0) {
-      setSelectedName(filteredArtists[0].name);
-    }
-    setInitialSelectionReady(true);
-  }, [isLoading, initialSelectionReady, artistQuery, summaries, filteredArtists]);
+    if (lastRoleRef.current === role) return;
+    lastRoleRef.current = role;
+    resetFilters();
+    setViewingAlbum(null);
+    if (!artistQuery) setMobileTab('list');
+  }, [role, artistQuery, resetFilters]);
 
   useEffect(() => {
-    if (!initialSelectionReady) return;
-    if (artistQuery && selectedName === null && !summaries.some((artist) => artist.name === artistQuery)) {
-      return;
-    }
-    if (filteredArtists.length === 0) {
-      if (selectedName && summaries.some((artist) => artist.name === selectedName)) {
-        return;
-      }
-      setSelectedName(null);
-      return;
-    }
-    if (!selectedName) {
-      setSelectedName(filteredArtists[0].name);
-      return;
-    }
-    if (filteredArtists.some((artist) => artist.name === selectedName)) {
-      return;
-    }
-    if (summaries.some((artist) => artist.name === selectedName)) {
-      return;
-    }
-    setSelectedName(filteredArtists[0].name);
-  }, [filteredArtists, selectedName, initialSelectionReady, artistQuery, summaries]);
+    if (artistQuery) setMobileTab('detail');
+  }, [artistQuery]);
+
+  useEffect(() => {
+    setViewingAlbum(null);
+  }, [artistQuery]);
 
   useEffect(() => {
     if (!selectedName) {
@@ -350,17 +341,14 @@ export function ArtistsLibraryContent() {
   }, [isAuthenticated]);
 
   const handleSelectArtist = (name: string) => {
-    setSelectedName(name);
     setMobileTab('detail');
+    replaceLibraryUrl(role, name);
   };
 
   const handleRoleChange = (next: ArtistLibraryRole) => {
     if (next === role) return;
-    setRole(next);
-    resetFilters();
-    setSelectedName(null);
-    setArtistRecord(null);
     setMobileTab('list');
+    replaceLibraryUrl(next, null);
   };
 
   const handleRefreshBio = async () => {
@@ -493,7 +481,7 @@ export function ArtistsLibraryContent() {
           next[newName] = normalizedAlt;
           return next;
         });
-        setSelectedName(newName);
+        replaceLibraryUrl(role, newName);
       } else {
         setArtistNameAltByName((prev) => ({ ...prev, [albumArtistName]: normalizedAlt }));
       }

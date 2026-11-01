@@ -85,3 +85,9 @@
 [2026-11-01] [Cursor] style: 앨범 폼 장르·작곡가 2열 재배치 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: 장르 통계 섬네일 모달 연결 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: Weekly Hot 아티스트 카드 모달 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: Classic 작곡가 2줄·작곡가 뷰 이동 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: /artists 딥링크 토글·선택 동기화 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: URL artist 선택이 1번에 덮이지 않게 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: 목록 클릭이 URL 선택에 되돌아가지 않게 | passes: 변경 없음
+[2026-11-01] [Cursor] refactor: 아티스트 토글·선택을 URL 단일화 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: Insights 아티스트 모달 이름 링크 | passes: 변경 없음

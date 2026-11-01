@@ -18,9 +18,13 @@ type AlbumInfoSectionProps = {
   isAuthenticated?: boolean | null;
   onNavigateToMood?: (moodName: string) => void;
   onAlbumPatch?: (album: Album) => void;
+  onClose?: () => void;
 };
 
-export function AlbumInfoHeroSection({ viewingItem }: Pick<AlbumInfoSectionProps, 'viewingItem'>) {
+export function AlbumInfoHeroSection({
+  viewingItem,
+  onClose,
+}: Pick<AlbumInfoSectionProps, 'viewingItem' | 'onClose'>) {
   const [youtubeOpen, setYoutubeOpen] = useState(false);
 
   useEffect(() => {
@@ -66,7 +70,8 @@ export function AlbumInfoHeroSection({ viewingItem }: Pick<AlbumInfoSectionProps
               <p className="text-sm text-white/70 mt-0.5 truncate">
                 {viewingItem.artist ? (
                   <Link
-                    href={`/artists?artist=${encodeURIComponent(viewingItem.artist)}`}
+                    href={`/artists?role=artist&artist=${encodeURIComponent(viewingItem.artist)}`}
+                    onClick={onClose}
                     className="transition-colors hover:text-white hover:underline"
                   >
                     {viewingItem.artist}
@@ -127,6 +132,7 @@ export function AlbumInfoSection({
   isAuthenticated = null,
   onNavigateToMood,
   onAlbumPatch,
+  onClose,
 }: AlbumInfoSectionProps) {
   const [wikiData, setWikiData] = useState<{
     extract: string;
@@ -301,6 +307,14 @@ export function AlbumInfoSection({
     }
   };
 
+  const composerName = viewingItem.composer ?? '';
+  const composerCountry = viewingItem.composer_country?.trim() ?? '';
+  const composerEra = viewingItem.composer_era?.trim() ?? '';
+  const composerCountryLabel = composerCountry
+    ? `${countryOptions.find((c) => c.name === composerCountry)?.flag ?? ''} ${composerCountry}`.trim()
+    : '';
+  const composerMeta = [composerCountryLabel, composerEra].filter(Boolean).join(' · ');
+
   return (
     <>
       <div className="flex flex-row gap-4 items-start text-sm">
@@ -392,20 +406,24 @@ export function AlbumInfoSection({
         <div className="flex flex-col gap-y-2 min-w-0 flex-1 opacity-90">
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
-          {isClassicGenre(viewingItem.genre1) && viewingItem.composer?.trim() ? (
-            <p>
-              <strong>작곡가:</strong> {viewingItem.composer.trim()}
-              {viewingItem.composer_country?.trim() ? (
-                <span className="ml-1.5">
-                  {`${countryOptions.find((c) => c.name === viewingItem.composer_country?.trim())?.flag ?? ''} ${viewingItem.composer_country.trim()}`.trim()}
-                </span>
+          {isClassicGenre(viewingItem.genre1) && composerName.trim() ? (
+            <div className="min-w-0">
+              <p className="min-w-0">
+                <strong>작곡가:</strong>{' '}
+                <Link
+                  href={`/artists?role=composer&artist=${encodeURIComponent(composerName)}`}
+                  onClick={onClose}
+                  className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
+                >
+                  {composerName.trim()}
+                </Link>
+              </p>
+              {composerMeta ? (
+                <p className="mt-0.5 break-words text-xs opacity-55">{composerMeta}</p>
               ) : null}
-              {viewingItem.composer_era?.trim() ? (
-                <span className="ml-1.5">{viewingItem.composer_era.trim()}</span>
-              ) : null}
-            </p>
-          ) : isClassicGenre(viewingItem.genre1) && viewingItem.composer_era?.trim() ? (
-            <p><strong>시대:</strong> {viewingItem.composer_era.trim()}</p>
+            </div>
+          ) : isClassicGenre(viewingItem.genre1) && composerEra ? (
+            <p><strong>시대:</strong> {composerEra}</p>
           ) : null}
         </div>
       </div>
