@@ -35,7 +35,7 @@ type ArtistTopControlBarProps = {
   onResetFilters: () => void;
 };
 
-const artistTypeOptions = ['솔로', '아이돌', '밴드', '걸스 밴드', '그룹', '연주자', '지휘자', '기타'] as const;
+const artistTypeOptions = ['솔로', '아이돌', '밴드', '걸스 밴드', '그룹', '연주자', '지휘자', '음악감독', '기타'] as const;
 
 const filterSelectClassName =
   'select-apple h-9 min-w-0 flex-1 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium sm:max-w-[8.5rem] sm:flex-none sm:shrink-0';

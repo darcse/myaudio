@@ -136,6 +136,7 @@ export function AlbumForm({
               <option value="그룹">그룹</option>
               <option value="연주자">연주자</option>
               <option value="지휘자">지휘자</option>
+              <option value="음악감독">음악감독</option>
               <option value="기타">기타</option>
             </select>
           </div>
