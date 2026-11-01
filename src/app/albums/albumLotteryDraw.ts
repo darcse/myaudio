@@ -1,8 +1,20 @@
 import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { Album } from './types';
+import {
+  ALL_PERIOD_YEAR_FILTER,
+  albumMatchesLibraryConditions,
+  type AlbumLibraryTag,
+} from './utils';
 
 const SPIN_SELECT = 'id, cover_image_url';
+const FILTER_SELECT = 'id, year, genre1, release_date';
+
+export type CatalogAlbumLotteryFilters = {
+  yearFilter?: string;
+  tag?: AlbumLibraryTag;
+  excludeId?: number;
+};
 
 export type AlbumLotterySpinCover = {
   id: number;
@@ -32,35 +44,56 @@ export function albumLotteryCoverAsAlbum(cover: AlbumLotterySpinCover): Album {
   };
 }
 
-export async function fetchCatalogAlbumLotteryDraw(): Promise<AlbumLotteryDrawResult> {
+export async function fetchCatalogAlbumLotteryDraw(
+  filters: CatalogAlbumLotteryFilters = {},
+): Promise<AlbumLotteryDrawResult> {
   try {
+    const yearFilter = filters.yearFilter || ALL_PERIOD_YEAR_FILTER;
+    const tag: AlbumLibraryTag = filters.tag ?? '전체';
     const supabase = createClient();
-    const { count, error: countError } = await supabase
+    const { data: filterRows, error: filterError } = await supabase
       .from('album')
-      .select('id', { count: 'exact', head: true });
+      .select(FILTER_SELECT);
 
-    if (countError) return { status: 'error', message: getClientErrorMessage(countError) };
-    if (!count || count < 1) return { status: 'empty' };
+    if (filterError) return { status: 'error', message: getClientErrorMessage(filterError) };
 
-    const winnerOffset = Math.floor(Math.random() * count);
+    const matchedIds = (filterRows ?? [])
+      .filter((row) =>
+        albumMatchesLibraryConditions(row as Album, yearFilter, tag),
+      )
+      .map((row) => Number(row.id))
+      .filter((id) => Number.isFinite(id));
+
+    const candidateIds =
+      filters.excludeId != null && matchedIds.length > 1
+        ? matchedIds.filter((id) => id !== filters.excludeId)
+        : matchedIds;
+
+    if (candidateIds.length < 1) return { status: 'empty' };
+
+    const winnerId = candidateIds[Math.floor(Math.random() * candidateIds.length)];
     const { data: winnerRows, error: winnerError } = await supabase
       .from('album')
       .select('*')
-      .order('id', { ascending: true })
-      .range(winnerOffset, winnerOffset);
+      .eq('id', winnerId)
+      .limit(1);
 
     if (winnerError) return { status: 'error', message: getClientErrorMessage(winnerError) };
     const winner = (winnerRows?.[0] ?? null) as Album | null;
     if (!winner) return { status: 'error', message: '당첨 앨범을 불러오지 못했습니다.' };
 
-    const spinCount = Math.min(count, 20 + Math.floor(Math.random() * 11));
-    const spinStart = Math.max(0, Math.floor(Math.random() * Math.max(1, count - spinCount + 1)));
-    const spinEnd = spinStart + spinCount - 1;
+    const spinCount = Math.min(matchedIds.length, 20 + Math.floor(Math.random() * 11));
+    const spinIds = new Set<number>([winner.id]);
+    const shuffled = [...matchedIds].sort(() => Math.random() - 0.5);
+    for (const id of shuffled) {
+      if (spinIds.size >= spinCount) break;
+      spinIds.add(id);
+    }
+
     const { data: spinRows, error: spinError } = await supabase
       .from('album')
       .select(SPIN_SELECT)
-      .order('id', { ascending: true })
-      .range(spinStart, spinEnd);
+      .in('id', [...spinIds]);
 
     if (spinError) return { status: 'error', message: getClientErrorMessage(spinError) };
 

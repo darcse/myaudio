@@ -33,5 +33,5 @@ export const albumYearOptions = [
   '2010 ~ 2019',
   '2000 ~ 2009',
   '~1999',
-  'All Time',
+  '기간 전체',
 ] as const;

@@ -8,6 +8,12 @@ import {
   fetchCatalogAlbumLotteryDraw,
 } from '../albumLotteryDraw';
 import type { Album } from '../types';
+import {
+  ALL_PERIOD_YEAR_FILTER,
+  ALBUM_PERIOD_FILTER_OPTIONS,
+  LIBRARY_TAGS,
+  type AlbumLibraryTag,
+} from '../utils';
 
 function pickRandomAlbum(pool: Album[], exclude: Album | null = null): Album {
   if (pool.length === 1) return pool[0];
@@ -49,13 +55,21 @@ export function AlbumLotteryModal({
 }: AlbumLotteryModalProps) {
   const isCatalog = mode === 'catalog';
   const showRedraw = !isCatalog;
-  const [phase, setPhase] = useState<LotteryPhase>(autoStart ? 'spinning' : 'idle');
+  const catalogAutoStart = autoStart && !isCatalog;
+  const [phase, setPhase] = useState<LotteryPhase>(catalogAutoStart ? 'spinning' : 'idle');
   const [spinAlbum, setSpinAlbum] = useState<Album | null>(null);
   const [resultAlbum, setResultAlbum] = useState<Album | null>(null);
   const [metaVisible, setMetaVisible] = useState(false);
   const [catalogEmpty, setCatalogEmpty] = useState(false);
   const [drawError, setDrawError] = useState<string | null>(null);
+  const [drawing, setDrawing] = useState(false);
+  const [catalogYearFilter, setCatalogYearFilter] = useState(ALL_PERIOD_YEAR_FILTER);
+  const [catalogTag, setCatalogTag] = useState<AlbumLibraryTag>('전체');
   const spinTimersRef = useRef<number[]>([]);
+  const catalogRequestRef = useRef(0);
+  const catalogBusyRef = useRef(false);
+  const catalogBusy = drawing;
+  const catalogYearDisabled = catalogTag === 'All Time';
 
   const clearSpinTimers = useCallback(() => {
     spinTimersRef.current.forEach((id) => window.clearTimeout(id));
@@ -101,20 +115,92 @@ export function AlbumLotteryModal({
     [isCatalog, lotteryPool, runSpinAnimation],
   );
 
+  const resetCatalogConditions = useCallback(() => {
+    setCatalogYearFilter(ALL_PERIOD_YEAR_FILTER);
+    setCatalogTag('전체');
+    catalogBusyRef.current = false;
+    setDrawing(false);
+    setCatalogEmpty(false);
+    setDrawError(null);
+    setPhase('idle');
+    setSpinAlbum(null);
+    setResultAlbum(null);
+    setMetaVisible(false);
+  }, []);
+
+  const startCatalogLottery = useCallback(
+    (exclude: Album | null) => {
+      if (!isCatalog || catalogBusyRef.current) return;
+      const requestId = catalogRequestRef.current + 1;
+      catalogRequestRef.current = requestId;
+      catalogBusyRef.current = true;
+      setDrawing(true);
+      setCatalogEmpty(false);
+      setDrawError(null);
+      void fetchCatalogAlbumLotteryDraw({
+        yearFilter: catalogYearFilter,
+        tag: catalogTag,
+        excludeId: exclude?.id,
+      })
+        .then((draw) => {
+          if (catalogRequestRef.current !== requestId) {
+            catalogBusyRef.current = false;
+            setDrawing(false);
+            return;
+          }
+          if (draw.status === 'empty') {
+            catalogBusyRef.current = false;
+            setDrawing(false);
+            setCatalogEmpty(true);
+            setPhase('idle');
+            setSpinAlbum(null);
+            setResultAlbum(null);
+            setMetaVisible(false);
+            return;
+          }
+          if (draw.status === 'error') {
+            catalogBusyRef.current = false;
+            setDrawing(false);
+            setDrawError(draw.message);
+            setPhase('idle');
+            return;
+          }
+          const visualPool = draw.spinCovers.map(albumLotteryCoverAsAlbum);
+          return runSpinAnimation(visualPool, draw.winner).then(() => {
+            if (catalogRequestRef.current !== requestId) {
+              catalogBusyRef.current = false;
+              setDrawing(false);
+              return;
+            }
+            catalogBusyRef.current = false;
+            setDrawing(false);
+          });
+        })
+        .catch(() => {
+          if (catalogRequestRef.current !== requestId) return;
+          catalogBusyRef.current = false;
+          setDrawing(false);
+          setDrawError('추천을 불러오지 못했습니다.');
+          setPhase('idle');
+        });
+    },
+    [catalogTag, catalogYearFilter, isCatalog, runSpinAnimation],
+  );
+
   useEffect(() => () => clearSpinTimers(), [clearSpinTimers]);
 
   useEffect(() => {
-    if (!open) {
-      clearSpinTimers();
-      setPhase(autoStart ? 'spinning' : 'idle');
-      setSpinAlbum(null);
-      setResultAlbum(null);
-      setMetaVisible(false);
-      setCatalogEmpty(false);
-      setDrawError(null);
-      return;
+    catalogRequestRef.current += 1;
+    catalogBusyRef.current = false;
+    clearSpinTimers();
+    resetCatalogConditions();
+    if (!open && !isCatalog) {
+      setPhase(catalogAutoStart ? 'spinning' : 'idle');
     }
-    if (isCatalog) return;
+  }, [open, isCatalog, catalogAutoStart, clearSpinTimers, resetCatalogConditions]);
+
+  useEffect(() => {
+    if (!open || isCatalog) return;
     if (lotteryPool.length === 0) return;
     if (autoStart) {
       startLottery(null);
@@ -124,38 +210,7 @@ export function AlbumLotteryModal({
       setResultAlbum(null);
       setMetaVisible(false);
     }
-  }, [open, autoStart, clearSpinTimers, isCatalog, lotteryPool.length, startLottery]);
-
-  useEffect(() => {
-    if (!open || !isCatalog) return;
-    let cancelled = false;
-    setPhase('spinning');
-    setSpinAlbum(null);
-    setResultAlbum(null);
-    setMetaVisible(false);
-    setCatalogEmpty(false);
-    setDrawError(null);
-
-    void fetchCatalogAlbumLotteryDraw().then((draw) => {
-      if (cancelled) return;
-      if (draw.status === 'empty') {
-        setCatalogEmpty(true);
-        setPhase('idle');
-        return;
-      }
-      if (draw.status === 'error') {
-        setDrawError(draw.message);
-        setPhase('idle');
-        return;
-      }
-      const visualPool = draw.spinCovers.map(albumLotteryCoverAsAlbum);
-      void runSpinAnimation(visualPool, draw.winner);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, isCatalog, runSpinAnimation]);
+  }, [open, isCatalog, autoStart, lotteryPool.length, startLottery]);
 
   const caption = subtitle ?? (yearLabel ? `${yearLabel} 기준` : null);
 
@@ -173,16 +228,18 @@ export function AlbumLotteryModal({
 
   return (
     <div
-      className="modal-overlay-apple fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="album-lottery-title"
-      onClick={onClose}
     >
-      <div
-        className="modal-panel-apple relative w-full max-w-md max-h-[90vh] overflow-y-auto p-6 sm:p-8"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <button
+        type="button"
+        className="modal-overlay-apple absolute inset-0"
+        aria-label="닫기"
+        onClick={onClose}
+      />
+      <div className="modal-panel-apple relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto p-6 sm:p-8 pointer-events-auto">
         <button
           type="button"
           onClick={onClose}
@@ -210,19 +267,59 @@ export function AlbumLotteryModal({
             </button>
           ) : null}
         </div>
-        {caption ? <p className="text-sm opacity-70 mb-6">{caption}</p> : <div className="mb-6" />}
+        {isCatalog ? (
+          <div className="mt-4 mb-5 space-y-3">
+            <select
+              className="select-apple px-3 py-2 text-sm h-[38px] w-full disabled:opacity-50"
+              value={catalogYearFilter}
+              disabled={catalogYearDisabled || catalogBusy}
+              onChange={(e) => setCatalogYearFilter(e.target.value)}
+              aria-label="기간 선택"
+            >
+              {ALBUM_PERIOD_FILTER_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="라이브러리 태그">
+              {LIBRARY_TAGS.map((tag) => {
+                const active = catalogTag === tag;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    disabled={catalogBusy}
+                    onClick={() => setCatalogTag(tag)}
+                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                    style={{
+                      background: active ? 'var(--foreground)' : 'var(--badge-bg)',
+                      color: active ? 'var(--background)' : 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                    }}
+                    aria-pressed={active}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : caption ? (
+          <p className="text-sm opacity-70 mb-6">{caption}</p>
+        ) : (
+          <div className="mb-6" />
+        )}
 
         {drawError ? (
-          <p className="text-center text-sm opacity-70 py-12">{drawError}</p>
+          <p className="text-center text-sm opacity-70 py-8">{drawError}</p>
         ) : isCatalog && catalogEmpty ? (
-          <p className="text-center text-sm opacity-60 py-12">등록된 앨범이 없습니다.</p>
+          <p className="text-center text-sm opacity-60 py-8">조건에 맞는 앨범이 없어요</p>
         ) : !isCatalog && lotteryPool.length === 0 ? (
           <p className="text-center text-sm opacity-60 py-12">{emptyMessage}</p>
         ) : lotteryPool.length === 1 && !autoStart ? (
           <p className="mb-4 text-center text-xs opacity-60">이 무드에 속한 앨범이 1장입니다.</p>
         ) : null}
 
-        {drawError || catalogEmpty || (!isCatalog && lotteryPool.length === 0) ? null : isCatalog || lotteryPool.length > 0 ? (
+        {(!isCatalog && (drawError || lotteryPool.length === 0)) || (isCatalog && (drawError || catalogEmpty)) ? null : isCatalog || lotteryPool.length > 0 ? (
           <>
             {phase === 'idle' ? (
               <div className="flex flex-col items-center gap-6">
@@ -234,13 +331,15 @@ export function AlbumLotteryModal({
                     <Music className="size-16 opacity-30" strokeWidth={1.5} aria-hidden />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => startLottery(null)}
-                  className="btn-apple btn-apple-primary h-[44px] min-w-[140px] px-8"
-                >
-                  추천
-                </button>
+                {!isCatalog ? (
+                  <button
+                    type="button"
+                    onClick={() => startLottery(null)}
+                    className="btn-apple btn-apple-primary h-[44px] min-w-[140px] px-8"
+                  >
+                    추천
+                  </button>
+                ) : null}
               </div>
             ) : displayAlbum ? (
               <button
@@ -323,6 +422,19 @@ export function AlbumLotteryModal({
               </div>
             ) : null}
           </>
+        ) : null}
+
+        {isCatalog ? (
+          <div className="flex justify-center mt-6">
+            <button
+              type="button"
+              disabled={catalogBusy}
+              onClick={() => startCatalogLottery(phase === 'result' ? resultAlbum : null)}
+              className="btn-apple btn-apple-primary h-[44px] min-w-[140px] px-8 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              {resultAlbum || phase === 'result' ? '다시 추천' : '추천 받기'}
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

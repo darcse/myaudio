@@ -51,12 +51,22 @@ export const YEAR_RANGE_FILTERS = [
 ] as const;
 
 export const ALL_TIME_YEAR_FILTER = 'All Time';
+export const ALL_PERIOD_YEAR_FILTER = '기간 전체';
 export const UNKNOWN_YEAR_FILTER = '날짜 미상';
+
+export type AlbumLibraryTag = '전체' | 'Popular' | 'Classic' | 'All Time';
+
+export const LIBRARY_TAGS: AlbumLibraryTag[] = ['전체', 'Popular', 'Classic', 'All Time'];
+
+export const ALBUM_PERIOD_FILTER_OPTIONS: string[] = [
+  ...INDIVIDUAL_YEAR_FILTERS,
+  ...YEAR_RANGE_FILTERS.map((range) => range.label),
+  ALL_PERIOD_YEAR_FILTER,
+];
 
 const YEAR_FILTER_ORDER = [
   ...INDIVIDUAL_YEAR_FILTERS,
   ...YEAR_RANGE_FILTERS.map((r) => r.label),
-  ALL_TIME_YEAR_FILTER,
   UNKNOWN_YEAR_FILTER,
 ] as const;
 
@@ -100,6 +110,7 @@ export function albumHasAllTimeYear(year: Album['year']): boolean {
 
 export function albumMatchesLotteryYearFilter(item: Album, filter: string): boolean {
   if (!filter) return false;
+  if (filter === ALL_PERIOD_YEAR_FILTER) return true;
   if (filter === ALL_TIME_YEAR_FILTER) return albumHasAllTimeYear(item.year);
   if (filter === UNKNOWN_YEAR_FILTER) return !item.release_date;
   const y = releaseYearFromAlbum(item);
@@ -114,10 +125,28 @@ export function releaseYearFromAlbum(item: Album): number | null {
 
 export function albumMatchesYearFilter(item: Album, filter: string): boolean {
   if (!filter) return false;
+  if (filter === ALL_PERIOD_YEAR_FILTER) return true;
   if (filter === ALL_TIME_YEAR_FILTER) return albumYearIncludesFilter(item.year, ALL_TIME_YEAR_FILTER);
   if (filter === UNKNOWN_YEAR_FILTER) return !item.release_date;
   const y = releaseYearFromAlbum(item);
   return y != null && releaseYearMatchesFilter(y, filter);
+}
+
+export function albumMatchesLibraryTag(item: Album, tag: AlbumLibraryTag): boolean {
+  if (tag === '전체') return true;
+  if (tag === 'Popular') return !isClassicGenre(item.genre1);
+  if (tag === 'Classic') return isClassicGenre(item.genre1);
+  return albumHasAllTimeYear(item.year);
+}
+
+export function albumMatchesLibraryConditions(
+  item: Album,
+  yearFilter: string,
+  tag: AlbumLibraryTag,
+): boolean {
+  if (!albumMatchesLibraryTag(item, tag)) return false;
+  if (tag === 'All Time') return true;
+  return albumMatchesYearFilter(item, yearFilter);
 }
 
 export function getYoutubeId(url: string): string | null {
@@ -130,7 +159,6 @@ export function buildDynamicYearOptions(library: Album[]): string[] {
   const available = new Set<(typeof YEAR_FILTER_ORDER)[number]>();
 
   library.forEach((a) => {
-    if (albumHasAllTimeYear(a.year)) available.add(ALL_TIME_YEAR_FILTER);
     if (!a.release_date) {
       available.add(UNKNOWN_YEAR_FILTER);
       return;
@@ -141,5 +169,7 @@ export function buildDynamicYearOptions(library: Album[]): string[] {
     if (bucket) available.add(bucket);
   });
 
-  return YEAR_FILTER_ORDER.filter((label) => available.has(label));
+  const options: string[] = YEAR_FILTER_ORDER.filter((label) => available.has(label));
+  if (library.length > 0) options.push(ALL_PERIOD_YEAR_FILTER);
+  return options;
 }

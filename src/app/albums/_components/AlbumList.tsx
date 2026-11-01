@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LayoutGrid, LayoutList, List, Music, Shuffle, X } from 'lucide-react';
+import { LayoutGrid, LayoutList, List, Music, X } from 'lucide-react';
 import type { LibraryViewMode } from './albumBoardShared';
 import { PhysicalOwnedBadges } from './albumBoardShared';
 import { countryOptions, genreOptions } from '../constants';
 import type { Album } from '../types';
-import { isIndividualYearFilter } from '../utils';
+import { isIndividualYearFilter, LIBRARY_TAGS } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
-import type { AlbumMediaFilter } from '../_hooks/useAlbumFilters';
+import type { AlbumLibraryTag, AlbumMediaFilter } from '../_hooks/useAlbumFilters';
 
 interface AlbumListProps {
   yearOptions: string[];
@@ -19,6 +19,8 @@ interface AlbumListProps {
   setListSearchQuery: (v: string) => void;
   listYearFilter: string;
   setListYearFilter: (v: string) => void;
+  listLibraryTag?: AlbumLibraryTag;
+  setListLibraryTag?: (v: AlbumLibraryTag) => void;
   listGenreFilter: string;
   setListGenreFilter: (v: string) => void;
   listCountryFilter: string;
@@ -47,6 +49,8 @@ export function AlbumList({
   setListSearchQuery,
   listYearFilter,
   setListYearFilter,
+  listLibraryTag = '전체',
+  setListLibraryTag,
   listGenreFilter,
   setListGenreFilter,
   listCountryFilter,
@@ -69,7 +73,7 @@ export function AlbumList({
   const isRecordshelf = variant === 'recordshelf';
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [lotteryOpen, setLotteryOpen] = useState(false);
-  const canLottery = lotteryPool.length > 0;
+  const yearSelectDisabled = yearOptions.length === 0 || listLibraryTag === 'All Time';
   const defaultYearFilter = yearOptions[0] ?? '';
   const hideYearTagOnCard = !isRecordshelf && isIndividualYearFilter(listYearFilter);
 
@@ -158,12 +162,12 @@ export function AlbumList({
         {!isRecordshelf && (
         <div className="flex flex-wrap items-center gap-3 shrink-0">
           <h2 className="list-section-title flex items-center gap-2">
-            <List className="size-5 opacity-80 shrink-0" strokeWidth={1.5} /> Albums of the
+            <List className="size-5 opacity-80 shrink-0" strokeWidth={1.5} /> Album Library
           </h2>
           <select
             className="select-apple px-3 py-2 text-sm h-[38px] min-w-[8.5rem] disabled:opacity-50"
             value={listYearFilter}
-            disabled={yearOptions.length === 0}
+            disabled={yearSelectDisabled}
             onChange={(e) => {
               setListYearFilter(e.target.value);
               setListCurrentPage(1);
@@ -179,17 +183,32 @@ export function AlbumList({
               ))
             )}
           </select>
-          <button
-            type="button"
-            disabled={!canLottery}
-            onClick={() => setLotteryOpen(true)}
-            className="h-[38px] w-[38px] flex items-center justify-center rounded-lg shrink-0 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
-            title={canLottery ? `${listYearFilter} 앨범 랜덤 추천` : '이 연도에 등록된 앨범이 없습니다'}
-            aria-label={canLottery ? '랜덤 앨범 추천' : '추천할 앨범 없음'}
-          >
-            <Shuffle className="size-[18px]" strokeWidth={1.75} />
-          </button>
+          {setListLibraryTag ? (
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="라이브러리 태그">
+              {LIBRARY_TAGS.map((tag) => {
+                const active = listLibraryTag === tag;
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      setListLibraryTag(tag);
+                      setListCurrentPage(1);
+                    }}
+                    className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                    style={{
+                      background: active ? 'var(--foreground)' : 'var(--badge-bg)',
+                      color: active ? 'var(--background)' : 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                    }}
+                    aria-pressed={active}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
         )}
         <div className={`flex items-center gap-2 ${isRecordshelf ? 'w-full flex-wrap' : 'w-full lg:w-auto lg:ml-auto lg:min-w-0'}`}>

@@ -70,6 +70,8 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     setListSearchQuery,
     listYearFilter,
     setListYearFilter,
+    listLibraryTag,
+    setListLibraryTag,
     listGenreFilter,
     setListGenreFilter,
     listCountryFilter,
@@ -87,6 +89,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     listTotalPages,
   } = useAlbumFilters(library, artistNameAltByName, {
     disableYearGrouping: physicalOwnedOnly,
+    enableLibraryTags: !physicalOwnedOnly,
   });
 
   const [query, setQuery] = useState('');
@@ -607,6 +610,8 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
               setListSearchQuery={setListSearchQuery}
               listYearFilter={listYearFilter}
               setListYearFilter={setListYearFilter}
+              listLibraryTag={physicalOwnedOnly ? undefined : listLibraryTag}
+              setListLibraryTag={physicalOwnedOnly ? undefined : setListLibraryTag}
               listGenreFilter={listGenreFilter}
               setListGenreFilter={setListGenreFilter}
               listCountryFilter={listCountryFilter}

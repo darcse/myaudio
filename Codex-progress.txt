@@ -71,3 +71,7 @@
 [2026-10-31] [Cursor] style: Weekly Hot 아티스트/앨범 패널 분리 | passes: 변경 없음
 [2026-10-31] [Cursor] style: Weekly Hot 앨범 커버 오버레이 카드 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: ALBUM-038 Classic 작곡가 + 오스트리아/이탈리아 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: 앨범 연도 셀렉트 All Time → 기간 전체 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: Album Library 헤더 + 태그 필터 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: 랜덤 추천 조건 선택 후 실행 | passes: 변경 없음
+[2026-11-01] [Cursor] fix: 랜덤 추천 모달 오픈 직후 클릭 불가 | passes: 변경 없음

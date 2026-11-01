@@ -3,20 +3,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Album } from '../types';
 import { matchesArtistNameSearch } from '@/app/artists/utils';
-import { albumMatchesLotteryYearFilter, albumMatchesYearFilter, buildDynamicYearOptions } from '../utils';
+import {
+  albumMatchesLibraryTag,
+  albumMatchesLotteryYearFilter,
+  albumMatchesYearFilter,
+  buildDynamicYearOptions,
+} from '../utils';
+import type { AlbumLibraryTag } from '../utils';
 
 const ITEMS_PER_PAGE = 20;
 
 export type AlbumMediaFilter = 'all' | 'cd' | 'lp' | 'cassette';
+export type { AlbumLibraryTag };
 
 export function useAlbumFilters(
   library: Album[],
   artistNameAltByName: Record<string, string | null> = {},
-  options?: { disableYearGrouping?: boolean },
+  options?: { disableYearGrouping?: boolean; enableLibraryTags?: boolean },
 ) {
   const disableYearGrouping = options?.disableYearGrouping ?? false;
+  const enableLibraryTags = options?.enableLibraryTags ?? false;
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
+  const [listLibraryTag, setListLibraryTag] = useState<AlbumLibraryTag>('전체');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
   const [listCountryFilter, setListCountryFilter] = useState('전체');
   const [listMediaFilter, setListMediaFilter] = useState<AlbumMediaFilter>('all');
@@ -43,7 +52,15 @@ export function useAlbumFilters(
   useEffect(() => {
     setListCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [listSearchQuery, listYearFilter, listGenreFilter, listCountryFilter, listMediaFilter, listSortOrder]);
+  }, [
+    listSearchQuery,
+    listYearFilter,
+    listLibraryTag,
+    listGenreFilter,
+    listCountryFilter,
+    listMediaFilter,
+    listSortOrder,
+  ]);
 
   const listFilterCommon = useCallback(
     (item: Album) => {
@@ -70,12 +87,22 @@ export function useAlbumFilters(
 
   const filteredLibrary = useMemo(
     () =>
-      library.filter(
-        (item) =>
-          (disableYearGrouping || albumMatchesYearFilter(item, listYearFilter)) &&
-          listFilterCommon(item),
-      ),
-    [library, disableYearGrouping, listYearFilter, listFilterCommon],
+      library.filter((item) => {
+        const matchesTag = !enableLibraryTags || albumMatchesLibraryTag(item, listLibraryTag);
+        const matchesYear =
+          disableYearGrouping ||
+          (enableLibraryTags && listLibraryTag === 'All Time') ||
+          albumMatchesYearFilter(item, listYearFilter);
+        return matchesTag && matchesYear && listFilterCommon(item);
+      }),
+    [
+      library,
+      disableYearGrouping,
+      enableLibraryTags,
+      listLibraryTag,
+      listYearFilter,
+      listFilterCommon,
+    ],
   );
 
   const yearLotteryPool = useMemo(
@@ -108,6 +135,8 @@ export function useAlbumFilters(
     setListSearchQuery,
     listYearFilter,
     setListYearFilter,
+    listLibraryTag,
+    setListLibraryTag,
     listGenreFilter,
     setListGenreFilter,
     listCountryFilter,
