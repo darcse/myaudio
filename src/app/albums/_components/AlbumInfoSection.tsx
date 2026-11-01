@@ -6,7 +6,10 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Music, Play, Tv } from 'lucide-react';
 import { toast } from 'sonner';
+import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
+import { AppleMusicIcon } from '@/components/streamingServiceIcons';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { appleMusicSearchUrl } from '@/lib/appleMusic';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
@@ -27,19 +30,63 @@ type AlbumInfoSectionProps = {
 export function AlbumInfoHeroSection({
   viewingItem,
   onClose,
-}: Pick<AlbumInfoSectionProps, 'viewingItem' | 'onClose'>) {
+  isAuthenticated = null,
+  onAlbumPatch,
+}: Pick<AlbumInfoSectionProps, 'viewingItem' | 'onClose' | 'isAuthenticated' | 'onAlbumPatch'>) {
   const [youtubeOpen, setYoutubeOpen] = useState(false);
+  const [foundAppleUrl, setFoundAppleUrl] = useState('');
   const { playAlbum } = useAlbumPlayer();
   const playlistId = viewingItem.youtube_playlist_id?.trim() ?? '';
+  const savedAppleUrl = viewingItem.apple_music_url?.trim() ?? '';
+  const appleHref = savedAppleUrl || foundAppleUrl || appleMusicSearchUrl(viewingItem.artist ?? '', viewingItem.album_name);
+  const heroBtnClass =
+    'relative flex size-7 flex-shrink-0 items-center justify-center rounded-full transition-colors after:absolute after:inset-[-6px] after:content-[\'\']';
+  const viewingItemRef = useRef(viewingItem);
+  viewingItemRef.current = viewingItem;
 
   useEffect(() => {
     setYoutubeOpen(false);
+    setFoundAppleUrl('');
   }, [viewingItem.id]);
 
   useEffect(() => {
     if (!playlistId) return;
     void loadYoutubeIframeApi().catch(() => {});
   }, [playlistId]);
+
+  useEffect(() => {
+    if (savedAppleUrl) {
+      setFoundAppleUrl('');
+      return;
+    }
+    const albumName = viewingItem.album_name.trim();
+    if (!albumName) return;
+    const albumId = viewingItem.id;
+    const artist = viewingItem.artist ?? '';
+    let cancelled = false;
+    void fetch('/api/apple-music-album', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist, albumName }),
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const payload = (await res.json().catch(() => null)) as { url?: unknown } | null;
+        return typeof payload?.url === 'string' && payload.url.trim() ? payload.url.trim() : null;
+      })
+      .then((url) => {
+        if (cancelled || !url) return;
+        setFoundAppleUrl(url);
+        onAlbumPatch?.({ ...viewingItemRef.current, apple_music_url: url });
+        if (isAuthenticated === true) {
+          void saveAlbumAppleMusicUrl(albumId, url).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingItem.id, viewingItem.artist, viewingItem.album_name, savedAppleUrl, isAuthenticated, onAlbumPatch]);
 
   return (
     <>
@@ -97,20 +144,30 @@ export function AlbumInfoHeroSection({
                 )}
               </p>
             </div>
-            {playlistId || (viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url)) ? (
-              <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1">
                 {viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) ? (
                   <button
                     type="button"
                     onClick={() => setYoutubeOpen((o) => !o)}
-                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+                    className={heroBtnClass}
                     style={{ background: youtubeOpen ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)' }}
                     title="타이틀곡 영상"
                     aria-label="타이틀곡 영상"
                   >
-                    <Tv className="size-5 text-white" strokeWidth={1.75} />
+                    <Tv className="relative size-3 text-white" strokeWidth={1.75} />
                   </button>
                 ) : null}
+                <a
+                  href={appleHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={heroBtnClass}
+                  style={{ background: 'rgba(255,255,255,0.2)' }}
+                  title="애플뮤직에서 열기"
+                  aria-label="애플뮤직에서 열기"
+                >
+                  <AppleMusicIcon className="relative size-3 text-white" />
+                </a>
                 {playlistId ? (
                   <button
                     type="button"
@@ -125,16 +182,15 @@ export function AlbumInfoHeroSection({
                         cachedTracks: parseYoutubeTracks(viewingItem.youtube_tracks),
                       })
                     }
-                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-colors"
+                    className={heroBtnClass}
                     style={{ background: 'rgba(255,255,255,0.2)' }}
                     title="앨범 전체 재생"
                     aria-label="앨범 전체 재생"
                   >
-                    <Play className="size-5 ml-0.5 fill-current text-white" strokeWidth={2} />
+                    <Play className="relative size-3 ml-px fill-current text-white" strokeWidth={2} />
                   </button>
                 ) : null}
-              </div>
-            ) : null}
+            </div>
           </div>
         </div>
       </div>

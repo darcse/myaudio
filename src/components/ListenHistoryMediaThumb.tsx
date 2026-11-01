@@ -32,7 +32,7 @@ export function ListenHistoryMediaThumb({ media }: { media: string }) {
       style={{ background: spec.background }}
     >
       <div className={`flex size-full items-center justify-center ${spec.branded ? '' : 'opacity-40'}`}>
-        <Icon className="size-4" strokeWidth={1.5} />
+        <Icon className={`size-4 ${spec.branded ? 'text-white' : ''}`} strokeWidth={1.5} />
       </div>
     </div>
   );

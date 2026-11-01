@@ -5,6 +5,7 @@ import { extractDominantColorsFromCoverUrl } from '@/lib/albumCoverColors.server
 import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
+import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import type { YoutubeTrack } from '@/lib/youtubeTracks';
 import { isClassicGenre } from './utils';
@@ -46,6 +47,7 @@ function mapAlbumData(data: AlbumFormData) {
     matching2: data.matching2,
     title_song_url: data.title_song_url,
     youtube_playlist_id: parseYoutubePlaylistInput(data.youtube_playlist_id ?? '').id,
+    apple_music_url: parseAppleMusicAlbumInput(data.apple_music_url ?? '').url,
     wiki_url: data.wiki_url || null,
     album_intro: data.album_intro?.trim() || null,
     manual_recommended_headphone_ids: manualIds.length > 0 ? manualIds : null,
@@ -267,6 +269,26 @@ export async function updateAlbumInDB(id: number, data: AlbumFormData) {
   if (error) throw error;
   console.error('[album-enrichment]', { reason: 'update_no_assign', albumId: id });
   return result;
+}
+
+export async function saveAlbumAppleMusicUrl(albumId: number, url: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const parsed = parseAppleMusicAlbumInput(url);
+  if (parsed.status !== 'ok' || !parsed.url) return;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('album')
+    .select('apple_music_url')
+    .eq('id', albumId)
+    .maybeSingle();
+  if (typeof data?.apple_music_url === 'string' && data.apple_music_url.trim()) return;
+  const { error } = await supabase
+    .from('album')
+    .update({ apple_music_url: parsed.url })
+    .eq('id', albumId)
+    .is('apple_music_url', null);
+  if (error) throw error;
 }
 
 export async function saveAlbumYoutubeTracks(albumId: number, tracks: YoutubeTrack[]) {

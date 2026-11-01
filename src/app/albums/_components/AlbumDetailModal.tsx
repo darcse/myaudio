@@ -254,7 +254,12 @@ export function AlbumDetailModal({
             &times;
           </button>
 
-          <AlbumInfoHeroSection viewingItem={viewingItem} onClose={onClose} />
+          <AlbumInfoHeroSection
+            viewingItem={viewingItem}
+            onClose={onClose}
+            isAuthenticated={isAuthenticated}
+            onAlbumPatch={onAlbumPatch}
+          />
 
           <div className="mt-4 shrink-0 border-b px-6" style={{ borderColor: 'var(--border)' }}>
             <div className="-mb-px flex items-center justify-between gap-1.5 sm:gap-2">

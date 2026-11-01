@@ -160,7 +160,7 @@ export function ArtistExternalLinksSection({
                         title={label}
                         aria-label={label}
                       >
-                        <Icon className="size-3.5 shrink-0" />
+                        <Icon className="size-3.5 shrink-0 text-white" />
                       </a>
                     );
                   })

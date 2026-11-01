@@ -11,6 +11,7 @@ import {
   isClassicFormOption,
 } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
+import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import { isClassicGenre } from '../utils';
 import { ComposerComboSelect } from './ComposerComboSelect';
@@ -46,11 +47,13 @@ export function AlbumForm({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [classicFormError, setClassicFormError] = useState(false);
   const [playlistError, setPlaylistError] = useState(false);
+  const [appleMusicError, setAppleMusicError] = useState(false);
 
   useEffect(() => {
     setDeleteConfirmOpen(false);
     setClassicFormError(false);
     setPlaylistError(false);
+    setAppleMusicError(false);
   }, [selectedItem]);
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -121,27 +124,8 @@ export function AlbumForm({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="col-span-2">
             {renderInput('앨범명', 'album_name', 'album_name')}
-            <div className="min-w-0">
-              <label className="block text-sm font-semibold mb-1 opacity-90">유튜브 뮤직 재생목록</label>
-              <input
-                type="text"
-                className={inputBaseClass}
-                value={formData.youtube_playlist_id ?? ''}
-                onChange={(e) => {
-                  setFormData({ ...formData, youtube_playlist_id: e.target.value });
-                  if (playlistError) setPlaylistError(false);
-                }}
-                placeholder="music.youtube.com 주소 또는 OLAK5uy_..."
-                aria-invalid={playlistError}
-              />
-              {playlistError ? (
-                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
-                  유튜브 재생목록 주소 또는 ID를 확인해 주세요.
-                </p>
-              ) : null}
-            </div>
           </div>
           {renderInput(
             '아티스트',
@@ -279,6 +263,46 @@ export function AlbumForm({
                 />
                 <span>카세트 보유</span>
               </label>
+            </div>
+          </div>
+          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            <div className="min-w-0">
+              <label className="block text-sm font-semibold mb-1 opacity-90">애플뮤직 주소</label>
+              <input
+                type="text"
+                className={inputBaseClass}
+                value={formData.apple_music_url ?? ''}
+                onChange={(e) => {
+                  setFormData({ ...formData, apple_music_url: e.target.value });
+                  if (appleMusicError) setAppleMusicError(false);
+                }}
+                placeholder="https://music.apple.com/kr/album/..."
+                aria-invalid={appleMusicError}
+              />
+              {appleMusicError ? (
+                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                  music.apple.com 주소를 입력해 주세요.
+                </p>
+              ) : null}
+            </div>
+            <div className="min-w-0">
+              <label className="block text-sm font-semibold mb-1 opacity-90">유튜브 뮤직 재생목록</label>
+              <input
+                type="text"
+                className={inputBaseClass}
+                value={formData.youtube_playlist_id ?? ''}
+                onChange={(e) => {
+                  setFormData({ ...formData, youtube_playlist_id: e.target.value });
+                  if (playlistError) setPlaylistError(false);
+                }}
+                placeholder="music.youtube.com 주소 또는 OLAK5uy_..."
+                aria-invalid={playlistError}
+              />
+              {playlistError ? (
+                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                  유튜브 재생목록 주소 또는 ID를 확인해 주세요.
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
@@ -432,8 +456,13 @@ export function AlbumForm({
                 setPlaylistError(true);
                 return;
               }
+              if (parseAppleMusicAlbumInput(formData.apple_music_url ?? '').status === 'invalid') {
+                setAppleMusicError(true);
+                return;
+              }
               setClassicFormError(false);
               setPlaylistError(false);
+              setAppleMusicError(false);
               onSave();
             }}
             disabled={isSaving || isDeleting}
