@@ -12,6 +12,7 @@ import {
 } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
 import { isClassicGenre } from '../utils';
+import { ComposerComboSelect } from './ComposerComboSelect';
 
 interface AlbumFormProps {
   selectedItem: SelectedAlbum;
@@ -311,7 +312,22 @@ export function AlbumForm({
             )}
             {isClassicGenre(formData.genre1) ? (
               <>
-                {renderInput('작곡가', 'composer')}
+                <div className="min-w-0">
+                  <label className="block text-sm font-semibold mb-1 opacity-90">작곡가</label>
+                  <ComposerComboSelect
+                    value={formData.composer}
+                    onChange={(composer) => setFormData({ ...formData, composer })}
+                    onSelectOption={(option) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        composer: option.name,
+                        composer_country: option.country ?? prev.composer_country,
+                        composer_era: option.era ?? prev.composer_era,
+                        composer_wiki_url: option.wikiUrl ?? prev.composer_wiki_url,
+                      }))
+                    }
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1 opacity-90">작곡가 국적</label>
                   <select

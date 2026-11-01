@@ -93,3 +93,4 @@
 [2026-11-01] [Cursor] feat: Insights 아티스트 모달 이름 링크 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: 아티스트 구분에 연주자·지휘자 추가 | passes: 변경 없음
 [2026-11-01] [Cursor] feat: 아티스트 구분에 음악감독 추가 | passes: 변경 없음
+[2026-11-01] [Cursor] feat: Classic 작곡가 콤보박스 검색·자동채우기 | passes: 변경 없음

@@ -4,6 +4,76 @@ export function isClassicGenre(genre1: string | null | undefined): boolean {
   return genre1?.trim() === 'Classic';
 }
 
+export type ComposerComboOption = {
+  name: string;
+  country: string | null;
+  era: string | null;
+  wikiUrl: string | null;
+};
+
+export type ComposerComboRow = {
+  composer: string | null;
+  composer_country: string | null;
+  composer_era: string | null;
+  composer_wiki_url: string | null;
+  created_at: string | null;
+};
+
+function pickModeOrLatest(entries: { value: string; createdAt: string }[]): string | null {
+  const filled = entries.filter((entry) => entry.value);
+  if (filled.length === 0) return null;
+  const counts = new Map<string, number>();
+  for (const entry of filled) {
+    counts.set(entry.value, (counts.get(entry.value) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  let bestCreatedAt = '';
+  for (const entry of filled) {
+    const count = counts.get(entry.value) ?? 0;
+    if (count > bestCount || (count === bestCount && entry.createdAt > bestCreatedAt)) {
+      best = entry.value;
+      bestCount = count;
+      bestCreatedAt = entry.createdAt;
+    }
+  }
+  return best;
+}
+
+export function buildComposerComboOptions(rows: ComposerComboRow[]): ComposerComboOption[] {
+  const byName = new Map<string, ComposerComboRow[]>();
+  for (const row of rows) {
+    const name = row.composer?.trim();
+    if (!name) continue;
+    const group = byName.get(name) ?? [];
+    group.push(row);
+    byName.set(name, group);
+  }
+  return [...byName.entries()]
+    .map(([name, group]) => ({
+      name,
+      country: pickModeOrLatest(
+        group.map((row) => ({
+          value: row.composer_country?.trim() ?? '',
+          createdAt: row.created_at ?? '',
+        })),
+      ),
+      era: pickModeOrLatest(
+        group.map((row) => ({
+          value: row.composer_era?.trim() ?? '',
+          createdAt: row.created_at ?? '',
+        })),
+      ),
+      wikiUrl: pickModeOrLatest(
+        group.map((row) => ({
+          value: row.composer_wiki_url?.trim() ?? '',
+          createdAt: row.created_at ?? '',
+        })),
+      ),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
 function formYearsFromAlbum(year: Album['year']): string[] {
   if (year == null) return ['2026'];
   if (Array.isArray(year)) return year.length > 0 ? [...year] : ['2026'];
