@@ -7,7 +7,6 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
-import type { YoutubeTrack } from '@/lib/youtubeTracks';
 import { isClassicGenre } from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
@@ -288,17 +287,6 @@ export async function saveAlbumAppleMusicUrl(albumId: number, url: string) {
     .update({ apple_music_url: parsed.url })
     .eq('id', albumId)
     .is('apple_music_url', null);
-  if (error) throw error;
-}
-
-export async function saveAlbumYoutubeTracks(albumId: number, tracks: YoutubeTrack[]) {
-  const user = await getCurrentUser();
-  if (!user) throw new Error('Unauthorized');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('album')
-    .update({ youtube_tracks: tracks })
-    .eq('id', albumId);
   if (error) throw error;
 }
 

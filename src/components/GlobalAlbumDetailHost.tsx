@@ -127,7 +127,7 @@ export function GlobalAlbumDetailHost() {
   }, [album]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!editing || isAuthenticated !== true) return;
     void createClient()
       .from('headfi')
       .select('id,brand,model')
@@ -144,7 +144,7 @@ export function GlobalAlbumDetailHost() {
           })),
         );
       });
-  }, [isAuthenticated]);
+  }, [editing, isAuthenticated]);
 
   const handleRefreshAlbumIntro = useCallback(async () => {
     if (!album) return;

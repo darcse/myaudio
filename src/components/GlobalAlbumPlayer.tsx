@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSPro
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Maximize2, Minimize2, Pause, Play, RefreshCw, SkipBack, SkipForward, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { saveAlbumYoutubeTracks } from '@/app/albums/actions';
+import { saveAlbumYoutubeTracks } from '@/app/albums/youtubeTrackActions';
 import { useAlbumPlayer, type AlbumPlayerAlbum } from '@/contexts/AlbumPlayerContext';
 import { useAuthState } from '@/hooks/useAuthState';
 import {
