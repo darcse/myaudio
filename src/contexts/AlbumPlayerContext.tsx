@@ -33,10 +33,17 @@ export type AlbumPlayerContextValue = {
   current: AlbumPlayerAlbum | null;
   session: number;
   expanded: boolean;
+  detailAlbumId: number | null;
   playAlbum: (album: AlbumPlayerAlbum) => void;
   pauseIfPlaying: () => void;
   close: () => void;
   setExpanded: (expanded: boolean) => void;
+  openAlbumDetail: (albumId: number) => void;
+  closeAlbumDetail: () => void;
+  patchCurrentMeta: (
+    albumId: number,
+    patch: Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl'>,
+  ) => void;
   commandsRef: MutableRefObject<AlbumPlayerCommands>;
 };
 
@@ -47,6 +54,7 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
   const [current, setCurrent] = useState<AlbumPlayerAlbum | null>(null);
   const [session, setSession] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [detailAlbumId, setDetailAlbumId] = useState<number | null>(null);
   const commandsRef = useRef<AlbumPlayerCommands>({
     startAlbum: () => false,
     pauseIfPlaying: () => {},
@@ -78,18 +86,48 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
     setExpanded(false);
   }, []);
 
+  const openAlbumDetail = useCallback((albumId: number) => {
+    setDetailAlbumId(albumId);
+  }, []);
+
+  const closeAlbumDetail = useCallback(() => {
+    setDetailAlbumId(null);
+  }, []);
+
+  const patchCurrentMeta = useCallback(
+    (albumId: number, patch: Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl'>) => {
+      setCurrent((prev) => (prev && prev.id === albumId ? { ...prev, ...patch } : prev));
+    },
+    [],
+  );
+
   const value = useMemo(
     () => ({
       current,
       session,
       expanded,
+      detailAlbumId,
       playAlbum,
       pauseIfPlaying,
       close,
       setExpanded,
+      openAlbumDetail,
+      closeAlbumDetail,
+      patchCurrentMeta,
       commandsRef,
     }),
-    [current, session, expanded, playAlbum, pauseIfPlaying, close],
+    [
+      current,
+      session,
+      expanded,
+      detailAlbumId,
+      playAlbum,
+      pauseIfPlaying,
+      close,
+      openAlbumDetail,
+      closeAlbumDetail,
+      patchCurrentMeta,
+    ],
   );
 
   return <AlbumPlayerContext.Provider value={value}>{children}</AlbumPlayerContext.Provider>;

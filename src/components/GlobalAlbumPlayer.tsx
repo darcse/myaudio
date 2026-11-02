@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { ExternalLink, Maximize2, Minimize2, Pause, Play, RefreshCw, SkipBack, SkipForward, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumYoutubeTracks } from '@/app/albums/actions';
@@ -34,7 +35,9 @@ function formatTime(seconds: number): string {
 }
 
 export function GlobalAlbumPlayer() {
-  const { current, session, expanded, close, setExpanded, commandsRef } = useAlbumPlayer();
+  const { current, session, expanded, close, setExpanded, openAlbumDetail, closeAlbumDetail, commandsRef } =
+    useAlbumPlayer();
+  const router = useRouter();
   const isAuthenticated = useAuthState();
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YoutubePlayer | null>(null);
@@ -617,10 +620,32 @@ export function GlobalAlbumPlayer() {
                   : 'min-w-0 flex-1'
               }
             >
-              <p className="truncate text-sm font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
+              <button
+                type="button"
+                className="block max-w-full truncate py-0.5 text-left text-sm font-semibold leading-tight hover:underline"
+                style={{ color: 'var(--foreground)' }}
+                onClick={() => {
+                  if (expanded) setExpanded(false);
+                  openAlbumDetail(current.id);
+                }}
+              >
                 {current.albumName}
-              </p>
-              <p className="mt-0.5 truncate text-xs leading-tight opacity-70">{current.artist || '—'}</p>
+              </button>
+              {current.artist.trim() ? (
+                <button
+                  type="button"
+                  className="mt-0.5 block max-w-full truncate py-0.5 text-left text-xs leading-tight opacity-70 hover:underline hover:opacity-100"
+                  onClick={() => {
+                    if (expanded) setExpanded(false);
+                    closeAlbumDetail();
+                    router.push(`/artists?role=artist&artist=${encodeURIComponent(current.artist.trim())}`);
+                  }}
+                >
+                  {current.artist}
+                </button>
+              ) : (
+                <p className="mt-0.5 truncate text-xs leading-tight opacity-70">—</p>
+              )}
               {currentTitle ? (
                 <p className="mt-0.5 truncate text-xs leading-tight opacity-80">
                   {currentTitle}

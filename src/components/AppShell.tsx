@@ -7,6 +7,7 @@ import { LyricsPlayerProvider } from '@/contexts/LyricsPlayerContext';
 import { AlbumPlayerProvider } from '@/contexts/AlbumPlayerContext';
 import { GlobalLyricsPlayer } from '@/components/GlobalLyricsPlayer';
 import { GlobalAlbumPlayer } from '@/components/GlobalAlbumPlayer';
+import { GlobalAlbumDetailHost } from '@/components/GlobalAlbumDetailHost';
 import { MainWithPlayerInset } from '@/components/MainWithPlayerInset';
 import { BackToTop } from '@/components/BackToTop';
 import { Footer } from '@/components/Footer';
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </MainWithPlayerInset>
         <GlobalLyricsPlayer />
         <GlobalAlbumPlayer />
+        <GlobalAlbumDetailHost />
         <BackToTop />
         <Toaster position="top-center" richColors closeButton />
       </AlbumPlayerProvider>
