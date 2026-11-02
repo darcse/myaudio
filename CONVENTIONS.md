@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 
-개인 음악·헤드파이 라이브러리. 앨범·헤드파이 기기·가사를 관리한다.
+개인 음악·헤드파이 라이브러리. 앨범·아티스트·헤드파이 기기·가사를 관리한다.
 배포 URL: https://audio.sshlove.com
 
 ---
@@ -13,8 +13,9 @@
 - Database: Supabase (Auth + PostgreSQL + RLS) — mylibrary / mybooks와 동일 인스턴스 공유
 - Deployment: Vercel
 - AI: Gemini (`gemini-3.5-flash-lite`), OpenAI (`gpt-5.4-mini`), Anthropic Claude Sonnet. 모델명 기본값은 `src/lib/aiModels.ts` 한 곳에서 관리
-- External API: MusicBrainz, Cover Art Archive
+- External API: MusicBrainz, Cover Art Archive, YouTube IFrame Player API, YouTube oEmbed, YouTube Music 카탈로그(비공식 내부 API, 한국 앨범 트랙 제목 한정), iTunes Search API(애플뮤직 앨범 주소 찾기, 키 불필요)
 - Font: Pretendard
+- dev 런처: Tauri 웹뷰(macOS). 외부 링크 열기는 런처 capabilities의 shell open 권한(`http`/`https` 한정)이 있어야 동작한다.
 
 ---
 
@@ -28,7 +29,11 @@ myaudio/
 │   │   ├── page.tsx              # 대시보드
 │   │   ├── globals.css
 │   │   ├── login/page.tsx
-│   │   ├── albums/page.tsx
+│   │   ├── albums/
+│   │   │   ├── page.tsx
+│   │   │   └── _components/      # AlbumForm, AlbumDetailModal, AlbumInfoSection, ComposerComboSelect 등
+│   │   ├── artists/
+│   │   │   └── _components/      # ArtistsLibraryContent (아티스트/작곡가 토글, URL 기준 선택)
 │   │   ├── headfi/page.tsx
 │   │   ├── lyrics/page.tsx
 │   │   ├── archive/
@@ -46,11 +51,16 @@ myaudio/
 │   │       ├── headfi-recommended-genres/route.ts
 │   │       ├── headfi-sound-analysis/route.ts
 │   │       ├── headfi-review-summary/route.ts
-│   │       └── monthly-review-comment/route.ts
+│   │       ├── monthly-review-comment/route.ts
+│   │       ├── youtube-track-titles/route.ts   # 앨범 플레이어 트랙 제목 조회 (oEmbed + 한국 앨범 카탈로그)
+│   │       └── apple-music-album/route.ts      # 애플뮤직 앨범 주소 자동 찾기 (iTunes Search API)
 │   ├── components/
 │   │   ├── ui/
 │   │   ├── layout/
-│   │   └── features/
+│   │   ├── features/
+│   │   └── GlobalAlbumPlayer.tsx  # 앨범 전역 플레이어 (띠 + 확장 모달, 유튜브 플레이어 인스턴스 1개)
+│   ├── contexts/
+│   │   └── AlbumPlayerContext.tsx # 앨범 플레이어 전역 상태 (current / session / expanded만)
 │   ├── lib/
 │   │   ├── supabase/
 │   │   │   ├── client.ts
@@ -63,6 +73,10 @@ myaudio/
 │   │   ├── headfiSoundScores.ts  # 청음 평점 AI 프롬프트 블록 공용 정의
 │   │   ├── headfiPosition.ts     # 포지션 맵 좌표 공식
 │   │   ├── headfiReviewSources.ts # 외부 리뷰 요약 출처 파싱·길이 상한·캐시 판정
+│   │   ├── youtubePlaylist.ts    # 유튜브 재생목록 주소 → ID 추출
+│   │   ├── youtubeIframeApi.ts   # IFrame API 스크립트 1회 로드, 플레이어 준비 판정
+│   │   ├── youtubeTracks.ts      # 트랙 목록 캐시 형식·불일치 판정
+│   │   ├── appleMusic.ts         # iTunes 검색 결과 정규화·일치도 판정
 │   │   └── utils.ts
 │   ├── hooks/
 │   └── types/
@@ -95,7 +109,8 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 
 | 테이블 | 용도 |
 |--------|------|
-| `album` | 음악 앨범 컬렉션 (`genre1`, `genre2`, `mood_name`, `mood_manually_set` 포함) |
+| `album` | 음악 앨범 컬렉션 (`genre1`, `genre2`, `mood_name`, `mood_manually_set`, `artist_type`, 작곡가 4종 `composer` / `composer_country` / `composer_era` / `composer_wiki_url`, 재생 연결 `youtube_playlist_id` / `youtube_tracks` / `apple_music_url` 포함) |
+| `artists` | 아티스트 프로필 (`artist_name` UNIQUE, 보조이름 `name_alt`, 바이오, 프로필 이미지, 외부 링크). 아티스트 목록 자체는 `album.artist` 문자열로 묶고, 프로필 행은 상세 진입 시 생성 |
 | `headfi` | 헤드파이 기기 컬렉션 (보유 상태 `status2`, 청음 평가, AI 분석, 외부 리뷰 요약, 포지션 좌표 포함) |
 | `headfi_accessories` | 독립 액세서리 (id uuid, 카테고리·이름·가격·구매일, `status`: `owned` / `released` / `transferred`) |
 | `headfi_accessory_links` | 기기 ↔ 액세서리 연결 (N:M). `headfi_id` int FK, `accessory_id` uuid FK, 둘 다 ON DELETE CASCADE, UNIQUE(headfi_id, accessory_id), user_id 기반 RLS |
@@ -115,15 +130,151 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 - `album.manual_recommended_headphone_ids` → `headfi.id` 참조 (같은 앱 내)
 - `headfi.ai_recommended_album_ids` → `album.id` 참조 (같은 앱 내)
 - 무드 추천 API는 album + headfi 테이블 동시 조회
+- 작곡가는 별도 테이블 없이 `album.composer` 문자열로 묶는다. 작곡가 프로필은 같은 이름의 `artists` 행을 공유한다.
 
 ### id 타입 (SQL 작성 시 확인 필수)
 
+- `album.id`: integer
+- `artists.id`: uuid
 - `headfi.id`: integer
 - `headfi_accessories.id`: uuid
 - `album_listen_history.id`: uuid, `album_id`: bigint, 기기 컬럼(`source_id` / `dac_amp_id` / `dac_amp2_id` / `headphone_id`): integer
 - `headfi_match_cache`: `id` uuid, `base_gear_id` / `target_gear_id` integer, `combo_id` uuid
 - `headfi` 청음 평점 컬럼은 모두 smallint, NULL 허용, 기본값 없음
+- `album.youtube_tracks`: jsonb, `album.youtube_playlist_id` / `album.apple_music_url`: text
 - 그 외 테이블은 추측하지 말고 조회 후 확인한다.
+
+---
+
+## 앨범 규칙
+
+### 아티스트·작곡가 필드
+
+- `album.artist`는 **연주자(아티스트)**다. `album.country`는 연주자 국적이다.
+- 작곡가 필드 4종은 Classic 앨범에서만 입력·표시한다: `composer`(이름), `composer_country`(작곡가 국적), `composer_era`(시대), `composer_wiki_url`(작곡가 위키피디아).
+- 비Classic으로 저장하면 작곡가 키를 저장 payload에서 제외한다. DB의 기존 작곡가 값은 지워지지 않는다.
+- 작곡가 이름은 앨범 검색 대상에 포함한다.
+- 작곡가 위키피디아는 `composer_wiki_url`만 쓴다. 없으면 연주자 `wiki_url`로 대체하지 않는다.
+
+### Classic 형식·시대
+
+- Classic일 때 장르2는 **형식 셀렉트(필수)**다: 교향곡 / 관현악, 협주곡, 실내악, 기악 / 독주, 성악 / 오페라 / 합창, 발레 / 극장·부수음악, 컴필레이션.
+- 레거시 장르2 값은 그대로 표시하고, 수정 저장 시에는 형식을 선택해야 한다.
+- 시대(`composer_era`)는 선택 항목이다: 고음악 (중세·르네상스), 바로크, 고전주의, 낭만주의, 근현대, 혼합 / 옴니버스.
+
+### 작곡가 입력 콤보박스
+
+- Classic 폼의 작곡가 입력은 콤보박스(`ComposerComboSelect`)다. 후보는 `album.composer` 고유값이며, 목록에서 선택하거나 직접 입력할 수 있다.
+- 목록에서 **선택한 경우에만** 국적·시대·위키를 자동으로 채운다. 작곡가별 대표값은 비어 있지 않은 값 중 최빈값, 동률이면 최근 `created_at` 값이다. 작곡가 쪽에 값이 없는 필드는 기존 입력을 지우지 않는다.
+- 직접 타이핑만 하면 이름만 바뀌고 다른 필드는 채우지 않는다.
+
+### 아티스트 구분 (`artist_type`)
+
+- 값: 밴드, 솔로, 아이돌, 그룹, 걸스 밴드, 연주자, 지휘자, 음악감독, 기타
+- **음악감독**은 게임·영화·드라마 OST 작곡가를 뜻한다. Classic의 작곡가 필드(`album.composer`)와는 별개다.
+
+### 국가 선택지
+
+- 오스트리아, 이탈리아, 체코, 폴란드, 헝가리, 핀란드, 스페인, 네덜란드를 추가했다(기타 앞).
+
+### 앨범 메뉴 목록·필터
+
+- 타이틀: "Album Library"
+- 연도 셀렉트에 "기간 전체"가 있다(구 올타임 옵션은 제거).
+- 태그 버튼: 전체 / Popular / Classic / All Time. 기본은 전체다. All Time은 연도를 무시하고, 나머지는 연도·다른 필터와 AND로 적용한다. Popular는 Classic이 아닌 모든 앨범이다.
+- 앨범 메뉴의 랜덤 추천 버튼은 제거했다(코드는 유지).
+
+### 랜덤 앨범 추천
+
+- 최상단 랜덤 추천 버튼은 모달만 연다. 자동 추첨하지 않는다.
+- 기간(기본: 기간 전체)과 태그(기본: 전체)를 선택하고 "추천 받기"로 추첨한다. "다시 추천"으로 같은 조건에서 재추첨한다.
+
+### 앨범 등록/수정 폼 순서
+
+- 앨범명은 한 줄 전체 폭이다.
+- 물리 매체 이후 순서: 애플뮤직 주소 + 유튜브 뮤직 재생목록 / 타이틀곡 URL + Wikipedia URL / 장르1 + 장르2(형식) / 작곡가 + 작곡가 국적 / 시대 + 작곡가 위키피디아 URL
+- 모바일에서는 각 줄을 세로로 쌓는다.
+
+### 앨범 상세 모달
+
+- 상단 버튼(커버 영역 우측 하단, 같은 축소 크기): **TV → 애플뮤직 → ▶**
+  - TV: 타이틀곡 유튜브 영상(`title_song_url`이 있을 때만)
+  - 애플뮤직: 애플뮤직에서 열기(`apple_music_url`이 있거나 자동 찾기로 찾았을 때만)
+  - ▶: 유튜브 뮤직 앨범 전체 재생(`youtube_playlist_id`가 있을 때만)
+- 작곡가 표시(Classic): 1줄 `작곡가: {이름}`(링크), 2줄 `국기 국적 · 시대`(작고 흐린 글씨, 둘 다 없으면 줄 숨김)
+- 아티스트명·작곡가명을 클릭하면 모달을 닫고 아티스트 메뉴의 해당 뷰로 이동한다.
+
+---
+
+## 아티스트 메뉴 규칙
+
+- 아티스트 / 작곡가 토글이 있다. 작곡가 뷰는 `album.composer` 기준으로 묶고, 필터는 검색 / 국적 / 시대 / 형식 태그다.
+- **토글과 선택 대상은 URL(`role`, `artist`)이 유일한 기준이다.**
+  - 경로: `/artists?role=artist|composer&artist={이름}`. `role=composer`가 아니면 아티스트 뷰다.
+  - 토글과 선택은 URL에서 파생한다. 별도 state로 복제하거나 effect로 URL과 동기화하지 않는다(과거 이 구조 때문에 버그가 연쇄로 났다).
+  - 목록 클릭·토글 전환은 `router.replace`로 URL만 바꾼다. 앨범 모달 링크는 `push`라 뒤로가기로 돌아갈 수 있다.
+  - URL의 이름이 목록에 없으면 화면 표시만 첫 항목으로 폴백한다. URL은 고치지 않는다.
+- `/artists` 딥링크 진입점: 앨범 상세 모달의 아티스트명·작곡가명, Insights 아티스트 모달(`ArtistDetailModal`)의 아티스트명
+- 이름 변경·병합 시 `album.artist`와 `album.composer`를 함께 갱신한다. 이름 저장 후에는 URL을 새 이름으로 `replace`한다.
+- 작곡가 뷰의 바이오는 작곡가 기준으로 생성한다.
+
+---
+
+## 앨범 플레이어 (유튜브 뮤직) 규칙
+
+### 데이터
+
+- `album.youtube_playlist_id`: 재생목록 **ID만** 저장한다(유튜브 뮤직 앨범 `OLAK5uy_…`, 직접 만든 공개·일부 공개 재생목록 `PL…` 모두 가능). 폼은 주소·ID 어느 형태로 넣어도 `list` 값을 추출한다. 비공개 재생목록은 임베드에서 재생되지 않는다.
+- `album.youtube_tracks`: 트랙 목록 캐시 `[{ videoId, title }]`(재생목록 순서)
+  - 확장 모달에서 처음 필요할 때 조회한다. 플레이어 `getPlaylist()` 결과와 **길이 + 순서**가 다르거나 비어 있으면 다시 조회한다.
+  - 로그인 사용자만 저장한다. 비로그인은 조회만 하고 저장 액션을 호출하지 않는다.
+  - 재생목록 ID가 바뀌어 저장되면 `youtube_tracks`를 NULL로 비운다. 확장 모달 새로고침 버튼(로그인만)으로 다시 조회할 수 있다.
+
+### 트랙 제목 조회 (`/api/youtube-track-titles`)
+
+- 기본은 유튜브 oEmbed(서버에서 호출, 동시 요청 4개 제한). 요청당 ID 200개 상한과 형식 검사가 있다.
+- oEmbed는 언어 설정을 무시하고 현지화(주로 영어) 제목을 준다. 그래서 `album.country = '한국'`인 앨범에서 제목에 한글·가나·한자가 없을 때만 유튜브 뮤직 카탈로그(`WEB_REMIX`, `hl=ko`)를 한 번 더 조회해 한글 원제를 받는다. 국가는 요청 body로 넘긴다.
+- 카탈로그 조회는 **비공식 내부 API**라 언제든 바뀌거나 막힐 수 있다. 실패(오류, 타임아웃 2000ms, 빈 값)하면 oEmbed 제목을 쓰고 서버 로그에 `[youtube-track-titles] music_fallback`과 사유를 남긴다.
+- 제목 조회에 실패한 곡은 `트랙 n`으로 표시한다.
+
+### 플레이어 구조
+
+- `AlbumPlayerProvider`는 `LyricsPlayerProvider` 안에 있다. 플레이어 컴포넌트는 `GlobalAlbumPlayer` 하나이고, 유튜브 플레이어 인스턴스는 **1개**다. 띠 ↔ 확장 모달 전환은 클래스와 `setSize`로만 하며 `destroy` / 재생성하지 않는다. 다른 앨범은 `loadPlaylist`로 교체한다.
+- 플레이어 메서드는 `onReady` 이후에만 호출한다. `playerRef` 등록과 진행 타이머 시작도 `onReady` 뒤에 한다. 닫기·언마운트 시 타이머, 타임아웃, 플레이어, iframe을 모두 정리한다(`teardownPlayer`).
+- 성능: IFrame API 스크립트는 앱 시작 시 로드하지 않는다(첫 재생 시 로드, 재생목록이 있는 앨범 모달을 열 때 스크립트만 미리 로드 가능). 진행 바 현재 시간·트랙 목록·현재 곡 상태는 플레이어 컴포넌트 로컬 state다. 전역 Context에는 `current` / `session` / `expanded`만 둔다(0.5초마다 앱 전체가 리렌더링되지 않게).
+- iframe에는 `referrerPolicy="strict-origin-when-cross-origin"`이 필수다(없으면 오류 153). 유튜브 자체 컨트롤은 `controls=0`.
+- 정책: 플레이어는 숨기거나 200×200px 미만으로 줄이지 않는다. 소리만 분리해 재생하지 않는다.
+- Works 플레이어와 상호 배타다. 한쪽이 재생을 시작하면 다른 쪽은 닫힌다.
+
+### 화면
+
+- 띠(하단): 플레이어, 앨범명·아티스트, 현재 곡 제목 + `n / 전체`, 재생/일시정지, 이전/다음, 진행 바(클릭·드래그 이동), 유튜브 뮤직에서 열기, 확장, 닫기
+- 확장 모달: 상단 좌측 플레이어(정사각형 200px) / 우측 앨범 정보·컨트롤·진행 바, 우측 상단 유튜브 뮤직·축소·닫기, 그 아래 트랙 목록(현재 곡 강조, 클릭 재생, 재생 중인 곡 클릭 시 일시정지/재개, 목록 영역만 스크롤)
+- 유튜브 뮤직에서 열기(`music.youtube.com/playlist?list={ID}`)는 **플레이어(띠, 확장 모달)에만** 둔다. 열 때 앱 플레이어를 일시정지한다.
+
+### 오류·제약
+
+- 임베드 차단(101/150): 다음 곡으로 건너뛰고 짧은 안내를 띄운다. 목록에 "재생 불가"를 표시한다(세션 상태만).
+- 재생목록 없음·잘못된 ID: 띠에 오류 안내와 "유튜브에서 열기" 링크를 표시한다.
+- iOS: 첫 재생에서 띠의 재생 버튼을 한 번 더 눌러야 할 수 있다(자동재생 정책). 무음 자동재생 같은 우회는 하지 않는다.
+- 백그라운드(화면 꺼짐) 재생은 임베드로 불가능하다. 모바일에서 화면을 끄고 들을 때는 유튜브 뮤직에서 열기로 앱(프리미엄)에서 듣는다.
+
+---
+
+## 애플뮤직 연결 규칙
+
+- `album.apple_music_url`: 애플뮤직 앨범 주소(`https://music.apple.com/kr/album/...`, 추적 파라미터 제거)
+- 자동 찾기(`/api/apple-music-album`): iTunes Search API(`entity=album`, 키 불필요). 조회 순서는 US → JP(KR 스토어는 빈 결과라 제외), 국가당 타임아웃 2500ms.
+  - 비교 전 ` - EP` / ` - Single` / ` - LP` / `(EP)` 접미사를 제거하고, NFKC·소문자·공백/기호 제거로 정규화한다.
+  - 일치 기준: 앨범 ≥ 0.72, 아티스트 ≥ 0.50. 미달이면 저장하지 않는다.
+  - `lang=ko_kr`은 효과가 없다. 한국 아티스트·앨범은 영문 표기(예: 윤하 → Younha, 공중무용 → GANGGANGSULLAE)로 와서 못 찾는 경우가 있다. 이런 앨범은 폼에 주소를 직접 넣는다.
+  - API 요청 제한이 분당 약 20회다. 일괄 조회 경로는 만들지 않는다.
+- 시점: 상세 모달을 열 때 `apple_music_url`이 비어 있으면 백그라운드로 찾는다. 모달 표시를 막지 않는다. 로그인 사용자만 저장한다.
+- **값이 있으면 자동 찾기가 실행되지 않고 덮어쓰지도 않는다.** 수동 입력값이 우선이다. 폼에서 비워 저장하면 다음 오픈 때 다시 찾는다.
+- 버튼은 주소가 있을 때만 표시한다. 검색 결과 링크 대체는 없다(없는 앨범이 있는 것처럼 보이지 않게).
+- 링크는 iOS 팝업 차단을 피하기 위해 `<a href target="_blank">`로 즉시 연다(클릭 후 비동기 작업 금지).
+- 애플뮤직 아이콘은 Simple Icons(CC0) 기반 공용 컴포넌트를 쓴다(앨범 모달, 아티스트 메뉴 공통).
+- 애플뮤직 임베드 플레이어는 쓰지 않는다(로그인 상태에서도 30초 미리듣기만 재생되는 문제). 스포티파이 연결은 하지 않는다(API에 프리미엄 소유자 필요).
 
 ---
 
@@ -254,7 +405,9 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 ## Insights 화면 규칙
 
 - 장르 통계 탭: 좌 장르 목록(장르1 / 장르2 토글) : 우 디테일 = 3 : 7. 개수는 연/월 선택 시 TOP10, 기간 "전체"일 때 TOP20. 디테일은 대표 아티스트 5명, 대표 앨범 5개. 토글·필터 변경 시 선택은 1위로 초기화. 장르1은 `album.genre1`, 장르2는 `album.genre2` 기준이며 장르2가 비어 있는 앨범은 장르2 집계에서 제외한다. 순위·동점(공동 순위) 규칙은 두 장르 공용 집계 함수(`buildGenreFieldListenRankings`)가 담당한다.
-- 청취 랭킹 탭의 Weekly Hot: 롤링 7일. 핫 아티스트 1명(아티스트 단위 청취 횟수 합산 1위, `Various Artist` 제외, 동점은 횟수 → 앨범 수 → 이름순)과 핫 앨범 TOP3를 독립 패널 두 개로 3 : 7 배치한다. 추가 쿼리 없이 이미 불러온 데이터로 계산한다.
+- 장르 통계의 아티스트·앨범 섬네일을 클릭하면 모달을 연다. 앨범 모달은 수정·저장과 배경 스크롤 잠금을 지원한다.
+- 청취 랭킹 탭의 Weekly Hot: 롤링 7일. 핫 아티스트 1명(아티스트 단위 청취 횟수 합산 1위, `Various Artist` 제외, 동점은 횟수 → 앨범 수 → 이름순)과 핫 앨범 TOP3를 독립 패널 두 개로 3 : 7 배치한다. 추가 쿼리 없이 이미 불러온 데이터로 계산한다. 핫 아티스트를 클릭하면 아티스트 모달을 연다.
+- Insights의 아티스트 모달(`ArtistDetailModal`)에서 아티스트명을 클릭하면 모달을 닫고 `/artists?role=artist&artist={이름}`으로 이동한다.
 - 레이아웃을 수정한 뒤 화면이 이상하면 먼저 강력 새로고침으로 캐시를 확인한다. 개발 중 화면은 이전 스타일을 캐시할 수 있다.
 
 ---
@@ -287,6 +440,7 @@ OPENAI_MATCH_SCORE_MODEL=
 ```
 
 - 모델을 교체할 때는 로컬 `.env.local`과 Vercel 환경변수에 옛 모델명이 남아 있지 않은지 함께 확인한다. 환경변수가 코드의 새 기본값을 덮어쓴다.
+- 유튜브·애플뮤직 연동(oEmbed, 유튜브 뮤직 카탈로그, iTunes Search API)은 키가 필요 없다.
 
 ---
 
@@ -295,7 +449,7 @@ OPENAI_MATCH_SCORE_MODEL=
 | prefix | 카테고리 |
 |--------|----------|
 | `SETUP-` | 프로젝트 초기 세팅 |
-| `ALBUM-` | 앨범 / 무드 / 청취 이력 |
+| `ALBUM-` | 앨범 / 무드 / 청취 이력 / 아티스트·작곡가 / 앨범 플레이어 / 외부 재생 연결 |
 | `RECORDSHELF-` | CD·LP·Cassette 실물 음반 |
 | `GEAR-` | 헤드파이 기기 (기기·조합·매칭·판매·액세서리·청음 평가) |
 | `STATS-` | Insights 통계 |
@@ -314,10 +468,13 @@ OPENAI_MATCH_SCORE_MODEL=
 - props 타입은 인터페이스로 별도 정의
 - 모달 상태 관리: stale state 방지를 위해 API 응답 후 `setViewingItem`과 `setLibrary` 동시 업데이트
 - 전역 Lyrics Player: `LyricsPlayerProvider`로 layout.tsx에서 감싸고, 페이지 이동 후에도 재생 상태 유지
+- 전역 앨범 플레이어: `AlbumPlayerProvider`(`LyricsPlayerProvider` 안). Works 플레이어와 상호 배타
 - **`window.confirm` / `alert` / `prompt` 사용 금지.** dev 런처(Tauri 웹뷰)에서 깨질 수 있으므로 항상 인라인 확인 UI를 쓴다.
 - 필터가 걸린 목록에서 수정·저장 후에는 현재 필터를 유지한다. (저장 시 필터가 "전체"로 초기화되지 않게 한다.)
-- **모달 배경 스크롤 잠금**: 모달이 열려 있는 동안 body 스크롤을 잠그고, 닫을 때(닫기 버튼, 오버레이 클릭, 저장 후 닫힘, 언마운트) 반드시 해제한다. 기기 등록/수정, 액세서리 관리, 판매관리, RecordShelf 상세 등 모든 모달에 적용한다.
+- **화면 선택 상태를 URL로 공유하는 경우**(아티스트 메뉴 등) URL을 유일한 기준으로 둔다. 같은 값을 state로 복제하고 effect로 맞추지 않는다.
+- **모달 배경 스크롤 잠금**: 모달이 열려 있는 동안 body 스크롤을 잠그고, 닫을 때(닫기 버튼, 오버레이 클릭, 저장 후 닫힘, 언마운트, 링크 이동) 반드시 해제한다. 기기 등록/수정, 액세서리 관리, 판매관리, RecordShelf 상세, 앨범 플레이어 확장 모달 등 모든 모달에 적용한다.
 - **선조회 캐시 전달**: 상세·폼 모달이 쓰는 연결 데이터(액세서리 연결, 판매가 등)는 목록 페이지에서 한 번 선조회한 캐시(`accessoryLinksCache` 등)를 props로 전달한다. 모달을 열 때마다 새로 조회하지 않는다. 저장 직후에는 캐시를 먼저 갱신한 뒤 상세를 연다. 캐시를 안 넘기는 화면(대시보드 등)은 폴백으로 직접 조회한다. 선조회는 필요한 컬럼만, 기존 선조회와 병렬로, 페이지 렌더를 막지 않게 한다. 로딩 중에는 스피너를 쓰고 끝난 뒤에만 빈 상태("-", "없습니다")를 표시한다.
+- **외부 링크**: `<a href target="_blank" rel="noopener">`로 즉시 연다. iOS에서는 클릭 후 비동기 작업을 거친 `window.open`이 팝업으로 차단된다.
 - **반응형 레이아웃 변경 시**: 폭 390 / 800 / 1024 / 1440px에서 렌더링을 확인하고, 텍스트 잘림과 컨테이너 넘침이 없는지 본다. 이미지는 `object-fit`과 고정 상한으로 무한정 커지지 않게 한다.
 
 ---
@@ -333,6 +490,7 @@ OPENAI_MATCH_SCORE_MODEL=
 - 네이티브 JSON 모드는 쓰지 않는다. 프롬프트에서 JSON을 요청하고, markdown 코드블록이나 잡텍스트는 파싱 전에 제거(`extractJsonObjectFromText` / `extractJsonArrayFromText`)한다.
 - 응답이 길어질 수 있는 호출은 `max_tokens` 한도에 걸려 JSON이 잘리는지 확인한다. 한도에 걸리면 `stop_reason`으로 구분해 "출력 길이 초과"로 처리하고, 프롬프트에 분량 가이드를 둔다.
 - 미입력(NULL) 값은 "모름"으로 전달하고 추정하게 하지 않는다.
+- AI가 아닌 외부 호출(oEmbed, 유튜브 뮤직 카탈로그, iTunes)도 try/catch와 타임아웃을 두고, 실패가 화면 동작을 막지 않게 한다.
 
 ### Gemini
 
