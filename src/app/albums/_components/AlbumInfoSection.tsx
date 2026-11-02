@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
 import { AppleMusicIcon } from '@/components/streamingServiceIcons';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
-import { appleMusicSearchUrl } from '@/lib/appleMusic';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
@@ -38,7 +37,7 @@ export function AlbumInfoHeroSection({
   const { playAlbum } = useAlbumPlayer();
   const playlistId = viewingItem.youtube_playlist_id?.trim() ?? '';
   const savedAppleUrl = viewingItem.apple_music_url?.trim() ?? '';
-  const appleHref = savedAppleUrl || foundAppleUrl || appleMusicSearchUrl(viewingItem.artist ?? '', viewingItem.album_name);
+  const appleHref = savedAppleUrl || foundAppleUrl;
   const heroBtnClass =
     'relative flex size-7 flex-shrink-0 items-center justify-center rounded-full transition-colors after:absolute after:inset-[-6px] after:content-[\'\']';
   const viewingItemRef = useRef(viewingItem);
@@ -157,17 +156,19 @@ export function AlbumInfoHeroSection({
                     <Tv className="relative size-3 text-white" strokeWidth={1.75} />
                   </button>
                 ) : null}
-                <a
-                  href={appleHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={heroBtnClass}
-                  style={{ background: 'rgba(255,255,255,0.2)' }}
-                  title="애플뮤직에서 열기"
-                  aria-label="애플뮤직에서 열기"
-                >
-                  <AppleMusicIcon className="relative size-3 text-white" />
-                </a>
+                {appleHref ? (
+                  <a
+                    href={appleHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={heroBtnClass}
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                    title="애플뮤직에서 열기"
+                    aria-label="애플뮤직에서 열기"
+                  >
+                    <AppleMusicIcon className="relative size-3 text-white" />
+                  </a>
+                ) : null}
                 {playlistId ? (
                   <button
                     type="button"

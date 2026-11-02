@@ -94,8 +94,3 @@ export function toKrAppleAlbumUrl(collectionViewUrl: string): string | null {
     return null;
   }
 }
-
-export function appleMusicSearchUrl(artist: string, albumName: string): string {
-  const term = [artist, albumName].map((part) => part.trim()).filter(Boolean).join(' ');
-  return `https://music.apple.com/kr/search?term=${encodeURIComponent(term)}`;
-}
