@@ -51,8 +51,10 @@ export function GlobalAlbumPlayer() {
   const tracksRef = useRef<YoutubeTrack[]>([]);
   const resolveTracksRef = useRef<(videoIds: string[], force: boolean) => void>(() => {});
   const cancelledRef = useRef(false);
+  const playerGenerationRef = useRef(0);
   const startedSyncRef = useRef('');
   const playStartedRef = useRef(false);
+  const fatalErrorRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -66,6 +68,7 @@ export function GlobalAlbumPlayer() {
   const [gestureHint, setGestureHint] = useState(false);
   tracksRef.current = tracks;
   expandedRef.current = expanded;
+  fatalErrorRef.current = fatalError;
 
   const syncProgress = useCallback((player: YoutubePlayer) => {
     if (!isYoutubePlayerReady(player)) return;
@@ -123,13 +126,21 @@ export function GlobalAlbumPlayer() {
     }, 250);
   }, [stopProgressTimer, syncProgress]);
 
-  const bindPlayer = useCallback((iframe: HTMLIFrameElement, host: HTMLElement) => {
+  const isPlayerEnded = useCallback((player: YoutubePlayer) => {
+    try {
+      return player.getPlayerState() === YT_PLAYER_STATE.ENDED;
+    } catch {
+      return true;
+    }
+  }, []);
+
+  const bindPlayer = useCallback((iframe: HTMLIFrameElement, host: HTMLElement, generation: number) => {
     const api = getYoutubeIframeApiIfReady();
     if (!api) return false;
     new api.Player(iframe, {
       events: {
         onReady: (event) => {
-          if (cancelledRef.current) return;
+          if (playerGenerationRef.current !== generation) return;
           applyYoutubeReferrerPolicy(event.target, hostRef.current ?? host);
           playerRef.current = event.target;
           readyRef.current = true;
@@ -141,6 +152,7 @@ export function GlobalAlbumPlayer() {
           if (!playlist || playlist.length === 0) {
             emptyCheckTimerRef.current = window.setTimeout(() => {
               emptyCheckTimerRef.current = null;
+              if (playerGenerationRef.current !== generation) return;
               if (!isYoutubePlayerReady(event.target)) return;
               const later = event.target.getPlaylist();
               if (!later || later.length === 0) setFatalError(true);
@@ -148,6 +160,7 @@ export function GlobalAlbumPlayer() {
           }
         },
         onStateChange: (event) => {
+          if (playerGenerationRef.current !== generation) return;
           if (!isYoutubePlayerReady(event.target)) return;
           const playing = event.data === YT_PLAYER_STATE.PLAYING;
           if (playing) {
@@ -161,6 +174,7 @@ export function GlobalAlbumPlayer() {
           }
         },
         onError: (event) => {
+          if (playerGenerationRef.current !== generation) return;
           if (!isYoutubePlayerReady(event.target)) {
             setFatalError(true);
             return;
@@ -190,9 +204,55 @@ export function GlobalAlbumPlayer() {
     return true;
   }, [resizePlayer, syncProgress, startProgressTimer]);
 
+  const recreatePlayer = useCallback((playlistId: string): boolean => {
+    const host = hostRef.current;
+    if (!getYoutubeIframeApiIfReady() || !host) return false;
+    const generation = ++playerGenerationRef.current;
+    clearEmptyCheckTimer();
+    stopProgressTimer();
+    readyRef.current = false;
+    cancelledRef.current = false;
+    try {
+      playerRef.current?.destroy();
+    } catch {
+    }
+    playerRef.current = null;
+    try {
+      const iframe = createYoutubePlaylistIframe(playlistId);
+      host.replaceChildren(iframe);
+      if (!bindPlayer(iframe, host, generation)) return false;
+      startedSyncRef.current = playlistId;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [bindPlayer, clearEmptyCheckTimer, stopProgressTimer]);
+
+  const resetForAlbumSwitch = useCallback(() => {
+    clearEmptyCheckTimer();
+    skippedRef.current = new Set();
+    playStartedRef.current = false;
+    fatalErrorRef.current = false;
+    setGestureHint(false);
+    setFatalError(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setTrackIndex(1);
+    setTrackCount(0);
+    setUnplayableIds([]);
+    setTracksLoading(false);
+    setTracksRefreshing(false);
+  }, [clearEmptyCheckTimer]);
+
   const startAlbum = useCallback((album: AlbumPlayerAlbum): boolean => {
     const existing = playerRef.current;
-    if (isYoutubePlayerReady(existing)) {
+    const canReuse =
+      isYoutubePlayerReady(existing) &&
+      !fatalErrorRef.current &&
+      !isPlayerEnded(existing);
+    resetForAlbumSwitch();
+    if (canReuse) {
       try {
         existing.loadPlaylist({ list: album.playlistId, listType: 'playlist', index: 0 });
         existing.playVideo();
@@ -200,27 +260,13 @@ export function GlobalAlbumPlayer() {
         startedSyncRef.current = album.playlistId;
         return true;
       } catch {
-        return false;
       }
     }
-    const host = hostRef.current;
-    if (!getYoutubeIframeApiIfReady() || !host) return false;
-    try {
-      cancelledRef.current = false;
-      readyRef.current = false;
-      stopProgressTimer();
-      playerRef.current = null;
-      const iframe = createYoutubePlaylistIframe(album.playlistId);
-      host.replaceChildren(iframe);
-      if (!bindPlayer(iframe, host)) return false;
-      startedSyncRef.current = album.playlistId;
-      return true;
-    } catch {
-      return false;
-    }
-  }, [bindPlayer, stopProgressTimer]);
+    return recreatePlayer(album.playlistId);
+  }, [isPlayerEnded, recreatePlayer, resetForAlbumSwitch]);
 
   const teardownPlayer = useCallback(() => {
+    playerGenerationRef.current += 1;
     stopProgressTimer();
     readyRef.current = false;
     clearEmptyCheckTimer();
@@ -335,61 +381,48 @@ export function GlobalAlbumPlayer() {
       resolvedKeyRef.current = '';
       resolveInFlightRef.current = '';
     }
+    resetForAlbumSwitch();
     setTracks(current.cachedTracks ?? []);
-    setTracksLoading(false);
-    setTracksRefreshing(false);
-    setUnplayableIds([]);
-    clearEmptyCheckTimer();
-    skippedRef.current = new Set();
-    playStartedRef.current = false;
-    setGestureHint(false);
-    setFatalError(false);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setTrackIndex(1);
-    setTrackCount(0);
 
     const startedSync = startedSyncRef.current === current.playlistId;
     if (startedSync) startedSyncRef.current = '';
+
     const existing = playerRef.current;
-    if (isYoutubePlayerReady(existing)) {
-      if (!startedSync) {
-        try {
-          existing.loadPlaylist({ list: current.playlistId, listType: 'playlist', index: 0 });
-          existing.playVideo();
-          applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
-        } catch {
-          setFatalError(true);
-        }
-      }
+    const existingReady = isYoutubePlayerReady(existing);
+    const existingEnded = existingReady && isPlayerEnded(existing);
+
+    if (startedSync && existingReady && !existingEnded) {
       return () => {
-        cancelledRef.current = true;
-        clearEmptyCheckTimer();
-      };
-    }
-    if (hostRef.current?.querySelector('iframe')) {
-      return () => {
-        cancelledRef.current = true;
         clearEmptyCheckTimer();
       };
     }
 
-    readyRef.current = false;
-    stopProgressTimer();
-    playerRef.current = null;
+    if (startedSync && !existingReady && hostRef.current?.querySelector('iframe')) {
+      return () => {
+        clearEmptyCheckTimer();
+      };
+    }
+
+    if (existingReady && !existingEnded) {
+      try {
+        existing.loadPlaylist({ list: current.playlistId, listType: 'playlist', index: 0 });
+        existing.playVideo();
+        applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
+        return () => {
+          clearEmptyCheckTimer();
+        };
+      } catch {
+      }
+    }
 
     const host = hostRef.current;
     if (!host) return;
 
+    const playlistId = current.playlistId;
     void loadYoutubeIframeApi()
       .then(() => {
         if (cancelledRef.current || !hostRef.current) return;
-        const iframe = createYoutubePlaylistIframe(current.playlistId);
-        hostRef.current.replaceChildren(iframe);
-        if (!bindPlayer(iframe, hostRef.current)) {
-          setFatalError(true);
-        }
+        if (!recreatePlayer(playlistId)) setFatalError(true);
       })
       .catch(() => {
         if (!cancelledRef.current) setFatalError(true);
@@ -399,7 +432,15 @@ export function GlobalAlbumPlayer() {
       cancelledRef.current = true;
       clearEmptyCheckTimer();
     };
-  }, [current, session, bindPlayer, teardownPlayer, clearEmptyCheckTimer, stopProgressTimer]);
+  }, [
+    current,
+    session,
+    clearEmptyCheckTimer,
+    isPlayerEnded,
+    recreatePlayer,
+    resetForAlbumSwitch,
+    teardownPlayer,
+  ]);
 
   useEffect(() => {
     if (!current || fatalError) {
