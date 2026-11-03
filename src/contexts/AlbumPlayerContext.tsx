@@ -37,12 +37,13 @@ export type AlbumPlayerContextValue = {
   playAlbum: (album: AlbumPlayerAlbum) => void;
   pauseIfPlaying: () => void;
   close: () => void;
+  closeIfPlayingAlbum: (albumId: number) => void;
   setExpanded: (expanded: boolean) => void;
   openAlbumDetail: (albumId: number) => void;
   closeAlbumDetail: () => void;
   patchCurrentMeta: (
     albumId: number,
-    patch: Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl'>,
+    patch: Partial<Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl' | 'playlistId' | 'country'>>,
   ) => void;
   commandsRef: MutableRefObject<AlbumPlayerCommands>;
 };
@@ -55,6 +56,8 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [detailAlbumId, setDetailAlbumId] = useState<number | null>(null);
+  const currentRef = useRef<AlbumPlayerAlbum | null>(null);
+  currentRef.current = current;
   const commandsRef = useRef<AlbumPlayerCommands>({
     startAlbum: () => false,
     pauseIfPlaying: () => {},
@@ -86,6 +89,12 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
     setExpanded(false);
   }, []);
 
+  const closeIfPlayingAlbum = useCallback((albumId: number) => {
+    if (currentRef.current?.id !== albumId) return;
+    setCurrent(null);
+    setExpanded(false);
+  }, []);
+
   const openAlbumDetail = useCallback((albumId: number) => {
     setDetailAlbumId(albumId);
   }, []);
@@ -95,8 +104,21 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const patchCurrentMeta = useCallback(
-    (albumId: number, patch: Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl'>) => {
-      setCurrent((prev) => (prev && prev.id === albumId ? { ...prev, ...patch } : prev));
+    (
+      albumId: number,
+      patch: Partial<
+        Pick<AlbumPlayerAlbum, 'albumName' | 'artist' | 'coverImageUrl' | 'playlistId' | 'country'>
+      >,
+    ) => {
+      setCurrent((prev) => {
+        if (!prev || prev.id !== albumId) return prev;
+        const nextPlaylistId = patch.playlistId?.trim();
+        return {
+          ...prev,
+          ...patch,
+          playlistId: nextPlaylistId || prev.playlistId,
+        };
+      });
     },
     [],
   );
@@ -110,6 +132,7 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
       playAlbum,
       pauseIfPlaying,
       close,
+      closeIfPlayingAlbum,
       setExpanded,
       openAlbumDetail,
       closeAlbumDetail,
@@ -124,6 +147,7 @@ export function AlbumPlayerProvider({ children }: { children: ReactNode }) {
       playAlbum,
       pauseIfPlaying,
       close,
+      closeIfPlayingAlbum,
       openAlbumDetail,
       closeAlbumDetail,
       patchCurrentMeta,

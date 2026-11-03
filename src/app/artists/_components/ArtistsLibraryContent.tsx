@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
@@ -104,6 +105,7 @@ export function ArtistsLibraryContent() {
   const artistQuery = searchParams.get('artist')?.trim() || null;
   const role: ArtistLibraryRole = searchParams.get('role') === 'composer' ? 'composer' : 'artist';
   const isAuthenticated = useAuthState();
+  const { closeIfPlayingAlbum } = useAlbumPlayer();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [listenHistoryIndex, setListenHistoryIndex] = useState<Map<number, ListenHistoryEntry>>(
     () => new Map(),
@@ -704,6 +706,7 @@ export function ArtistsLibraryContent() {
     setIsDeleting(true);
     try {
       await deleteAlbumFromDB(deletedId);
+      closeIfPlayingAlbum(deletedId);
       toast.success('앨범이 삭제되었습니다.');
       setViewingAlbum(null);
       setAlbumFormItem((prev) =>

@@ -66,9 +66,12 @@ export function GlobalAlbumPlayer() {
   const [tracksRefreshing, setTracksRefreshing] = useState(false);
   const [unplayableIds, setUnplayableIds] = useState<string[]>([]);
   const [gestureHint, setGestureHint] = useState(false);
+  const currentRef = useRef(current);
+  const playbackAlbumId = current?.id ?? null;
   tracksRef.current = tracks;
   expandedRef.current = expanded;
   fatalErrorRef.current = fatalError;
+  currentRef.current = current;
 
   const syncProgress = useCallback((player: YoutubePlayer) => {
     if (!isYoutubePlayerReady(player)) return;
@@ -355,7 +358,7 @@ export function GlobalAlbumPlayer() {
   };
 
   useEffect(() => {
-    if (!current) {
+    if (playbackAlbumId == null) {
       cancelledRef.current = true;
       teardownPlayer();
       startedSyncRef.current = '';
@@ -376,15 +379,18 @@ export function GlobalAlbumPlayer() {
       return;
     }
 
+    const album = currentRef.current;
+    if (!album || album.id !== playbackAlbumId) return;
+
     cancelledRef.current = false;
-    if (resolvedKeyRef.current && !resolvedKeyRef.current.startsWith(`${current.id}:`)) {
+    if (resolvedKeyRef.current && !resolvedKeyRef.current.startsWith(`${album.id}:`)) {
       resolvedKeyRef.current = '';
       resolveInFlightRef.current = '';
     }
     resetForAlbumSwitch();
-    setTracks(current.cachedTracks ?? []);
+    setTracks(album.cachedTracks ?? []);
 
-    const startedSync = startedSyncRef.current === current.playlistId;
+    const startedSync = startedSyncRef.current === album.playlistId;
     if (startedSync) startedSyncRef.current = '';
 
     const existing = playerRef.current;
@@ -405,7 +411,7 @@ export function GlobalAlbumPlayer() {
 
     if (existingReady && !existingEnded) {
       try {
-        existing.loadPlaylist({ list: current.playlistId, listType: 'playlist', index: 0 });
+        existing.loadPlaylist({ list: album.playlistId, listType: 'playlist', index: 0 });
         existing.playVideo();
         applyYoutubeReferrerPolicy(existing, hostRef.current ?? document.body);
         return () => {
@@ -418,7 +424,7 @@ export function GlobalAlbumPlayer() {
     const host = hostRef.current;
     if (!host) return;
 
-    const playlistId = current.playlistId;
+    const playlistId = album.playlistId;
     void loadYoutubeIframeApi()
       .then(() => {
         if (cancelledRef.current || !hostRef.current) return;
@@ -433,7 +439,7 @@ export function GlobalAlbumPlayer() {
       clearEmptyCheckTimer();
     };
   }, [
-    current,
+    playbackAlbumId,
     session,
     clearEmptyCheckTimer,
     isPlayerEnded,
@@ -443,7 +449,7 @@ export function GlobalAlbumPlayer() {
   ]);
 
   useEffect(() => {
-    if (!current || fatalError) {
+    if (playbackAlbumId == null || fatalError) {
       setGestureHint(false);
       return;
     }
@@ -451,7 +457,7 @@ export function GlobalAlbumPlayer() {
       if (!playStartedRef.current) setGestureHint(true);
     }, 1200);
     return () => window.clearTimeout(timer);
-  }, [current, session, fatalError]);
+  }, [playbackAlbumId, session, fatalError]);
 
   useEffect(() => {
     if (!current) return;

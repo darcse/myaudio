@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
+import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 
 function mutationErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message === 'Unauthorized'
@@ -35,6 +36,7 @@ type UseAlbumMutationsOptions = {
 };
 
 export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions) {
+  const { closeIfPlayingAlbum } = useAlbumPlayer();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [albumIntroLoading, setAlbumIntroLoading] = useState(false);
@@ -89,6 +91,7 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
       setIsDeleting(true);
       try {
         await deleteAlbumFromDB(params.albumId);
+        closeIfPlayingAlbum(params.albumId);
         toast.success('앨범이 삭제되었습니다.');
         return true;
       } catch (error) {
@@ -98,7 +101,7 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
         setIsDeleting(false);
       }
     },
-    [isAuthenticated],
+    [closeIfPlayingAlbum, isAuthenticated],
   );
 
   const refreshAlbumIntro = useCallback(

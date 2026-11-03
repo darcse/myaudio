@@ -50,7 +50,7 @@ const emptyFormData: AlbumFormData = {
 export function GlobalAlbumDetailHost() {
   const router = useRouter();
   const isAuthenticated = useAuthState();
-  const { detailAlbumId, closeAlbumDetail, close, current, patchCurrentMeta } = useAlbumPlayer();
+  const { detailAlbumId, closeAlbumDetail, patchCurrentMeta } = useAlbumPlayer();
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
   const [album, setAlbum] = useState<Album | null>(null);
@@ -195,6 +195,8 @@ export function GlobalAlbumDetailHost() {
         albumName: next.album_name,
         artist: next.artist ?? '',
         coverImageUrl: next.cover_image_url,
+        playlistId: next.youtube_playlist_id ?? '',
+        country: next.country,
       });
     }
     setEditing(false);
@@ -202,10 +204,8 @@ export function GlobalAlbumDetailHost() {
 
   const handleDelete = async () => {
     if (!album) return;
-    const albumId = album.id;
-    const deleted = await deleteAlbum({ albumId });
+    const deleted = await deleteAlbum({ albumId: album.id });
     if (!deleted) return;
-    if (current?.id === albumId) close();
     closeAlbumDetail();
   };
 
@@ -251,6 +251,8 @@ export function GlobalAlbumDetailHost() {
           albumName: updated.album_name,
           artist: updated.artist ?? '',
           coverImageUrl: updated.cover_image_url,
+          playlistId: updated.youtube_playlist_id ?? '',
+          country: updated.country,
         });
       }}
       onHeadfiClick={(id) => {

@@ -25,6 +25,7 @@ import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
 import { albumToFormData } from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
+import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -62,6 +63,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
+  const { patchCurrentMeta } = useAlbumPlayer();
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
   const [libraryViewMode, setLibraryViewMode] = useState<LibraryViewMode>('list');
@@ -457,8 +459,16 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     await fetchLibrary(true);
 
     if (result.status === 'updated' && updateId != null && result.album) {
-      setLibrary((prev) => prev.map((a) => (a.id === updateId ? result.album! : a)));
-      setViewingItem((prev) => (prev?.id === updateId ? result.album! : prev));
+      const next = result.album;
+      setLibrary((prev) => prev.map((a) => (a.id === updateId ? next : a)));
+      setViewingItem((prev) => (prev?.id === updateId ? next : prev));
+      patchCurrentMeta(next.id, {
+        albumName: next.album_name,
+        artist: next.artist ?? '',
+        coverImageUrl: next.cover_image_url,
+        playlistId: next.youtube_playlist_id ?? '',
+        country: next.country,
+      });
     }
   };
 
@@ -678,6 +688,13 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
           onAlbumPatch={(updated) => {
             setViewingItem(updated);
             setLibrary((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+            patchCurrentMeta(updated.id, {
+              albumName: updated.album_name,
+              artist: updated.artist ?? '',
+              coverImageUrl: updated.cover_image_url,
+              playlistId: updated.youtube_playlist_id ?? '',
+              country: updated.country,
+            });
           }}
           onHeadfiClick={(id) => void openHeadfiById(id)}
         />
