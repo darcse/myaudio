@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mic2, Sparkles } from 'lucide-react';
+import { ChevronLeft, Mic2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
@@ -29,12 +31,18 @@ import {
   isSameArtistName,
   normalizeArtistNameAlt,
 } from '../utils';
-import type { ArtistLibraryRole, ArtistMobileTab, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
+import type { ArtistLibraryRole, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
 import { ArtistLotteryModal } from './ArtistLotteryModal';
 import { ArtistTopControlBar } from './ArtistTopControlBar';
+
+const LG_UP_MQ = '(min-width: 1024px)';
+
+function isLgUpViewport() {
+  return typeof window !== 'undefined' && window.matchMedia(LG_UP_MQ).matches;
+}
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -106,7 +114,9 @@ export function ArtistsLibraryContent() {
   const [linksSaving, setLinksSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [nameSaving, setNameSaving] = useState(false);
-  const [mobileTab, setMobileTab] = useState<ArtistMobileTab>('list');
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => (typeof window !== 'undefined' ? !window.matchMedia(LG_UP_MQ).matches : false),
+  );
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [recommendedHeadphones, setRecommendedHeadphones] = useState<
     { id: number; brand: string; model: string; image_url?: string | null }[]
@@ -124,16 +134,33 @@ export function ArtistsLibraryContent() {
   >([]);
   const [artistLotteryOpen, setArtistLotteryOpen] = useState(false);
   const lastRoleRef = useRef(role);
+  const pushedOverlayRef = useRef(false);
+  const overlayScrollRef = useRef<HTMLDivElement>(null);
+  const prevOverlayArtistRef = useRef<string | null>(null);
+
+  const buildLibraryPath = useCallback((nextRole: ArtistLibraryRole, name?: string | null) => {
+    const params = new URLSearchParams();
+    params.set('role', nextRole);
+    if (name) params.set('artist', name);
+    return `/artists?${params.toString()}`;
+  }, []);
 
   const replaceLibraryUrl = useCallback(
     (nextRole: ArtistLibraryRole, name?: string | null) => {
-      const params = new URLSearchParams();
-      params.set('role', nextRole);
-      if (name) params.set('artist', name);
-      router.replace(`/artists?${params.toString()}`);
+      router.replace(buildLibraryPath(nextRole, name));
     },
-    [router],
+    [buildLibraryPath, router],
   );
+
+  const pushLibraryUrl = useCallback(
+    (nextRole: ArtistLibraryRole, name: string) => {
+      router.push(buildLibraryPath(nextRole, name));
+    },
+    [buildLibraryPath, router],
+  );
+
+  const mobileOverlayOpen = Boolean(artistQuery) && isMobileViewport;
+  useLockBodyScroll(mobileOverlayOpen);
 
   const summaries = useMemo(
     () =>
@@ -259,19 +286,35 @@ export function ArtistsLibraryContent() {
   }, [fetchLibrary]);
 
   useEffect(() => {
+    const mq = window.matchMedia(LG_UP_MQ);
+    const sync = () => setIsMobileViewport(!mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
     if (lastRoleRef.current === role) return;
     lastRoleRef.current = role;
     resetFilters();
     setViewingAlbum(null);
-    if (!artistQuery) setMobileTab('list');
-  }, [role, artistQuery, resetFilters]);
-
-  useEffect(() => {
-    if (artistQuery) setMobileTab('detail');
-  }, [artistQuery]);
+    pushedOverlayRef.current = false;
+  }, [role, resetFilters]);
 
   useEffect(() => {
     setViewingAlbum(null);
+  }, [artistQuery]);
+
+  useEffect(() => {
+    if (!artistQuery) {
+      pushedOverlayRef.current = false;
+      prevOverlayArtistRef.current = null;
+      return;
+    }
+    if (prevOverlayArtistRef.current && prevOverlayArtistRef.current !== artistQuery) {
+      overlayScrollRef.current?.scrollTo(0, 0);
+    }
+    prevOverlayArtistRef.current = artistQuery;
   }, [artistQuery]);
 
   useEffect(() => {
@@ -341,13 +384,31 @@ export function ArtistsLibraryContent() {
   }, [isAuthenticated]);
 
   const handleSelectArtist = (name: string) => {
-    setMobileTab('detail');
-    replaceLibraryUrl(role, name);
+    if (isLgUpViewport()) {
+      replaceLibraryUrl(role, name);
+      return;
+    }
+    if (artistQuery) {
+      replaceLibraryUrl(role, name);
+      return;
+    }
+    pushedOverlayRef.current = true;
+    pushLibraryUrl(role, name);
   };
+
+  const closeMobileOverlay = useCallback(() => {
+    const wasPushed = pushedOverlayRef.current;
+    pushedOverlayRef.current = false;
+    if (wasPushed) {
+      router.back();
+      return;
+    }
+    replaceLibraryUrl(role, null);
+  }, [replaceLibraryUrl, role, router]);
 
   const handleRoleChange = (next: ArtistLibraryRole) => {
     if (next === role) return;
-    setMobileTab('list');
+    pushedOverlayRef.current = false;
     replaceLibraryUrl(next, null);
   };
 
@@ -694,14 +755,12 @@ export function ArtistsLibraryContent() {
     }
   };
 
-  const sidebar = (
-    <ArtistListSidebar
-      artists={filteredArtists}
-      selectedName={selectedName}
-      onSelect={handleSelectArtist}
-      emptyMessage={role === 'composer' ? '표시할 작곡가가 없습니다.' : undefined}
-    />
-  );
+  const sidebarProps = {
+    artists: filteredArtists,
+    selectedName,
+    onSelect: handleSelectArtist,
+    emptyMessage: role === 'composer' ? '표시할 작곡가가 없습니다.' : undefined,
+  };
 
   const topControlBar = (
     <ArtistTopControlBar
@@ -729,7 +788,7 @@ export function ArtistsLibraryContent() {
     />
   );
 
-  const detail = (
+  const detailPanel = (
     <ArtistDetailPanel
       role={role}
       artist={selectedArtist}
@@ -742,8 +801,6 @@ export function ArtistsLibraryContent() {
       profileSaving={profileSaving}
       nameSaving={nameSaving}
       isAuthenticated={isAuthenticated}
-      showMobileBack={mobileTab === 'detail'}
-      onMobileBack={() => setMobileTab('list')}
       onAlbumClick={setViewingAlbum}
       onAddAlbum={handleAlbumAddClick}
       onSelectArtist={handleSelectArtist}
@@ -816,21 +873,71 @@ export function ArtistsLibraryContent() {
           <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
             <div>
               <div className="sticky top-[var(--app-header-height)] h-[calc(100dvh-var(--app-header-height)-var(--player-inset))] min-h-0">
-                {sidebar}
+                <ArtistListSidebar {...sidebarProps} />
               </div>
             </div>
-            <div className="min-w-0 pb-8">{detail}</div>
+            <div className="min-w-0 pb-8">{detailPanel}</div>
           </div>
 
           <div className="lg:hidden">
-            {mobileTab === 'list' ? (
-              <div className="max-h-[calc(100dvh-16rem)] min-h-[20rem]">{sidebar}</div>
-            ) : (
-              detail
-            )}
+            <div className="max-h-[calc(100dvh-16rem)] min-h-[20rem]">
+              <ArtistListSidebar {...sidebarProps} />
+            </div>
           </div>
         </>
       )}
+
+      {mobileOverlayOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-50 flex flex-col"
+              style={{ background: 'var(--background)', color: 'var(--foreground)' }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={selectedArtist?.name ?? '아티스트 상세'}
+            >
+              <div
+                className="flex h-14 shrink-0 items-center gap-2 border-b px-2"
+                style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+              >
+                <button
+                  type="button"
+                  onClick={closeMobileOverlay}
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  aria-label="닫기"
+                >
+                  <ChevronLeft className="size-5" strokeWidth={2} />
+                </button>
+                <h2 className="min-w-0 flex-1 truncate pr-3 text-sm font-semibold">
+                  {selectedArtist?.name ?? artistQuery}
+                </h2>
+              </div>
+              <div ref={overlayScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+                <ArtistDetailPanel
+                  role={role}
+                  artist={selectedArtist}
+                  artistRecord={artistRecord}
+                  artistStats={selectedArtistStats}
+                  popularAlbumId={selectedPopularAlbumId}
+                  relatedArtists={selectedRelatedArtists}
+                  bioLoading={bioLoading}
+                  linksSaving={linksSaving}
+                  profileSaving={profileSaving}
+                  nameSaving={nameSaving}
+                  isAuthenticated={isAuthenticated}
+                  onAlbumClick={setViewingAlbum}
+                  onAddAlbum={handleAlbumAddClick}
+                  onSelectArtist={handleSelectArtist}
+                  onRefreshBio={() => void handleRefreshBio()}
+                  onSaveLinks={handleSaveLinks}
+                  onSaveProfileImage={handleSaveProfileImage}
+                  onSaveNames={handleSaveNames}
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {viewingAlbum ? (
         <AlbumDetailModal

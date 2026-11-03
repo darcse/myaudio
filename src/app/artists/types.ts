@@ -27,8 +27,6 @@ export interface ArtistSummary {
   albums: Album[];
 }
 
-export type ArtistMobileTab = 'list' | 'detail';
-
 export type ArtistStats = {
   totalAlbums: number;
   totalListenCount: number;
