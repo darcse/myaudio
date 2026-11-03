@@ -1,11 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
-import { Disc, Trophy, UserCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Disc, Trophy, UserCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
@@ -38,6 +41,16 @@ const DETAIL_ARTIST_LIMIT = 5;
 const DETAIL_ALBUM_LIMIT = 5;
 const DETAIL_SLOT_COUNT = 5;
 const DETAIL_THUMB_MAX_CLASS = 'max-h-[7.5rem] max-w-[7.5rem]';
+const LG_UP_MQ = '(min-width: 1024px)';
+const GENRE_TAB_PATH = '/insights?tab=genre';
+
+function isLgUpViewport() {
+  return typeof window !== 'undefined' && window.matchMedia(LG_UP_MQ).matches;
+}
+
+function genreDetailPath(label: string) {
+  return `${GENRE_TAB_PATH}&genre=${encodeURIComponent(label)}`;
+}
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -213,11 +226,13 @@ function GenreDetailPanel({
   artistProfileUrls,
   onArtistClick,
   onAlbumClick,
+  variant = 'panel',
 }: {
   item: Genre2ListenRankItem | null;
   artistProfileUrls: Record<string, string | null>;
   onArtistClick: (name: string) => void;
   onAlbumClick: (albumId: number) => void;
+  variant?: 'panel' | 'sheet';
 }) {
   if (!item) {
     return (
@@ -227,17 +242,18 @@ function GenreDetailPanel({
 
   const artistSlots = padDetailSlots(item.topArtists);
   const albumSlots = padDetailSlots(item.topAlbums);
+  const isSheet = variant === 'sheet';
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className={isSheet ? 'flex flex-col' : 'flex h-full min-h-0 flex-col'}>
       <div className="shrink-0">
-        <h3 className="text-lg font-semibold">{item.label}</h3>
+        <h3 className="text-lg font-semibold leading-tight">{item.label}</h3>
         <p className="mt-1 text-sm opacity-70 tabular-nums">
           앨범 {item.albumCount}장 · 청취 {item.listenCount}회
         </p>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col justify-center">
+      <div className={isSheet ? 'mt-6 flex flex-col gap-8' : 'flex min-h-0 flex-1 flex-col'}>
+        <div className={isSheet ? undefined : 'flex min-h-0 flex-1 flex-col justify-center'}>
           <p className="mb-3 text-xs font-semibold opacity-60">대표 아티스트</p>
           {item.topArtists.length > 0 ? (
             <div className="grid grid-cols-3 items-start gap-2 sm:gap-3 lg:grid-cols-5">
@@ -257,7 +273,7 @@ function GenreDetailPanel({
             <p className="text-sm opacity-55">대표 아티스트가 없습니다.</p>
           )}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col justify-center">
+        <div className={isSheet ? undefined : 'flex min-h-0 flex-1 flex-col justify-center'}>
           <p className="mb-3 text-xs font-semibold opacity-60">대표 앨범</p>
           {item.topAlbums.length > 0 ? (
             <div className="grid grid-cols-3 items-start gap-2 sm:gap-3 lg:grid-cols-5">
@@ -279,6 +295,9 @@ function GenreDetailPanel({
 }
 
 export function GenreStatsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const genreQuery = searchParams.get('genre')?.trim() || null;
   const isAuthenticated = useAuthState();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
@@ -288,6 +307,10 @@ export function GenreStatsContent() {
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [genreField, setGenreField] = useState<GenreField>('genre1');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => (typeof window !== 'undefined' ? !window.matchMedia(LG_UP_MQ).matches : false),
+  );
+  const pushedGenreOverlayRef = useRef(false);
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
   const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
@@ -556,10 +579,25 @@ export function GenreStatsContent() {
   const selectedItem =
     ranking.find((item) => item.label === selectedLabel) ?? ranking[0] ?? null;
   const activeLabel = selectedItem?.label ?? null;
+  const mobileDetailItem = genreQuery
+    ? (ranking.find((item) => item.label === genreQuery) ?? null)
+    : null;
+  const listActiveLabel = isMobileViewport ? genreQuery : activeLabel;
+  const mobileGenreModalOpen = Boolean(genreQuery) && isMobileViewport;
   const listenHistoryIndex = useMemo(
     () => buildListenHistoryIndex(historyRows),
     [historyRows],
   );
+
+  useLockBodyScroll(mobileGenreModalOpen);
+
+  useEffect(() => {
+    const mq = window.matchMedia(LG_UP_MQ);
+    const sync = () => setIsMobileViewport(!mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     if (selectedLabel == null) return;
@@ -568,22 +606,65 @@ export function GenreStatsContent() {
     }
   }, [ranking, selectedLabel]);
 
+  useEffect(() => {
+    if (!genreQuery) {
+      pushedGenreOverlayRef.current = false;
+      return;
+    }
+    if (!isMobileViewport) return;
+    if (ranking.some((item) => item.label === genreQuery)) return;
+    pushedGenreOverlayRef.current = false;
+    router.replace(GENRE_TAB_PATH);
+  }, [genreQuery, isMobileViewport, ranking, router]);
+
+  const clearMobileGenreQuery = useCallback(() => {
+    pushedGenreOverlayRef.current = false;
+    if (genreQuery) router.replace(GENRE_TAB_PATH);
+  }, [genreQuery, router]);
+
   const hasAnyListenData = historyRows.length > 0;
   const hasPeriodListenData = filteredHistoryRows.length > 0;
+
+  const handleSelectGenre = (label: string) => {
+    if (isLgUpViewport()) {
+      setSelectedLabel(label);
+      return;
+    }
+    setSelectedLabel(label);
+    if (genreQuery) {
+      router.replace(genreDetailPath(label));
+      return;
+    }
+    pushedGenreOverlayRef.current = true;
+    router.push(genreDetailPath(label));
+  };
+
+  const closeMobileGenreModal = useCallback(() => {
+    const wasPushed = pushedGenreOverlayRef.current;
+    pushedGenreOverlayRef.current = false;
+    if (wasPushed) {
+      router.back();
+      return;
+    }
+    router.replace(GENRE_TAB_PATH);
+  }, [router]);
 
   const handleGenreFieldChange = (field: GenreField) => {
     setGenreField(field);
     setSelectedLabel(null);
+    clearMobileGenreQuery();
   };
 
   const handleYearChange = (year: number) => {
     setPeriodFilter((prev) => clampListenPeriodFilter({ year, month: prev.month }));
     setSelectedLabel(null);
+    clearMobileGenreQuery();
   };
 
   const handleMonthChange = (month: ListenPeriodMonth) => {
     setPeriodFilter((prev) => clampListenPeriodFilter({ year: prev.year, month }));
     setSelectedLabel(null);
+    clearMobileGenreQuery();
   };
 
   if (isAuthenticated !== true) {
@@ -707,15 +788,15 @@ export function GenreStatsContent() {
                   </div>
                   <span className="shrink-0 text-xs font-semibold opacity-60">TOP {rankingLimit}</span>
                 </div>
-                <div className="min-h-0 max-h-80 flex-1 overflow-y-auto lg:max-h-none">
+                <div className="min-h-0 flex-1 lg:overflow-y-auto">
                   {ranking.length > 0 ? (
                     <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
                       {ranking.map((item) => (
                         <li key={item.label} style={{ borderColor: 'var(--border)' }}>
                           <GenreListItem
                             item={item}
-                            selected={item.label === activeLabel}
-                            onSelect={setSelectedLabel}
+                            selected={item.label === listActiveLabel}
+                            onSelect={handleSelectGenre}
                           />
                         </li>
                       ))}
@@ -730,7 +811,7 @@ export function GenreStatsContent() {
                 </div>
               </section>
               <section
-                className="flex min-h-0 flex-col rounded-xl border lg:h-full"
+                className="hidden min-h-0 flex-col rounded-xl border lg:flex lg:h-full"
                 style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
               >
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
@@ -746,6 +827,52 @@ export function GenreStatsContent() {
           )}
         </>
       )}
+
+      {mobileGenreModalOpen && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="modal-overlay-apple fixed inset-0 z-50 box-border flex items-end justify-center p-0"
+              onClick={closeMobileGenreModal}
+              role="presentation"
+            >
+              <div
+                className="modal-panel-apple relative flex max-h-[calc(100dvh-0.75rem)] w-full flex-col overflow-hidden rounded-t-2xl"
+                style={{ background: 'var(--card-bg)', color: 'var(--foreground)' }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={mobileDetailItem?.label ?? genreQuery ?? '장르 상세'}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="relative shrink-0 px-3 pb-1 pt-2.5">
+                  <div
+                    className="mx-auto h-1 w-9 rounded-full"
+                    style={{ background: 'color-mix(in srgb, var(--foreground) 22%, transparent)' }}
+                    aria-hidden
+                  />
+                  <button
+                    type="button"
+                    onClick={closeMobileGenreModal}
+                    className="absolute right-3 top-2 inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                    style={{ background: 'var(--badge-bg)' }}
+                    aria-label="닫기"
+                  >
+                    <X className="size-5" strokeWidth={2} />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
+                  <GenreDetailPanel
+                    item={mobileDetailItem}
+                    artistProfileUrls={artistProfileUrls}
+                    onArtistClick={setViewingArtistName}
+                    onAlbumClick={openAlbum}
+                    variant="sheet"
+                  />
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {viewingAlbum ? (
         <AlbumDetailModal

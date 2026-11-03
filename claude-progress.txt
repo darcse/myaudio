@@ -541,3 +541,5 @@
 [2026-11-03] [Cursor] fix: Artists 데스크톱을 문서 스크롤+좌측 sticky로 재구성, lg에서만 푸터 숨김 | passes: 변경 없음
 [2026-11-03] [Cursor] feat: Artists 모바일 상세를 전체화면 오버레이+history push/back로 전환 | passes: 변경 없음
 [2026-11-03] [Cursor] style: 모바일 햄버거 드로어 하단을 한 줄 아이콘 바로 정리 | passes: 변경 없음
+[2026-11-03] [Cursor] feat: Insights 장르 통계 모바일 디테일을 모달+history push로 전환 | passes: 변경 없음
+[2026-11-03] [Cursor] style: 장르 통계 모바일 바텀시트 높이·간격·손잡이 정리 | passes: 변경 없음
