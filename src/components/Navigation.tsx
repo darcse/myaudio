@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Home, Menu, RefreshCw, X } from 'lucide-react';
+import { Home, LogIn, LogOut, Menu, RefreshCw, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -195,19 +195,19 @@ export function Navigation() {
           <>
             <button
               type="button"
-              className="fixed inset-x-0 bottom-0 top-14 bg-black/40 z-[45] lg:hidden"
+              className="fixed inset-x-0 top-[var(--app-header-height)] z-[45] h-[calc(100dvh-var(--app-header-height))] bg-black/40 lg:hidden"
               aria-label="메뉴 닫기"
               onClick={() => setMobileMenuOpen(false)}
             />
             <div
               id="mobile-nav-menu"
-              className="lg:hidden absolute left-0 right-0 top-full z-[55] border-b shadow-lg max-h-[min(70vh,calc(100dvh-3.5rem))] overflow-y-auto"
+              className="fixed inset-x-0 top-[var(--app-header-height)] z-[55] flex h-[calc(100dvh-var(--app-header-height))] flex-col shadow-lg lg:hidden"
               style={{
                 borderColor: 'var(--border)',
                 background: 'var(--card-bg)',
               }}
             >
-              <div className="px-4 py-3 flex flex-col gap-0.5">
+              <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-4 py-3">
                 {navItems.map((item) => {
                   const active = getActive(item.path);
                   return (
@@ -226,100 +226,71 @@ export function Navigation() {
                     </Link>
                   );
                 })}
+              </div>
 
-                <div className="border-t my-2 pt-3 pb-1" style={{ borderColor: 'var(--border)' }}>
-                  <p className="text-[11px] font-semibold opacity-50 uppercase tracking-wide mb-2 px-3">
-                    테마
-                  </p>
-                  <div className="px-3 flex items-center gap-3">
-                    <ThemeToggle />
-                  </div>
+              <div
+                className="flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3"
+                style={{ borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleReload();
+                    }}
+                    disabled={reloading}
+                    aria-busy={reloading}
+                    className={`${iconButtonClass} disabled:pointer-events-none disabled:opacity-50`}
+                    style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                    aria-label="새로고침"
+                    title="새로고침"
+                  >
+                    <RefreshCw
+                      size={16}
+                      strokeWidth={2}
+                      className={reloading ? 'animate-spin' : undefined}
+                    />
+                  </button>
+                  <a
+                    href={HOME_EXTERNAL_HREF}
+                    target="_self"
+                    rel="noreferrer"
+                    className={iconButtonClass}
+                    style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                    aria-label="Home"
+                    title="Home"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Home size={16} strokeWidth={2} />
+                  </a>
                 </div>
 
-                <div className="border-t pt-3 pb-4" style={{ borderColor: 'var(--border)' }}>
-                  <p className="text-[11px] font-semibold opacity-50 uppercase tracking-wide mb-2 px-3">
-                    계정
-                  </p>
-                  <div className="px-3">
-                    {isAuthenticated !== null &&
-                      (isAuthenticated ? (
-                        <button
-                          type="button"
-                          onClick={handleSignOut}
-                          className="text-[15px] font-medium opacity-80 hover:opacity-100 py-3 px-3 rounded-xl w-full text-left hover:bg-[var(--badge-bg)] transition-colors"
-                          style={{ color: 'var(--foreground)' }}
-                        >
-                          로그아웃
-                        </button>
-                      ) : (
-                        <Link
-                          href="/login"
-                          className="flex items-center gap-3 text-[15px] font-medium opacity-80 hover:opacity-100 py-3 px-3 rounded-xl hover:bg-[var(--badge-bg)] transition-colors"
-                          style={{ color: 'var(--foreground)' }}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <span className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-[var(--border)]">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden
-                            >
-                              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                              <polyline points="10 17 15 12 10 7" />
-                              <line x1="15" y1="12" x2="3" y2="12" />
-                            </svg>
-                          </span>
-                          로그인
-                        </Link>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="border-t pt-3 pb-4" style={{ borderColor: 'var(--border)' }}>
-                  <p className="text-[11px] font-semibold opacity-50 uppercase tracking-wide mb-2 px-3">
-                    외부 앱
-                  </p>
-                  <div className="px-3 flex items-center gap-2 flex-wrap">
+                {isAuthenticated !== null &&
+                  (isAuthenticated ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleReload();
-                      }}
-                      disabled={reloading}
-                      aria-busy={reloading}
-                      className={`${iconButtonClass} disabled:pointer-events-none disabled:opacity-50`}
-                      style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                      aria-label="새로고침"
-                      title="새로고침"
-                    >
-                      <RefreshCw
-                        size={16}
-                        strokeWidth={2}
-                        className={reloading ? 'animate-spin' : undefined}
-                      />
-                    </button>
-                    <a
-                      href={HOME_EXTERNAL_HREF}
-                      target="_self"
-                      rel="noreferrer"
+                      onClick={handleSignOut}
                       className={iconButtonClass}
                       style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                      aria-label="Home"
-                      title="Home"
+                      aria-label="로그아웃"
+                      title="로그아웃"
+                    >
+                      <LogOut size={16} strokeWidth={2} />
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className={iconButtonClass}
+                      style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                      aria-label="로그인"
+                      title="로그인"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Home size={16} strokeWidth={2} />
-                    </a>
-                  </div>
-                </div>
+                      <LogIn size={16} strokeWidth={2} />
+                    </Link>
+                  ))}
               </div>
             </div>
           </>
