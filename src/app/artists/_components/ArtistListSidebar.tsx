@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Users } from 'lucide-react';
 import type { ArtistSummary } from '../types';
 
@@ -16,9 +17,27 @@ export function ArtistListSidebar({
   onSelect,
   emptyMessage = '표시할 아티스트가 없습니다.',
 }: ArtistListSidebarProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+
+    const onWheel = (event: WheelEvent) => {
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      if ((event.deltaY < 0 && atTop) || (event.deltaY > 0 && atBottom)) {
+        event.preventDefault();
+      }
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   return (
     <aside
-      className="flex h-full max-h-[calc(100dvh-14rem)] min-h-[20rem] flex-col rounded-xl border lg:max-h-[calc(100dvh-10rem)]"
+      className="flex h-full max-h-[calc(100dvh-14rem)] min-h-[20rem] flex-col rounded-xl border lg:max-h-none lg:min-h-0"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
@@ -28,7 +47,7 @@ export function ArtistListSidebar({
         <Users className="size-4 shrink-0 opacity-70" strokeWidth={1.5} aria-hidden />
         {artists.length}명
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2">
         {artists.length === 0 ? (
           <p className="px-2 py-6 text-center text-sm opacity-60">{emptyMessage}</p>
         ) : (

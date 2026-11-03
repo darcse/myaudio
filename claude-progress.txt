@@ -537,3 +537,5 @@
 [2026-11-02] [Cursor] fix: 앨범 상세 애플뮤직 버튼을 URL이 있을 때만 표시 | passes: 변경 없음
 [2026-11-02] [Cursor] feat: 플레이어 앨범·아티스트명 클릭으로 상세 열기 | passes: 변경 없음
 [2026-11-02] [Cursor] perf: 전역 앨범 플레이어를 레이아웃에서 지연 로드 | passes: 변경 없음
+[2026-11-03] [Cursor] fix: Artists 데스크톱 좌측 목록 패널을 헤더 아래 뷰포트에 고정 | passes: 변경 없음
+[2026-11-03] [Cursor] fix: Artists 데스크톱을 문서 스크롤+좌측 sticky로 재구성, lg에서만 푸터 숨김 | passes: 변경 없음

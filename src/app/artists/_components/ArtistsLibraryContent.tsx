@@ -755,7 +755,7 @@ export function ArtistsLibraryContent() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:pb-0" style={{ color: 'var(--foreground)' }}>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="page-title flex shrink-0 items-center gap-2">
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
@@ -813,9 +813,13 @@ export function ArtistsLibraryContent() {
       ) : (
         <>
           {topControlBar}
-          <div className="hidden min-h-[calc(100dvh-14rem)] gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-            <div className="sticky top-[4.5rem] max-h-[calc(100dvh-8rem)] min-h-0">{sidebar}</div>
-            {detail}
+          <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+            <div>
+              <div className="sticky top-[var(--app-header-height)] h-[calc(100dvh-var(--app-header-height)-var(--player-inset))] min-h-0">
+                {sidebar}
+              </div>
+            </div>
+            <div className="min-w-0 pb-8">{detail}</div>
           </div>
 
           <div className="lg:hidden">

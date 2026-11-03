@@ -211,7 +211,7 @@ export function ArtistDetailPanel({
 
   return (
     <section
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border lg:overflow-visible"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
@@ -250,7 +250,7 @@ export function ArtistDetailPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-0 overflow-y-auto p-4 sm:p-6">
+      <div className="min-h-0 flex-1 space-y-0 overflow-y-auto p-4 sm:p-6 lg:overflow-visible">
         <ArtistBioSection
           bio={artistRecord?.bio ?? null}
           bioLoading={bioLoading}

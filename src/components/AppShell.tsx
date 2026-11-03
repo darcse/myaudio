@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
+import { usePathname } from 'next/navigation';
 import { Toaster } from 'sonner';
 import { Navigation } from '@/components/Navigation';
 import { LyricsPlayerProvider } from '@/contexts/LyricsPlayerContext';
@@ -43,13 +44,18 @@ function AlbumPlayerLazyMounts() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const hideFooterOnDesktop = pathname === '/artists';
+
   return (
     <LyricsPlayerProvider>
       <AlbumPlayerProvider>
         <Navigation />
         <MainWithPlayerInset>
           {children}
-          <Footer />
+          <div className={hideFooterOnDesktop ? 'lg:hidden' : undefined}>
+            <Footer />
+          </div>
         </MainWithPlayerInset>
         <GlobalLyricsPlayer />
         <AlbumPlayerLazyMounts />

@@ -16,6 +16,8 @@
   --favorite-heart: #b91c1c;
   --match-score-gray-strong: color-mix(in srgb, #5c6370 58%, var(--card-bg));
   --match-score-gray-soft: color-mix(in srgb, #9aa0a8 28%, var(--card-bg));
+  --app-header-height: 3.5rem;
+  --player-inset: 0px;
 }
 
 @theme inline {

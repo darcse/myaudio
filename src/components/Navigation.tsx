@@ -90,7 +90,7 @@ export function Navigation() {
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
-        <div className="flex h-14 items-center justify-between gap-3">
+        <div className="flex h-[var(--app-header-height)] items-center justify-between gap-3">
           <Link
             href="/"
             className="text-[17px] font-semibold tracking-tight transition-opacity hover:opacity-80 shrink-0 min-w-0"
