@@ -5,10 +5,8 @@ type Props = {
 };
 
 export default async function ArchivePage({ searchParams }: Props) {
-  const sp = await searchParams;
-  const year = sp.year?.trim();
-  if (year) {
-    redirect(`/insights?tab=archive&year=${encodeURIComponent(year)}`);
-  }
-  redirect('/insights?tab=archive');
+  const { year } = await searchParams;
+  const qs = new URLSearchParams({ tab: 'trend' });
+  if (year) qs.set('hfYear', year);
+  redirect(`/insights?${qs.toString()}`);
 }

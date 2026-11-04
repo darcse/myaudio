@@ -3,20 +3,16 @@
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
 
-export type InsightsTabId = 'ranking' | 'trend' | 'usage' | 'genre' | 'archive';
+export type InsightsTabId = 'ranking' | 'trend' | 'usage' | 'genre';
 
 const TABS: { id: InsightsTabId; label: string }[] = [
-  { id: 'ranking', label: '청취 랭킹' },
-  { id: 'trend', label: '청취 추이' },
-  { id: 'usage', label: '사용 통계' },
-  { id: 'genre', label: '장르 통계' },
-  { id: 'archive', label: 'Archive' },
+  { id: 'ranking', label: 'Ranking' },
+  { id: 'genre', label: 'Genres' },
+  { id: 'usage', label: 'Usage' },
+  { id: 'trend', label: 'Timeline' },
 ];
 
-function tabHref(id: InsightsTabId, archiveYear?: number): string {
-  if (id === 'archive' && archiveYear != null) {
-    return `/insights?tab=archive&year=${archiveYear}`;
-  }
+function tabHref(id: InsightsTabId): string {
   return `/insights?tab=${id}`;
 }
 
@@ -28,10 +24,9 @@ function tabButtonClass(active: boolean): string {
 
 type InsightsTabNavProps = {
   activeTab: InsightsTabId;
-  archiveYear?: number;
 };
 
-export function InsightsTabNav({ activeTab, archiveYear }: InsightsTabNavProps) {
+export function InsightsTabNav({ activeTab }: InsightsTabNavProps) {
   return (
     <div
       className="mb-6 flex flex-col gap-3 border-b pb-6 sm:flex-row sm:items-center sm:justify-between"
@@ -47,7 +42,7 @@ export function InsightsTabNav({ activeTab, archiveYear }: InsightsTabNavProps) 
           return (
             <Link
               key={tab.id}
-              href={tabHref(tab.id, archiveYear)}
+              href={tabHref(tab.id)}
               className={tabButtonClass(active)}
               style={{
                 background: active ? 'var(--foreground)' : 'var(--badge-bg)',

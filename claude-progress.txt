@@ -547,3 +547,9 @@
 [2026-11-03] [Cursor] fix: 재생 중 앨범 메타 갱신이 재생을 리셋하지 않게 | passes: 변경 없음
 [2026-11-03] [Cursor] fix: 재생 중 앨범 삭제 시 재생바 닫기 통일 | passes: 변경 없음
 [2026-11-04] [Cursor] style: 확장 재생바에서 닫기 버튼 숨김 | passes: 변경 없음
+[2026-11-04] [Cursor] feat: Archive 월별을 헤드파이 구매·판매 내역으로 단순화 | passes: 변경 없음
+[2026-11-04] [Cursor] feat: Archive를 청취 추이 하단 헤드파이 추이로 이관 | passes: 변경 없음
+[2026-11-04] [Cursor] style: 헤드파이 추이 월 카드를 정사각 기기카드형으로 조정 | passes: 변경 없음
+[2026-11-04] [Cursor] style: 헤드파이 추이 연도 셀렉트·빈 섬네일 플레이스홀더 | passes: 변경 없음
+[2026-11-04] [Cursor] style: Insights 탭 영문화·청취 이력→감상 기록 | passes: 변경 없음
+[2026-11-04] [Cursor] style: Insights 탭 순서 Ranking·Genres·Usage·Timeline | passes: 변경 없음

@@ -45,6 +45,8 @@ import {
 } from '../albumListenStats';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
+import { HeadfiTrendSection, isHeadfiTrendDetailOpen } from './HeadfiTrendSection';
+import { useSearchParams } from 'next/navigation';
 
 type HistoryRow = GearListenHistoryRow;
 
@@ -214,6 +216,8 @@ function ArtistRankRow({
 }
 
 export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsContentProps) {
+  const searchParams = useSearchParams();
+  const headfiDetailOpen = isHeadfiTrendDetailOpen(searchParams);
   const isAuthenticated = useAuthState();
   const { comboOptions, getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -793,15 +797,27 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
         </>
       ) : null}
 
-      {isLoading ? (
+      {activeStatsTab === 'trend' ? (
+        <div className="flex flex-col gap-8">
+          {headfiDetailOpen ? null : isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div
+                className="size-8 animate-spin rounded-full border-2"
+                style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
+              />
+            </div>
+          ) : (
+            <ListenTrendSection historyRows={historyRows} now={now} loadError={loadError} />
+          )}
+          {headfiDetailOpen || !isLoading ? <HeadfiTrendSection /> : null}
+        </div>
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div
             className="size-8 animate-spin rounded-full border-2"
             style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
           />
         </div>
-      ) : activeStatsTab === 'trend' ? (
-        <ListenTrendSection historyRows={historyRows} now={now} loadError={loadError} />
       ) : (
         <>
           <WeeklyHotAlbumsSection
@@ -885,7 +901,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
             >
               <p className="text-sm font-medium opacity-80">아직 청취 기록이 없습니다.</p>
               <p className="mt-2 text-sm opacity-60">
-                앨범을 재생하거나 청취 이력을 기록하면 랭킹이 표시됩니다.
+                앨범을 재생하거나 감상 기록을 기록하면 랭킹이 표시됩니다.
               </p>
             </div>
           ) : (

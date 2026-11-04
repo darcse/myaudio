@@ -135,7 +135,7 @@ export function AlbumListenHistorySection({
       .order('listened_at', { ascending: false })
       .order('created_at', { ascending: false });
     if (error) {
-      toast.error(error.message || '청취 이력을 불러오지 못했습니다.');
+      toast.error(error.message || '감상 기록을 불러오지 못했습니다.');
       setListenHistory([]);
       return;
     }
@@ -353,7 +353,7 @@ export function AlbumListenHistorySection({
       resetFormFields();
       setFormOpen(false);
       await loadListenHistory();
-      toast.success(editingId != null ? '청취 이력을 수정했습니다.' : '청취 이력을 저장했습니다.');
+      toast.success(editingId != null ? '감상 기록을 수정했습니다.' : '감상 기록을 저장했습니다.');
     } finally {
       setListenSaving(false);
     }
@@ -424,7 +424,7 @@ export function AlbumListenHistorySection({
 
   if (isAuthenticated !== true) {
     if (variant === 'tab') {
-      return <p className="text-xs opacity-60">로그인 후 청취 이력을 기록할 수 있습니다.</p>;
+      return <p className="text-xs opacity-60">로그인 후 감상 기록을 기록할 수 있습니다.</p>;
     }
     return null;
   }
@@ -605,7 +605,7 @@ export function AlbumListenHistorySection({
       onClick={toggleFormOpen}
       className="flex size-8 shrink-0 items-center justify-center rounded-lg transition-opacity hover:opacity-90"
       style={{ color: 'var(--foreground)' }}
-      aria-label={formOpen ? '입력 닫기' : '청취 이력 추가'}
+      aria-label={formOpen ? '입력 닫기' : '감상 기록 추가'}
       aria-expanded={formOpen}
     >
       {formOpen ? <X className="size-4" strokeWidth={2} /> : <Plus className="size-4" strokeWidth={2} />}
@@ -619,7 +619,7 @@ export function AlbumListenHistorySection({
           className="mb-3 rounded-lg border p-3"
           style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
         >
-          <p className="text-sm font-medium">이 청취 이력을 삭제할까요?</p>
+          <p className="text-sm font-medium">이 감상 기록을 삭제할까요?</p>
           <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
@@ -721,7 +721,7 @@ export function AlbumListenHistorySection({
                     onClick={() => startEditListenHistory(row)}
                     disabled={listenSaving}
                     className="btn-apple shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                    aria-label="이력 수정"
+                    aria-label="감상 기록 수정"
                   >
                     <Pencil className="size-3.5" strokeWidth={2} />
                   </button>
@@ -730,7 +730,7 @@ export function AlbumListenHistorySection({
                     onClick={() => setPendingDeleteId(row.id)}
                     disabled={listenSaving}
                     className="btn-apple btn-apple-danger shrink-0 px-2 py-1.5 text-xs disabled:pointer-events-none disabled:opacity-50"
-                    aria-label="이력 삭제"
+                    aria-label="감상 기록 삭제"
                   >
                     <Trash2 className="size-3.5" strokeWidth={2} />
                   </button>
@@ -740,7 +740,7 @@ export function AlbumListenHistorySection({
           })}
         </ul>
       ) : (
-        <p className="text-xs opacity-60">아직 기록된 청취 이력이 없습니다.</p>
+        <p className="text-xs opacity-60">아직 기록된 감상 기록이 없습니다.</p>
       )}
     </>
   );
@@ -757,7 +757,7 @@ export function AlbumListenHistorySection({
       <div>
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-baseline gap-2">
-            <strong className="text-sm">청취 이력</strong>
+            <strong className="text-sm">감상 기록</strong>
             <span className="text-xs tabular-nums opacity-55">{listenHistory.length}건</span>
           </span>
           {formToggleButton}
@@ -778,7 +778,7 @@ export function AlbumListenHistorySection({
           aria-expanded={listenOpen}
         >
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <strong className="text-sm">청취 이력</strong>
+            <strong className="text-sm">감상 기록</strong>
             <span className="text-xs tabular-nums opacity-55">{listenHistory.length}건</span>
           </span>
           <ChevronDown

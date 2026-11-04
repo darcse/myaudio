@@ -53,7 +53,7 @@ const modalActionIconClass =
 const TAB_ITEMS: { id: DetailTab; label: string }[] = [
   { id: 'info', label: '앨범 정보' },
   { id: 'gear', label: '추천 리시버' },
-  { id: 'listen', label: '청취 이력' },
+  { id: 'listen', label: '감상 기록' },
 ];
 
 function tabButtonClass(active: boolean): string {

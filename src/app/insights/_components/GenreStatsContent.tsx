@@ -744,7 +744,7 @@ export function GenreStatsContent() {
               style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
             >
               <p className="text-sm font-medium opacity-80">아직 청취 기록이 없습니다.</p>
-              <p className="mt-2 text-sm opacity-60">청취 이력을 기록하면 장르 랭킹이 표시됩니다.</p>
+              <p className="mt-2 text-sm opacity-60">감상 기록을 기록하면 장르 랭킹이 표시됩니다.</p>
             </div>
           ) : !hasPeriodListenData ? (
             <div

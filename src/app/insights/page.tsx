@@ -1,19 +1,16 @@
 import { Suspense } from 'react';
-import { getCurrentUser } from '@/lib/supabase/server';
-import { ArchiveLoginPrompt } from '@/app/archive/_components/ArchiveLoginPrompt';
-import { ArchiveYearView } from '@/app/archive/_components/ArchiveYearView';
-import { loadArchiveYearStats } from '@/app/archive/yearStats';
+import { redirect } from 'next/navigation';
 import { AlbumStatsContent } from '@/app/albums/stats/_components/AlbumStatsContent';
 import { HeadfiUsageStatsContent } from '@/app/headfi/stats/_components/HeadfiUsageStatsContent';
 import { GenreStatsContent } from './_components/GenreStatsContent';
 import { InsightsTabNav, type InsightsTabId } from './_components/InsightsTabNav';
 
 type Props = {
-  searchParams: Promise<{ tab?: string; year?: string }>;
+  searchParams: Promise<{ tab?: string; year?: string; hfYear?: string; hfMonth?: string }>;
 };
 
-function normalizeTab(raw: string | undefined): InsightsTabId {
-  if (raw === 'trend' || raw === 'usage' || raw === 'genre' || raw === 'archive' || raw === 'ranking') {
+function normalizeTab(raw: string | undefined): InsightsTabId | 'archive' {
+  if (raw === 'trend' || raw === 'usage' || raw === 'genre' || raw === 'ranking' || raw === 'archive') {
     return raw;
   }
   return 'ranking';
@@ -26,26 +23,17 @@ function LoadingFallback() {
 export default async function InsightsPage({ searchParams }: Props) {
   const sp = await searchParams;
   const tab = normalizeTab(sp.tab);
-  const maxY = new Date().getFullYear();
-  const rawYear = parseInt(sp.year ?? '', 10);
-  const archiveYear = Number.isFinite(rawYear) ? Math.min(Math.max(rawYear, 2026), maxY) : maxY;
 
-  let archiveMonths: Awaited<ReturnType<typeof loadArchiveYearStats>> | null = null;
-  let archiveAuthed = false;
   if (tab === 'archive') {
-    const user = await getCurrentUser();
-    archiveAuthed = !!user;
-    if (user) {
-      archiveMonths = await loadArchiveYearStats(archiveYear);
-    }
+    const year = sp.year ?? sp.hfYear;
+    const qs = new URLSearchParams({ tab: 'trend' });
+    if (year) qs.set('hfYear', year);
+    redirect(`/insights?${qs.toString()}`);
   }
-
-  const yearList: number[] = [];
-  for (let y = 2026; y <= maxY; y++) yearList.push(y);
 
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
-      <InsightsTabNav activeTab={tab} archiveYear={archiveYear} />
+      <InsightsTabNav activeTab={tab} />
 
       {tab === 'ranking' ? (
         <Suspense fallback={<LoadingFallback />}>
@@ -69,19 +57,6 @@ export default async function InsightsPage({ searchParams }: Props) {
         <Suspense fallback={<LoadingFallback />}>
           <GenreStatsContent />
         </Suspense>
-      ) : null}
-
-      {tab === 'archive' ? (
-        archiveAuthed && archiveMonths ? (
-          <ArchiveYearView
-            year={archiveYear}
-            yearList={yearList}
-            months={archiveMonths}
-            yearHref={(yy) => `/insights?tab=archive&year=${yy}`}
-          />
-        ) : (
-          <ArchiveLoginPrompt />
-        )
       ) : null}
     </div>
   );
