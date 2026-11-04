@@ -776,18 +776,20 @@ export function GlobalAlbumPlayer() {
                 <Maximize2 className="size-5 opacity-90" strokeWidth={1.75} />
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                stopProgressTimer();
-                readyRef.current = false;
-                close();
-              }}
-              className="rounded-lg p-2 hover:bg-black/5 dark:hover:bg-white/10"
-              aria-label="재생바 닫기"
-            >
-              <X className="size-5 opacity-80" />
-            </button>
+            {!expanded ? (
+              <button
+                type="button"
+                onClick={() => {
+                  stopProgressTimer();
+                  readyRef.current = false;
+                  close();
+                }}
+                className="rounded-lg p-2 hover:bg-black/5 dark:hover:bg-white/10"
+                aria-label="재생바 닫기"
+              >
+                <X className="size-5 opacity-80" />
+              </button>
+            ) : null}
           </div>
           ) : null}
           {current && expanded ? (
