@@ -122,3 +122,17 @@
 [2026-11-04] [Cursor] style: Insights 탭 영문화·청취 이력→감상 기록 | passes: 변경 없음
 [2026-11-04] [Cursor] style: Insights 탭 순서 Ranking·Genres·Usage·Timeline | passes: 변경 없음
 [2026-11-08] [Cursor] fix: 로그인 성공 홈 이동·모바일 입력 확대 방지 | passes: 변경 없음
+[2026-11-08] [Cursor] feat: 대시보드 1단계 타임머신 삭제·청취/등록 앨범 재배치 | passes: 변경 없음
+[2026-11-08] [Cursor] fix: 대시보드 하단 2열(청취 캐러셀/등록 앨범) 복원 | passes: 변경 없음
+[2026-11-08] [Cursor] fix: 하단 캐러셀 3장 노출·등록 앨범 2장·구매기기 하단 | passes: 변경 없음
+[2026-11-08] [Cursor] feat: 대시보드 이번 주(Weekly Hot 공용) 영역 | passes: 변경 없음
+[2026-11-08] [Cursor] feat: 이번 주 3:7 레이아웃·TOP5·랜덤 추천 버튼 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 이번 주 헤더+정사각4칸·TOP3 복원 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 보유 기기 4열·고정높이 제거로 상단 정렬 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 핫아티스트 왕관·등록앨범 커버만 표시 | passes: 변경 없음
+[2026-11-08] [Cursor] feat: 대시보드 핫아티스트 → ArtistDetailModal | passes: 변경 없음
+[2026-11-08] [Cursor] style: 이번 주 헤더 baseline·핫앨범 오버레이 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 핫앨범 오버레이에서 아티스트명 제거 | passes: 변경 없음
+[2026-11-08] [Cursor] feat: 하단② 이달의 리시버·최근구매 2열 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 이달의 리시버 순위 배지 제거 | passes: 변경 없음
+[2026-11-08] [Cursor] style: 대시보드 푸터 위 여백 축소 | passes: 변경 없음

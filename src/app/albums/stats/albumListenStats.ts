@@ -10,7 +10,6 @@ import {
 export const LISTEN_RANKING_LIMIT = 10;
 export const GEAR_LISTEN_RANKING_LIMIT = 10;
 export const PERIOD_RANKING_LIMIT_ALL_MONTHS = 20;
-export const WEEKLY_HOT_ALBUM_LIMIT = 3;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
 export type ListenTrendUnit = 'year' | 'month' | 'week';
@@ -21,11 +20,6 @@ export type ListenTrendPoint = {
   count: number;
 };
 
-export type WeekRange = {
-  startMs: number;
-  endMs: number;
-};
-
 export type AlbumListenRankItem = {
   albumId: number;
   albumName: string;
@@ -33,17 +27,6 @@ export type AlbumListenRankItem = {
   coverImageUrl: string | null;
   listenCount: number;
 };
-
-export type WeeklyHotArtistItem = {
-  artistName: string;
-  listenCount: number;
-  albumCount: number;
-};
-
-function isVariousArtistName(name: string): boolean {
-  const normalized = name.trim().toLowerCase().replace(/\s+/g, ' ');
-  return normalized === 'various artist' || normalized === 'various artists';
-}
 
 export type ArtistListenRankItem = {
   artistName: string;
@@ -141,6 +124,21 @@ export function buildGearListenRankings(
   }
 
   return sortGearListenRankItems(items, limit);
+}
+
+export function buildReceiverListenRankings(
+  gearById: Map<number, GearSummary>,
+  historyRows: GearListenHistoryRow[],
+  periodFilter: ListenPeriodFilter,
+  categoryFilter: GearCategoryFilter = 'all',
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  return buildGearListenRankings(
+    gearById,
+    filterGearHistoryByPeriod(historyRows, periodFilter),
+    categoryFilter,
+    limit,
+  );
 }
 
 function sortGearListenRankItems(items: GearListenRankItem[], limit: number): GearListenRankItem[] {
@@ -453,83 +451,6 @@ function parseListenedAtMs(listenedAt: string): number | null {
   }
   const parsed = Date.parse(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-export function getRollingSevenDayRange(reference = new Date()): WeekRange {
-  const end = new Date(reference);
-  end.setHours(23, 59, 59, 999);
-
-  const start = new Date(reference);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - 6);
-
-  return {
-    startMs: start.getTime(),
-    endMs: end.getTime(),
-  };
-}
-
-export function formatWeekRangeLabel(range: WeekRange): string {
-  const start = new Date(range.startMs);
-  const end = new Date(range.endMs);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${start.getMonth() + 1}/${pad(start.getDate())} ~ ${end.getMonth() + 1}/${pad(end.getDate())}`;
-}
-
-export function filterHistoryByWeek(rows: HistoryRow[], week: WeekRange): HistoryRow[] {
-  return rows.filter((row) => {
-    const listenedAt = row.listened_at?.trim();
-    if (!listenedAt || row.album_id == null) return false;
-    const ms = parseListenedAtMs(listenedAt);
-    if (ms == null) return false;
-    return ms >= week.startMs && ms <= week.endMs;
-  });
-}
-
-export function buildWeeklyHotAlbumRankings(
-  albums: Album[],
-  historyRows: HistoryRow[],
-  reference = new Date(),
-  limit = WEEKLY_HOT_ALBUM_LIMIT,
-): AlbumListenRankItem[] {
-  const range = getRollingSevenDayRange(reference);
-  const filtered = filterHistoryByWeek(historyRows, range);
-  return buildAlbumListenRankings(albums, filtered, limit);
-}
-
-export function buildWeeklyHotArtist(
-  albums: Album[],
-  historyRows: HistoryRow[],
-  reference = new Date(),
-): WeeklyHotArtistItem | null {
-  const range = getRollingSevenDayRange(reference);
-  const filtered = filterHistoryByWeek(historyRows, range);
-  const index = buildListenHistoryIndex(filtered);
-  const artistMap = new Map<string, { listenCount: number; albumCount: number }>();
-
-  for (const album of albums) {
-    const entry = index.get(album.id);
-    if (!entry || entry.count <= 0) continue;
-    const name = album.artist?.trim();
-    if (!name || isVariousArtistName(name)) continue;
-    const prev = artistMap.get(name) ?? { listenCount: 0, albumCount: 0 };
-    artistMap.set(name, {
-      listenCount: prev.listenCount + entry.count,
-      albumCount: prev.albumCount + 1,
-    });
-  }
-
-  const ranked = [...artistMap.entries()]
-    .map(([artistName, data]) => ({ artistName, ...data }))
-    .sort((a, b) => {
-      const byCount = b.listenCount - a.listenCount;
-      if (byCount !== 0) return byCount;
-      const byAlbums = b.albumCount - a.albumCount;
-      if (byAlbums !== 0) return byAlbums;
-      return a.artistName.localeCompare(b.artistName, 'ko');
-    });
-
-  return ranked[0] ?? null;
 }
 
 function releaseDateMs(releaseDate: string | null | undefined): number {

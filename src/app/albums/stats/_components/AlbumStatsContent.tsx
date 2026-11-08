@@ -25,13 +25,10 @@ import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildAlbumListenRankings,
   buildArtistListenRankings,
-  buildWeeklyHotAlbumRankings,
-  buildWeeklyHotArtist,
   clampListenPeriodFilter,
   filterHistoryByPeriod,
   formatPeriodLabel,
   formatStatsMonthOptionLabel,
-  getRollingSevenDayRange,
   getDefaultListenPeriodFilter,
   getPeriodRankingLimit,
   listStatsMonths,
@@ -43,6 +40,11 @@ import {
   type ListenPeriodFilter,
   type ListenPeriodMonth,
 } from '../albumListenStats';
+import {
+  buildWeeklyHotAlbumRankings,
+  buildWeeklyHotArtist,
+  getRollingSevenDayRange,
+} from '@/lib/weeklyHot';
 import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
 import { HeadfiTrendSection, isHeadfiTrendDetailOpen } from './HeadfiTrendSection';

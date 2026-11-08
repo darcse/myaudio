@@ -12,8 +12,8 @@ import type { Headfi } from '@/app/headfi/types';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import {
   buildDacAmpListenRankings,
-  buildGearListenRankings,
   buildMediaListenRankings,
+  buildReceiverListenRankings,
   buildSourceListenRankings,
   clampListenPeriodFilter,
   filterGearHistoryByPeriod,
@@ -197,8 +197,15 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     [historyRows, periodFilter],
   );
   const receiverRanking = useMemo(
-    () => buildGearListenRankings(gearById, filteredHistoryRows, gearCategoryFilter, rankingLimit),
-    [gearById, filteredHistoryRows, gearCategoryFilter, rankingLimit],
+    () =>
+      buildReceiverListenRankings(
+        gearById,
+        historyRows,
+        periodFilter,
+        gearCategoryFilter,
+        rankingLimit,
+      ),
+    [gearById, historyRows, periodFilter, gearCategoryFilter, rankingLimit],
   );
   const dacAmpRanking = useMemo(
     () => buildDacAmpListenRankings(gearById, filteredHistoryRows, rankingLimit),

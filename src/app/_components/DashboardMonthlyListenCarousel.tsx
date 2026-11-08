@@ -8,6 +8,8 @@ import type { MonthlyListenAlbum } from './DashboardContent';
 type DashboardMonthlyListenCarouselProps = {
   albums: MonthlyListenAlbum[];
   onAlbumClick: (albumId: number) => void;
+  /** fill: 칸 높이에 맞춤(상단). multi: 한 줄에 약 3장 + Peek(하단) */
+  layout?: 'fill' | 'multi';
 };
 
 const AUTO_SLIDE_INTERVAL_MS = 4000;
@@ -16,6 +18,7 @@ const MANUAL_PAUSE_MS = 7000;
 export function DashboardMonthlyListenCarousel({
   albums,
   onAlbumClick,
+  layout = 'fill',
 }: DashboardMonthlyListenCarouselProps) {
   const items = albums.slice(0, 7);
   const itemCount = items.length;
@@ -137,9 +140,11 @@ export function DashboardMonthlyListenCarousel({
     };
   }, [itemCount]);
 
+  const isMulti = layout === 'multi';
+
   return (
     <div
-      className="relative min-h-0 flex-1"
+      className={isMulti ? 'relative' : 'relative min-h-0 flex-1'}
       onMouseEnter={() => {
         isHoveringRef.current = true;
       }}
@@ -158,7 +163,11 @@ export function DashboardMonthlyListenCarousel({
     >
       <div
         ref={scrollRef}
-        className="scrollbar-hide absolute inset-0 flex items-center gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory"
+        className={
+          isMulti
+            ? 'scrollbar-hide flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory'
+            : 'scrollbar-hide absolute inset-0 flex items-center gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory'
+        }
       >
         {items.map((row, index) => (
           <button
@@ -168,7 +177,11 @@ export function DashboardMonthlyListenCarousel({
             }}
             type="button"
             onClick={() => onAlbumClick(row.id)}
-            className="relative aspect-square h-full w-auto shrink-0 snap-start overflow-hidden rounded-xl transition-opacity hover:opacity-90"
+            className={
+              isMulti
+                ? 'relative aspect-square w-[calc((100%-1.5rem)/3.2)] max-w-none shrink-0 snap-start overflow-hidden rounded-xl transition-opacity hover:opacity-90 max-md:w-[calc((100%-0.75rem)/2.35)]'
+                : 'relative aspect-square h-full w-auto shrink-0 snap-start overflow-hidden rounded-xl transition-opacity hover:opacity-90'
+            }
             style={{
               border: '1px solid var(--border)',
               background: 'var(--badge-bg)',

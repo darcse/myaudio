@@ -3,8 +3,13 @@
 import type { ReactNode } from 'react';
 import { Crown, Disc, Flame, UserCircle } from 'lucide-react';
 import { ALBUM_COVER_BLUR_OVERLAY } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
-import type { AlbumListenRankItem, WeekRange, WeeklyHotArtistItem } from '../albumListenStats';
-import { WEEKLY_HOT_ALBUM_LIMIT, formatWeekRangeLabel } from '../albumListenStats';
+import type { AlbumListenRankItem } from '../albumListenStats';
+import {
+  WEEKLY_HOT_ALBUM_LIMIT,
+  formatWeekRangeLabel,
+  type WeekRange,
+  type WeeklyHotArtistItem,
+} from '@/lib/weeklyHot';
 
 const ARTIST_CARD_OVERLAY =
   'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 46%, rgba(0,0,0,0.42) 100%)';

@@ -491,6 +491,8 @@ OPENAI_MATCH_SCORE_MODEL=
 **전역 앨범 재생바(`GlobalAlbumPlayer`)**: 새 재생은 `playAlbum()`의 `session` 증가로만 판단한다. 같은 앨범의 정보 갱신(저장, 청취 이력, 소개 새로고침 등)은 `patchCurrentMeta()`로 표시 정보만 바꾸고 재생을 다시 시작하지 않는다. 재생 effect가 앨범 객체 참조에 반응하게 만들지 않는다. 재생 중 재생목록 주소 변경은 다음 재생부터 적용한다.
 **앨범 삭제**: 반드시 `useAlbumMutations.deleteAlbum`을 거친다. 삭제 서버 액션을 직접 호출해야 하면 성공 직후 `closeIfPlayingAlbum(albumId)`를 함께 호출한다(재생 중 앨범이면 재생바를 닫음).
 
+- **대시보드 ↔ Insights 공용 집계**: Weekly Hot(핫 아티스트·핫 앨범, 롤링 7일, 7일 청취 현황)와 리시버 사용 횟수 집계는 `src/lib`의 공용 함수를 Insights와 대시보드가 함께 쓴다. 한쪽에 집계 로직을 복제하지 않고, 규칙(동점 처리, `Various Artist` 제외 등)을 바꿀 때는 공용 함수만 수정한다. 개수·기간은 인자로 받는다(Insights Weekly Hot는 TOP3 유지).
+- **대시보드 구성**: Stat 바 → 상단 2열(보유 기기 / 이번 주) → 하단 2열 ①(최근 청취 앨범 / 최근 등록 앨범) → 하단 2열 ②(이달의 리시버 / 최근 구매 기기). 타임머신 회상과 최근 등록 가사 영역은 제거되었다.
 ---
 
 ## AI 규칙

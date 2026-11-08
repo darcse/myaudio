@@ -5,26 +5,44 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Headphones, Music, Package, RefreshCw } from 'lucide-react';
+import { BarChart3, Headphones, Package, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData } from '@/app/albums/types';
+import {
+  buildReceiverListenRankings,
+  type GearListenHistoryRow,
+  type GearListenRankItem,
+  type GearSummary,
+} from '@/app/albums/stats/albumListenStats';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import type { Headfi } from '@/app/headfi/types';
 import { emptyHeadfiFormData, headfiToFormData } from '@/app/headfi/utils';
+import { formatListenHistoryOptionLabel } from '@/lib/listenHistoryGear';
 import { getClientErrorMessage } from '@/lib/supabase-error';
+import type { WeeklyHotSnapshot } from '@/lib/weeklyHot';
 import { buildSortedHeadfiCategories, HEADFI_CATEGORY_ICON } from './dashboard-icons';
 import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
+import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
+import { buildListenHistoryIndex } from '@/app/artists/utils';
+import type { ListenHistoryEntry } from '@/app/artists/types';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
-import { TimeMachineRecallBanner } from './TimeMachineRecallBanner';
-import type { TimeMachineRecall } from '@/lib/timeMachineRecall';
+import { DashboardThisWeekPanel } from './DashboardThisWeekPanel';
 
 const AlbumDetailModal = dynamic(
   () => import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
+  { ssr: false },
+);
+const ArtistDetailModal = dynamic(
+  () => import('@/app/artists/_components/ArtistDetailModal').then((m) => ({ default: m.ArtistDetailModal })),
+  { ssr: false },
+);
+const AlbumLotteryModal = dynamic(
+  () => import('@/app/albums/_components/AlbumLotteryModal').then((m) => ({ default: m.AlbumLotteryModal })),
   { ssr: false },
 );
 const HeadfiDetailModal = dynamic(
@@ -56,13 +74,6 @@ type MatchedAlbum = {
   release_date?: string | null;
 };
 
-type RecentLyricsAlbum = {
-  id: number;
-  album_name: string;
-  artist: string | null;
-  cover_image_url: string | null;
-};
-
 type DashboardContentProps = {
   totalAlbums: number;
   totalHeadfi: number;
@@ -70,15 +81,20 @@ type DashboardContentProps = {
   headfiCategoryRows: Pick<Headfi, 'category'>[];
   monthlyListenAlbums: MonthlyListenAlbum[];
   recentAlbums: Album[];
-  recentLyricsAlbums: RecentLyricsAlbum[];
   recentHeadfi: Headfi[];
-  timeMachineRecall: TimeMachineRecall | null;
+  weeklyHot: WeeklyHotSnapshot;
+  weeklyHotArtistProfileUrl: string | null;
 };
 
-const recentAlbumGridClass = 'grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6';
-const recentLyricsGridClass = 'grid grid-cols-2 gap-4 sm:gap-6';
-const recentHeadfiGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6';
-const summaryCardClass = 'card-apple flex h-[21rem] min-h-[21rem] flex-col overflow-hidden p-4';
+const recentAlbumGridClass = 'grid grid-cols-2 gap-4 sm:gap-6';
+const recentHeadfiGridClass = 'grid grid-cols-2 gap-4 sm:gap-6';
+const summaryCardClass = 'card-apple flex flex-col overflow-hidden p-4';
+const bottomListenCarouselClass = 'card-apple flex flex-col overflow-hidden p-5 lg:col-span-3';
+const bottomRowClass = 'grid grid-cols-1 gap-4 lg:grid-cols-5 lg:items-stretch lg:gap-6';
+
+function padMonthDay(n: number) {
+  return String(n).padStart(2, '0');
+}
 
 const initialAlbumFormData: AlbumFormData = {
   artist: '',
@@ -156,9 +172,9 @@ export function DashboardContent({
   headfiCategoryRows,
   monthlyListenAlbums,
   recentAlbums,
-  recentLyricsAlbums,
   recentHeadfi,
-  timeMachineRecall,
+  weeklyHot,
+  weeklyHotArtistProfileUrl,
 }: DashboardContentProps) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
@@ -195,6 +211,15 @@ export function DashboardContent({
     { id: number; brand: string; model: string }[]
   >([]);
   const [summaryRefreshing, setSummaryRefreshing] = useState(false);
+  const [randomLotteryOpen, setRandomLotteryOpen] = useState(false);
+  const [viewingArtistName, setViewingArtistName] = useState<string | null>(null);
+  const [artistModalAlbums, setArtistModalAlbums] = useState<Album[]>([]);
+  const [artistListenHistoryIndex, setArtistListenHistoryIndex] = useState<
+    Map<number, ListenHistoryEntry>
+  >(() => new Map());
+  const [artistModalLoading, setArtistModalLoading] = useState(false);
+  const [monthlyReceivers, setMonthlyReceivers] = useState<GearListenRankItem[]>([]);
+  const [monthlyReceiversLoading, setMonthlyReceiversLoading] = useState(true);
 
   const openAlbumById = useCallback(async (albumId: number) => {
     const { data, error } = await createClient().from('album').select('*').eq('id', albumId).maybeSingle();
@@ -205,6 +230,29 @@ export function DashboardContent({
     setViewingAlbum(data as Album);
   }, []);
 
+  const openArtistByName = useCallback(async (artistName: string) => {
+    if (artistModalLoading) return;
+    setArtistModalLoading(true);
+    try {
+      const client = createClient();
+      const [albumRes, historyRes] = await Promise.all([
+        client.from('album').select('*'),
+        client.from('album_listen_history').select('album_id, listened_at'),
+      ]);
+      if (albumRes.error || historyRes.error) {
+        toast.error('아티스트 정보를 불러오지 못했습니다.');
+        return;
+      }
+      setArtistModalAlbums((albumRes.data ?? []) as Album[]);
+      setArtistListenHistoryIndex(buildListenHistoryIndex(historyRes.data ?? []));
+      setViewingArtistName(artistName);
+    } catch {
+      toast.error('아티스트 정보를 불러오지 못했습니다.');
+    } finally {
+      setArtistModalLoading(false);
+    }
+  }, [artistModalLoading]);
+
   const openHeadfiById = useCallback(async (id: number) => {
     const { data, error } = await createClient().from('headfi').select('*').eq('id', id).maybeSingle();
     if (error || !data) {
@@ -212,6 +260,72 @@ export function DashboardContent({
       return;
     }
     setViewingHeadfi(data as Headfi);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMonthlyReceivers = async () => {
+      setMonthlyReceiversLoading(true);
+      try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const monthStart = `${year}-${padMonthDay(month)}-01`;
+        const client = createClient();
+        const { data: historyData, error: historyError } = await client
+          .from('album_listen_history')
+          .select('album_id, listened_at, headphone_id')
+          .gte('listened_at', monthStart)
+          .not('headphone_id', 'is', null);
+        if (cancelled) return;
+        if (historyError) {
+          setMonthlyReceivers([]);
+          return;
+        }
+        const historyRows = (historyData ?? []) as GearListenHistoryRow[];
+        const headfiIds = [
+          ...new Set(
+            historyRows
+              .map((row) => row.headphone_id)
+              .filter((id): id is number => Number.isInteger(id)),
+          ),
+        ];
+        if (headfiIds.length === 0) {
+          setMonthlyReceivers([]);
+          return;
+        }
+        const { data: headfiData, error: headfiError } = await client
+          .from('headfi')
+          .select('id, brand, model, category, image_url')
+          .in('id', headfiIds);
+        if (cancelled) return;
+        if (headfiError) {
+          setMonthlyReceivers([]);
+          return;
+        }
+        const gearById = new Map<number, GearSummary>();
+        for (const row of headfiData ?? []) {
+          gearById.set(row.id, {
+            id: row.id,
+            brand: row.brand || '',
+            model: row.model || '',
+            category: row.category || '',
+            image_url: row.image_url ?? null,
+          });
+        }
+        setMonthlyReceivers(
+          buildReceiverListenRankings(gearById, historyRows, { year, month }, 'all', 3),
+        );
+      } catch {
+        if (!cancelled) setMonthlyReceivers([]);
+      } finally {
+        if (!cancelled) setMonthlyReceiversLoading(false);
+      }
+    };
+    void loadMonthlyReceivers();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -507,14 +621,7 @@ export function DashboardContent({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 min-h-screen" style={{ color: 'var(--foreground)' }}>
-      {timeMachineRecall ? (
-        <TimeMachineRecallBanner
-          recall={timeMachineRecall}
-          onClick={() => void openAlbumById(timeMachineRecall.albumId)}
-        />
-      ) : null}
-
+    <div className="mx-auto max-w-6xl px-4 pb-2 pt-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <h1
         className="section-title mb-4 flex items-center justify-between gap-3 border-b pb-2 text-[28px]"
         style={{ borderColor: 'var(--border)' }}
@@ -581,7 +688,7 @@ export function DashboardContent({
             {sortedHeadfiCategories.length === 0 ? (
               <p className="flex flex-1 items-center text-sm opacity-60">보유 중인 기기가 없습니다.</p>
             ) : (
-              <div className="grid min-h-0 flex-1 grid-cols-3 auto-rows-[minmax(3.75rem,1fr)] gap-1.5 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-1.5 lg:grid-cols-3 xl:grid-cols-4">
                 {sortedHeadfiCategories.map(([cat, count]) => (
                   <Link
                     key={cat}
@@ -593,7 +700,9 @@ export function DashboardContent({
                       {HEADFI_CATEGORY_ICON[cat] ?? <Package className="size-4" strokeWidth={1.5} />}
                     </span>
                     <span className="shrink-0 text-xs font-bold tabular-nums leading-none">{count}</span>
-                    <span className="shrink-0 line-clamp-2 text-center text-[9px] leading-tight opacity-60">{cat}</span>
+                    <span className="w-full shrink-0 truncate text-center text-[9px] leading-tight opacity-60">
+                      {cat}
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -602,105 +711,191 @@ export function DashboardContent({
         </div>
 
         <div className={`${summaryCardClass} lg:col-span-2`}>
-          <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-[15px] font-semibold opacity-80">
-              <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
-              최근 청취
-            </h2>
+          <DashboardThisWeekPanel
+            weekRange={weeklyHot.weekRange}
+            hotArtist={weeklyHot.hotArtist}
+            hotAlbums={weeklyHot.hotAlbums}
+            stats={weeklyHot.stats}
+            artistProfileUrl={weeklyHotArtistProfileUrl}
+            onAlbumClick={(albumId) => void openAlbumById(albumId)}
+            onArtistClick={(artistName) => void openArtistByName(artistName)}
+            onRandomClick={() => setRandomLotteryOpen(true)}
+          />
+        </div>
+      </div>
+
+      <div className={`mb-8 ${bottomRowClass}`}>
+        <section className={bottomListenCarouselClass}>
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-2 pt-0.5">
+            <h3 className="text-[15px] font-semibold">최근 청취 앨범</h3>
             <Link href="/albums/diary" className="link-apple shrink-0 text-sm">
               더보기 &rarr;
             </Link>
           </div>
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col justify-center">
             {monthlyListenAlbums.length === 0 ? (
               <p className="flex flex-1 items-center text-sm opacity-60">최근 청취 기록이 없습니다.</p>
             ) : (
               <DashboardMonthlyListenCarousel
                 albums={monthlyListenAlbums}
                 onAlbumClick={(albumId) => void openAlbumById(albumId)}
+                layout="multi"
               />
             )}
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-6">
-        <section className="card-apple flex flex-col p-5 lg:col-span-3">
-          <div className="mb-5 flex items-center justify-between pt-0.5">
+        <section className="card-apple flex flex-col p-5 lg:col-span-2">
+          <div className="mb-3 flex shrink-0 items-center justify-between pt-0.5">
             <h3 className="text-[15px] font-semibold">최근 등록 앨범</h3>
             <Link href="/albums" className="link-apple text-sm">
               더보기 &rarr;
             </Link>
           </div>
           {recentAlbums.length === 0 ? (
-            <p className="py-6 text-center text-sm opacity-60">등록된 앨범이 없습니다.</p>
+            <p className="flex flex-1 items-center justify-center text-sm opacity-60">등록된 앨범이 없습니다.</p>
           ) : (
-            <div className={recentAlbumGridClass}>
-              {recentAlbums.map((album, index) => (
-                <button
-                  key={album.id}
-                  type="button"
-                  onClick={() => void openAlbumById(album.id)}
-                  className={`group w-full cursor-pointer text-left${index >= 3 ? ' sm:hidden' : ''}`}
-                >
-                  <div
-                    className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
-                    style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
+            <div className={`min-h-0 flex-1 content-center ${recentAlbumGridClass}`}>
+              {recentAlbums.slice(0, 2).map((album) => {
+                const label = album.album_name?.trim() || '앨범';
+                return (
+                  <button
+                    key={album.id}
+                    type="button"
+                    onClick={() => void openAlbumById(album.id)}
+                    className="group w-full cursor-pointer text-left"
+                    aria-label={label}
                   >
-                    {album.cover_image_url ? (
-                      <img src={album.cover_image_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div
-                        className="flex h-full w-full items-center justify-center text-xs opacity-50"
-                        style={{ background: 'var(--badge-bg)' }}
-                      >
-                        No Cover
-                      </div>
-                    )}
-                  </div>
-                  <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
-                  <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
-                </button>
-              ))}
+                    <div
+                      className="relative aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                      style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
+                    >
+                      {album.cover_image_url ? (
+                        <img
+                          src={album.cover_image_url}
+                          alt={label}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center text-xs opacity-50"
+                          style={{ background: 'var(--badge-bg)' }}
+                        >
+                          No Cover
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>
+      </div>
 
-        <section className="card-apple flex flex-col p-5 lg:col-span-2">
-          <div className="mb-5 flex items-center justify-between pt-0.5">
-            <h3 className="text-[15px] font-semibold">최근 등록 가사</h3>
-            <Link href="/lyrics" className="link-apple text-sm">
+      <div className={bottomRowClass}>
+        <section className={bottomListenCarouselClass}>
+          <div className="mb-3 flex shrink-0 items-center justify-between gap-2 pt-0.5">
+            <h3 className="text-[15px] font-semibold">이달의 리시버</h3>
+            <Link href="/insights?tab=usage" className="link-apple shrink-0 text-sm">
               더보기 &rarr;
             </Link>
           </div>
-          {recentLyricsAlbums.length === 0 ? (
-            <p className="py-6 text-center text-sm opacity-60">등록된 가사가 없습니다.</p>
+          <div className="flex min-h-0 flex-1 flex-col justify-center">
+            {monthlyReceiversLoading ? (
+              <div className="flex flex-1 items-center justify-center py-6">
+                <div
+                  className="size-6 animate-spin rounded-full border-2"
+                  style={{ borderColor: 'var(--border)', borderTopColor: 'var(--foreground)' }}
+                  aria-label="로딩 중"
+                />
+              </div>
+            ) : monthlyReceivers.length === 0 ? (
+              <p className="flex flex-1 items-center text-sm opacity-60">이번 달 청취 기록이 없습니다</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                {monthlyReceivers.map((item) => {
+                  const modelLabel = formatListenHistoryOptionLabel(item);
+                  return (
+                    <button
+                      key={item.headfiId}
+                      type="button"
+                      onClick={() => void openHeadfiById(item.headfiId)}
+                      className="group min-w-0 w-full cursor-pointer text-left"
+                      aria-label={`${modelLabel} 리시버 상세`}
+                    >
+                      <div
+                        className="relative mb-2 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02] sm:mb-3"
+                        style={{
+                          boxShadow: 'var(--shadow)',
+                          border: '1px solid var(--border)',
+                          background: 'var(--badge-bg)',
+                        }}
+                      >
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt=""
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs opacity-50">
+                            <Headphones className="size-8 opacity-40" strokeWidth={1.25} aria-hidden />
+                          </div>
+                        )}
+                      </div>
+                      <p className="truncate text-xs font-bold leading-tight sm:text-sm">{modelLabel}</p>
+                      <p className="mt-0.5 text-xs font-semibold tabular-nums opacity-70 sm:mt-1">
+                        {item.listenCount}회
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="card-apple flex flex-col p-5 lg:col-span-2">
+          <div className="mb-3 flex shrink-0 items-center justify-between pt-0.5">
+            <h3 className="text-[15px] font-semibold">최근 구매 기기</h3>
+            <Link href="/headfi" className="link-apple text-sm">
+              더보기 &rarr;
+            </Link>
+          </div>
+          {recentHeadfi.length === 0 ? (
+            <p className="flex flex-1 items-center justify-center text-sm opacity-60">구매한 기기가 없습니다.</p>
           ) : (
-            <div className={recentLyricsGridClass}>
-              {recentLyricsAlbums.map((album) => (
+            <div className={`min-h-0 flex-1 content-center ${recentHeadfiGridClass}`}>
+              {recentHeadfi.map((headfi) => (
                 <button
-                  key={album.id}
+                  key={headfi.id}
                   type="button"
-                  onClick={() => router.push(`/lyrics/${album.id}`)}
+                  onClick={() => void openHeadfiById(headfi.id)}
                   className="group w-full cursor-pointer text-left"
                 >
                   <div
                     className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
-                    style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}
+                    style={{
+                      boxShadow: 'var(--shadow)',
+                      border: '1px solid var(--border)',
+                      background: 'var(--badge-bg)',
+                    }}
                   >
-                    {album.cover_image_url ? (
-                      <img src={album.cover_image_url} alt="" className="h-full w-full object-cover" />
+                    {headfi.image_url ? (
+                      <img
+                        src={headfi.image_url}
+                        alt="기기"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                     ) : (
-                      <div
-                        className="flex h-full w-full items-center justify-center text-xs opacity-50"
-                        style={{ background: 'var(--badge-bg)' }}
-                      >
-                        No Cover
+                      <div className="flex h-full w-full items-center justify-center text-xs opacity-50">
+                        <Headphones className="size-8 opacity-40" strokeWidth={1.25} aria-hidden />
                       </div>
                     )}
                   </div>
-                  <p className="truncate text-sm font-bold leading-tight">{album.album_name ?? '—'}</p>
-                  <p className="mt-1 truncate text-xs opacity-70">{album.artist ?? '—'}</p>
+                  <p className="truncate text-sm font-bold leading-tight">{headfi.model ?? '—'}</p>
+                  <p className="mt-1 truncate text-xs opacity-70">{headfi.brand ?? '—'}</p>
                 </button>
               ))}
             </div>
@@ -708,47 +903,38 @@ export function DashboardContent({
         </section>
       </div>
 
-      <div className="card-apple mb-8 flex flex-col p-5">
-        <div className="mb-5 flex items-center justify-between pt-0.5">
-          <h3 className="text-[15px] font-semibold">최근 구매 기기</h3>
-          <Link href="/headfi" className="link-apple text-sm">
-            더보기 &rarr;
-          </Link>
-        </div>
-        {recentHeadfi.length === 0 ? (
-          <p className="py-6 text-center text-sm opacity-60">구매한 기기가 없습니다.</p>
-        ) : (
-          <div className={recentHeadfiGridClass}>
-            {recentHeadfi.map((headfi, index) => (
-              <button
-                key={headfi.id}
-                type="button"
-                onClick={() => void openHeadfiById(headfi.id)}
-                className={`group w-full cursor-pointer text-left${index >= 4 ? ' hidden sm:block' : ''}`}
-              >
-                <div
-                  className="relative mb-3 aspect-square overflow-hidden rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
-                  style={{ boxShadow: 'var(--shadow)', border: '1px solid var(--border)', background: 'var(--badge-bg)' }}
-                >
-                  {headfi.image_url ? (
-                    <img
-                      src={headfi.image_url}
-                      alt="기기"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs opacity-50">
-                      <Headphones className="size-8 opacity-40" strokeWidth={1.25} aria-hidden />
-                    </div>
-                  )}
-                </div>
-                <p className="truncate text-sm font-bold leading-tight">{headfi.model ?? '—'}</p>
-                <p className="mt-1 truncate text-xs opacity-70">{headfi.brand ?? '—'}</p>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <AlbumLotteryModal
+        open={randomLotteryOpen}
+        mode="catalog"
+        onClose={() => setRandomLotteryOpen(false)}
+        onAlbumClick={(album) => {
+          setRandomLotteryOpen(false);
+          void openAlbumById(album.id);
+        }}
+      />
+
+      {viewingArtistName ? (
+        <ArtistDetailModal
+          artistName={viewingArtistName}
+          albums={artistModalAlbums}
+          listenHistoryIndex={artistListenHistoryIndex}
+          isAuthenticated={isAuthenticated}
+          onClose={() => setViewingArtistName(null)}
+          onAlbumClick={(album) => {
+            setViewingArtistName(null);
+            setViewingAlbum(album);
+          }}
+          onSelectArtist={setViewingArtistName}
+          onArtistNamesUpdated={({ albumArtistName, recordArtistName, newName }) => {
+            setViewingArtistName(newName);
+            setArtistModalAlbums((prev) =>
+              prev.map((album) =>
+                applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
+              ),
+            );
+          }}
+        />
+      ) : null}
 
       {viewingAlbum ? (
         <AlbumDetailModal
