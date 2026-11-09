@@ -46,6 +46,60 @@ const LISTEN_PANES: { id: ListenPane; label: string }[] = [
   { id: 'analysis', label: 'AI 분석' },
 ];
 
+const EXCELLENT_SCORE = 7;
+
+type PerformanceRadarTooltipProps = {
+  active?: boolean;
+  label?: string | number;
+  payload?: Array<{ dataKey?: string | number; value?: number | string; name?: string }>;
+};
+
+function formatExcellentDelta(score: number): string {
+  const delta = score - EXCELLENT_SCORE;
+  if (delta === 0) return '±0';
+  return delta > 0 ? `+${delta}` : `${delta}`;
+}
+
+function PerformanceRadarTooltip({ active, label, payload }: PerformanceRadarTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const scoreEntry = payload.find((entry) => entry.dataKey === 'value' || entry.name === '점수');
+  const score = Number(scoreEntry?.value);
+  if (!Number.isFinite(score)) return null;
+  const delta = score - EXCELLENT_SCORE;
+  const deltaText = formatExcellentDelta(score);
+
+  return (
+    <div
+      className="min-w-[7.5rem] rounded-lg px-2.5 py-2 shadow-sm"
+      style={{
+        background: 'var(--card-bg)',
+        border: '1px solid var(--border)',
+        color: 'var(--foreground)',
+      }}
+    >
+      <p className="text-[11px] font-medium leading-tight opacity-80">{String(label ?? '')}</p>
+      <p className="mt-1.5 flex items-baseline gap-1.5">
+        <span className="text-[10px] opacity-55">점수</span>
+        <span
+          className="text-base font-bold tabular-nums leading-none"
+          style={{ color: 'var(--radar-tooltip-score)' }}
+        >
+          {score}
+        </span>
+      </p>
+      <p
+        className="mt-1 text-[10px] tabular-nums leading-tight"
+        style={{
+          color: delta > 0 ? 'var(--radar-score)' : 'var(--muted)',
+        }}
+      >
+        우수 기준 {EXCELLENT_SCORE}{' '}
+        <span className={delta > 0 ? 'font-medium' : undefined}>{deltaText}</span>
+      </p>
+    </div>
+  );
+}
+
 function formatReviewFetchedAt(value: string | null): string {
   if (!value?.trim()) return '';
   const date = new Date(value);
@@ -316,23 +370,21 @@ export function HeadfiRadarSection({
                   <Radar
                     name="점수"
                     dataKey="value"
-                    stroke="#005bc1"
-                    fill="#005bc1"
+                    stroke="var(--radar-score)"
+                    fill="var(--radar-score)"
                     fillOpacity={0.25}
                     strokeWidth={2}
                   />
                   <Tooltip
-                    formatter={(value, name) => [value, name === '우수선' ? '7점 우수선' : '점수']}
-                    contentStyle={{
-                      background: 'var(--card-bg)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
+                    content={<PerformanceRadarTooltip />}
+                    wrapperStyle={{ zIndex: 20, outline: 'none' }}
+                    allowEscapeViewBox={{ x: true, y: true }}
                   />
                 </RadarChart>
               </ResponsiveContainer>
-              <p className="-mt-1 text-center text-[11px] leading-none opacity-55">┄ 7점 (우수)</p>
+              <p className="-mt-1 text-center text-[11px] leading-none opacity-55">
+                ┄ 점선 = 우수 기준(7점)
+              </p>
             </div>
           ) : showScoresPane ? (
             <p className="mb-4 text-xs opacity-60">

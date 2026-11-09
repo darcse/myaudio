@@ -568,3 +568,8 @@
 [2026-11-08] [Cursor] feat: 하단② 이달의 리시버·최근구매 2열 | passes: 변경 없음
 [2026-11-08] [Cursor] style: 이달의 리시버 순위 배지 제거 | passes: 변경 없음
 [2026-11-08] [Cursor] style: 대시보드 푸터 위 여백 축소 | passes: 변경 없음
+[2026-11-09] [Cursor] feat: 랜덤 앨범 추천 필터에 장르1·앨범타입·후보수 추가 | passes: 변경 없음
+[2026-11-09] [Cursor] style: 랜덤 추천 앨범 타입을 칩으로 전환, All Time 토글 분리 | passes: 변경 없음
+[2026-11-09] [Cursor] style: 랜덤 추천 결과 레이아웃 압축·버튼 상단 고정 | passes: 변경 없음
+[2026-11-09] [Cursor] style: 랜덤 추천 버튼을 Play/Refresh 원형 아이콘으로 변경 | passes: 변경 없음
+[2026-11-09] [Cursor] style: 헤드파이 레이더 다크 대비·툴팁 문구 개선 | passes: 변경 없음

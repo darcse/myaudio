@@ -224,6 +224,78 @@ export function albumMatchesLibraryConditions(
   return albumMatchesYearFilter(item, yearFilter);
 }
 
+export type AlbumLotteryCatalogTag = '전체' | 'All Time';
+
+export const LOTTERY_CATALOG_TAGS: AlbumLotteryCatalogTag[] = ['전체', 'All Time'];
+
+export const ALL_GENRE1_FILTER = '전체 장르';
+
+export type AlbumLotteryAlbumTypeFilter = '전체' | '정규' | 'EP' | '정규+EP';
+
+export const LOTTERY_ALBUM_TYPE_FILTER_OPTIONS: {
+  value: AlbumLotteryAlbumTypeFilter;
+  label: string;
+}[] = [
+  { value: '전체', label: '전체' },
+  { value: '정규', label: '정규' },
+  { value: 'EP', label: 'EP' },
+  { value: '정규+EP', label: '정규+EP' },
+];
+
+export type CatalogLotteryMatchFilters = {
+  yearFilter: string;
+  tag: AlbumLotteryCatalogTag;
+  genre1Filter: string;
+  albumTypeFilter: AlbumLotteryAlbumTypeFilter;
+};
+
+export function albumMatchesLotteryGenre1(item: Album, genre1Filter: string): boolean {
+  if (!genre1Filter || genre1Filter === ALL_GENRE1_FILTER) return true;
+  const genre1 = item.genre1?.trim() ?? '';
+  if (!genre1) return false;
+  return genre1 === genre1Filter;
+}
+
+export function albumMatchesLotteryAlbumType(
+  item: Album,
+  albumTypeFilter: AlbumLotteryAlbumTypeFilter,
+): boolean {
+  if (albumTypeFilter === '전체') return true;
+  const albumType = item.album_type?.trim() ?? '';
+  if (!albumType) return false;
+  if (albumTypeFilter === '정규') return albumType === 'Album';
+  if (albumTypeFilter === 'EP') return albumType === 'EP';
+  return albumType === 'Album' || albumType === 'EP';
+}
+
+export function albumMatchesCatalogLotteryConditions(
+  item: Album,
+  filters: CatalogLotteryMatchFilters,
+): boolean {
+  if (filters.tag === 'All Time') {
+    if (!albumHasAllTimeYear(item.year)) return false;
+  } else if (!albumMatchesYearFilter(item, filters.yearFilter)) {
+    return false;
+  }
+  if (!albumMatchesLotteryGenre1(item, filters.genre1Filter)) return false;
+  if (!albumMatchesLotteryAlbumType(item, filters.albumTypeFilter)) return false;
+  return true;
+}
+
+export function buildLotteryGenre1Options(
+  rows: Pick<Album, 'genre1'>[],
+): { value: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const genre1 = row.genre1?.trim() ?? '';
+    if (!genre1) continue;
+    counts.set(genre1, (counts.get(genre1) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'en'));
+}
+
 export function getYoutubeId(url: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url?.match(regExp);

@@ -18,6 +18,8 @@
   --match-score-gray-soft: color-mix(in srgb, #9aa0a8 28%, var(--card-bg));
   --app-header-height: 3.5rem;
   --player-inset: 0px;
+  --radar-score: #005bc1;
+  --radar-tooltip-score: #005bc1;
 }
 
 @theme inline {
@@ -45,6 +47,8 @@
     --favorite-heart: #f87171;
     --match-score-gray-strong: color-mix(in srgb, #000000 42%, var(--card-bg));
     --match-score-gray-soft: color-mix(in srgb, #d1d1d6 46%, var(--card-bg));
+    --radar-score: #64b5ff;
+    --radar-tooltip-score: #f5f5f7;
   }
 }
 
@@ -63,6 +67,8 @@
   --favorite-heart: #b91c1c;
   --match-score-gray-strong: color-mix(in srgb, #5c6370 58%, var(--card-bg));
   --match-score-gray-soft: color-mix(in srgb, #9aa0a8 28%, var(--card-bg));
+  --radar-score: #005bc1;
+  --radar-tooltip-score: #005bc1;
 }
 
 :root.theme-dark {
@@ -79,6 +85,8 @@
   --favorite-heart: #f87171;
   --match-score-gray-strong: color-mix(in srgb, #000000 42%, var(--card-bg));
   --match-score-gray-soft: color-mix(in srgb, #d1d1d6 46%, var(--card-bg));
+  --radar-score: #64b5ff;
+  --radar-tooltip-score: #f5f5f7;
 }
 
 body {

@@ -2,17 +2,30 @@ import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type { Album } from './types';
 import {
+  ALL_GENRE1_FILTER,
   ALL_PERIOD_YEAR_FILTER,
-  albumMatchesLibraryConditions,
-  type AlbumLibraryTag,
+  albumMatchesCatalogLotteryConditions,
+  type AlbumLotteryAlbumTypeFilter,
+  type AlbumLotteryCatalogTag,
+  type CatalogLotteryMatchFilters,
 } from './utils';
 
 const SPIN_SELECT = 'id, cover_image_url';
-const FILTER_SELECT = 'id, year, genre1, release_date';
+const FILTER_SELECT = 'id, year, genre1, release_date, album_type';
+
+export type CatalogLotteryFilterRow = {
+  id: number;
+  year: Album['year'];
+  genre1: string | null;
+  release_date: string | null;
+  album_type: string | null;
+};
 
 export type CatalogAlbumLotteryFilters = {
   yearFilter?: string;
-  tag?: AlbumLibraryTag;
+  tag?: AlbumLotteryCatalogTag;
+  genre1Filter?: string;
+  albumTypeFilter?: AlbumLotteryAlbumTypeFilter;
   excludeId?: number;
 };
 
@@ -25,6 +38,10 @@ export type AlbumLotteryDrawResult =
   | { status: 'empty' }
   | { status: 'error'; message: string }
   | { status: 'ok'; winner: Album; spinCovers: AlbumLotterySpinCover[] };
+
+export type CatalogLotteryFilterRowsResult =
+  | { status: 'ok'; rows: CatalogLotteryFilterRow[] }
+  | { status: 'error'; message: string };
 
 export function albumLotteryCoverAsAlbum(cover: AlbumLotterySpinCover): Album {
   return {
@@ -44,12 +61,48 @@ export function albumLotteryCoverAsAlbum(cover: AlbumLotterySpinCover): Album {
   };
 }
 
+function toCatalogMatchFilters(filters: CatalogAlbumLotteryFilters): CatalogLotteryMatchFilters {
+  return {
+    yearFilter: filters.yearFilter || ALL_PERIOD_YEAR_FILTER,
+    tag: filters.tag ?? '전체',
+    genre1Filter: filters.genre1Filter || ALL_GENRE1_FILTER,
+    albumTypeFilter: filters.albumTypeFilter ?? '전체',
+  };
+}
+
+function normalizeFilterRows(rows: unknown[] | null): CatalogLotteryFilterRow[] {
+  const normalized: CatalogLotteryFilterRow[] = [];
+  for (const row of rows ?? []) {
+    const item = row as Partial<CatalogLotteryFilterRow>;
+    const id = Number(item.id);
+    if (!Number.isFinite(id)) continue;
+    normalized.push({
+      id,
+      year: item.year ?? null,
+      genre1: typeof item.genre1 === 'string' ? item.genre1 : null,
+      release_date: typeof item.release_date === 'string' ? item.release_date : null,
+      album_type: typeof item.album_type === 'string' ? item.album_type : null,
+    });
+  }
+  return normalized;
+}
+
+export async function fetchCatalogLotteryFilterRows(): Promise<CatalogLotteryFilterRowsResult> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('album').select(FILTER_SELECT);
+    if (error) return { status: 'error', message: getClientErrorMessage(error) };
+    return { status: 'ok', rows: normalizeFilterRows(data) };
+  } catch (error) {
+    return { status: 'error', message: getClientErrorMessage(error) };
+  }
+}
+
 export async function fetchCatalogAlbumLotteryDraw(
   filters: CatalogAlbumLotteryFilters = {},
 ): Promise<AlbumLotteryDrawResult> {
   try {
-    const yearFilter = filters.yearFilter || ALL_PERIOD_YEAR_FILTER;
-    const tag: AlbumLibraryTag = filters.tag ?? '전체';
+    const matchFilters = toCatalogMatchFilters(filters);
     const supabase = createClient();
     const { data: filterRows, error: filterError } = await supabase
       .from('album')
@@ -57,12 +110,9 @@ export async function fetchCatalogAlbumLotteryDraw(
 
     if (filterError) return { status: 'error', message: getClientErrorMessage(filterError) };
 
-    const matchedIds = (filterRows ?? [])
-      .filter((row) =>
-        albumMatchesLibraryConditions(row as Album, yearFilter, tag),
-      )
-      .map((row) => Number(row.id))
-      .filter((id) => Number.isFinite(id));
+    const matchedIds = normalizeFilterRows(filterRows)
+      .filter((row) => albumMatchesCatalogLotteryConditions(row as Album, matchFilters))
+      .map((row) => row.id);
 
     const candidateIds =
       filters.excludeId != null && matchedIds.length > 1
