@@ -16,7 +16,7 @@ alwaysApply: true
 
 1. `HARNESS.md` — 하네스 운용 규칙
 2. `CONVENTIONS.md` — 프로젝트 스택 및 도메인 규칙
-3. `Codex-progress.txt` — 이전 세션 작업 내용
+3. `TASK.json`과 `docs/tasks/`의 최근 파일 — 현재·이전 작업 내용
 4. `feature_list/` — 현재 passes: false 항목 파악
 
 ---
@@ -30,7 +30,6 @@ alwaysApply: true
 - passes 변경 후 grep으로 실제 저장 여부 반드시 확인
 - 개발 서버 보호 절을 따른다
 - 실행 중인 개발 서버가 쓰는 `.next`를 덮어쓰는 `npm run build`는 쓰지 않는다. Next 컴파일 검증은 `npm run build:check`만 사용한다
-- 작업 후 Codex-progress.txt에 한 줄로 업데이트
 - 전체 파일 재작성 금지 — 변경되는 부분만 최소 수정
 - 주석 추가 금지
 - Playwright 사용 금지 — 브라우저 테스트는 수동 확인
@@ -119,3 +118,19 @@ YYMMDD_HHMM (type): 설명
 - Gemini 응답이 markdown 코드블록으로 감싸진 경우 파싱 전 제거 처리
 - `withRetry` 헬퍼로 429/503 에러 처리
 - 프로젝트별 추가 AI 규칙은 CONVENTIONS.md 참조
+
+---
+
+## Task handoff (TASK.json)
+
+- 작업 지시는 레포 루트의 `TASK.json`에 있다. "TASK.json 읽고 구현해"라는 요청을 받으면 `goal`, `context`, `scope`, `done`을 읽고 그대로 구현한다.
+- `goal`·`context`·`scope`·`done`은 수정하지 않는다. 갱신하는 필드는 `status`와 `result`뿐이다. 착수 시 `in_progress`, 완료 시 `done`, 막히면 `blocked`와 이유를 기록한다.
+- `result`에는 변경 요약, 건너뛴 항목과 이유, 검증 결과(`npx tsc --noEmit`, `npm run lint`, 필요 시 `npm run build:check`), `git diff --stat` 요약을 적는다. `npm run build`는 쓰지 않는다.
+- TASK.json 작업에서는 `git add`/`commit`/`push`를 하지 않는다. 위 Git 규칙의 "main 직접 커밋 & 푸시"보다 이 규칙이 우선한다.
+- `scope.out`에 해당하는 수정이 필요해 보이면 변경하지 말고 `result`에 보고한다.
+- `done` 항목을 모두 만족하지 못하면 `blocked`로 기록한다.
+- 지시보다 나은 설계나 놓친 리스크가 보이면 반박하고 대안을 제안한다.
+- `TASK.json`은 작업 1건만 담는다. 새 작업을 쓰기 전에 기존 내용을 `docs/tasks/{id}.json`으로 복사해 보관한 뒤 덮어쓴다. 보관 파일은 수정하지 않는다.
+- 새 기능 작업은 `feature_id`로 `feature_list/` 항목과 연결한다. 기능 스펙은 feature_list가 원본이다. `passes`는 JW가 갱신하며 에이전트는 건드리지 않는다. 위 절대 규칙의 "passes 변경은 Claude Code만 한다"보다 이 규칙이 우선한다.
+- mybooks 전용 테이블(books, comics, photobook, book_highlights, book_stats_comments)은 건드리지 않는다. 공용 요소(auth.users, RLS, monthly_review_comments) 변경이 필요하면 구현하지 말고 `result`에 보고한다.
+- window.confirm / alert / prompt는 사용하지 않는다(Tauri 웹뷰). 인라인 확인 UI를 쓴다.
