@@ -1,8 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import {
-  resolveAnthropicLyricsTranslateModel,
-  resolveAnthropicThinkingOff,
-} from '@/lib/aiModels';
+import { resolveAnthropicLyricsTranslateModel } from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import type { TranslatedLine } from '@/app/lyrics/types';
 
@@ -28,6 +25,16 @@ function normalizeTranslatedTitle(original: string, translated: unknown): string
   return value;
 }
 
+function logTranslateFailure(reason: string, error?: unknown): void {
+  const err = error as { name?: string; message?: string; status?: number } | undefined;
+  console.error('[lyrics-translate]', {
+    reason,
+    name: error instanceof Error ? error.name : err?.name,
+    message: error instanceof Error ? error.message : typeof err?.message === 'string' ? err.message : undefined,
+    status: typeof err?.status === 'number' ? err.status : undefined,
+  });
+}
+
 const SYSTEM = `당신은 일본·영미 팝 가사를 한국어로 옮기는 전문 번역가다.
 웹에서 가사를 검색·보완하지 않는다. 사용자가 준 원문만 사용한다.
 일본어 줄의 phonetic은 반드시 한글 발음만 쓴다(히라가나·가타카나·로마자 금지).`;
@@ -41,14 +48,20 @@ export async function translateLyricsLines(
   translatedTitle: string | null;
 } | null> {
   const raw = lyricsText.replace(/\r\n/g, '\n').trim();
-  if (!raw) return null;
+  if (!raw) {
+    logTranslateFailure('empty_lyrics');
+    return null;
+  }
 
   const sourceLines = raw
     .split('\n')
     .map((l) => l.trimEnd())
     .filter((l, i, arr) => !(l.trim() === '' && (i === 0 || i === arr.length - 1)));
 
-  if (sourceLines.length === 0) return null;
+  if (sourceLines.length === 0) {
+    logTranslateFailure('empty_source_lines');
+    return null;
+  }
 
   const numbered = sourceLines.map((line, i) => `${i + 1}|${line}`).join('\n');
   const likelyJa = looksJapanese(raw);
@@ -101,7 +114,7 @@ ${numbered}
       client.messages.create({
         model,
         max_tokens: 8192,
-        thinking: resolveAnthropicThinkingOff(model) as { type: 'disabled' },
+        thinking: { type: 'disabled' },
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -109,13 +122,19 @@ ${numbered}
     const textBlock = message.content.find((block) => block.type === 'text');
     const text = textBlock?.type === 'text' ? textBlock.text.trim() : '';
     const jsonRaw = extractJsonObjectFromText(text);
-    if (!jsonRaw) return null;
+    if (!jsonRaw) {
+      logTranslateFailure('json_extract_failed');
+      return null;
+    }
     const parsed = JSON.parse(jsonRaw) as {
       language?: unknown;
       trackTitleTranslation?: unknown;
       lines?: unknown;
     };
-    if (!Array.isArray(parsed.lines)) return null;
+    if (!Array.isArray(parsed.lines)) {
+      logTranslateFailure('lines_not_array');
+      return null;
+    }
 
     const lines: TranslatedLine[] = [];
     for (let i = 0; i < sourceLines.length; i++) {
@@ -139,7 +158,8 @@ ${numbered}
     const language = typeof parsed.language === 'string' ? parsed.language.trim() : null;
     const translatedTitle = normalizeTranslatedTitle(trackTitle ?? '', parsed.trackTitleTranslation);
     return { lines, language: language || (likelyJa ? 'ja' : null), translatedTitle };
-  } catch {
+  } catch (error) {
+    logTranslateFailure('api_or_parse_catch', error);
     return null;
   }
 }

@@ -12,17 +12,26 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const lyricsText = typeof body.lyricsText === 'string' ? body.lyricsText : '';
     const trackTitle = typeof body.trackTitle === 'string' ? body.trackTitle : '';
+    console.info('[lyrics-translate]', { step: 'enter', lyricsLength: lyricsText.length });
     if (!lyricsText.trim()) {
       return NextResponse.json({ error: '가사 텍스트는 필수입니다.' }, { status: 400 });
     }
 
     const result = await translateLyricsLines(lyricsText, trackTitle);
     if (!result) {
+      console.error('[lyrics-translate]', { reason: 'translate_null' });
       return NextResponse.json({ error: '번역에 실패했습니다.' }, { status: 502 });
     }
 
     return NextResponse.json(result);
   } catch (e) {
+    const err = e as { name?: string; message?: string; status?: number };
+    console.error('[lyrics-translate]', {
+      reason: 'route_catch',
+      name: e instanceof Error ? e.name : err?.name,
+      message: e instanceof Error ? e.message : typeof err?.message === 'string' ? err.message : '번역 실패',
+      status: typeof err?.status === 'number' ? err.status : undefined,
+    });
     const message = e instanceof Error ? e.message : '번역 실패';
     return NextResponse.json({ error: message }, { status: 500 });
   }

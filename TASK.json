@@ -1,0 +1,29 @@
+{
+  "id": "T-002",
+  "goal": "가사 번역 실패 시 Vercel 로그에서 원인을 볼 수 있게 하고, 번역 호출의 thinking 설정을 SDK에서 유효한 값으로 고정해 배포 환경의 번역 실패를 해소한다.",
+  "context": "T-001 조사 결과는 docs/tasks/T-001.json의 result에 있다. 요약: 번역 실패 토스트는 /api/lyrics-translate의 502 고정 문구이고, 번역 함수의 catch가 모든 예외를 null로 삼켜 원인이 사라진다. 유력 원인은 2026-10-21 커밋(6cb8fce)에서 들어간 thinking { type: 'between_tools' }이나 아직 미확정이다(SDK 0.112.4 타입은 enabled|disabled|adaptive). 배포 Vercel 로그에는 번역 요청 행이 보이지 않아 요청이 라우트에 도달하는지도 불명이다. 대상: src/app/api/lyrics-translate/route.ts, src/lib/anthropicLyricsTranslate.ts(messages.create 호출부와 catch, null 반환 지점). 기본안: (1) 라우트 진입 시 로그 1줄(가사 길이만, 원문 제외). (2) 번역 함수의 모든 null 반환·catch 지점에 구분 가능한 사유 태그와 함께 console.error(에러 name, message, status). 이 로그 형식은 기존 코드의 [album-enrichment]처럼 [lyrics-translate] 접두어를 쓴다. (3) 번역의 messages.create에서만 thinking을 { type: 'disabled' }로 고정. 공용 헬퍼 resolveAnthropicThinkingOff와 aiModels.ts는 headfi도 쓰므로 수정하지 않는다. 더 나은 설계가 있으면 근거와 함께 제안한다. 클라이언트에 노출되는 에러 문구와 응답 형식(502 고정 문구)은 바꾸지 않는다.",
+  "scope": {
+    "in": [
+      "src/app/api/lyrics-translate/route.ts의 진입·에러 로그 추가",
+      "src/lib/anthropicLyricsTranslate.ts의 null 반환·catch 지점 로그 추가와 thinking 고정"
+    ],
+    "out": [
+      "src/lib/aiModels.ts 및 resolveAnthropicThinkingOff 수정",
+      "anthropicHeadfi.ts 등 headfi 관련 파일",
+      "UI(LyricsEditContent.tsx)와 클라이언트 에러 문구·응답 형식 변경",
+      "환경변수·Vercel 설정·Supabase 스키마·의존성 변경",
+      "로그에 API 키, 환경변수 값, 가사 원문 출력",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "라우트 진입 시 [lyrics-translate] 접두어 로그가 1줄 남고, 가사 원문은 포함하지 않는다",
+    "번역 함수의 모든 null 반환·catch 지점이 서로 구분되는 사유 태그와 함께 console.error로 남고, 에러 name·message·status 외에 키·환경변수 값·가사 원문은 포함하지 않는다",
+    "번역의 messages.create가 thinking: { type: 'disabled' }를 사용하고, aiModels.ts는 diff에 없다",
+    "클라이언트에 반환되는 상태 코드와 에러 문구는 기존과 동일하다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "## 변경 요약\n- `route.ts`: 진입 시 `console.info('[lyrics-translate]', { step:'enter', lyricsLength })`. null→502 전 `translate_null`, catch 시 `route_catch`(+name/message/status). 401/400/502/500 문구·코드 동일.\n- `anthropicLyricsTranslate.ts`: `thinking: { type: 'disabled' }` 고정. `resolveAnthropicThinkingOff` import 제거. null/catch 사유 태그: `empty_lyrics`, `empty_source_lines`, `json_extract_failed`, `lines_not_array`, `api_or_parse_catch`.\n- `aiModels.ts` 미변경.\n\n## 건너뛴 항목\n없음.\n\n## 검증\n- `npx tsc --noEmit` 통과\n- `npm run lint` 통과\n- `git diff --name-only`: route.ts, anthropicLyricsTranslate.ts (+ TASK.json). aiModels.ts 없음.\n\n## 제안(미적용)\nheadfi도 동일 `between_tools` 경로라 같은 실패 가능. 공용 헬퍼는 이번 scope out이라 번역만 고정함. headfi는 별도 태스크 권장.\n\n## git\ncommit/push 하지 않음 (scope out)."
+}
