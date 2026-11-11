@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { resolveAnthropicLyricsTranslateModel } from '@/lib/aiModels';
+import {
+  resolveAnthropicLyricsTranslateModel,
+  resolveAnthropicThinkingOff,
+} from '@/lib/aiModels';
 import { extractJsonObjectFromText, withRetry } from '@/lib/aiRetry';
 import type { TranslatedLine } from '@/app/lyrics/types';
 
@@ -25,13 +28,22 @@ function normalizeTranslatedTitle(original: string, translated: unknown): string
   return value;
 }
 
-function logTranslateFailure(reason: string, error?: unknown): void {
+function logTranslateFailure(
+  reason: string,
+  error?: unknown,
+  extras?: {
+    stopReason?: string | null;
+    contentBlockTypes?: string[];
+    textLength?: number;
+  },
+): void {
   const err = error as { name?: string; message?: string; status?: number } | undefined;
   console.error('[lyrics-translate]', {
     reason,
     name: error instanceof Error ? error.name : err?.name,
     message: error instanceof Error ? error.message : typeof err?.message === 'string' ? err.message : undefined,
     status: typeof err?.status === 'number' ? err.status : undefined,
+    ...(extras ?? {}),
   });
 }
 
@@ -114,16 +126,25 @@ ${numbered}
       client.messages.create({
         model,
         max_tokens: 8192,
-        thinking: { type: 'disabled' },
+        thinking: resolveAnthropicThinkingOff(model) as { type: 'disabled' },
         system: SYSTEM,
         messages: [{ role: 'user', content: prompt }],
       }),
     );
+    const responseShape = {
+      stopReason: message.stop_reason ?? null,
+      contentBlockTypes: message.content.map((block) => block.type),
+      textLength: 0,
+    };
     const textBlock = message.content.find((block) => block.type === 'text');
     const text = textBlock?.type === 'text' ? textBlock.text.trim() : '';
+    responseShape.textLength = text.length;
     const jsonRaw = extractJsonObjectFromText(text);
     if (!jsonRaw) {
-      logTranslateFailure('json_extract_failed');
+      logTranslateFailure('json_extract_failed', undefined, responseShape);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[lyrics-translate]', { reason: 'json_extract_failed_text', text });
+      }
       return null;
     }
     const parsed = JSON.parse(jsonRaw) as {
@@ -132,7 +153,7 @@ ${numbered}
       lines?: unknown;
     };
     if (!Array.isArray(parsed.lines)) {
-      logTranslateFailure('lines_not_array');
+      logTranslateFailure('lines_not_array', undefined, responseShape);
       return null;
     }
 
