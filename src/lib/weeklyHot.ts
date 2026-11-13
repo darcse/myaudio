@@ -1,6 +1,7 @@
 import type { Album } from '@/app/albums/types';
 import {
   buildAlbumListenRankings,
+  isVariousArtistName,
   type AlbumListenRankItem,
 } from '@/app/albums/stats/albumListenStats';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
@@ -32,11 +33,6 @@ export type WeeklyHotSnapshot = {
 };
 
 type HistoryRow = { album_id: number | null; listened_at: string | null };
-
-function isVariousArtistName(name: string): boolean {
-  const normalized = name.trim().toLowerCase().replace(/\s+/g, ' ');
-  return normalized === 'various artist' || normalized === 'various artists';
-}
 
 function parseListenedAtMs(listenedAt: string): number | null {
   const trimmed = listenedAt.trim();

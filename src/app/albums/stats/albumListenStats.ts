@@ -12,6 +12,11 @@ export const GEAR_LISTEN_RANKING_LIMIT = 10;
 export const PERIOD_RANKING_LIMIT_ALL_MONTHS = 20;
 export const LISTEN_TREND_WEEK_COUNT = 12;
 
+export function isVariousArtistName(name: string): boolean {
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, ' ');
+  return normalized === 'various artist' || normalized === 'various artists';
+}
+
 export type ListenTrendUnit = 'year' | 'month' | 'week';
 
 export type ListenTrendPoint = {
@@ -514,7 +519,7 @@ export function buildArtistListenRankings(
     const entry = index.get(album.id);
     if (!entry || entry.count <= 0) continue;
     const name = album.artist?.trim();
-    if (!name) continue;
+    if (!name || isVariousArtistName(name)) continue;
 
     const prev = artistMap.get(name) ?? {
       listenCount: 0,
