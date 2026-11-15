@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { COMPOSER_ERA_OPTIONS } from '@/app/albums/constants';
 import type { ArtistSummary } from '../types';
 import { matchesArtistNameSearch } from '../utils';
 
@@ -12,6 +13,18 @@ export const ARTIST_SORT_OPTIONS: { value: ArtistSortOption; label: string }[] =
   { value: 'albumDesc', label: '앨범 많은 순' },
   { value: 'albumAsc', label: '앨범 적은 순' },
 ];
+
+function compareComposerEraOptions(a: string, b: string): number {
+  const order = COMPOSER_ERA_OPTIONS as readonly string[];
+  const ia = order.indexOf(a);
+  const ib = order.indexOf(b);
+  const aKnown = ia >= 0;
+  const bKnown = ib >= 0;
+  if (aKnown && bKnown) return ia - ib;
+  if (aKnown) return -1;
+  if (bKnown) return 1;
+  return a.localeCompare(b, 'ko');
+}
 
 function sortArtists(artists: ArtistSummary[], sortOption: ArtistSortOption): ArtistSummary[] {
   const sorted = [...artists];
@@ -78,7 +91,7 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     for (const artist of summaries) {
       if (artist.era?.trim()) set.add(artist.era.trim());
     }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ko'));
+    return Array.from(set).sort(compareComposerEraOptions);
   }, [summaries]);
 
   const genre2Tags = useMemo((): Genre2Tag[] => {
