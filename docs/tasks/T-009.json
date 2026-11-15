@@ -1,0 +1,31 @@
+{
+  "id": "T-009",
+  "feature_id": "GEAR-048",
+  "goal": "헤드파이 매칭맵의 헤드폰·이어폰 행에서 '전체 매칭'을 실행하면, 해당 기기와 등록된 모든 매칭 조합의 점수가 순차 채점되어 맵에 반영된다.",
+  "context": "스펙 원본은 feature_list/GEAR.json의 GEAR-048이다. 현재 구조 조사 결과는 docs/tasks/T-008.json의 result에 있다. 요약: 매칭맵(MatchMapTab)은 행=보유 유선 헤드폰·이어폰, 열=매칭 조합이며 headfi_match_cache를 읽는다. 빈 셀 클릭 시 POST /api/headfi-match-score { comboId, targetGearId, force? }로 1셀만 채점하는 경로가 이미 있고, 캐시가 있으면 AI를 건너뛰고 force면 덮어쓴다. 요청 1회당 AI 1콜이다. 셀 분석 성공 시 맵 전체 refetch 없이 로컬 state만 갱신한다. 이 구조를 재사용해 서버·DB 변경 없이 화면에서 처리하는 것이 기본안이다. 결정 사항: (1) 위치는 매칭맵 각 헤드폰·이어폰 행의 '전체 매칭' 버튼이다. (2) 대상은 맵에 표시되는 조합(열) 전체이며, 이미 점수가 있는 셀은 건너뛰는 것이 기본이고 '재채점 포함' 옵션을 켜면 force로 덮어쓴다. 재확인 UI가 필요하면 인라인으로 하고 window.confirm / alert / prompt는 쓰지 않는다(Tauri 웹뷰). (3) 실행은 조합을 하나씩 순차 호출하며 진행 n/N 표시, 중단 버튼(이미 완료된 셀 유지), 실패 셀 집계와 실패분만 재시도를 제공한다. 분석이 불가능한 조합(기기 정보 누락 등)은 실패로 집계하고 계속 진행한다. 실행 중 같은 행 중복 실행을 막고, 다른 행 동시 실행 허용 여부는 에이전트가 판단해 result에 적는다. 기존 단건 호출 코드를 최대한 재사용하고 중복 구현하지 않는다. 기존 셀 클릭 분석 동작은 유지한다. 서버 API 수정이 꼭 필요해 보이면 구현하지 말고 이유와 함께 result에 보고한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "매칭맵 헤드폰·이어폰 행의 '전체 매칭' 버튼, 순차 실행·진행 표시·중단·실패 재시도·재채점 옵션",
+      "기존 단건 채점 호출(/api/headfi-match-score)을 재사용하는 화면 쪽 오케스트레이션"
+    ],
+    "out": [
+      "채점 프롬프트·모델·점수 로직 변경(analyzeHeadfiMatchScore, openaiHeadfi.ts 등)",
+      "headfi_match_cache 스키마·DB·SQL 변경(필요해 보이면 변경하지 말고 보고)",
+      "매칭 조합 모달(HeadfiMatchScoreModal)과 /headfi/match 앨범 추천 화면",
+      "기존 빈 셀 클릭 단건 분석 동작 변경",
+      "feature_list의 passes 변경",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "매칭맵의 각 헤드폰·이어폰 행에 '전체 매칭' 버튼이 있고, 누르면 점수가 없는 셀이 조합 순서대로 하나씩 채점되어 완료되는 즉시 맵에 반영된다",
+    "진행 n/N이 표시되고, 중단하면 이후 호출이 멈추며 완료된 셀은 유지된다",
+    "이미 점수가 있는 셀은 기본적으로 AI 호출 없이 건너뛰고, '재채점 포함' 옵션을 켜면 덮어쓴다",
+    "실패한 셀은 개수가 표시되고 실패분만 다시 실행할 수 있으며, 일부 실패해도 나머지 셀은 계속 진행된다",
+    "조합이 없거나 새로 채점할 셀이 없을 때의 안내, 실행 중 같은 행 중복 실행 방지가 동작한다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "MatchMapTab에 행별 '전체 매칭' 오케스트레이션 추가. 기존 analyzeCell → POST /api/headfi-match-score 단건 경로를 재사용(서버·DB 변경 없음). 기본은 캐시 없는 셀만 순차 호출, '재채점 포함' 체크 시 force. 진행 n/N·중단(완료 셀 유지)·실패 N개 재시도. 같은 행 중복 실행 차단. 다른 행 동시 실행은 허용(행별 abort/progress 독립, API도 셀 단위). 조합 없음·채점할 셀 없음은 toast 안내. 셀 클릭 단건 분석은 유지. 검증: npx tsc --noEmit·npm run lint 통과. git diff --stat: MatchMapTab.tsx 1 file. passes·git commit/push 미수행(scope.out)."
+}

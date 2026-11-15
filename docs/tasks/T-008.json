@@ -1,0 +1,27 @@
+{
+  "id": "T-008",
+  "goal": "헤드파이 '기기 매칭 > 매칭 조합' 기능의 현재 구조를 코드 근거로 파악해 result에 보고한다. 목적은 '헤드폰/이어폰 1개를 선택해 등록된 모든 매칭 조합과 매칭·채점하고 매칭맵에 반영'하는 반대 방향 기능을 설계하기 위한 사전 조사이며, 이번 작업은 조사만 하고 코드를 수정하지 않는다.",
+  "context": "현재 동작(JW 설명): 헤드파이 > 기기 매칭 > 매칭 조합에서, JW가 저장해 둔 DAC·AMP 조합을 선택해 실행하면 헤드폰/이어폰과의 매칭 점수가 매겨지고 그 결과가 매칭맵에 반영된다. 추가하려는 기능은 반대 방향으로, 등록된 헤드폰 또는 이어폰 1개를 선택하고 매칭을 누르면 등록된 모든 매칭 조합과 매칭·채점하여 매칭맵에 반영하는 것이다. 관련 코드(헤드파이 기기 매칭 화면, 매칭 조합 저장·실행, 채점 API Route와 AI 호출, 점수 저장 테이블, 매칭맵 데이터 조회와 렌더)는 에이전트가 직접 찾는다. 테이블·컬럼명·id 타입은 추측하지 말고 코드(쿼리, 타입 정의, 마이그레이션 파일 등)에서 확인한 것만 적는다. DB 실데이터는 조회하지 않는다. 코드에서 확인되지 않은 내용은 확인하지 못했다고 구분해서 적는다. 설계 제안은 요청하지 않지만, 반대 방향 구현 시 재사용 가능한 부분과 새로 필요한 부분이 보이면 사실 위주로 적는다.",
+  "scope": {
+    "in": [
+      "헤드파이 기기 매칭·매칭 조합·매칭맵 관련 코드 읽기",
+      "result에 조사 보고 작성(status는 done으로 갱신)"
+    ],
+    "out": [
+      "코드·설정·DB·스키마·환경변수 수정",
+      "DB 실데이터 조회",
+      "result에 API 키, 환경변수 값 포함",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "result에 다음이 file:line 근거와 함께 정리되어 있다: 1) 현재 매칭 조합 실행 흐름(UI 진입 → API → AI 채점 → 저장 → 매칭맵 반영), 2) 점수 저장 테이블과 컬럼, 쌍을 식별하는 키(조합 id·기기 id의 타입 포함)와 이미 점수가 있는 쌍을 다시 실행할 때의 동작(덮어쓰기·건너뛰기·중복 생성 중 무엇인지), 3) 채점 호출 방식(순차·병렬, 1쌍당 호출 수, 프롬프트 입력이 되는 조합·기기 데이터, 사용 모델), 4) 에러·재시도·진행 표시·중단 처리와 서버 함수 시간 제한(maxDuration 등) 대응 여부, 5) 매칭맵이 점수를 읽는 방식(저장된 점수를 조회하는지, 실행 결과를 따로 캐시하는지)과 기기·조합 축 구성, 6) 헤드폰·이어폰 선택 UI가 이미 존재하는지와 매칭 조합 화면의 현재 구성",
+    "반대 방향(기기 1개 × 모든 조합) 구현 시 현재 코드에서 그대로 재사용할 수 있는 부분과 새로 필요한 부분이 사실 위주로 구분되어 있다",
+    "코드에서 확인되지 않은 내용이 별도 항목으로 분리되어 있다",
+    "result가 간결하다(약 60줄 이내, 핵심 시그니처 외 코드 블록 없음)",
+    "git diff에 TASK.json 외 변경이 없다"
+  ],
+  "status": "done",
+  "result": "## 1) 실행 흐름\n- 진입: Headfi 라이브러리 → `HeadfiMatchScoreModal`(탭「매칭 조합」/`조합 관리`) (`HeadfiLibraryContent.tsx` ~L872; 모달 L58–239).\n- 실행: 조합 select →「매칭」→ `POST /api/headfi-match-score` `{ comboId, force? }` (모달 L111–145).\n- API (`route.ts` L119–328): 조합·보유 기기 로드 → (캐시 히트 시 AI 생략) → `analyzeHeadfiMatchScore` → `headfi_match_cache` delete+insert → TOP5 JSON.\n- 매칭맵: `/headfi/map`「매칭맵」탭이 같은 캐시 테이블을 읽어 히트맵 표시. 빈 셀 클릭 시 `{ comboId, targetGearId, force? }`로 1셀 분석 (`MatchMapTab.tsx` L150–205, L402–417).\n\n## 2) 저장·키·재실행\n- 테이블 `headfi_match_cache`. insert 컬럼: `combo_id`(string), `base_gear_id`(number=`select1_id`), `target_gear_id`(number=HP id), `drive`/`synergy`/`genre`(number), `comment`(string) (route L285–307).\n- UNIQUE(`combo_id`,`target_gear_id`) — `GEAR-039-match-cache-combo-unique.sql` L20–22.\n- 조합: `headfi_combos` — `id: string`, `select1_id`/`select2_id: number|null` (`types.ts` L162–168).\n- 재실행: `force!==true`이고 캐시 있으면 **AI 건너뛰고 캐시 반환**(단건 L212–219, 조합 전체 L222–226). `force===true`면 해당 행(들) 삭제 후 재채점·insert(덮어쓰기) (L233–251, L295–307). 중복 insert는 unique로 막음.\n\n## 3) 채점 호출\n- 요청 1회당 OpenAI **1콜**(`analyzeHeadfiMatchScore`, `openaiHeadfi.ts` L21–92). 모델: `resolveOpenAIMatchScoreModel()` → env `OPENAI_MATCH_SCORE_MODEL` 또는 기본 `gpt-5.4-mini` (`aiModels.ts` L7–8, L21–22).\n- 모달(전체): 후보=`pickCandidates(보유 유선HP/IEM, 20)` 셔플 후 최대 20대 — **전수 아님** (`route.ts` L261–263; `headfiMatchScore.ts` L155–157).\n- 맵 셀: `targetGearId` 지정 시 후보 1대만 (L254–260).\n- 프롬프트 입력: 조합 `buildComboBaseForPrompt(select1,select2)` + 후보 라인/청음·FR 컨텍스트 (`route.ts` L265–276).\n- 병렬 배치 루프 없음(한 요청=한 AI).\n\n## 4) 에러·진행·제한\n- UI: 모달/셀 스피너·toast. Abort/취소 API 없음. `withRetry`는 429/503만 (`aiRetry.ts`).\n- `headfi-match-score`에 `maxDuration` **없음**. vercel.json도 regions만.\n\n## 5) 매칭맵\n- `HeadfiMapContent`가 `headfi_match_cache`(+ active combos) 조회 후 props로 전달 (L37–65, L125–129). 별도 실행 결과 캐시 스토어 없음. 셀 분석 성공 시 로컬 state만 갱신(맵 전체 refetch 없음) (`MatchMapTab` L192–197).\n- 축: 행=보유 유선 헤드폰·이어폰(`headfi.id` number), 열=`headfi_combos` (L252–262, L359–368).\n\n## 6) UI 구성\n- 매칭 조합 모달: 조합 선택 + 매칭/재분석 + TOP5 결과. HP 선택 UI **없음**(설명문만, 모달 L220–222).\n- HP 선택 UI는 (a) 매칭맵 행/셀, (b) `/headfi/match` 앨범 추천용 DAC+HP 선택(`HeadfiMatchContent.tsx` L113–159) — 후자는 앨범 API로 점수 캐시와 무관.\n\n## 반대 방향: 재사용 vs 신규\n- 재사용: `/api/headfi-match-score`의 `comboId`+`targetGearId`(+`force`), `analyzeHeadfiMatchScore`, `headfi_match_cache` 스키마·맵 렌더.\n- 신규: HP 1개 고르고 **모든 조합**을 돌리는 UI/오케스트레이션(현재는 조합→다수 HP 또는 1셀). 모달「매칭」은 랜덤 20대만이라 전수·역방향과 다름. 조합 수×순차 호출 시 타임아웃·진행/중단 UX 없음.\n\n## 확인하지 못함\n- `headfi_match_cache` CREATE 전체 DDL(코드에 unique 전환 SQL·insert 컬럼만).\n- 배포 실제 maxDuration/요금제. DB 실데이터.\n\n## 검증\ngit diff: TASK.json만."
+}

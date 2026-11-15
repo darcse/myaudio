@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,12 +40,20 @@ type SelectedCell = {
   comment: string;
 };
 
+type RowBatchState = {
+  running: boolean;
+  current: number;
+  total: number;
+  failedComboIds: string[];
+  force: boolean;
+};
+
 type CategoryFilter = '전체' | '헤드폰' | '이어폰';
 
 const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
 const COMBO_HEADER_MIN_WIDTH = '5.5rem';
-const ROW_LABEL_COL_WIDTH = '8rem';
+const ROW_LABEL_COL_WIDTH = '10rem';
 
 const HEATMAP_SCROLL_MAX_HEIGHT = 'min(80dvh, 48rem)';
 
@@ -133,6 +141,13 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
   const [cache, setCache] = useState<CacheRow[]>(matchCache);
   const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
+  const [rowBatchByHp, setRowBatchByHp] = useState<Record<number, RowBatchState>>({});
+  const [includeRescoreByHp, setIncludeRescoreByHp] = useState<Record<number, boolean>>({});
+  const abortBatchHpIdsRef = useRef<Set<number>>(new Set());
+  const rowBatchByHpRef = useRef(rowBatchByHp);
+  rowBatchByHpRef.current = rowBatchByHp;
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   useEffect(() => {
     setCache(matchCache);
@@ -148,7 +163,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
   }, []);
 
   const analyzeCell = useCallback(
-    async (combo: HeadfiCombo, hp: Headfi, force = false) => {
+    async (combo: HeadfiCombo, hp: Headfi, force = false, silent = false) => {
       if (!isAuthenticated) return null;
       const key = cellKey(combo.id, hp.id);
       setCellLoading(key, true);
@@ -173,12 +188,12 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
           }[];
         };
         if (!res.ok) {
-          toast.error(data.error || '궁합 분석에 실패했습니다.');
+          if (!silent) toast.error(data.error || '궁합 분석에 실패했습니다.');
           return null;
         }
         const result = data.results?.find((row) => row.gear_id === hp.id) ?? data.results?.[0];
         if (!result) {
-          toast.error('궁합 분석에 실패했습니다.');
+          if (!silent) toast.error('궁합 분석에 실패했습니다.');
           return null;
         }
         const row: CacheRow = {
@@ -197,7 +212,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
         });
         return row;
       } catch {
-        toast.error('궁합 분석에 실패했습니다.');
+        if (!silent) toast.error('궁합 분석에 실패했습니다.');
         return null;
       } finally {
         setCellLoading(key, false);
@@ -205,6 +220,93 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
     },
     [isAuthenticated, setCellLoading],
   );
+
+  const runRowBatch = useCallback(
+    async (hp: Headfi, options: { force: boolean; onlyFailed?: boolean }) => {
+      if (!isAuthenticated) {
+        toast.error('로그인이 필요합니다.');
+        return;
+      }
+      if (combos.length === 0) {
+        toast.error('등록된 조합이 없습니다.');
+        return;
+      }
+      if (rowBatchByHpRef.current[hp.id]?.running) return;
+
+      const currentCache = cacheRef.current;
+      const prevFailed = rowBatchByHpRef.current[hp.id]?.failedComboIds ?? [];
+      let targets: HeadfiCombo[];
+      if (options.onlyFailed) {
+        targets = combos.filter((combo) => prevFailed.includes(combo.id));
+      } else if (options.force) {
+        targets = [...combos];
+      } else {
+        targets = combos.filter((combo) => !findCacheEntry(currentCache, combo.id, hp.id));
+      }
+
+      if (targets.length === 0) {
+        toast.info(options.onlyFailed ? '재시도할 실패 셀이 없습니다.' : '새로 채점할 셀이 없습니다.');
+        return;
+      }
+
+      abortBatchHpIdsRef.current.delete(hp.id);
+      setRowBatchByHp((prev) => ({
+        ...prev,
+        [hp.id]: {
+          running: true,
+          current: 0,
+          total: targets.length,
+          failedComboIds: options.onlyFailed ? [] : prev[hp.id]?.failedComboIds ?? [],
+          force: options.force,
+        },
+      }));
+
+      const failedComboIds: string[] = [];
+      for (let i = 0; i < targets.length; i += 1) {
+        if (abortBatchHpIdsRef.current.has(hp.id)) break;
+        const combo = targets[i];
+        setRowBatchByHp((prev) => ({
+          ...prev,
+          [hp.id]: {
+            running: true,
+            current: i + 1,
+            total: targets.length,
+            failedComboIds: prev[hp.id]?.failedComboIds ?? [],
+            force: options.force,
+          },
+        }));
+        const row = await analyzeCell(combo, hp, options.force, true);
+        if (!row) failedComboIds.push(combo.id);
+      }
+
+      const aborted = abortBatchHpIdsRef.current.has(hp.id);
+      abortBatchHpIdsRef.current.delete(hp.id);
+      setRowBatchByHp((prev) => ({
+        ...prev,
+        [hp.id]: {
+          running: false,
+          current: aborted
+            ? (prev[hp.id]?.current ?? targets.length)
+            : targets.length,
+          total: targets.length,
+          failedComboIds,
+          force: options.force,
+        },
+      }));
+      if (aborted) {
+        toast.info('전체 매칭을 중단했습니다. 완료된 셀은 유지됩니다.');
+      } else if (failedComboIds.length > 0) {
+        toast.error(`전체 매칭 완료 · 실패 ${failedComboIds.length}개`);
+      } else {
+        toast.success('전체 매칭을 완료했습니다.');
+      }
+    },
+    [analyzeCell, combos, isAuthenticated],
+  );
+
+  const stopRowBatch = useCallback((hpId: number) => {
+    abortBatchHpIdsRef.current.add(hpId);
+  }, []);
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
@@ -356,14 +458,90 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
             </tr>
           </thead>
           <tbody>
-            {hpRows.map((hp) => (
+            {hpRows.map((hp) => {
+              const batch = rowBatchByHp[hp.id];
+              const includeRescore = includeRescoreByHp[hp.id] ?? false;
+              const canBatch = Boolean(isAuthenticated) && !batch?.running;
+              return (
               <tr key={hp.id}>
                 <th
                   className="sticky left-0 z-10 overflow-hidden px-2 py-1.5 text-left font-medium leading-tight"
                   style={stickyHeaderCellStyle('right')}
                   title={deviceName(hp.brand, hp.model)}
                 >
-                  <span className="line-clamp-2 break-words">{hp.model || hp.brand}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="line-clamp-2 break-words">{hp.model || hp.brand}</span>
+                    {batch?.running ? (
+                      <div className="flex flex-nowrap items-center gap-1.5">
+                        <span className="shrink-0 text-[10px] font-normal tabular-nums opacity-70">
+                          {batch.current}/{batch.total}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => stopRowBatch(hp.id)}
+                          className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            background: 'var(--badge-bg)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          중단
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-nowrap items-center gap-1.5">
+                          <label className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-normal opacity-70">
+                            <input
+                              type="checkbox"
+                              checked={includeRescore}
+                              disabled={!isAuthenticated}
+                              onChange={(e) =>
+                                setIncludeRescoreByHp((prev) => ({
+                                  ...prev,
+                                  [hp.id]: e.target.checked,
+                                }))
+                              }
+                            />
+                            재채점
+                          </label>
+                          <button
+                            type="button"
+                            disabled={!canBatch}
+                            onClick={() =>
+                              void runRowBatch(hp, { force: includeRescore })
+                            }
+                            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
+                            style={{
+                              background: 'var(--foreground)',
+                              color: 'var(--background)',
+                            }}
+                          >
+                            전체 매칭
+                          </button>
+                        </div>
+                        {(batch?.failedComboIds.length ?? 0) > 0 && (
+                          <button
+                            type="button"
+                            disabled={!canBatch}
+                            onClick={() =>
+                              void runRowBatch(hp, {
+                                force: batch?.force ?? includeRescore,
+                                onlyFailed: true,
+                              })
+                            }
+                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
+                            style={{
+                              background: 'var(--badge-bg)',
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            실패 {batch!.failedComboIds.length}개 재시도
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </th>
                 {combos.map((combo) => {
                   const entry = findCacheEntry(cache, combo.id, hp.id);
@@ -451,7 +629,8 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         </div>
