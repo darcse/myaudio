@@ -103,6 +103,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
   const [formData, setFormData] = useState<AlbumFormData>(initialFormData);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [mbSearchOpen, setMbSearchOpen] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
   const [mbCurrentPage, setMbCurrentPage] = useState(1);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
@@ -290,6 +291,20 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     setSearchResults([]);
     setTotalResults(0);
     setHasSearched(false);
+    setMbCurrentPage(1);
+  };
+
+  const closeMbSearch = () => {
+    setMbSearchOpen(false);
+    handleClearSearch();
+  };
+
+  const toggleMbSearch = () => {
+    if (mbSearchOpen) {
+      closeMbSearch();
+      return;
+    }
+    setMbSearchOpen(true);
   };
 
   const handleManualRegister = () => {
@@ -297,6 +312,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
       toast.error('로그인이 필요합니다.');
       return;
     }
+    closeMbSearch();
     setSelectedItem({ isManual: true });
     setFormData(initialFormData);
   };
@@ -538,10 +554,12 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
         showRegister={!physicalOwnedOnly}
         onRandomClick={physicalOwnedOnly ? undefined : () => setRandomLotteryOpen(true)}
         onTasteClick={physicalOwnedOnly ? undefined : () => void handleAnalyzeTaste()}
-        onRegisterClick={physicalOwnedOnly ? undefined : handleManualRegister}
+        onRegisterClick={physicalOwnedOnly ? undefined : toggleMbSearch}
+        registerAriaLabel={mbSearchOpen ? '앨범 등록 검색 닫기' : '앨범 등록 검색 열기'}
+        registerPressed={mbSearchOpen}
       />
 
-      {isAuthenticated && !physicalOwnedOnly && (
+      {isAuthenticated && !physicalOwnedOnly && mbSearchOpen ? (
         <AlbumSearchSection
           query={query}
           setQuery={setQuery}
@@ -555,10 +573,11 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
           onSearch={handleSearch}
           onClearSearch={handleClearSearch}
           onSelectAlbum={handleSelectAlbum}
+          onManualRegister={handleManualRegister}
           isAuthenticated={isAuthenticated}
           inputBaseClass={inputBaseClass}
         />
-      )}
+      ) : null}
 
       {selectedItem && (
         <AlbumForm

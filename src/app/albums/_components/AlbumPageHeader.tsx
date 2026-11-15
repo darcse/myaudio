@@ -17,6 +17,8 @@ type AlbumPageHeaderProps = {
   onRandomClick?: () => void;
   onTasteClick?: () => void;
   onRegisterClick?: () => void;
+  registerAriaLabel?: string;
+  registerPressed?: boolean;
 };
 
 function navButtonClass(active: boolean): string {
@@ -35,6 +37,8 @@ export function AlbumPageHeader({
   onRandomClick,
   onTasteClick,
   onRegisterClick,
+  registerAriaLabel = '앨범 직접 등록하기',
+  registerPressed,
 }: AlbumPageHeaderProps) {
   const randomHref = '/albums?panel=random';
   const tasteHref = '/albums?panel=taste';
@@ -94,7 +98,8 @@ export function AlbumPageHeader({
             type="button"
             className="btn-apple btn-apple-secondary flex h-[42px] w-[42px] items-center justify-center"
             onClick={onRegisterClick}
-            aria-label="앨범 직접 등록하기"
+            aria-label={registerAriaLabel}
+            aria-pressed={registerPressed}
           >
             <span className="text-lg leading-none">＋</span>
           </button>

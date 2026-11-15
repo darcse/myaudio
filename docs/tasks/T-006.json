@@ -1,0 +1,26 @@
+{
+  "id": "T-006",
+  "goal": "Insights의 '최다 청취 아티스트' 순위에서 Various Artists(여러 아티스트 모음 앨범)가 제외되어, 실제 아티스트만 순위에 나타난다.",
+  "context": "Insights 메뉴의 '최다 청취 아티스트' 집계 코드를 에이전트가 직접 찾는다(관련 문구·집계 쿼리·컴포넌트 기준 탐색). 제외 대상은 아티스트명이 Various Artists인 경우이며, 표기 변형(Various Artist, V.A., VA, 대소문자·공백·마침표 차이, 한글 표기 등)이 데이터나 코드에 실제로 존재하는지 먼저 확인하고, 확인된 변형만 처리한다. 존재하지 않는 변형을 추측해서 넣지 않는다. 같은 판별이 이미 다른 곳에 있다면(예: 상수·유틸) 재사용하고, 없으면 최소한의 판별만 추가한다. 기본안: '최다 청취 아티스트' 순위 집계에서만 제외하며, 앨범 청취 횟수 합계나 다른 통계·차트·앨범 목록은 바꾸지 않는다. 같은 아티스트 집계 로직이 Insights의 다른 위치에도 있어 제외 여부가 갈리면 변경하지 말고 result에 위치와 함께 보고한다. 제외 후 순위는 하위 아티스트가 올라와 채워지고, 표시 개수(Top N)는 유지한다. DB 데이터는 수정하지 않는다. 더 나은 방식이 보이면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "Insights '최다 청취 아티스트' 집계에서 Various Artists 제외 로직"
+    ],
+    "out": [
+      "DB 데이터·스키마 변경, 아티스트명 수정·삭제",
+      "청취 횟수 합계 및 최다 청취 아티스트 외 다른 통계·차트·앨범 목록의 동작 변경",
+      "Insights 외 메뉴(Archive, Lyrics, Works 등)",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Insights '최다 청취 아티스트' 순위에 Various Artists가 나타나지 않는다",
+    "Various Artists가 빠진 자리를 다음 순위 아티스트가 채우고 표시 개수는 기존과 같다",
+    "확인된 표기 변형이 모두 제외되고, 확인되지 않은 변형은 처리하지 않았다는 점이 result에 적혀 있다",
+    "최다 청취 아티스트 외 Insights 항목의 값은 기존과 동일하다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "## 변경 요약\n- 위치: Insights Ranking `AlbumStatsContent` → `buildArtistListenRankings` (`albumListenStats.ts`).\n- Weekly Hot에 있던 `isVariousArtistName`을 `albumListenStats.ts`로 옮겨 export하고, `buildArtistListenRankings` 집계 루프에서 `if (!name || isVariousArtistName(name)) continue` 적용. `weeklyHot.ts`는 동일 함수를 import(동작 불변, 순환 import 방지).\n- `slice(0, limit)`는 정렬 후라 Top N 유지·하위 순위 채움.\n\n## 확인된 표기 변형 (처리함)\n- 코드에 이미 정의된 것만: trim + lower + 공백 정규화 후 `various artist`, `various artists`.\n- 레포/문서 검색에서 V.A. / VA / 한글 표기 등 다른 변형의 실제 사용·상수 정의는 **확인되지 않아 미처리**.\n- DB 실데이터 스캔은 **미확인**(스키마·데이터 변경/조회 out).\n\n## 다른 Insights 아티스트 집계 (미변경·보고)\n- Weekly Hot 핫 아티스트: 이미 동일 판별로 제외(공용화만).\n- 장르별 `topArtists` (`albumListenStats` 장르 집계 ~L684+): Various 제외 없음. 이번 scope 밖이라 그대로 둠 → Ranking 아티스트 TOP과 제외 여부가 갈릴 수 있음.\n- 기간 요약 `uniqueArtistCount` 등 다른 합계: 미변경.\n\n## 검증\n- `npx tsc --noEmit` / `npm run lint` 통과\n- diff: `albumListenStats.ts`, `weeklyHot.ts`, TASK.json\n\n## git\ncommit/push 하지 않음."
+}

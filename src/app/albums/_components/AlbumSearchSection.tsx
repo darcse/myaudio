@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Search, X, Calendar, Mic2 } from 'lucide-react';
 import type { MusicBrainzSearchItem } from '../types';
 
@@ -19,6 +20,7 @@ interface AlbumSearchSectionProps {
   onSearch: (page?: number) => void;
   onClearSearch: () => void;
   onSelectAlbum: (album: MusicBrainzSearchItem) => void;
+  onManualRegister: () => void;
   isAuthenticated: boolean | null;
   inputBaseClass: string;
 }
@@ -35,19 +37,28 @@ export function AlbumSearchSection({
   onSearch,
   onClearSearch,
   onSelectAlbum,
+  onManualRegister,
   isAuthenticated,
   inputBaseClass,
 }: AlbumSearchSectionProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
   return (
     <>
-      <div className="flex gap-2 mb-4">
-        <div className="relative flex-1">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <div className="relative min-w-0 flex-1 basis-[12rem]">
           <input
+            ref={inputRef}
             className={`${inputBaseClass} w-full pr-10`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSearch(1)}
             placeholder="앨범명이나 아티스트를 검색하세요 (예: Queen, Hitsujibungaku)"
+            aria-label="MusicBrainz 앨범 검색"
           />
           {query && (
             <button
@@ -67,6 +78,13 @@ export function AlbumSearchSection({
         >
           <Search className="size-4 sm:mr-1" strokeWidth={2} />
           <span className="hidden sm:inline">검색</span>
+        </button>
+        <button
+          type="button"
+          className="btn-apple btn-apple-secondary h-[42px] px-3 flex items-center justify-center text-sm font-medium"
+          onClick={onManualRegister}
+        >
+          직접 등록
         </button>
       </div>
       {isSearching && (
