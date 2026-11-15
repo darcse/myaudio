@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
@@ -48,14 +48,36 @@ type RowBatchState = {
   force: boolean;
 };
 
+type RowMenuState = {
+  hpId: number;
+  left: number;
+  top: number;
+};
+
 type CategoryFilter = '전체' | '헤드폰' | '이어폰';
 
 const CATEGORY_FILTER_OPTIONS: CategoryFilter[] = ['전체', '헤드폰', '이어폰'];
 
 const COMBO_HEADER_MIN_WIDTH = '5.5rem';
-const ROW_LABEL_COL_WIDTH = '10rem';
+const ROW_LABEL_COL_WIDTH = '8rem';
+const ROW_MENU_WIDTH = 196;
+const ROW_MENU_GAP = 4;
+const VIEWPORT_PADDING = 8;
 
 const HEATMAP_SCROLL_MAX_HEIGHT = 'min(80dvh, 48rem)';
+
+function computeRowMenuPosition(trigger: HTMLElement): { left: number; top: number } {
+  const rect = trigger.getBoundingClientRect();
+  const maxLeft = window.innerWidth - ROW_MENU_WIDTH - VIEWPORT_PADDING;
+  const left = Math.min(Math.max(VIEWPORT_PADDING, rect.left), Math.max(VIEWPORT_PADDING, maxLeft));
+  const estimatedHeight = 140;
+  const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_PADDING;
+  const openBelow = spaceBelow >= estimatedHeight || spaceBelow >= rect.top - VIEWPORT_PADDING;
+  const top = openBelow
+    ? rect.bottom + ROW_MENU_GAP
+    : Math.max(VIEWPORT_PADDING, rect.top - estimatedHeight - ROW_MENU_GAP);
+  return { left, top };
+}
 
 function stickyHeaderCellStyle(border: 'bottom' | 'right' | 'both'): CSSProperties {
   const style: CSSProperties = { background: 'var(--card-bg)' };
@@ -142,16 +164,52 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
   const [cache, setCache] = useState<CacheRow[]>(matchCache);
   const [loadingCells, setLoadingCells] = useState<Set<string>>(new Set());
   const [rowBatchByHp, setRowBatchByHp] = useState<Record<number, RowBatchState>>({});
-  const [includeRescoreByHp, setIncludeRescoreByHp] = useState<Record<number, boolean>>({});
+  const [rowMenu, setRowMenu] = useState<RowMenuState | null>(null);
   const abortBatchHpIdsRef = useRef<Set<number>>(new Set());
   const rowBatchByHpRef = useRef(rowBatchByHp);
   rowBatchByHpRef.current = rowBatchByHp;
   const cacheRef = useRef(cache);
   cacheRef.current = cache;
+  const rowMenuPanelRef = useRef<HTMLDivElement>(null);
+  const rowMenuTriggerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
   useEffect(() => {
     setCache(matchCache);
   }, [matchCache]);
+
+  const openMenuHpId = rowMenu?.hpId ?? null;
+
+  useEffect(() => {
+    if (openMenuHpId == null) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const trigger = rowMenuTriggerRefs.current.get(openMenuHpId);
+      if (trigger?.contains(target) || rowMenuPanelRef.current?.contains(target)) return;
+      setRowMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setRowMenu(null);
+    };
+    const onLayoutChange = () => {
+      const trigger = rowMenuTriggerRefs.current.get(openMenuHpId);
+      if (!trigger) {
+        setRowMenu(null);
+        return;
+      }
+      const next = computeRowMenuPosition(trigger);
+      setRowMenu((prev) => (prev ? { ...prev, ...next } : prev));
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onLayoutChange);
+    window.addEventListener('scroll', onLayoutChange, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onLayoutChange);
+      window.removeEventListener('scroll', onLayoutChange, true);
+    };
+  }, [openMenuHpId]);
 
   const setCellLoading = useCallback((key: string, loading: boolean) => {
     setLoadingCells((prev) => {
@@ -460,7 +518,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
           <tbody>
             {hpRows.map((hp) => {
               const batch = rowBatchByHp[hp.id];
-              const includeRescore = includeRescoreByHp[hp.id] ?? false;
+              const hasFailed = (batch?.failedComboIds.length ?? 0) > 0;
               const canBatch = Boolean(isAuthenticated) && !batch?.running;
               return (
               <tr key={hp.id}>
@@ -469,8 +527,47 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                   style={stickyHeaderCellStyle('right')}
                   title={deviceName(hp.brand, hp.model)}
                 >
-                  <div className="flex flex-col gap-1">
-                    <span className="line-clamp-2 break-words">{hp.model || hp.brand}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-start gap-0.5">
+                      <span className="min-w-0 flex-1 line-clamp-2 break-words pt-1">
+                        {hp.model || hp.brand}
+                      </span>
+                      {!batch?.running ? (
+                        <button
+                          type="button"
+                          ref={(el) => {
+                            if (el) rowMenuTriggerRefs.current.set(hp.id, el);
+                            else rowMenuTriggerRefs.current.delete(hp.id);
+                          }}
+                          disabled={!canBatch}
+                          aria-label="행 매칭 메뉴"
+                          aria-expanded={rowMenu?.hpId === hp.id}
+                          aria-haspopup="menu"
+                          onClick={() => {
+                            if (!canBatch) return;
+                            if (rowMenu?.hpId === hp.id) {
+                              setRowMenu(null);
+                              return;
+                            }
+                            const trigger = rowMenuTriggerRefs.current.get(hp.id);
+                            if (!trigger) return;
+                            const pos = computeRowMenuPosition(trigger);
+                            setRowMenu({ hpId: hp.id, ...pos });
+                          }}
+                          className="relative flex size-8 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
+                          style={{ color: 'var(--foreground)' }}
+                        >
+                          <MoreHorizontal className="size-4 opacity-70" />
+                          {hasFailed ? (
+                            <span
+                              className="absolute right-1 top-1 size-1.5 rounded-full"
+                              style={{ background: '#e5484d' }}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </button>
+                      ) : null}
+                    </div>
                     {batch?.running ? (
                       <div className="flex flex-nowrap items-center gap-1.5">
                         <span className="shrink-0 text-[10px] font-normal tabular-nums opacity-70">
@@ -488,59 +585,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                           중단
                         </button>
                       </div>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-nowrap items-center gap-1.5">
-                          <label className="flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-normal opacity-70">
-                            <input
-                              type="checkbox"
-                              checked={includeRescore}
-                              disabled={!isAuthenticated}
-                              onChange={(e) =>
-                                setIncludeRescoreByHp((prev) => ({
-                                  ...prev,
-                                  [hp.id]: e.target.checked,
-                                }))
-                              }
-                            />
-                            재채점
-                          </label>
-                          <button
-                            type="button"
-                            disabled={!canBatch}
-                            onClick={() =>
-                              void runRowBatch(hp, { force: includeRescore })
-                            }
-                            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
-                            style={{
-                              background: 'var(--foreground)',
-                              color: 'var(--background)',
-                            }}
-                          >
-                            전체 매칭
-                          </button>
-                        </div>
-                        {(batch?.failedComboIds.length ?? 0) > 0 && (
-                          <button
-                            type="button"
-                            disabled={!canBatch}
-                            onClick={() =>
-                              void runRowBatch(hp, {
-                                force: batch?.force ?? includeRescore,
-                                onlyFailed: true,
-                              })
-                            }
-                            className="rounded px-1.5 py-0.5 text-[10px] font-semibold disabled:opacity-40"
-                            style={{
-                              background: 'var(--badge-bg)',
-                              border: '1px solid var(--border)',
-                            }}
-                          >
-                            실패 {batch!.failedComboIds.length}개 재시도
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 </th>
                 {combos.map((combo) => {
@@ -635,6 +680,70 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
         </table>
         </div>
       </div>
+
+      {rowMenu && gearById.get(rowMenu.hpId)
+        ? createPortal(
+            <div
+              ref={rowMenuPanelRef}
+              role="menu"
+              className="fixed z-[120] overflow-hidden rounded-lg py-1 text-xs shadow-lg"
+              style={{
+                left: rowMenu.left,
+                top: rowMenu.top,
+                width: ROW_MENU_WIDTH,
+                background: 'var(--card-bg)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="block w-full px-3 py-2 text-left font-medium transition-opacity hover:opacity-80"
+                onClick={() => {
+                  const menuHp = gearById.get(rowMenu.hpId);
+                  setRowMenu(null);
+                  if (menuHp) void runRowBatch(menuHp, { force: false });
+                }}
+              >
+                전체 매칭
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="block w-full px-3 py-2 text-left font-medium transition-opacity hover:opacity-80"
+                onClick={() => {
+                  const menuHp = gearById.get(rowMenu.hpId);
+                  setRowMenu(null);
+                  if (menuHp) void runRowBatch(menuHp, { force: true });
+                }}
+              >
+                재채점 포함 전체 매칭
+              </button>
+              {(rowBatchByHp[rowMenu.hpId]?.failedComboIds.length ?? 0) > 0 ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full px-3 py-2 text-left font-medium transition-opacity hover:opacity-80"
+                  style={{ borderTop: '1px solid var(--border)' }}
+                  onClick={() => {
+                    const menuHp = gearById.get(rowMenu.hpId);
+                    const menuBatch = rowBatchByHp[rowMenu.hpId];
+                    setRowMenu(null);
+                    if (menuHp) {
+                      void runRowBatch(menuHp, {
+                        force: menuBatch?.force ?? false,
+                        onlyFailed: true,
+                      });
+                    }
+                  }}
+                >
+                  실패 {rowBatchByHp[rowMenu.hpId]!.failedComboIds.length}개 재시도
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
 
       {selected
         ? createPortal(
