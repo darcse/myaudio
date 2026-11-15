@@ -1,0 +1,27 @@
+{
+  "id": "T-013",
+  "goal": "이미 등록된 장르1=Classic 앨범의 무드를 '분류하지 않음'으로 정리하는 SQL을 안전하게 작성하기 위해, 무드 관련 테이블 구조와 무드를 읽는 코드 지점을 코드 근거로 조사해 result에 보고한다. 이번 작업은 조사만 하며 코드·DB를 수정하지 않는다.",
+  "context": "배경: T-012로 신규 등록되는 클래식 앨범(장르1이 Classic)은 무드를 분류하지 않게 되었다. 이제 기존에 등록된 클래식 앨범도 같은 상태(무드 없음)로 정리하려 한다. 방식은 DB 데이터 정리이며, 정리 대상은 album.mood_name을 비우는 것과 album_mood_groups의 앨범 목록에서 해당 앨범을 빼는 것이다. JW는 클래식 앨범 중 수동 설정 무드(mood_manually_set)는 없다고 했으나 코드·마이그레이션 근거로 이 컬럼의 의미만 확인한다. SQL은 JW가 Supabase SQL Editor에서 직접 실행한다. 컬럼 타입을 틀리면 SQL이 실패하므로 타입은 추측하지 말고 코드(타입 정의, 마이그레이션·SQL 파일, 쿼리)에서 확인한 것만 적는다. 이번에는 DB 실데이터를 조회하지 않는다. 관련 코드(albumMoodMembership, albumEnrichment, /api/album-mood-groups, generateAlbumMoodGroups, 무드보드·앨범 상세·무드 기반 추천 등)는 에이전트가 직접 찾는다. 코드에서 확인되지 않은 내용은 확인하지 못했다고 구분해서 적는다.",
+  "scope": {
+    "in": [
+      "무드 관련 테이블·컬럼·코드 읽기",
+      "result에 조사 보고 작성(status는 done으로 갱신)"
+    ],
+    "out": [
+      "코드·설정·DB·스키마·환경변수 수정",
+      "DB 실데이터 조회·SQL 실행",
+      "result에 API 키, 환경변수 값 포함",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "result에 다음이 file:line 근거와 함께 정리되어 있다: 1) album 테이블의 id·genre1·mood_name·mood_manually_set 컬럼과 타입, 클래식 값의 실제 표기, 2) album_mood_groups 테이블의 컬럼, id 타입, 앨범 목록 컬럼(album_ids)의 타입(배열·JSON 등), user_id 등 소유자 컬럼과 RLS·제약·트리거 유무, 3) album.mood_name과 album_mood_groups.album_ids가 서로 어떻게 맞춰지는지(moveAlbumBetweenMoodGroups 등)와 한쪽만 바꾸면 생길 수 있는 불일치, 4) 앨범이 모두 빠져 빈 그룹이 생기면 코드가 어떻게 처리·표시하는지, 5) mood_name 또는 album_mood_groups를 읽는 모든 화면·기능(표시, 추천, 통계, 필터 등)의 위치와, 클래식 정리 시 영향 여부",
+    "무드 전체 재분류(/api/album-mood-groups, generateAlbumMoodGroups)의 현재 동작이 정리되어 있다: 클래식 앨범을 포함하는지, 실행 시 mood_name과 album_ids를 어떻게 갱신하는지, 정리 후 실행하면 클래식 앨범이 다시 무드에 들어오는지",
+    "mood_manually_set 컬럼의 의미와 사용 위치가 정리되어 있고, 클래식 정리 SQL을 쓸 때 주의할 점(순서, 동시에 바꿔야 할 컬럼, 사용자별 조건 등)이 사실 위주로 적혀 있다",
+    "코드에서 확인되지 않은 내용이 별도 항목으로 분리되어 있고, result가 간결하다(약 60줄 이내)",
+    "git diff에 TASK.json 외 변경이 없다"
+  ],
+  "status": "done",
+  "result": "## 1) album\n- TS: id number, genre1/mood_name string|null, mood_manually_set boolean|null — src/app/albums/types.ts:2-33\n- Classic 표기: genre1.trim()==='Classic' — src/app/albums/utils.ts:3-4\n- 미분류: mood_name IS NULL (scripts/migrate-null-mood-names.mjs:128-132). 등록 insert는 mood_name 미설정 — actions.ts mapAlbumData:19-64\n- PG 정확한 타입·DEFAULT: 레포 SQL에 album CREATE/ALTER 없음 → 확인 못함\n\n## 2) album_mood_groups\n- 코드가 쓰는 컬럼: id, mood_name, album_ids, updated_at — albumEnrichment.ts:71-72,125 / albumMoodGroupsServer.ts:24-48\n- id: number로 사용 (albumMoodMembership.ts:49)\n- album_ids: JS에서 Array.isArray로 읽고 number[]로 update (normalizeAlbumIdList:8-21, move:71-80). 원소 number|string 허용 파싱\n- PG가 integer[]인지 jsonb인지·user_id·RLS·트리거·제약: 레포에 CREATE/정책 SQL 없음 → 확인 못함. 앱 쿼리는 .from만 하고 user_id 필터 없음(세션 RLS 가정 가능하나 미검증). CONVENTIONS.md:120 언급만\n- album_moods 테이블은 CONVENTIONS에만 있고 src 사용 없음\n\n## 3) 동기화\n- 단건 AI: mood_name 없으면 album.mood_name update 후 해당 그룹 album_ids에 id 추가 — albumEnrichment.ts:99-126\n- 수동: moveAlbumBetweenMoodGroups로 전 그룹에서 제거·타깃에 추가 + mood_name·mood_manually_set=true — Membership:55-84, Enrichment:162-173\n- 불일치: mood_name만 null → 보드(album_ids)엔 남을 수 있음. album_ids만 제거 → 상세 mood_name은 남을 수 있음. 보드 표시는 album_ids 기준(AlbumMoodboard.tsx:39-46,242)\n\n## 4) 빈 그룹\n- 카드: list.length===0이면 return null(숨김, 오류 없음) — AlbumMoodboard.tsx:242-243\n- 그룹 행 자체 삭제 로직 없음(전체 재생성 시에만 delete all+insert 9개) — albumMoodGroupsServer.ts:23-49. 빈 album_ids[] 허용:131\n\n## 5) 읽기 지점·정리 영향\n- 무드보드/API GET·POST album-mood-groups — route.ts; 보드 AlbumMoodboard.tsx → album_ids 제거 시 Classic 안 보임\n- 상세 무드: AlbumInfoSection.tsx:238-410 (빈면 '무드 선택'); Intro 태그색 AlbumIntroSection.tsx:87\n- 수동 설정 API album-mood-set; 단건 할당 album-mood-assign / runAlbumMoodAssign(T-012 Classic 스킵)\n- 헤드폰 추천: album.mood_name select — album-headphone-recommend/route.ts:39 (null 가능)\n- mood-recommend: album 전체 후보, mood_name/그룹 미사용 — mood-recommend/route.ts:19-48 → 정리 영향 거의 없음\n- 통계/인사이트 등 mood_names:[] 기본값은 폼 더미; 무드 집계 필터로 쓰는 코드는 추가 미발견\n\n## 전체 재분류\n- GET: ensure(...,false) 캐시 9개면 유지(누락 id는 로그만) — GroupsServer:79-95. POST: force true → 전체 album select(id,genre1,genre2,audio_tags) Classic 필터 없음 — route.ts:59-66\n- generateAlbumMoodGroups는 전달된 전 앨범 분류(수동 pin 제외) — GroupsServer:98-150, gemini.ts:533+\n- persistGroups는 album_mood_groups만 갈아끼움. album.mood_name 일괄 갱신 없음 — GroupsServer:37-50\n- 정리 후 POST 재분류 시 Classic이 다시 album_ids에 들어감(무드보드 재등장). mood_name은 이 경로로 안 채워질 수 있어 불일치 가능\n\n## mood_manually_set\n- 의미: 수동 지정 → 단건 자동분류 스킵(Enrichment:58-61); 전체 재분류 시 autoRows 제외 후 mergeManualPinsIntoMoodGroups로 재꽂기(GroupsServer:52-67,98-149; Membership:24-45)\n- 설정: setAlbumMoodManually / album-mood-set → true (Enrichment:173, route:41-43)\n\n## SQL 작성 시 주의(사실)\n- 조건: genre1='Classic'(정확한 표기). mood_name NULL + 모든 그룹 album_ids에서 해당 id 제거를 함께. 트랜잭션 권장\n- 빈 그룹 행은 남겨도 UI 숨김; 9개 고정 전제(CONVENTIONS:529)\n- 정리 후 전체 재분류(POST) 하면 Classic 재진입 → 재분류 전 Classic 제외 로직 필요하거나 재실행 주의\n- Editor가 서비스롤이면 user 범위 필터 필요 여부: user_id 스키마 미확인\n\n## 확인 못함\n- PG 컬럼 타입(text/varchar/bool/integer[]/jsonb), album·album_mood_groups의 user_id·RLS·트리거·UNIQUE, 실데이터 건수·수동 Classic 유무"
+}

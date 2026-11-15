@@ -1,3 +1,4 @@
+import { isClassicGenre } from '@/app/albums/utils';
 import { generateAlbumIntroAndTags, pickAlbumMoodGroupName } from '@/lib/gemini';
 import { moveAlbumBetweenMoodGroups } from '@/lib/albumMoodMembership';
 import { createClient } from '@/lib/supabase/server';
@@ -59,6 +60,11 @@ export async function runAlbumMoodAssign(
     if (manualMood) {
       return { ok: true, mood_name: manualMood, skipped: true };
     }
+  }
+
+  if (isClassicGenre((album as { genre1?: string | null }).genre1)) {
+    console.log('[album-mood-assign]', { reason: 'classic_skip', albumId });
+    return { ok: true, mood_name: '', skipped: true };
   }
 
   const { data: moodRows, error: moodError } = await supabase

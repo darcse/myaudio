@@ -237,6 +237,7 @@ export function AlbumInfoSection({
 
   const currentMood =
     typeof viewingItem.mood_name === 'string' ? viewingItem.mood_name.trim() : '';
+  const showMoodUi = !isClassicGenre(viewingItem.genre1);
   const canEditMood = isAuthenticated === true && typeof onAlbumPatch === 'function';
 
   const updatePickerPosition = () => {
@@ -404,7 +405,7 @@ export function AlbumInfoSection({
   return (
     <>
       <div className="flex flex-row gap-4 items-start text-sm">
-        {currentMood || canEditMood ? (
+        {showMoodUi && (currentMood || canEditMood) ? (
           <div className="relative shrink-0 w-fit max-w-full min-w-0" ref={triggerRef}>
             <MoodMiniCard
               moodName={currentMood || '무드 선택'}
