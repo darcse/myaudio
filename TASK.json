@@ -1,26 +1,25 @@
 {
-  "id": "T-014",
-  "goal": "장르1이 클래식인 앨범의 상세 모달에서 무드 선택 버튼(과 무드 표시 영역)이 아예 보이지 않는다.",
-  "context": "배경: T-012와 DB 정리로 클래식 앨범은 무드가 없는 상태가 되었는데, 상세 모달에는 무드가 없을 때 '무드 선택' 버튼이 계속 보인다. 클래식에는 무드 개념을 쓰지 않으므로 이 버튼과 무드 표시 영역을 숨긴다. 대상: 앨범 상세 모달의 무드 UI(T-013 조사 기준 src/app/albums/_components/AlbumInfoSection.tsx 약 L238-410, 에이전트가 현재 코드에서 다시 확인). 판별은 기존 isClassicGenre(genre1)(src/app/albums/utils.ts)를 재사용한다. 장르1만 기준으로 하며 새 표기를 만들지 않는다. 클래식이면 무드 선택 버튼, 무드 값 표시, 무드 변경 진입점을 모두 렌더하지 않는다. 클래식이 아니면 현재 동작 그대로다. 장르1을 클래식이 아닌 값으로 바꾸면 별도 처리 없이 다시 보이면 충분하다. 같은 상세 모달이 여러 진입 경로에서 쓰이면(예: GlobalAlbumDetailHost 등) 공통 컴포넌트에서 한 번만 처리하고 중복 구현하지 않는다. 무드를 수동 선택하거나 보여 주는 다른 UI(편집 폼, 목록 카드, 태그 색 등)가 있으면 이번에는 변경하지 말고 위치와 현재 동작만 result에 보고한다. 데이터·API·무드 분류 로직은 수정하지 않는다. 더 나은 방식이 보이면 근거와 함께 제안한다.",
+  "id": "T-015",
+  "goal": "아티스트 화면 상단에서 '추천 아티스트' 버튼이 사라지고, '작곡가' 탭 레이블이 '원작곡가'로 표시된다.",
+  "context": "대상: 아티스트 화면(/artists) 상단의 탭·버튼 영역. 현재 '아티스트', '작곡가' 탭과 '추천 아티스트' 버튼이 나란히 있다. 관련 컴포넌트는 에이전트가 직접 찾는다. 요구사항: (1) '추천 아티스트' 버튼을 화면에서 제거한다. 버튼의 진입점만 제거하는 것이 기본안이며, 그 뒤에 쓰이지 않게 되는 컴포넌트·모달·API Route·상태·import는 삭제하지 말고 위치와 함께 result에 보고한다(복구 가능성을 남긴다). 이 버튼을 제거하면 정리 대상이 아닌 다른 기능이 영향을 받는지(같은 컴포넌트·상태를 다른 곳에서 쓰는지)는 확인하고, 영향이 있으면 변경하지 말고 보고한다. 제거 후 상단 탭 영역의 정렬과 간격이 어색하지 않게 한다. (2) 상단 '작곡가' 탭 레이블 텍스트를 '원작곡가'로 바꾼다. 탭의 동작·라우팅·내부 식별값(쿼리 파라미터, 상태 키 등)은 바꾸지 않고 표시 문구만 바꾼다. 같은 '작곡가' 문구가 이 화면의 다른 위치(제목, 안내문, 빈 상태 등)에도 있다면 이번에는 변경하지 말고 위치만 result에 보고한다. 더 나은 방식이 보이면 근거와 함께 제안한다.",
   "scope": {
     "in": [
-      "앨범 상세 모달에서 장르1이 클래식일 때 무드 선택 버튼·무드 표시·무드 변경 진입점을 렌더하지 않는 조건"
+      "아티스트 화면 상단의 '추천 아티스트' 버튼 제거",
+      "상단 '작곡가' 탭 표시 문구를 '원작곡가'로 변경"
     ],
     "out": [
-      "무드 분류 로직, API, DB 데이터·스키마 변경",
-      "상세 모달 외 화면(편집 폼, 목록, 무드보드 등)의 동작 변경(위치와 현재 동작만 보고)",
-      "클래식이 아닌 앨범의 무드 UI·동작 변경",
-      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 접근",
+      "추천 아티스트 관련 컴포넌트·API Route·상태의 삭제(미사용이 되면 위치만 보고)",
+      "탭의 동작·라우팅·내부 식별값 변경",
+      "상단 탭 외 화면의 '작곡가' 문구 변경(위치만 보고)",
+      "서버·DB·환경변수 변경",
       "git add/commit/push"
     ]
   },
   "done": [
-    "장르1이 클래식인 앨범의 상세 모달에 무드 선택 버튼과 무드 표시 영역이 나타나지 않는다",
-    "장르1이 클래식이 아닌 앨범의 무드 선택·표시 동작은 기존과 동일하다",
-    "판별에 기존 isClassicGenre를 사용하고, 진입 경로가 여럿이어도 한 곳에서만 처리했다",
-    "상세 모달 외에 무드를 선택·표시하는 UI가 있다면 위치와 현재 동작이 result에 보고되어 있다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "아티스트 화면 상단에 '추천 아티스트' 버튼이 보이지 않고, 남은 탭의 정렬이 어색하지 않다",
+    "상단 탭 레이블이 '원작곡가'로 표시되고, 탭 전환 동작은 기존과 같다",
+    "제거 후 미사용이 된 코드와, 화면의 다른 '작곡가' 문구의 위치가 result에 보고되어 있다"
   ],
   "status": "done",
-  "result": "AlbumInfoSection에 showMoodUi=!isClassicGenre(genre1) 조건 추가. Classic이면 MoodMiniCard·피커·무드보드 링크 미렌더. AlbumDetailModal→AlbumInfoSection 공통 경로만 수정(GlobalAlbumDetailHost 등 동일). 미변경 보고: AlbumIntroSection 태그 배경색(audioTagSurfaceFromMood(mood_name)); AlbumMoodboard·MoodRecommendModal; 폼 mood_names[]; 목록 카드에 무드 선택 UI 없음. 검증: tsc·lint 통과. git 미수행."
+  "result": "ArtistsLibraryContent 상단: 추천 버튼 제거, composer 탭 표시만 '원작곡가'(role/query는 composer 유지). 탭만 남기고 gap 정리. 미삭제(진입 불가): ArtistLotteryModal.tsx, import·<ArtistLotteryModal>, artistLotteryOpen/setArtistLotteryOpen, artistLotteryPool useMemo. 전용 API Route 없음(클라이언트 풀). Sparkles는 버튼 전용이라 import만 제거(lint). 다른 '작곡가' 문구 미변경: 빈상태·toast·emptyMessage(ArtistsLibraryContent), ArtistDetailPanel 안내/유사 섹션, ArtistTopControlBar placeholder, updateArtistNames 에러. 검증: tsc·lint 통과. git 미수행."
 }

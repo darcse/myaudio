@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, Mic2, Sparkles } from 'lucide-react';
+import { ChevronLeft, Mic2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -821,44 +821,30 @@ export function ArtistsLibraryContent() {
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Artists
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="flex items-center gap-1.5"
-            role="group"
-            aria-label="아티스트 역할"
-          >
-            {(['artist', 'composer'] as const).map((value) => {
-              const active = role === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleRoleChange(value)}
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                  style={{
-                    background: active ? 'var(--foreground)' : 'var(--badge-bg)',
-                    color: active ? 'var(--background)' : 'var(--foreground)',
-                    border: '1px solid var(--border)',
-                  }}
-                  aria-pressed={active}
-                >
-                  {value === 'composer' ? '작곡가' : '아티스트'}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            type="button"
-            disabled={summaries.length === 0}
-            onClick={() => setArtistLotteryOpen(true)}
-            className="btn-apple btn-apple-secondary flex h-[42px] items-center justify-center gap-1.5 px-3 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label={role === 'composer' ? '추천 작곡가' : '추천 아티스트'}
-          >
-            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">
-              {role === 'composer' ? '추천 작곡가' : '추천 아티스트'}
-            </span>
-          </button>
+        <div
+          className="flex items-center gap-1.5"
+          role="group"
+          aria-label="아티스트 역할"
+        >
+          {(['artist', 'composer'] as const).map((value) => {
+            const active = role === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleRoleChange(value)}
+                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                style={{
+                  background: active ? 'var(--foreground)' : 'var(--badge-bg)',
+                  color: active ? 'var(--background)' : 'var(--foreground)',
+                  border: '1px solid var(--border)',
+                }}
+                aria-pressed={active}
+              >
+                {value === 'composer' ? '원작곡가' : '아티스트'}
+              </button>
+            );
+          })}
         </div>
       </div>
 
