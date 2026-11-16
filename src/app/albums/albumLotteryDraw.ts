@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { getClientErrorMessage } from '@/lib/supabase-error';
+import { filterAlbumsByScope, type CatalogScope } from '@/lib/catalogScope';
 import type { Album } from './types';
 import {
   ALL_GENRE1_FILTER,
@@ -27,6 +28,7 @@ export type CatalogAlbumLotteryFilters = {
   genre1Filter?: string;
   albumTypeFilter?: AlbumLotteryAlbumTypeFilter;
   excludeId?: number;
+  catalogScope?: CatalogScope;
 };
 
 export type AlbumLotterySpinCover = {
@@ -87,12 +89,18 @@ function normalizeFilterRows(rows: unknown[] | null): CatalogLotteryFilterRow[] 
   return normalized;
 }
 
-export async function fetchCatalogLotteryFilterRows(): Promise<CatalogLotteryFilterRowsResult> {
+export async function fetchCatalogLotteryFilterRows(
+  catalogScope?: CatalogScope,
+): Promise<CatalogLotteryFilterRowsResult> {
   try {
     const supabase = createClient();
     const { data, error } = await supabase.from('album').select(FILTER_SELECT);
     if (error) return { status: 'error', message: getClientErrorMessage(error) };
-    return { status: 'ok', rows: normalizeFilterRows(data) };
+    const rows = normalizeFilterRows(data);
+    return {
+      status: 'ok',
+      rows: catalogScope ? filterAlbumsByScope(rows, catalogScope) : rows,
+    };
   } catch (error) {
     return { status: 'error', message: getClientErrorMessage(error) };
   }
@@ -110,7 +118,10 @@ export async function fetchCatalogAlbumLotteryDraw(
 
     if (filterError) return { status: 'error', message: getClientErrorMessage(filterError) };
 
-    const matchedIds = normalizeFilterRows(filterRows)
+    const scopedRows = filters.catalogScope
+      ? filterAlbumsByScope(normalizeFilterRows(filterRows), filters.catalogScope)
+      : normalizeFilterRows(filterRows);
+    const matchedIds = scopedRows
       .filter((row) => albumMatchesCatalogLotteryConditions(row as Album, matchFilters))
       .map((row) => row.id);
 

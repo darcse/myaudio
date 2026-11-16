@@ -1014,9 +1014,11 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
               ),
             );
           }}
-          onArtistProfileFieldsUpdated={({ name, patch }) => {
+          onArtistProfileFieldsUpdated={({ name, patch, catalogScope }) => {
             setAlbums((prev) =>
-              prev.map((album) => applyAlbumProfileFieldsRetarget(album, 'artist', name, patch)),
+              prev.map((album) =>
+                applyAlbumProfileFieldsRetarget(album, 'artist', name, patch, catalogScope),
+              ),
             );
           }}
         />

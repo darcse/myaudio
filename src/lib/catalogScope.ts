@@ -11,7 +11,7 @@ export function albumBelongsToScope(
   album: { genre1?: string | null },
   scope: CatalogScope,
 ): boolean {
-  if (scope === 'popular') return true;
+  if (scope === 'popular') return !isClassicGenre(album.genre1);
   return isClassicGenre(album.genre1);
 }
 
@@ -19,7 +19,6 @@ export function filterAlbumsByScope<T extends { genre1?: string | null }>(
   albums: T[],
   scope: CatalogScope,
 ): T[] {
-  if (scope === 'popular') return albums;
   return albums.filter((album) => albumBelongsToScope(album, scope));
 }
 

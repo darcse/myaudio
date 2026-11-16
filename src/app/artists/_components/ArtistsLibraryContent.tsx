@@ -13,7 +13,7 @@ import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
-import { albumToFormData } from '@/app/albums/utils';
+import { albumFormModeFromGenre1, albumToFormData } from '@/app/albums/utils';
 import { useArtistFilters } from '../_hooks/useArtistFilters';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import { updateArtistNames, applyAlbumNameRetarget } from '../lib/updateArtistNames';
@@ -129,7 +129,9 @@ export function ArtistsLibraryContent({
   const router = useRouter();
   const searchParams = useSearchParams();
   const artistQuery = searchParams.get('artist')?.trim() || null;
-  const role: ArtistLibraryRole = searchParams.get('role') === 'composer' ? 'composer' : 'artist';
+  const roleFromUrl: ArtistLibraryRole =
+    searchParams.get('role') === 'composer' ? 'composer' : 'artist';
+  const role: ArtistLibraryRole = catalogScope === 'popular' ? 'artist' : roleFromUrl;
   const isAuthenticated = useAuthState();
   const { closeIfPlayingAlbum } = useAlbumPlayer();
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -266,6 +268,30 @@ export function ArtistsLibraryContent({
     () => summaries.find((artist) => artist.name === selectedName) ?? null,
     [summaries, selectedName],
   );
+
+  useEffect(() => {
+    if (isLoading || !artistQuery) return;
+    if (summaries.some((artist) => artist.name === artistQuery)) return;
+
+    if (catalogScope === 'popular') {
+      const classicAlbums = filterAlbumsByScope(albums, 'classic');
+      const inClassic =
+        buildArtistSummaries(classicAlbums).some((artist) => artist.name === artistQuery) ||
+        buildComposerSummaries(classicAlbums).some((artist) => artist.name === artistQuery);
+      if (inClassic) {
+        router.replace(`/classic/artists?artist=${encodeURIComponent(artistQuery)}`);
+      }
+      return;
+    }
+
+    const popularAlbums = filterAlbumsByScope(albums, 'popular');
+    const inPopular = buildArtistSummaries(popularAlbums).some(
+      (artist) => artist.name === artistQuery,
+    );
+    if (inPopular) {
+      router.replace(`/artists?artist=${encodeURIComponent(artistQuery)}`);
+    }
+  }, [albums, artistQuery, catalogScope, isLoading, router, summaries]);
 
   const selectedArtistStats = useMemo(
     () => (selectedArtist ? getArtistStats(selectedArtist, listenHistoryIndex) : null),
@@ -450,12 +476,6 @@ export function ArtistsLibraryContent({
     }
     replaceLibraryUrl(role, null);
   }, [replaceLibraryUrl, role, router]);
-
-  const handleRoleChange = (next: ArtistLibraryRole) => {
-    if (next === role) return;
-    pushedOverlayRef.current = false;
-    replaceLibraryUrl(next, null);
-  };
 
   const handleRefreshBio = async () => {
     if (!selectedName || isAuthenticated !== true) return;
@@ -654,13 +674,16 @@ export function ArtistsLibraryContent({
         role,
         name: selectedName,
         patch,
+        catalogScope,
       });
       if (result.error) {
         toast.error(result.error);
         return false;
       }
       setAlbums((prev) =>
-        prev.map((album) => applyAlbumProfileFieldsRetarget(album, role, selectedName, patch)),
+        prev.map((album) =>
+          applyAlbumProfileFieldsRetarget(album, role, selectedName, patch, catalogScope),
+        ),
       );
       if (!options?.silentSuccess) {
         toast.success('부가 정보를 저장했습니다.');
@@ -682,8 +705,13 @@ export function ArtistsLibraryContent({
       return;
     }
     if (!selectedArtist) return;
+    const next = albumFormDataFromArtist(selectedArtist, role);
     setAlbumFormItem({ isManual: true });
-    setAlbumFormData(albumFormDataFromArtist(selectedArtist, role));
+    setAlbumFormData(
+      role === 'composer' || catalogScope === 'classic'
+        ? { ...next, genre1: 'Classic' }
+        : next,
+    );
   };
 
   const navigateToMood = (moodName: string) => {
@@ -855,6 +883,7 @@ export function ArtistsLibraryContent({
   const topControlBar = (
     <ArtistTopControlBar
       role={role}
+      catalogScope={catalogScope}
       searchQuery={searchQuery}
       setSearchQuery={setSearchQuery}
       countryFilter={countryFilter}
@@ -881,6 +910,7 @@ export function ArtistsLibraryContent({
   const detailPanel = (
     <ArtistDetailPanel
       role={role}
+      catalogScope={catalogScope}
       artist={selectedArtist}
       artistRecord={artistRecord}
       artistStats={selectedArtistStats}
@@ -905,42 +935,18 @@ export function ArtistsLibraryContent({
 
   const artistRoleLabel =
     role === 'composer' ? '원작곡가' : catalogScope === 'classic' ? '연주자' : '아티스트';
+  const pageTitle = role === 'composer' ? 'Composers' : 'Artists';
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:pb-0" style={{ color: 'var(--foreground)' }}>
-      <CatalogTabBar scope={catalogScope} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="page-title flex shrink-0 items-center gap-2">
-          <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
-          Artists
-        </h1>
-        {catalogScope === 'popular' ? (
-          <div
-            className="flex items-center gap-1.5"
-            role="group"
-            aria-label="아티스트 역할"
-          >
-            {(['artist', 'composer'] as const).map((value) => {
-              const active = role === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleRoleChange(value)}
-                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                  style={{
-                    background: active ? 'var(--foreground)' : 'var(--badge-bg)',
-                    color: active ? 'var(--background)' : 'var(--foreground)',
-                    border: '1px solid var(--border)',
-                  }}
-                  aria-pressed={active}
-                >
-                  {value === 'composer' ? '원작곡가' : '아티스트'}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+          <h1 className="page-title flex shrink-0 items-center gap-2">
+            <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
+            {pageTitle}
+          </h1>
+          <CatalogTabBar scope={catalogScope} />
+        </div>
       </div>
 
       {isLoading ? (
@@ -999,6 +1005,7 @@ export function ArtistsLibraryContent({
               <div ref={overlayScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
                 <ArtistDetailPanel
                   role={role}
+                  catalogScope={catalogScope}
                   artist={selectedArtist}
                   artistRecord={artistRecord}
                   artistStats={selectedArtistStats}
@@ -1056,6 +1063,13 @@ export function ArtistsLibraryContent({
           onSave={() => void handleAlbumSave()}
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}
+          mode={
+            'id' in albumFormItem && typeof albumFormItem.id === 'number'
+              ? albumFormModeFromGenre1(albumFormData.genre1)
+              : role === 'composer' || catalogScope === 'classic'
+                ? 'classic'
+                : 'pop'
+          }
         />
       ) : null}
 

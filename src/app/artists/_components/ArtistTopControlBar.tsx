@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { RotateCcw, Tag, X } from 'lucide-react';
-import { ARTIST_TYPE_OPTIONS, countryOptions, genreOptions } from '@/app/albums/constants';
+import { artistTypeOptionsForCatalog, countryOptions, genreOptions } from '@/app/albums/constants';
+import type { CatalogScope } from '@/lib/catalogScope';
 import {
   ARTIST_SORT_OPTIONS,
   type ArtistSortOption,
@@ -13,6 +14,7 @@ import type { ArtistLibraryRole } from '../types';
 
 type ArtistTopControlBarProps = {
   role?: ArtistLibraryRole;
+  catalogScope?: CatalogScope;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   countryFilter: string;
@@ -35,8 +37,6 @@ type ArtistTopControlBarProps = {
   onResetFilters: () => void;
 };
 
-const artistTypeOptions = ARTIST_TYPE_OPTIONS;
-
 const filterSelectClassName =
   'select-apple h-9 min-w-0 flex-1 appearance-auto truncate rounded-full pl-3 pr-7 text-xs font-medium sm:max-w-[8.5rem] sm:flex-none sm:shrink-0';
 
@@ -45,6 +45,7 @@ const sortSelectClassName =
 
 export function ArtistTopControlBar({
   role = 'artist',
+  catalogScope = 'popular',
   searchQuery,
   setSearchQuery,
   countryFilter,
@@ -69,6 +70,7 @@ export function ArtistTopControlBar({
   const isComposer = role === 'composer';
   const [tagOpen, setTagOpen] = useState(false);
   const tagPopoverRef = useRef<HTMLDivElement>(null);
+  const artistTypeOptions = artistTypeOptionsForCatalog(catalogScope);
 
   const countrySelectOptions =
     dynamicCountries.length > 0
@@ -76,10 +78,14 @@ export function ArtistTopControlBar({
       : countryOptions.map((c) => c.name);
   const typeSelectOptions = [
     ...artistTypeOptions,
-    ...dynamicTypes.filter((type) => !artistTypeOptions.includes(type as (typeof artistTypeOptions)[number])),
+    ...dynamicTypes.filter(
+      (type) => !(artistTypeOptions as readonly string[]).includes(type),
+    ),
   ];
   const genreSelectOptions =
-    dynamicGenres.length > 0 ? dynamicGenres : [...genreOptions];
+    dynamicGenres.length > 0
+      ? dynamicGenres
+      : genreOptions.filter((genre) => catalogScope !== 'popular' || genre !== 'Classic');
 
   useEffect(() => {
     if (!tagOpen) return;

@@ -902,9 +902,11 @@ export function DashboardContent({
               ),
             );
           }}
-          onArtistProfileFieldsUpdated={({ name, patch }) => {
+          onArtistProfileFieldsUpdated={({ name, patch, catalogScope }) => {
             setArtistModalAlbums((prev) =>
-              prev.map((album) => applyAlbumProfileFieldsRetarget(album, 'artist', name, patch)),
+              prev.map((album) =>
+                applyAlbumProfileFieldsRetarget(album, 'artist', name, patch, catalogScope),
+              ),
             );
           }}
         />

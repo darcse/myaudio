@@ -9,6 +9,7 @@ import {
   fetchCatalogLotteryFilterRows,
   type CatalogLotteryFilterRow,
 } from '../albumLotteryDraw';
+import type { CatalogScope } from '@/lib/catalogScope';
 import type { Album } from '../types';
 import {
   ALL_GENRE1_FILTER,
@@ -48,6 +49,7 @@ type AlbumLotteryModalProps = {
   onClose: () => void;
   lotteryPool?: Album[];
   mode?: 'pool' | 'catalog';
+  catalogScope?: CatalogScope;
   yearLabel?: string;
   subtitle?: string;
   title?: string;
@@ -61,6 +63,7 @@ export function AlbumLotteryModal({
   onClose,
   lotteryPool = [],
   mode = 'pool',
+  catalogScope,
   yearLabel,
   subtitle,
   title = '랜덤 앨범 추천',
@@ -69,6 +72,7 @@ export function AlbumLotteryModal({
   onAlbumClick,
 }: AlbumLotteryModalProps) {
   const isCatalog = mode === 'catalog';
+  const isClassicCatalog = isCatalog && catalogScope === 'classic';
   const showRedraw = !isCatalog;
   const catalogAutoStart = autoStart && !isCatalog;
   const [phase, setPhase] = useState<LotteryPhase>(catalogAutoStart ? 'spinning' : 'idle');
@@ -163,7 +167,7 @@ export function AlbumLotteryModal({
   const resetCatalogConditions = useCallback(() => {
     setCatalogYearFilter(ALL_PERIOD_YEAR_FILTER);
     setCatalogTag('전체');
-    setCatalogGenre1Filter(ALL_GENRE1_FILTER);
+    setCatalogGenre1Filter(catalogScope === 'classic' ? 'Classic' : ALL_GENRE1_FILTER);
     setCatalogAlbumTypeFilter('전체');
     catalogBusyRef.current = false;
     setDrawing(false);
@@ -173,7 +177,7 @@ export function AlbumLotteryModal({
     setSpinAlbum(null);
     setResultAlbum(null);
     setMetaVisible(false);
-  }, []);
+  }, [catalogScope]);
 
   const startCatalogLottery = useCallback(
     (exclude: Album | null) => {
@@ -198,6 +202,7 @@ export function AlbumLotteryModal({
         genre1Filter: catalogGenre1Filter,
         albumTypeFilter: catalogAlbumTypeFilter,
         excludeId: exclude?.id,
+        catalogScope,
       })
         .then((draw) => {
           if (catalogRequestRef.current !== requestId) {
@@ -245,6 +250,7 @@ export function AlbumLotteryModal({
       catalogAlbumTypeFilter,
       catalogCandidateCount,
       catalogGenre1Filter,
+      catalogScope,
       catalogTag,
       catalogYearFilter,
       isCatalog,
@@ -276,7 +282,7 @@ export function AlbumLotteryModal({
     catalogRowsRequestRef.current = requestId;
     setCatalogRowsLoading(true);
     setCatalogRowsError(null);
-    void fetchCatalogLotteryFilterRows().then((result) => {
+    void fetchCatalogLotteryFilterRows(catalogScope).then((result) => {
       if (catalogRowsRequestRef.current !== requestId) return;
       setCatalogRowsLoading(false);
       if (result.status === 'error') {
@@ -286,7 +292,7 @@ export function AlbumLotteryModal({
       }
       setCatalogFilterRows(result.rows);
     });
-  }, [open, isCatalog]);
+  }, [open, isCatalog, catalogScope]);
 
   useEffect(() => {
     if (!isCatalog) return;
@@ -422,20 +428,32 @@ export function AlbumLotteryModal({
                   </option>
                 ))}
               </select>
-              <select
-                className={CATALOG_SELECT_CLASS}
-                value={catalogGenre1Filter}
-                disabled={catalogBusy || catalogRowsLoading}
-                onChange={(e) => setCatalogGenre1Filter(e.target.value)}
-                aria-label="장르1 선택"
-              >
-                <option value={ALL_GENRE1_FILTER}>{ALL_GENRE1_FILTER}</option>
-                {catalogGenre1Options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.value} ({option.count})
-                  </option>
-                ))}
-              </select>
+              {isClassicCatalog ? (
+                <select
+                  className={`${CATALOG_SELECT_CLASS} opacity-60 cursor-not-allowed`}
+                  value="Classic"
+                  disabled
+                  aria-label="장르1 선택"
+                  aria-readonly="true"
+                >
+                  <option value="Classic">Classic</option>
+                </select>
+              ) : (
+                <select
+                  className={CATALOG_SELECT_CLASS}
+                  value={catalogGenre1Filter}
+                  disabled={catalogBusy || catalogRowsLoading}
+                  onChange={(e) => setCatalogGenre1Filter(e.target.value)}
+                  aria-label="장르1 선택"
+                >
+                  <option value={ALL_GENRE1_FILTER}>{ALL_GENRE1_FILTER}</option>
+                  {catalogGenre1Options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.value} ({option.count})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <div

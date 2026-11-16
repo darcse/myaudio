@@ -1,0 +1,36 @@
+{
+  "id": "T-032",
+  "goal": "Pop & Rock과 Classic 메뉴의 앨범·아티스트 화면 헤더를 정리한다: 탭을 제목 옆으로 옮기고, 원작곡가 탭 제목을 Composers로 바꾸며, 불필요한 버튼·필터를 걷어내고 Classic 랜덤 추천 모달의 장르를 Classic 고정으로 한다.",
+  "context": "CLASSIC-001/002 구현 후 모아둔 UI 정리 1차다(UI 항목은 이 작업으로 한 번에 처리). 대상은 src/components/CatalogTabBar.tsx, AlbumsLibraryContent.tsx, ArtistsLibraryContent.tsx, AlbumList.tsx 및 헤더·필터 컴포넌트, AlbumLotteryModal.tsx다. 파일 위치와 현재 구조는 코드에서 확인한다. 요구사항: [공통 Pop & Rock·Classic, 앨범 탭과 아티스트 계열 탭 모두] (1) 탭 바(CatalogTabBar)를 화면 제목 문구 바로 옆으로 옮긴다(현재는 제목 아래 별도 줄). 모바일 폭에서도 깨지지 않게 한다. (2) 화면 제목 문구는 메뉴 이름으로 바꾸지 않는다. 앨범 화면 제목은 현재의 'Albums', 아티스트 화면 제목은 'Artists'를 두 메뉴 모두 그대로 유지한다. 단 Classic의 원작곡가 탭(role=composer)에서는 제목을 'Composers'로 바꾼다. (3) 취향 분석 버튼을 Pop & Rock에서도 제거한다(Classic은 이미 숨김). 취향 분석 기능 코드·컴포넌트는 삭제하지 말고 진입 버튼만 숨긴다(다른 곳에서 쓰이면 그대로 둔다). (4) 다이어리 버튼과 랜덤 추천 버튼은 아이콘만 표시한다(텍스트 제거, 접근성을 위해 aria-label/title은 유지). 두 메뉴 모두. [Classic 전용] (5) 연주자 탭 이름을 '연주자/지휘자'로 바꾼다(원작곡가 탭은 그대로). (6) 랜덤 추천 모달(AlbumLotteryModal mode='catalog', catalogScope='classic')에서 장르 셀렉트를 선택 불가(읽기 전용) Classic 고정 표시로 바꾼다. 내부 필터 로직은 그대로 두고 장르 값이 Classic으로 고정되게만 한다. Pop & Rock 모달은 변경하지 않는다. (7) Classic 앨범 목록의 기간 필터는 기본값이 '전체'(연도 전체)가 되게 하고, 전체/All Time 태그 탭(listLibraryTag)은 Classic에서 숨긴다. Pop & Rock의 기간 기본값과 태그 탭은 변경하지 않는다. 연도 직접 선택은 가능해야 한다. (8) Classic 앨범 목록의 보기 전환 버튼(리스트, 무드보드, 장르보드)을 숨긴다. Classic은 단일 보기(현재 기본 보기)로 고정한다. 이전 선택이 저장된 view 값이 있어도 Classic에서는 무시한다. Pop & Rock의 보기 전환은 변경하지 않는다. 이번에 하지 않는 것: Classic 장르 필터 셀렉트 표시 변경(이번 요청에 없음), 수정 모달 입력 초기화, 토스트 문구, 기타 UI. 구조상 더 나은 방법이 있으면 근거와 함께 제안한다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
+  "scope": {
+    "in": [
+      "Pop & Rock·Classic 앨범/아티스트 헤더: 탭을 제목 옆으로, 원작곡가 탭 제목을 'Composers'로(Albums·Artists 제목은 유지)",
+      "Pop & Rock 취향 분석 버튼 숨김",
+      "다이어리·랜덤 추천 버튼 아이콘만 표시(두 메뉴)",
+      "Classic 탭 이름 '연주자/지휘자'",
+      "Classic 랜덤 추천 모달 장르 Classic 고정(읽기 전용)",
+      "Classic 기간 필터 기본 전체와 전체/All Time 탭 숨김",
+      "Classic 보기 전환 버튼(리스트·무드보드·장르보드) 숨김"
+    ],
+    "out": [
+      "Pop & Rock의 기간 기본값·태그 탭·보기 전환",
+      "Pop & Rock 랜덤 추천 모달",
+      "취향 분석 기능 코드 삭제",
+      "Classic 장르 필터 셀렉트 표시",
+      "수정 모달 입력 초기화·토스트 문구 등 이번 요청 밖의 UI",
+      "데이터·DB·SQL, 대시보드·인사이트·레코드선반·가사 화면",
+      "feature_list의 passes 변경",
+      "window.confirm/alert/prompt 사용",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock과 Classic의 앨범·아티스트 화면 모두 탭이 제목 문구 옆에 있고, 제목은 'Albums'와 'Artists' 그대로이며 Classic 원작곡가 탭 제목만 'Composers'이고, 모바일 폭에서도 줄바꿈 등으로 깨지지 않는다",
+    "Pop & Rock에는 취향 분석 버튼이 없고, 두 메뉴 모두 다이어리와 랜덤 추천 버튼이 아이콘만 보이며 aria-label이 남아 있다",
+    "Classic 탭 이름이 앨범|연주자/지휘자|원작곡가이고, Classic 랜덤 추천 모달의 장르는 Classic으로 고정된 읽기 전용이며 추첨 결과는 클래식 앨범뿐이다. Pop & Rock 모달은 이전과 같다",
+    "Classic 앨범 목록은 기간이 '전체'로 시작해 전체 앨범이 보이고, 전체/All Time 탭과 리스트·무드보드·장르보드 버튼이 없으며, 연도를 직접 고르면 필터가 동작한다. Pop & Rock의 기간·탭·보기 전환은 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "접근: 헤더에 탭을 붙이고 Classic 전용 필터·보기·추첨 UI를 정리.\n\n변경:\n- CatalogTabBar: 제목 옆 배치용 className, Classic 탭 '연주자/지휘자'\n- AlbumPageHeader: tabs 슬롯, 다이어리·랜덤 아이콘만(+aria-label/title), 취향은 onTasteClick 있을 때만(라이브러리는 미전달→숨김, ?panel=taste·MusicTasteModal 유지)\n- ArtistsLibraryContent: 탭을 제목 옆, composer→'Composers' / 그 외 'Artists'\n- useAlbumFilters: defaultYearToAllPeriod(Classic→기간 전체), Classic은 enableLibraryTags=false\n- AlbumList/AlbumsLibraryContent: Classic에서 태그 탭·보기 전환 숨김, list 고정, defaultYearFilter=기간 전체\n- AlbumLotteryModal: classic catalog 장르 Classic 고정 읽기 전용\n\n검증: npx tsc --noEmit 통과, npm run lint 통과."
+}

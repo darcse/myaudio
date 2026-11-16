@@ -5,10 +5,11 @@ import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  ARTIST_TYPE_OPTIONS,
+  artistTypeOptionsForCatalog,
   COMPOSER_ERA_OPTIONS,
   countryOptions,
 } from '@/app/albums/constants';
+import type { CatalogScope } from '@/lib/catalogScope';
 import {
   buildProfileFieldsPatchDiff,
   type ArtistProfileFieldsPatch,
@@ -22,6 +23,7 @@ export type ArtistSaveOptions = {
 
 type ArtistInfoEditModalProps = {
   role: ArtistLibraryRole;
+  catalogScope?: CatalogScope;
   albumCount: number;
   artistName: string;
   nameAlt: string | null;
@@ -48,6 +50,7 @@ function toNullable(value: string): string | null {
 
 export function ArtistInfoEditModal({
   role,
+  catalogScope = 'popular',
   albumCount,
   artistName,
   nameAlt,
@@ -97,6 +100,10 @@ export function ArtistInfoEditModal({
   const busy = saving || submitting;
   const roleLabel = role === 'composer' ? '작곡가' : '아티스트';
   const crossRoleLabel = role === 'composer' ? '아티스트' : '작곡가';
+  const artistTypeOptions = artistTypeOptionsForCatalog(catalogScope);
+  const nameChangedDraft =
+    !isSameArtistName(nameDraft.trim(), artistName) ||
+    (normalizeArtistNameAlt(altDraft) ?? null) !== (normalizeArtistNameAlt(nameAlt) ?? null);
 
   const handleClose = () => {
     if (busy) return;
@@ -225,6 +232,11 @@ export function ArtistInfoEditModal({
                 disabled={busy}
               />
             </div>
+            {nameChangedDraft ? (
+              <p className="text-[11px] leading-relaxed opacity-70">
+                모든 장르 앨범의 이름이 함께 바뀝니다
+              </p>
+            ) : null}
             {role === 'artist' ? (
               <div>
                 <label className="mb-1 block text-[11px] font-semibold opacity-70">아티스트 구분</label>
@@ -235,13 +247,13 @@ export function ArtistInfoEditModal({
                   disabled={busy}
                 >
                   <option value="">선택</option>
-                  {ARTIST_TYPE_OPTIONS.map((option) => (
+                  {artistTypeOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}
                     </option>
                   ))}
                   {artistTypeDraft &&
-                  !(ARTIST_TYPE_OPTIONS as readonly string[]).includes(artistTypeDraft) ? (
+                  !(artistTypeOptions as readonly string[]).includes(artistTypeDraft) ? (
                     <option value={artistTypeDraft}>{artistTypeDraft}</option>
                   ) : null}
                 </select>

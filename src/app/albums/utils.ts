@@ -11,6 +11,12 @@ export function isClassicGenre(genre1: string | null | undefined): boolean {
   return genre1?.trim() === 'Classic';
 }
 
+export type AlbumFormMode = 'pop' | 'classic';
+
+export function albumFormModeFromGenre1(genre1: string | null | undefined): AlbumFormMode {
+  return isClassicGenre(genre1) ? 'classic' : 'pop';
+}
+
 export function emptyComposerFormEntry(): AlbumComposerFormEntry {
   return { name: '', country: '', era: '', wiki_url: '' };
 }

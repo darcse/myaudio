@@ -23,7 +23,7 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
-import { albumToFormData } from '../utils';
+import { ALL_PERIOD_YEAR_FILTER, albumFormModeFromGenre1, albumToFormData } from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { CatalogTabBar } from '@/components/CatalogTabBar';
@@ -113,7 +113,8 @@ export function AlbumsLibraryContent({
     listTotalPages,
   } = useAlbumFilters(scopedLibrary, artistNameAltByName, {
     disableYearGrouping: physicalOwnedOnly,
-    enableLibraryTags: !physicalOwnedOnly,
+    enableLibraryTags: !physicalOwnedOnly && !isClassicScope,
+    defaultYearToAllPeriod: isClassicScope,
   });
 
   const [query, setQuery] = useState('');
@@ -176,9 +177,13 @@ export function AlbumsLibraryContent({
   }, [fetchLibrary]);
 
   useEffect(() => {
+    if (isClassicScope) {
+      setLibraryViewMode('list');
+      return;
+    }
     const m = searchParams.get('mood');
     const g = searchParams.get('genre');
-    if (!physicalOwnedOnly && !isClassicScope && m?.trim()) setLibraryViewMode('moodboard');
+    if (!physicalOwnedOnly && m?.trim()) setLibraryViewMode('moodboard');
     else if (g?.trim()) setLibraryViewMode('genreboard');
   }, [searchParams, physicalOwnedOnly, isClassicScope]);
 
@@ -388,7 +393,7 @@ export function AlbumsLibraryContent({
     [library],
   );
 
-  const albumParam = searchParams.get('album');
+  const albumParam = searchParams.get('album') ?? searchParams.get('view');
 
   useEffect(() => {
     if (!albumParam || isLoading) return;
@@ -570,14 +575,13 @@ export function AlbumsLibraryContent({
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
-      {!physicalOwnedOnly ? <CatalogTabBar scope={catalogScope} /> : null}
       <AlbumPageHeader
         title={physicalOwnedOnly ? 'RecordShelf' : 'Albums'}
+        tabs={!physicalOwnedOnly ? <CatalogTabBar scope={catalogScope} /> : undefined}
         showAlbumNav={!physicalOwnedOnly}
         isAuthenticated={isAuthenticated}
         showRegister={!physicalOwnedOnly}
         onRandomClick={physicalOwnedOnly ? undefined : () => setRandomLotteryOpen(true)}
-        onTasteClick={physicalOwnedOnly || isClassicScope ? undefined : () => void handleAnalyzeTaste()}
         onRegisterClick={physicalOwnedOnly ? undefined : toggleMbSearch}
         registerAriaLabel={mbSearchOpen ? '앨범 등록 검색 닫기' : '앨범 등록 검색 열기'}
         registerPressed={mbSearchOpen}
@@ -615,6 +619,13 @@ export function AlbumsLibraryContent({
           onImageUpload={handleImageUpload}
           isSaving={isSaving}
           isDeleting={isDeleting}
+          mode={
+            'id' in selectedItem && typeof selectedItem.id === 'number'
+              ? albumFormModeFromGenre1(formData.genre1)
+              : isClassicScope
+                ? 'classic'
+                : 'pop'
+          }
         />
       )}
 
@@ -638,13 +649,13 @@ export function AlbumsLibraryContent({
               onViewModeChange={setLibraryViewMode}
               isAuthenticated={isAuthenticated === true}
             />
-          ) : libraryViewMode === 'genreboard' ? (
+          ) : !isClassicScope && libraryViewMode === 'genreboard' ? (
             <AlbumGenreboard
               library={scopedLibrary}
               onAlbumClick={openAlbumDetail}
               viewMode={libraryViewMode}
               onViewModeChange={handleLibraryViewModeChange}
-              hiddenModes={physicalOwnedOnly || isClassicScope ? ['moodboard'] : undefined}
+              hiddenModes={physicalOwnedOnly ? ['moodboard'] : undefined}
               basePath={albumsBasePath}
               iconsLeading={physicalOwnedOnly}
             />
@@ -666,8 +677,10 @@ export function AlbumsLibraryContent({
               setListSearchQuery={setListSearchQuery}
               listYearFilter={listYearFilter}
               setListYearFilter={setListYearFilter}
-              listLibraryTag={physicalOwnedOnly ? undefined : listLibraryTag}
-              setListLibraryTag={physicalOwnedOnly ? undefined : setListLibraryTag}
+              defaultYearFilter={isClassicScope ? ALL_PERIOD_YEAR_FILTER : undefined}
+              listLibraryTag={physicalOwnedOnly || isClassicScope ? undefined : listLibraryTag}
+              setListLibraryTag={physicalOwnedOnly || isClassicScope ? undefined : setListLibraryTag}
+              hideClassicGenreOption={!physicalOwnedOnly && catalogScope === 'popular'}
               listGenreFilter={listGenreFilter}
               setListGenreFilter={setListGenreFilter}
               listCountryFilter={listCountryFilter}
@@ -690,7 +703,7 @@ export function AlbumsLibraryContent({
                 setListCurrentPage(1);
               }}
               libraryViewMode={libraryViewMode}
-              onLibraryViewModeChange={handleLibraryViewModeChange}
+              onLibraryViewModeChange={isClassicScope ? undefined : handleLibraryViewModeChange}
             />
           )}
         </div>
@@ -707,6 +720,7 @@ export function AlbumsLibraryContent({
       <AlbumLotteryModal
         open={randomLotteryOpen}
         mode="catalog"
+        catalogScope={physicalOwnedOnly ? undefined : catalogScope}
         onClose={() => setRandomLotteryOpen(false)}
         onAlbumClick={(album) => {
           openAlbumDetail(album);

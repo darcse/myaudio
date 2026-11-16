@@ -59,6 +59,19 @@ export const COMPOSER_ERA_OPTIONS = [
   '혼합 / 옴니버스',
 ] as const;
 
+export const POPULAR_ARTIST_TYPE_OPTIONS = [
+  '솔로',
+  '아이돌',
+  '밴드',
+  '걸스 밴드',
+  '그룹',
+  '연주자',
+  '음악감독',
+  '기타',
+] as const;
+
+export const CLASSIC_ARTIST_TYPE_OPTIONS = ['연주자', '지휘자', '기타'] as const;
+
 export const ARTIST_TYPE_OPTIONS = [
   '솔로',
   '아이돌',
@@ -70,6 +83,10 @@ export const ARTIST_TYPE_OPTIONS = [
   '음악감독',
   '기타',
 ] as const;
+
+export function artistTypeOptionsForCatalog(scope: 'popular' | 'classic') {
+  return scope === 'classic' ? CLASSIC_ARTIST_TYPE_OPTIONS : POPULAR_ARTIST_TYPE_OPTIONS;
+}
 
 export function isClassicFormOption(value: string | null | undefined): boolean {
   return !!value && (CLASSIC_FORM_OPTIONS as readonly string[]).includes(value);

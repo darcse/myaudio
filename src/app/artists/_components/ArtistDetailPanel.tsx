@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react';
 import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShared';
 import { AlbumCoverBlurBackdrop } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
 import type { Album } from '@/app/albums/types';
+import type { CatalogScope } from '@/lib/catalogScope';
 import { countryFlag, findArtistWikiUrl, findComposerWikiUrl, getPrimaryGenre1 } from '../utils';
 import type { ArtistLibraryRole, ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
@@ -19,6 +20,7 @@ import { ArtistWikiSection } from './ArtistWikiSection';
 
 type ArtistDetailPanelProps = {
   role?: ArtistLibraryRole;
+  catalogScope?: CatalogScope;
   artist: ArtistSummary | null;
   artistRecord: ArtistRecord | null;
   artistStats: ArtistStats | null;
@@ -52,6 +54,7 @@ type ArtistDetailPanelProps = {
 
 export function ArtistDetailPanel({
   role = 'artist',
+  catalogScope = 'popular',
   artist,
   artistRecord,
   artistStats,
@@ -149,6 +152,7 @@ export function ArtistDetailPanel({
       </div>
       <ArtistInfoEditModal
         role={role}
+        catalogScope={catalogScope}
         albumCount={artist.albumCount}
         artistName={artist.name}
         nameAlt={nameAlt}

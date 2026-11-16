@@ -1,0 +1,31 @@
+{
+  "id": "T-031",
+  "goal": "아티스트·원작곡가 부가 정보 일괄 수정에서 '아티스트 구분'은 현재 메뉴(Pop & Rock 또는 Classic)의 앨범에만 반영하고, 구분 선택지도 메뉴별로 나눈다.",
+  "context": "CLASSIC 분리의 H7 단계다. 설계 근거는 docs/classic-split-investigation.md의 J항. 현재 updateArtistProfileFields.ts는 이름이 일치하는 앨범을 장르 구분 없이 갱신하므로, Pop & Rock에서 구분을 바꾸면 같은 이름의 클래식 앨범의 artist_type도 덮어쓴다(예: Erich Kunzel, Various Artist). 확정된 방향: (1) artist_type은 호출한 메뉴의 scope 앨범만 갱신한다(catalogScope 'popular'|'classic', popular=!isClassicGenre, classic=isClassicGenre; src/lib/catalogScope.ts의 헬퍼를 재사용). (2) country·wiki_url은 인물 단위 정보이므로 기존처럼 양쪽 장르에 모두 반영하고(변경 금지), 작곡가 era는 기존대로 작곡가 role 전용이다. (3) 이름 변경(updateArtistNames)은 scope 제한하지 않고 양쪽 모두 바꾼다(동일 인물 목록 분열 방지). 대신 ArtistInfoEditModal에서 이름을 바꿀 때 인라인 안내 한 줄('모든 장르 앨범의 이름이 함께 바뀝니다')만 추가한다. (4) ARTIST_TYPE_OPTIONS(src/app/albums/constants.ts)를 메뉴별로 나눈다: Pop & Rock 쪽은 솔로·아이돌·밴드·걸스 밴드·그룹·연주자·음악감독·기타(지휘자 제외), Classic 쪽은 연주자·지휘자·기타. 이 구성이 현 데이터에 맞는지(예: 비클래식 앨범에 지휘자가 쓰인 경우, 클래식 앨범에 솔로 등이 쓰인 경우) 코드 쪽에서 확인 가능한 범위로 점검하고, 데이터 확인이 필요하면 JW가 실행할 SQL 조회문을 result에 제안한다(직접 실행·스키마 변경 금지). 옵션에 없는 기존 값이 화면에서 사라지거나 저장 시 지워지지 않게 한다(기존 dynamicTypes 방식 유지). (5) 적용 화면: AlbumForm(mode에 따라 pop/classic 옵션, T-029에서 만든 AlbumFormMode 재사용), ArtistInfoEditModal, ArtistTopControlBar의 구분 필터. 호출부(ArtistsLibraryContent 등)에서 현재 catalogScope를 modal/함수로 전달한다. 원작곡가 role의 composer 필드 갱신 범위는 기존 동작을 유지한다(작곡가 데이터는 클래식 앨범에만 있다). 건드리지 말 것: DB 스키마·SQL 실행, 이름 변경 범위, country/wiki 반영 범위, 등록·수정 폼의 장르 전환 규칙(T-029), UI 문구 정리. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "updateArtistProfileFields의 artist_type 갱신을 현재 메뉴 scope 앨범으로 제한",
+      "ARTIST_TYPE_OPTIONS의 Pop & Rock/Classic 분리와 AlbumForm·ArtistInfoEditModal·ArtistTopControlBar 적용",
+      "ArtistInfoEditModal 이름 변경 시 인라인 안내 한 줄 추가",
+      "호출부에서 catalogScope 전달"
+    ],
+    "out": [
+      "country·wiki_url·era 반영 범위 변경",
+      "이름 변경(updateArtistNames) 범위 변경",
+      "DB 스키마·SQL 실행·기존 데이터 이관",
+      "등록·수정 폼의 장르 전환 규칙",
+      "페이지 제목·문구 등 UI 정리(나중에 한 번에 진행)",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock에서 아티스트 구분을 바꾸면 같은 이름의 클래식 앨범 artist_type은 바뀌지 않고, Classic에서 바꾸면 Pop & Rock 앨범 artist_type은 바뀌지 않는다. 국가·위키 수정은 이전처럼 양쪽 앨범에 반영된다",
+    "구분 선택지가 Pop & Rock(지휘자 제외)과 Classic(연주자·지휘자·기타)으로 나뉘어 등록·수정 폼, 부가 정보 수정 모달, 구분 필터에 반영되고, 옵션에 없는 기존 값이 있어도 화면에서 사라지거나 저장 시 지워지지 않는다",
+    "ArtistInfoEditModal에서 이름을 바꾸면 '모든 장르 앨범의 이름이 함께 바뀝니다' 안내가 보이고, 이름·국가·위키 저장 동작은 기존과 같다",
+    "데이터 확인이 필요한 항목이 있으면 JW용 조회 SQL을 result에 제안하고(실행하지 않음), npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "접근: artist_type만 catalogScope로 제한하고 옵션을 pop/classic으로 분리, 모달에 이름 변경 안내 추가.\n\n변경:\n- constants: POPULAR_ARTIST_TYPE_OPTIONS(지휘자 제외)·CLASSIC_ARTIST_TYPE_OPTIONS(연주자·지휘자·기타)·artistTypeOptionsForCatalog\n- updateArtistProfileFields/applyAlbumProfileFieldsRetarget: catalogScope 필수 시 artist_type만 albumBelongsToScope 앨범에 적용(country/wiki/era·이름 범위 유지). SELECT에 genre1 추가\n- AlbumForm·ArtistInfoEditModal·ArtistTopControlBar: scope별 옵션 + 기존 값 보존(option/dynamicTypes)\n- ArtistsLibraryContent·ArtistDetailPanel/Modal·Dashboard/Stats/Insights: catalogScope 전달. DetailModal은 albums로 scope 추론(혼합→popular)\n- 이름 변경 시 인라인 안내: '모든 장르 앨범의 이름이 함께 바뀝니다'\n\nJW용 확인 SQL(실행하지 않음):\n```sql\n-- 비클래식에 지휘자\nSELECT artist, artist_type, genre1, count(*) AS n\nFROM album\nWHERE artist_type = '지휘자' AND coalesce(genre1, '') <> 'Classic'\nGROUP BY 1, 2, 3 ORDER BY n DESC;\n\n-- 클래식에 팝 전용 구분\nSELECT artist, artist_type, genre1, count(*) AS n\nFROM album\nWHERE genre1 = 'Classic'\n  AND artist_type IN ('솔로','아이돌','밴드','걸스 밴드','그룹','음악감독')\nGROUP BY 1, 2, 3 ORDER BY n DESC;\n```\n(옵션 밖 값은 UI에 유지되므로 이관 없이도 표시·저장은 안전)\n\n검증: npx tsc --noEmit 통과, npm run lint 통과. git diff --stat 작업트리 포함 20 files."
+}

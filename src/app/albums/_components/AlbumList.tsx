@@ -19,6 +19,7 @@ interface AlbumListProps {
   setListSearchQuery: (v: string) => void;
   listYearFilter: string;
   setListYearFilter: (v: string) => void;
+  defaultYearFilter?: string;
   listLibraryTag?: AlbumLibraryTag;
   setListLibraryTag?: (v: AlbumLibraryTag) => void;
   listGenreFilter: string;
@@ -39,6 +40,7 @@ interface AlbumListProps {
   variant?: 'albums' | 'recordshelf';
   listMediaFilter?: AlbumMediaFilter;
   setListMediaFilter?: (v: AlbumMediaFilter) => void;
+  hideClassicGenreOption?: boolean;
 }
 
 export function AlbumList({
@@ -49,6 +51,7 @@ export function AlbumList({
   setListSearchQuery,
   listYearFilter,
   setListYearFilter,
+  defaultYearFilter: defaultYearFilterProp,
   listLibraryTag = '전체',
   setListLibraryTag,
   listGenreFilter,
@@ -69,13 +72,17 @@ export function AlbumList({
   variant = 'albums',
   listMediaFilter = 'all',
   setListMediaFilter,
+  hideClassicGenreOption = false,
 }: AlbumListProps) {
   const isRecordshelf = variant === 'recordshelf';
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const yearSelectDisabled = yearOptions.length === 0 || listLibraryTag === 'All Time';
-  const defaultYearFilter = yearOptions[0] ?? '';
+  const defaultYearFilter = defaultYearFilterProp ?? yearOptions[0] ?? '';
   const hideYearTagOnCard = !isRecordshelf && isIndividualYearFilter(listYearFilter);
+  const genreSelectOptions = hideClassicGenreOption
+    ? genreOptions.filter((genre) => genre !== 'Classic')
+    : genreOptions;
 
   const activeFilters = [
     !isRecordshelf && defaultYearFilter && listYearFilter !== defaultYearFilter && {
@@ -130,7 +137,7 @@ export function AlbumList({
         onChange={(e) => setListGenreFilter(e.target.value)}
       >
         <option value="전체">장르: 전체</option>
-        {genreOptions.map((g) => (
+        {genreSelectOptions.map((g) => (
           <option key={g} value={g}>{g}</option>
         ))}
       </select>

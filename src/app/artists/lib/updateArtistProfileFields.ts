@@ -5,6 +5,7 @@ import {
   normalizeComposerNameKey,
   sanitizeComposersForSave,
 } from '@/app/albums/utils';
+import { albumBelongsToScope, type CatalogScope } from '@/lib/catalogScope';
 import type { ArtistLibraryRole } from '../types';
 
 export type ArtistProfileFieldsPatch = {
@@ -18,6 +19,7 @@ export type UpdateArtistProfileFieldsParams = {
   role: ArtistLibraryRole;
   name: string;
   patch: ArtistProfileFieldsPatch;
+  catalogScope?: CatalogScope;
 };
 
 export type UpdateArtistProfileFieldsResult = {
@@ -31,6 +33,7 @@ type AlbumProfileRow = Pick<
   | 'artist_type'
   | 'country'
   | 'wiki_url'
+  | 'genre1'
   | 'composer'
   | 'composer_country'
   | 'composer_era'
@@ -39,7 +42,7 @@ type AlbumProfileRow = Pick<
 >;
 
 const SELECT_COLS =
-  'id, artist, artist_type, country, wiki_url, composer, composer_country, composer_era, composer_wiki_url, composers';
+  'id, artist, artist_type, country, wiki_url, genre1, composer, composer_country, composer_era, composer_wiki_url, composers';
 
 const PARTIAL_FAIL_HINT = '일부 앨범만 반영됐을 수 있습니다. 다시 저장하면 맞춰집니다.';
 
@@ -103,6 +106,7 @@ function buildAlbumUpdate(
   name: string,
   nameKey: string,
   patch: ArtistProfileFieldsPatch,
+  catalogScope?: CatalogScope,
 ): Record<string, unknown> | null {
   const update: Record<string, unknown> = {};
   const isArtistRow = artistNameMatches(row.artist, name);
@@ -118,7 +122,12 @@ function buildAlbumUpdate(
     (role === 'artist' ||
       (role === 'composer' &&
         (hasOwnPatchKey(patch, 'country') || hasOwnPatchKey(patch, 'wikiUrl'))));
-  const applyArtistType = isArtistRow && role === 'artist' && hasOwnPatchKey(patch, 'artistType');
+  const applyArtistType =
+    isArtistRow &&
+    role === 'artist' &&
+    hasOwnPatchKey(patch, 'artistType') &&
+    catalogScope != null &&
+    albumBelongsToScope(row, catalogScope);
   const applyComposerFields =
     hasComposerMatch &&
     (role === 'composer' ||
@@ -244,7 +253,14 @@ export async function updateArtistProfileFields(
 
   const nameKey = normalizeComposerNameKey(name);
   for (const row of rows) {
-    const update = buildAlbumUpdate(row, params.role, name, nameKey, params.patch);
+    const update = buildAlbumUpdate(
+      row,
+      params.role,
+      name,
+      nameKey,
+      params.patch,
+      params.catalogScope,
+    );
     if (!update) continue;
     const { error } = await supabase.from('album').update(update).eq('id', row.id);
     if (error) {
@@ -262,6 +278,7 @@ export function applyAlbumProfileFieldsRetarget<T extends AlbumProfileRow>(
   role: ArtistLibraryRole,
   name: string,
   patch: ArtistProfileFieldsPatch,
+  catalogScope?: CatalogScope,
 ): T {
   if (patchIsEmpty(patch)) return album;
   const update = buildAlbumUpdate(
@@ -270,6 +287,7 @@ export function applyAlbumProfileFieldsRetarget<T extends AlbumProfileRow>(
     name.trim(),
     normalizeComposerNameKey(name),
     patch,
+    catalogScope,
   );
   if (!update) return album;
   return { ...album, ...update };

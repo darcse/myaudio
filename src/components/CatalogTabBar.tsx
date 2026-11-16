@@ -7,6 +7,7 @@ import { catalogAlbumsPath, catalogArtistsPath } from '@/lib/catalogScope';
 
 type CatalogTabBarProps = {
   scope: CatalogScope;
+  className?: string;
 };
 
 type TabItem = {
@@ -16,7 +17,7 @@ type TabItem = {
   active: boolean;
 };
 
-export function CatalogTabBar({ scope }: CatalogTabBarProps) {
+export function CatalogTabBar({ scope, className }: CatalogTabBarProps) {
   const pathname = usePathname() ?? '';
   const searchParams = useSearchParams();
   const role = searchParams.get('role');
@@ -36,7 +37,7 @@ export function CatalogTabBar({ scope }: CatalogTabBarProps) {
           },
           {
             id: 'performer',
-            label: '연주자',
+            label: '연주자/지휘자',
             href: artistsPath,
             active: onArtists && role !== 'composer',
           },
@@ -64,7 +65,7 @@ export function CatalogTabBar({ scope }: CatalogTabBarProps) {
 
   return (
     <div
-      className="mb-4 flex flex-wrap items-center gap-1.5"
+      className={`flex flex-wrap items-center gap-1.5 ${className ?? ''}`.trim()}
       role="tablist"
       aria-label={scope === 'classic' ? 'Classic 메뉴' : 'Pop & Rock 메뉴'}
     >

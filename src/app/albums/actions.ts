@@ -253,9 +253,17 @@ export async function updateAlbumInDB(id: number, data: AlbumFormData) {
   const mapped = mapAlbumData(data);
   const { data: existing } = await supabase
     .from('album')
-    .select('youtube_playlist_id')
+    .select('youtube_playlist_id, genre1')
     .eq('id', id)
     .maybeSingle();
+  if (
+    existing &&
+    isClassicGenre(existing.genre1) !== isClassicGenre(data.genre1)
+  ) {
+    throw new Error(
+      '클래식 여부는 변경할 수 없습니다. Pop & Rock과 Classic은 각각 해당 메뉴에서 등록해 주세요.',
+    );
+  }
   const previousId =
     existing && typeof existing.youtube_playlist_id === 'string'
       ? existing.youtube_playlist_id

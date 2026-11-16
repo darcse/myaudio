@@ -5,7 +5,7 @@ import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
   CLASSIC_FORM_OPTIONS,
-  ARTIST_TYPE_OPTIONS,
+  artistTypeOptionsForCatalog,
   COMPOSER_ERA_OPTIONS,
   countryOptions,
   genreOptions,
@@ -15,11 +15,12 @@ import type { AlbumFormData, SelectedAlbum } from '../types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import {
+  albumFormModeFromGenre1,
   emptyComposerFormEntry,
-  isClassicGenre,
   MAX_ALBUM_COMPOSERS,
   normalizeComposerNameKey,
   primaryComposerFieldsFromEntries,
+  type AlbumFormMode,
 } from '../utils';
 import type { AlbumComposerFormEntry } from '../types';
 import { ComposerComboSelect } from './ComposerComboSelect';
@@ -35,6 +36,7 @@ interface AlbumFormProps {
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isSaving?: boolean;
   isDeleting?: boolean;
+  mode?: AlbumFormMode;
 }
 
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -51,6 +53,7 @@ export function AlbumForm({
   onImageUpload,
   isSaving = false,
   isDeleting = false,
+  mode,
 }: AlbumFormProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [classicFormError, setClassicFormError] = useState(false);
@@ -91,6 +94,18 @@ export function AlbumForm({
   }, []);
 
   const isEdit = 'id' in selectedItem && typeof selectedItem.id === 'number';
+  const resolvedMode: AlbumFormMode =
+    mode ?? (isEdit ? albumFormModeFromGenre1(formData.genre1) : 'pop');
+  const isClassicMode = resolvedMode === 'classic';
+  const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
+  const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
+
+  useEffect(() => {
+    if (!isClassicMode) return;
+    if (formData.genre1 === 'Classic') return;
+    setFormData((prev) => ({ ...prev, genre1: 'Classic' }));
+  }, [formData.genre1, isClassicMode, setFormData]);
+
   const releaseDateReadOnly =
     !isEdit && !('isManual' in selectedItem)
       ? !!(selectedItem as Record<string, unknown>)?.release_date
@@ -142,15 +157,19 @@ export function AlbumForm({
             'artist',
             'artist',
             'text',
-            isClassicGenre(formData.genre1) ? '연주자(지휘자/솔리스트)를 입력하세요' : undefined,
+            isClassicMode ? '연주자(지휘자/솔리스트)를 입력하세요' : undefined,
           )}
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">아티스트 구분</label>
             <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.artist_type} onChange={(e) => setFormData({ ...formData, artist_type: e.target.value })}>
               <option value="">선택</option>
-              {ARTIST_TYPE_OPTIONS.map((option) => (
+              {artistTypeOptions.map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
+              {formData.artist_type &&
+              !(artistTypeOptions as readonly string[]).includes(formData.artist_type) ? (
+                <option value={formData.artist_type}>{formData.artist_type}</option>
+              ) : null}
             </select>
           </div>
           <div>
@@ -323,17 +342,34 @@ export function AlbumForm({
             {renderInput('Wikipedia URL', 'wiki_url')}
             <div>
               <label className="block text-sm font-semibold mb-1 opacity-90">장르</label>
-              <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.genre1} onChange={(e) => {
-                setFormData({ ...formData, genre1: e.target.value });
-                setClassicFormError(false);
-              }}>
-                <option value="">선택</option>
-                {genreOptions.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+              {isClassicMode ? (
+                <select
+                  className={`select-apple px-3 py-2 w-full h-[42px] ${readonlyClass}`}
+                  value="Classic"
+                  disabled
+                  aria-readonly="true"
+                >
+                  <option value="Classic">Classic</option>
+                </select>
+              ) : (
+                <select
+                  className="select-apple px-3 py-2 w-full h-[42px]"
+                  value={formData.genre1}
+                  onChange={(e) => {
+                    setFormData({ ...formData, genre1: e.target.value });
+                    setClassicFormError(false);
+                  }}
+                >
+                  <option value="">선택</option>
+                  {popGenreOptions.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-            {isClassicGenre(formData.genre1) ? (
+            {isClassicMode ? (
               <div>
                 <label className="block text-sm font-semibold mb-1 opacity-90">형식</label>
                 <select
@@ -362,7 +398,7 @@ export function AlbumForm({
             ) : (
               renderInput('하위 장르 (직접 입력)', 'genre2')
             )}
-            {isClassicGenre(formData.genre1) ? (
+            {isClassicMode ? (
               <div className="col-span-2 flex min-w-0 flex-col gap-3">
                 {(formData.composers.length > 0
                   ? formData.composers
@@ -586,11 +622,11 @@ export function AlbumForm({
             type="button"
             className="btn-apple btn-apple-primary p-4 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
             onClick={() => {
-              if (isClassicGenre(formData.genre1) && !isClassicFormOption(formData.genre2)) {
-                setClassicFormError(true);
-                return;
-              }
-              if (isClassicGenre(formData.genre1)) {
+              if (isClassicMode) {
+                if (!isClassicFormOption(formData.genre2)) {
+                  setClassicFormError(true);
+                  return;
+                }
                 const keys = formData.composers
                   .map((entry) => normalizeComposerNameKey(entry.name))
                   .filter(Boolean);

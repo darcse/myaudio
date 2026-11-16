@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Album } from '../types';
 import { matchesArtistNameSearch } from '@/app/artists/utils';
 import {
+  ALL_PERIOD_YEAR_FILTER,
   albumMatchesLibraryTag,
   albumMatchesLotteryYearFilter,
   albumMatchesYearFilter,
@@ -21,10 +22,15 @@ export type { AlbumLibraryTag };
 export function useAlbumFilters(
   library: Album[],
   artistNameAltByName: Record<string, string | null> = {},
-  options?: { disableYearGrouping?: boolean; enableLibraryTags?: boolean },
+  options?: {
+    disableYearGrouping?: boolean;
+    enableLibraryTags?: boolean;
+    defaultYearToAllPeriod?: boolean;
+  },
 ) {
   const disableYearGrouping = options?.disableYearGrouping ?? false;
   const enableLibraryTags = options?.enableLibraryTags ?? false;
+  const defaultYearToAllPeriod = options?.defaultYearToAllPeriod ?? false;
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
   const [listLibraryTag, setListLibraryTagState] = useState<AlbumLibraryTag>('전체');
@@ -51,9 +57,12 @@ export function useAlbumFilters(
     }
     setListYearFilter((prev) => {
       if (prev && dynamicYearOptions.includes(prev)) return prev;
+      if (defaultYearToAllPeriod && dynamicYearOptions.includes(ALL_PERIOD_YEAR_FILTER)) {
+        return ALL_PERIOD_YEAR_FILTER;
+      }
       return dynamicYearOptions[0];
     });
-  }, [dynamicYearOptions, disableYearGrouping]);
+  }, [dynamicYearOptions, disableYearGrouping, defaultYearToAllPeriod]);
 
   useEffect(() => {
     setListCurrentPage(1);

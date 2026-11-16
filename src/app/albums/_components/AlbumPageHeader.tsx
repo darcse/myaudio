@@ -9,6 +9,7 @@ export type AlbumNavId = 'diary';
 
 type AlbumPageHeaderProps = {
   title?: string;
+  tabs?: ReactNode;
   showAlbumNav?: boolean;
   activeNav?: AlbumNavId | null;
   isAuthenticated: boolean | null;
@@ -29,6 +30,7 @@ function navButtonClass(active: boolean): string {
 
 export function AlbumPageHeader({
   title = 'Albums',
+  tabs,
   showAlbumNav = true,
   activeNav,
   isAuthenticated,
@@ -41,56 +43,61 @@ export function AlbumPageHeader({
   registerPressed,
 }: AlbumPageHeaderProps) {
   const randomHref = '/albums?panel=random';
-  const tasteHref = '/albums?panel=taste';
 
   return (
     <div
       className={`mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between${showDivider ? ' border-b pb-6' : ''}`}
       style={showDivider ? { borderColor: 'var(--border)' } : undefined}
     >
-      <h1 className="page-title flex shrink-0 items-center gap-2">
-        <Disc className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
-        {title}
-      </h1>
+      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+        <h1 className="page-title flex shrink-0 items-center gap-2">
+          <Disc className="size-7 shrink-0 opacity-80" strokeWidth={1.5} />
+          {title}
+        </h1>
+        {tabs}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {showAlbumNav ? (
           <>
-        <Link href="/albums/diary" className={navButtonClass(activeNav === 'diary')} aria-label="다이어리">
-          <BookOpen className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-          <span className="hidden sm:inline">다이어리</span>
-        </Link>
-        {onRandomClick ? (
-          <button
-            type="button"
-            className={navButtonClass(false)}
-            onClick={onRandomClick}
-            aria-label="랜덤 추천"
-          >
-            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
-            <span className="hidden sm:inline">랜덤 추천</span>
-          </button>
-        ) : (
-          <Link href={randomHref} className={navButtonClass(false)} aria-label="랜덤 추천">
-            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
-            <span className="hidden sm:inline">랜덤 추천</span>
-          </Link>
-        )}
-        {onTasteClick ? (
-          <button
-            type="button"
-            className={navButtonClass(false)}
-            onClick={() => void onTasteClick()}
-            aria-label="취향 분석"
-          >
-            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">취향 분석</span>
-          </button>
-        ) : (
-          <Link href={tasteHref} className={navButtonClass(false)} aria-label="취향 분석">
-            <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">취향 분석</span>
-          </Link>
-        )}
+            <Link
+              href="/albums/diary"
+              className={navButtonClass(activeNav === 'diary')}
+              aria-label="다이어리"
+              title="다이어리"
+            >
+              <BookOpen className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+            </Link>
+            {onRandomClick ? (
+              <button
+                type="button"
+                className={navButtonClass(false)}
+                onClick={onRandomClick}
+                aria-label="랜덤 추천"
+                title="랜덤 추천"
+              >
+                <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+              </button>
+            ) : (
+              <Link
+                href={randomHref}
+                className={navButtonClass(false)}
+                aria-label="랜덤 추천"
+                title="랜덤 추천"
+              >
+                <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.75} />
+              </Link>
+            )}
+            {onTasteClick ? (
+              <button
+                type="button"
+                className={navButtonClass(false)}
+                onClick={() => void onTasteClick()}
+                aria-label="취향 분석"
+                title="취향 분석"
+              >
+                <Sparkles className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+              </button>
+            ) : null}
           </>
         ) : null}
         {showRegister && isAuthenticated ? (

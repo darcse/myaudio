@@ -1,0 +1,33 @@
+{
+  "id": "T-028",
+  "feature_id": "CLASSIC-001",
+  "goal": "Pop & Rock 메뉴(/albums, /artists)에서 클래식 앨범을 숨기고, 아티스트 화면의 원작곡가 토글을 없애며, 추첨과 장르 필터와 다른 메뉴 소속 주소 접근이 각 메뉴 범위에 맞게 동작하게 한다.",
+  "context": "CLASSIC-001의 두 번째 단계다(T-027에서 Classic 메뉴와 catalogScope 모듈을 만들었고 popular scope는 아직 미필터였다). 설계 근거는 docs/classic-split-investigation.md의 D·E·H3·H8항이다. 변경: (1) src/lib/catalogScope.ts의 albumBelongsToScope·filterAlbumsByScope에서 popular scope를 !isClassicGenre(genre1)로 필터한다. 레코드선반(physicalOwnedOnly)은 기존처럼 scope 필터를 적용하지 않는다(AlbumsLibraryContent는 physicalOwnedOnly일 때 catalogScope 기본값이 popular여도 필터를 건너뛰고 있으니 유지하는지 확인한다). (2) Pop & Rock /artists(ArtistsLibraryContent의 popular scope): 아티스트|원작곡가 역할 토글을 제거하고 role을 항상 artist로 고정한다. 옛 /artists?role=composer 서버 리다이렉트는 유지한다. composer 관련 handleRoleChange·URL 로직은 classic에서만 쓰이게 정리하되 동작은 바꾸지 않는다. (3) 장르 필터: Pop & Rock 앨범 목록의 장르 필터(AlbumList의 genreOptions 사용 두 곳)와 아티스트 상단 필터의 장르 목록에서 'Classic' 항목을 제외해 선택해도 빈 목록이 되는 항목이 없게 한다. Classic 메뉴의 장르 필터는 이번에 바꾸지 않고 현재 표시를 result에 보고한다(UI는 나중에 한 번에 정리한다). (4) 추첨: 앨범 랜덤 추첨(AlbumLotteryModal mode='catalog'가 쓰는 풀)과 아티스트 추첨(ArtistLotteryModal)이 각 메뉴의 scope 풀만 쓰도록 한다. AlbumLotteryModal이 자체적으로 전체 앨범을 조회한다면 scope를 받도록 최소 수정한다. Pop & Rock에서 클래식이 추첨되거나 Classic에서 비클래식이 추첨되면 안 된다. (5) 다른 메뉴 소속 주소 접근: /artists?artist=이름이 popular 요약에 없고 클래식 요약에는 있으면 /classic/artists?artist=이름(role 쿼리 보존 없음)으로, 반대로 /classic/artists?artist=이름이 classic에 없고 popular에는 있으면 /artists?artist=이름으로 router.replace한다. 양쪽에 모두 있는 이름(Erich Kunzel 등)은 현재 메뉴에 그대로 둔다. 데이터 로드가 끝난 뒤에만 판단해 깜빡임·무한 루프가 없게 한다. 이로써 앨범 상세의 아티스트 링크, 재생 중 아티스트 링크, 상세 모달 nameHref 등 /artists로 향하는 기존 링크가 각 링크를 따로 고치지 않아도 올바른 메뉴로 도착한다. 앨범 쪽(/albums?album=id, /albums?view=id)은 AlbumsLibraryContent가 앨범 id로 직접 조회해 상세를 여는 경로(openAlbumById)가 있으므로 메뉴 소속과 무관하게 상세가 열리는지 확인만 하고, 열리지 않으면 같은 방식의 리다이렉트를 최소로 추가한다(Head-fi 쪽 /albums?view= 호출부는 수정하지 않는다). 확인 사항과 수정 여부를 result에 적는다. 건드리지 말 것: 대시보드·인사이트·앨범 통계·다이어리·가사·레코드선반의 데이터 범위, 등록 폼 분리, 부가 정보 수정 범위(구분 옵션 분리), 페이지 제목 등 UI 문구 정리(나중에 한 번에 한다). 교차 아티스트(Erich Kunzel: Pop 계열 1장+클래식 1장, Various Artist: 클래식 1+그 외 8)가 각 메뉴에서 해당 앨범만으로 집계되는지 확인한다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "popular scope 클래식 제외 필터(catalogScope)와 Pop & Rock 앨범·아티스트 화면 반영",
+      "Pop & Rock 아티스트 화면의 원작곡가 토글 제거와 role 고정",
+      "Pop & Rock 장르 필터에서 Classic 항목 제외",
+      "앨범·아티스트 추첨 풀의 scope 적용",
+      "아티스트 주소가 다른 메뉴 소속일 때의 메뉴 간 리다이렉트(필요 시 앨범 상세 주소 확인)"
+    ],
+    "out": [
+      "대시보드·인사이트·앨범 통계·다이어리·가사·레코드선반의 데이터 범위 변경",
+      "등록 폼 분리·장르 전환 금지(CLASSIC-002)",
+      "부가 정보 수정의 구분 범위 제한과 구분 옵션 분리",
+      "페이지 제목·문구·스타일 등 UI 정리(나중에 한 번에 진행)",
+      "DB 스키마·SQL, feature_list의 passes 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock의 /albums와 /artists에는 클래식 앨범이 나타나지 않고, /classic/*에는 클래식 앨범만 나타난다. 레코드선반·다이어리·통계·인사이트·대시보드는 변하지 않는다",
+    "Pop & Rock 아티스트 화면에는 원작곡가 토글이 없고, Pop & Rock 앨범·아티스트의 장르 필터에 Classic 항목이 없다. 옛 /artists?role=composer 주소는 여전히 Classic 원작곡가 탭으로 이동한다",
+    "클래식과 그 외 앨범을 모두 가진 아티스트(Erich Kunzel 등)는 Pop & Rock과 Classic 각각에서 해당 앨범만으로 집계되어 따로 보인다",
+    "앨범 랜덤 추첨과 아티스트 추첨이 각 메뉴의 범위 안에서만 뽑는다. /artists?artist=클래식 연주자는 /classic/artists로, /classic/artists?artist=비클래식 아티스트는 /artists로 이동하고, 앨범 상세 주소(?album=, ?view=)는 어느 메뉴에서든 상세가 열린다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "접근: popular 필터 ON + Pop & Rock 토글/장르/추첨/URL 리다이렉트.\n변경: catalogScope popular=!Classic. physicalOwnedOnly는 기존처럼 필터 스킵. Artists popular role 고정·토글 제거. AlbumList hideClassicGenreOption(popular). ArtistTopControlBar popular 폴백에서 Classic 제외. AlbumLotteryModal+albumLotteryDraw에 catalogScope(대시보드 등은 scope 미전달=전체 유지). Artists 교차 메뉴 router.replace. openAlbumById는 DB 직접 조회로 메뉴 무관 상세 OK; ?view=를 ?album=과 동일 처리로 Head-fi 링크도 열리게 최소 추가.\nClassic 장르 필터: Classic 앨범 목록은 여전히 genreOptions 전체(Classic 포함) 표시—이번 미변경.\n검증: npx tsc --noEmit OK, npm run lint OK. git/passes 안 함."
+}

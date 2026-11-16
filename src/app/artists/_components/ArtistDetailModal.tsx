@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
+import { isClassicGenre } from '@/app/albums/utils';
+import type { CatalogScope } from '@/lib/catalogScope';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import { updateArtistNames } from '../lib/updateArtistNames';
 import {
@@ -31,6 +33,7 @@ type ArtistDetailModalProps = {
   albums: Album[];
   listenHistoryIndex: Map<number, ListenHistoryEntry>;
   isAuthenticated: boolean | null;
+  catalogScope?: CatalogScope;
   onClose: () => void;
   onAlbumClick: (album: Album) => void;
   onSelectArtist: (name: string) => void;
@@ -43,14 +46,27 @@ type ArtistDetailModalProps = {
   onArtistProfileFieldsUpdated?: (context: {
     name: string;
     patch: ArtistProfileFieldsPatch;
+    catalogScope: CatalogScope;
   }) => void;
 };
+
+function inferCatalogScope(
+  albums: { genre1?: string | null }[],
+  fallback: CatalogScope = 'popular',
+): CatalogScope {
+  const hasClassic = albums.some((album) => isClassicGenre(album.genre1));
+  const hasPopular = albums.some((album) => !isClassicGenre(album.genre1));
+  if (hasClassic && !hasPopular) return 'classic';
+  if (hasPopular && !hasClassic) return 'popular';
+  return fallback;
+}
 
 export function ArtistDetailModal({
   artistName,
   albums,
   listenHistoryIndex,
   isAuthenticated,
+  catalogScope: catalogScopeProp,
   onClose,
   onAlbumClick,
   onSelectArtist,
@@ -122,6 +138,10 @@ export function ArtistDetailModal({
     () => (artist ? getRelatedArtists(artist, summaries, artistProfileUrls) : []),
     [artist, summaries, artistProfileUrls],
   );
+  const catalogScope = useMemo(() => {
+    if (catalogScopeProp) return catalogScopeProp;
+    return inferCatalogScope(artist?.albums ?? []);
+  }, [artist?.albums, catalogScopeProp]);
 
   const handleRefreshBio = async () => {
     if (isAuthenticated !== true) return;
@@ -306,12 +326,13 @@ export function ArtistDetailModal({
         role: 'artist',
         name,
         patch,
+        catalogScope,
       });
       if (result.error) {
         toast.error(result.error);
         return false;
       }
-      onArtistProfileFieldsUpdated?.({ name, patch });
+      onArtistProfileFieldsUpdated?.({ name, patch, catalogScope });
       if (!options?.silentSuccess) {
         toast.success('부가 정보를 저장했습니다.');
       }
@@ -346,6 +367,7 @@ export function ArtistDetailModal({
         </button>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <ArtistDetailPanel
+            catalogScope={catalogScope}
             artist={artist}
             artistRecord={artistRecord}
             artistStats={artistStats}
