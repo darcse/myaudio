@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
 import { isClassicGenre } from '@/app/albums/utils';
 import type { CatalogScope } from '@/lib/catalogScope';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import { updateArtistNames } from '../lib/updateArtistNames';
 import {
@@ -204,6 +205,12 @@ export function ArtistDetailModal({
         return false;
       }
       setArtistRecord((prev) => (prev ? { ...prev, profile_image_url: profileImageUrl } : prev));
+      setArtistProfileUrls((prev) => {
+        const name = (artist?.name ?? artistName).trim();
+        if (!name) return prev;
+        return { ...prev, [name]: profileImageUrl };
+      });
+      invalidateCatalogLibraryCache();
       toast.success('프로필 이미지를 저장했습니다.');
       return true;
     } catch {
@@ -243,6 +250,7 @@ export function ArtistDetailModal({
         return false;
       }
 
+      invalidateCatalogLibraryCache();
       const nameChanged = !isSameArtistName(newName, albumArtistName);
       if (result.mergedArtistId) {
         const { data } = await createClient()
@@ -332,6 +340,7 @@ export function ArtistDetailModal({
         toast.error(result.error);
         return false;
       }
+      invalidateCatalogLibraryCache();
       onArtistProfileFieldsUpdated?.({ name, patch, catalogScope });
       if (!options?.silentSuccess) {
         toast.success('부가 정보를 저장했습니다.');

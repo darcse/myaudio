@@ -12,6 +12,7 @@ import { AlbumPageHeader, AlbumSubHeader } from '@/app/albums/_components/AlbumP
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import {
   clampListenPeriodFilter,
   formatPeriodLabel,
@@ -407,6 +408,7 @@ export function AlbumDiaryContent() {
         toast.error(error.message || '저장하지 못했습니다.');
         return;
       }
+      invalidateCatalogLibraryCache();
       toast.success('청취 기록을 수정했습니다.');
       resetEditForm();
       await fetchData();
@@ -423,6 +425,7 @@ export function AlbumDiaryContent() {
         toast.error(error.message || '삭제하지 못했습니다.');
         return;
       }
+      invalidateCatalogLibraryCache();
       setPendingDeleteId(null);
       if (editingEntry?.id === entryId) resetEditForm();
       toast.success('청취 기록을 삭제했습니다.');

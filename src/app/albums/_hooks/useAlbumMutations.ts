@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 
 function mutationErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message === 'Unauthorized'
@@ -63,10 +64,12 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
             .select('*')
             .eq('id', updateId)
             .single();
+          invalidateCatalogLibraryCache();
           toast.success(params.updateSuccessMessage ?? '앨범 정보가 수정되었습니다.');
           return { status: 'updated', album: updatedRow ? (updatedRow as Album) : null };
         }
         const saved = await saveAlbumToDB(data);
+        invalidateCatalogLibraryCache();
         toast.success(params.createSuccessMessage ?? '앨범이 등록되었습니다.');
         return { status: 'created', saved };
       } catch (error) {
@@ -92,6 +95,7 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
       try {
         await deleteAlbumFromDB(params.albumId);
         closeIfPlayingAlbum(params.albumId);
+        invalidateCatalogLibraryCache();
         toast.success('앨범이 삭제되었습니다.');
         return true;
       } catch (error) {
@@ -136,6 +140,7 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
         };
         const audioTags = payload.audio_tags ?? [];
         await params.onUpdated(updated, audioTags);
+        invalidateCatalogLibraryCache();
         toast.success('앨범 소개와 태그를 갱신했습니다.');
 
         if (!params.assignMood) return;
@@ -159,6 +164,7 @@ export function useAlbumMutations({ isAuthenticated }: UseAlbumMutationsOptions)
                 ? String((moodRow as { mood_name: string }).mood_name).trim() || null
                 : null;
             if (!moodName) return;
+            invalidateCatalogLibraryCache();
             await params.onMoodAssigned?.(albumId, moodName);
           })
           .catch(() => {});

@@ -21,6 +21,7 @@ import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiM
 import { computeWiredPositionCoords, isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import type {
   Headfi,
@@ -433,6 +434,7 @@ export function HeadfiLibraryContent() {
         ai_recommended_headphone_ids: null,
         ai_recommended_headphone_reason: null,
       });
+      invalidateCatalogLibraryCache();
       toast.success('앨범 소개를 갱신했습니다.');
     } catch {
       toast.error('앨범 소개 갱신에 실패했습니다.');

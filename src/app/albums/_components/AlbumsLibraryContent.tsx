@@ -32,6 +32,12 @@ import {
   filterAlbumsByScope,
   type CatalogScope,
 } from '@/lib/catalogScope';
+import {
+  ensureCatalogLibrary,
+  getFreshCatalogLibraryCache,
+  revalidateCatalogLibrary,
+  resolveCatalogCacheUserId,
+} from '@/lib/catalogLibraryCache';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -146,31 +152,68 @@ export function AlbumsLibraryContent({
   const [tasteResult, setTasteResult] = useState<TasteResult | null>(null);
   const [tasteLoading, setTasteLoading] = useState(false);
 
-  const fetchLibrary = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const client = createClient();
-      const albumQuery = physicalOwnedOnly
-        ? client
-            .from('album')
-            .select('*')
-            .or('owns_cd.eq.true,owns_lp.eq.true,owns_cassette.eq.true')
-            .order('release_date', { ascending: false })
-        : client.from('album').select('*').order('created_at', { ascending: false });
-      const [albumRes, artistsRes] = await Promise.all([
-        albumQuery,
-        client.from('artists').select('artist_name, name_alt'),
-      ]);
-      setLibrary((albumRes.data as Album[]) || []);
-      if (artistsRes.error) {
-        setArtistNameAltByName({});
-      } else {
-        setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
+  const applyCatalogSnapshot = useCallback(
+    (albums: Album[], artistsMeta: { artist_name: string; name_alt?: string | null }[]) => {
+      setLibrary(albums);
+      setArtistNameAltByName(buildArtistNameAltMap(artistsMeta));
+    },
+    [],
+  );
+
+  const fetchLibrary = useCallback(
+    async (silent = false) => {
+      if (physicalOwnedOnly) {
+        if (!silent) setIsLoading(true);
+        try {
+          const client = createClient();
+          const [albumRes, artistsRes] = await Promise.all([
+            client
+              .from('album')
+              .select('*')
+              .or('owns_cd.eq.true,owns_lp.eq.true,owns_cassette.eq.true')
+              .order('release_date', { ascending: false }),
+            client.from('artists').select('artist_name, name_alt'),
+          ]);
+          setLibrary((albumRes.data as Album[]) || []);
+          if (artistsRes.error) {
+            setArtistNameAltByName({});
+          } else {
+            setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
+          }
+        } finally {
+          if (!silent) setIsLoading(false);
+        }
+        return;
       }
-    } finally {
-      if (!silent) setIsLoading(false);
-    }
-  }, [physicalOwnedOnly]);
+
+      const userId = await resolveCatalogCacheUserId();
+      const freshCached = getFreshCatalogLibraryCache(userId);
+      if (freshCached) {
+        applyCatalogSnapshot(freshCached.albums, freshCached.artistsMeta);
+        if (!silent) setIsLoading(false);
+        try {
+          const fresh = await revalidateCatalogLibrary(userId);
+          applyCatalogSnapshot(fresh.albums, fresh.artistsMeta);
+        } catch {
+          /* keep cached */
+        }
+        return;
+      }
+
+      if (!silent) setIsLoading(true);
+      try {
+        const fresh = await ensureCatalogLibrary({ userId, force: true });
+        applyCatalogSnapshot(fresh.albums, fresh.artistsMeta);
+      } catch {
+        toast.error('앨범 목록을 불러오지 못했습니다.');
+        setLibrary([]);
+        setArtistNameAltByName({});
+      } finally {
+        if (!silent) setIsLoading(false);
+      }
+    },
+    [applyCatalogSnapshot, physicalOwnedOnly],
+  );
 
   useEffect(() => {
     void fetchLibrary();

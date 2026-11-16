@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CATALOG_SCOPE_LABELS } from '@/lib/catalogScope';
+import { clearCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 
 type NavItem = { name: string; path: string; matchPaths?: string[] };
 
@@ -54,6 +55,7 @@ export function Navigation() {
 
   const handleSignOut = useCallback(async () => {
     const supabase = createClient();
+    clearCatalogLibraryCache();
     await supabase.auth.signOut();
     setMobileMenuOpen(false);
     router.push('/');

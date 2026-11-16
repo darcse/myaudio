@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { createListenCapturedAt, fetchListenWeatherContext, LISTEN_GEO_UNAVAILABLE_TOAST, type ListenWeatherContext } from '@/lib/listenContextSnapshot';
 import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/listenContextDebug';
 import { formatListenContextMeta } from '@/lib/listenContextDisplay';
@@ -345,6 +346,7 @@ export function AlbumListenHistorySection({
         toast.error(error.message || '저장하지 못했습니다.');
         return;
       }
+      invalidateCatalogLibraryCache();
       if (insertedId != null && weatherContextPromise) {
         void enrichListenHistoryWeather(insertedId, weatherContextPromise);
       } else if (editingId == null && insertedId == null) {
@@ -399,6 +401,7 @@ export function AlbumListenHistorySection({
         toast.error(error.message || '삭제하지 못했습니다.');
         return;
       }
+      invalidateCatalogLibraryCache();
       setPendingDeleteId(null);
       if (editingId === rowId) {
         resetFormFields();

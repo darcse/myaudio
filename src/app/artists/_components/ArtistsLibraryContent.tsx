@@ -50,6 +50,14 @@ import {
   filterAlbumsByScope,
   type CatalogScope,
 } from '@/lib/catalogScope';
+import {
+  ensureCatalogLibrary,
+  getFreshCatalogLibraryCache,
+  invalidateCatalogLibraryCache,
+  revalidateCatalogLibrary,
+  resolveCatalogCacheUserId,
+  type CatalogLibraryData,
+} from '@/lib/catalogLibraryCache';
 
 const LG_UP_MQ = '(min-width: 1024px)';
 
@@ -311,46 +319,51 @@ export function ArtistsLibraryContent({
     [selectedArtist, summaries, artistProfileUrls],
   );
 
+  const applyCatalogSnapshot = useCallback((data: CatalogLibraryData) => {
+    setAlbums(data.albums);
+    setListenHistoryIndex(buildListenHistoryIndex(data.listenHistory));
+    const profiles: Record<string, string | null> = {};
+    for (const row of data.artistsMeta) {
+      const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
+      if (!name) continue;
+      profiles[name] =
+        typeof row.profile_image_url === 'string' && row.profile_image_url.trim()
+          ? row.profile_image_url.trim()
+          : null;
+    }
+    setArtistProfileUrls(profiles);
+    setArtistNameAltByName(buildArtistNameAltMap(data.artistsMeta));
+  }, []);
+
   const fetchLibrary = useCallback(async () => {
+    const userId = await resolveCatalogCacheUserId();
+    const freshCached = getFreshCatalogLibraryCache(userId);
+    if (freshCached) {
+      applyCatalogSnapshot(freshCached);
+      setIsLoading(false);
+      try {
+        const fresh = await revalidateCatalogLibrary(userId);
+        applyCatalogSnapshot(fresh);
+      } catch {
+        /* keep cached */
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const client = createClient();
-      const [albumRes, historyRes, artistsRes] = await Promise.all([
-        client.from('album').select('*').order('release_date', { ascending: false }),
-        client.from('album_listen_history').select('album_id, listened_at'),
-        client.from('artists').select('artist_name, profile_image_url, name_alt'),
-      ]);
-      if (albumRes.error) {
-        toast.error('앨범 목록을 불러오지 못했습니다.');
-        setAlbums([]);
-      } else {
-        setAlbums((albumRes.data ?? []) as Album[]);
-      }
-      if (historyRes.error) {
-        setListenHistoryIndex(new Map());
-      } else {
-        setListenHistoryIndex(buildListenHistoryIndex(historyRes.data ?? []));
-      }
-      if (artistsRes.error) {
-        setArtistProfileUrls({});
-        setArtistNameAltByName({});
-      } else {
-        const profiles: Record<string, string | null> = {};
-        for (const row of artistsRes.data ?? []) {
-          const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
-          if (!name) continue;
-          profiles[name] =
-            typeof row.profile_image_url === 'string' && row.profile_image_url.trim()
-              ? row.profile_image_url.trim()
-              : null;
-        }
-        setArtistProfileUrls(profiles);
-        setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
-      }
+      const fresh = await ensureCatalogLibrary({ userId, force: true });
+      applyCatalogSnapshot(fresh);
+    } catch {
+      toast.error('앨범 목록을 불러오지 못했습니다.');
+      setAlbums([]);
+      setListenHistoryIndex(new Map());
+      setArtistProfileUrls({});
+      setArtistNameAltByName({});
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyCatalogSnapshot]);
 
   useEffect(() => {
     void fetchLibrary();
@@ -546,6 +559,10 @@ export function ArtistsLibraryContent({
         return false;
       }
       setArtistRecord((prev) => (prev ? { ...prev, profile_image_url: profileImageUrl } : prev));
+      setArtistProfileUrls((prev) =>
+        selectedName ? { ...prev, [selectedName]: profileImageUrl } : prev,
+      );
+      invalidateCatalogLibraryCache();
       toast.success('프로필 이미지를 저장했습니다.');
       return true;
     } catch {
@@ -585,6 +602,7 @@ export function ArtistsLibraryContent({
         return false;
       }
 
+      invalidateCatalogLibraryCache();
       const nameChanged = !isSameArtistName(newName, albumArtistName);
       setAlbums((prev) =>
         prev.map((album) =>
@@ -680,6 +698,7 @@ export function ArtistsLibraryContent({
         toast.error(result.error);
         return false;
       }
+      invalidateCatalogLibraryCache();
       setAlbums((prev) =>
         prev.map((album) =>
           applyAlbumProfileFieldsRetarget(album, role, selectedName, patch, catalogScope),
@@ -774,6 +793,7 @@ export function ArtistsLibraryContent({
           setViewingAlbum(updated);
           setAudioTags(updated.audio_tags ?? []);
         }
+        invalidateCatalogLibraryCache();
         toast.success('앨범 정보가 수정되었습니다.');
       } else {
         const saved = await saveAlbumToDB(data);
@@ -797,6 +817,7 @@ export function ArtistsLibraryContent({
             });
           }
         }
+        invalidateCatalogLibraryCache();
         toast.success('앨범이 등록되었습니다.');
       }
       setAlbumFormItem(null);
@@ -822,6 +843,7 @@ export function ArtistsLibraryContent({
     try {
       await deleteAlbumFromDB(deletedId);
       closeIfPlayingAlbum(deletedId);
+      invalidateCatalogLibraryCache();
       toast.success('앨범이 삭제되었습니다.');
       setViewingAlbum(null);
       setAlbumFormItem((prev) =>
@@ -865,6 +887,7 @@ export function ArtistsLibraryContent({
       setViewingAlbum(updated);
       setAlbums((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
       setAudioTags((payload.audio_tags as string[]) ?? []);
+      invalidateCatalogLibraryCache();
       toast.success('앨범 소개와 태그를 갱신했습니다.');
     } catch {
       toast.error('앨범 소개 갱신에 실패했습니다.');

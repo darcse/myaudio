@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { DeletingLabel } from '@/components/AsyncMutationUi';
 import type { Album } from '../types';
 import { AlbumInfoHeroSection, AlbumInfoSection } from './AlbumInfoSection';
@@ -230,6 +231,7 @@ export function AlbumDetailModal({
       } else {
         setLocalAiHeadphones([]);
       }
+      invalidateCatalogLibraryCache();
       toast.success('AI 추천을 갱신했습니다.');
     } catch {
       toast.error('AI 추천 갱신에 실패했습니다.');

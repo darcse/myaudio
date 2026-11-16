@@ -12,6 +12,7 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import type { Headfi } from '../../types';
 
 type MatchDevice = Pick<Headfi, 'id' | 'brand' | 'model' | 'category' | 'image_url'>;
@@ -283,6 +284,7 @@ export function HeadfiMatchContent() {
       };
       setViewingAlbum(updated);
       setAudioTags((payload.audio_tags as string[]) ?? []);
+      invalidateCatalogLibraryCache();
       toast.success('앨범 소개와 태그를 갱신했습니다.');
     } catch {
       toast.error('앨범 소개 갱신에 실패했습니다.');

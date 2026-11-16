@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { saveAlbumYoutubeTracks } from '@/app/albums/youtubeTrackActions';
 import { useAlbumPlayer, type AlbumPlayerAlbum } from '@/contexts/AlbumPlayerContext';
 import { useAuthState } from '@/hooks/useAuthState';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import {
   applyYoutubeReferrerPolicy,
   createYoutubePlaylistIframe,
@@ -335,7 +336,11 @@ export function GlobalAlbumPlayer() {
       setTracks(next);
       resolvedKeyRef.current = resolveKey;
       if (isAuthenticated === true) {
-        void saveAlbumYoutubeTracks(current.id, next).catch(() => {});
+        void saveAlbumYoutubeTracks(current.id, next)
+          .then(() => {
+            invalidateCatalogLibraryCache();
+          })
+          .catch(() => {});
       }
     } catch {
       resolvedKeyRef.current = resolveKey;

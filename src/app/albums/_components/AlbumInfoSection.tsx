@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Music, Play, Tv, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { AppleMusicIcon } from '@/components/streamingServiceIcons';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { createClient } from '@/lib/supabase/client';
@@ -122,7 +123,11 @@ export function AlbumInfoHeroSection({
         setFoundAppleUrl(url);
         onAlbumPatch?.({ ...viewingItemRef.current, apple_music_url: url });
         if (isAuthenticated === true) {
-          void saveAlbumAppleMusicUrl(albumId, url).catch(() => {});
+          void saveAlbumAppleMusicUrl(albumId, url)
+            .then(() => {
+              invalidateCatalogLibraryCache();
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {});
@@ -469,6 +474,7 @@ export function AlbumInfoSection({
         mood_name: nextName,
         mood_manually_set: true,
       });
+      invalidateCatalogLibraryCache();
       setPickerOpen(false);
       toast.success('무드를 저장했습니다.');
     } catch {

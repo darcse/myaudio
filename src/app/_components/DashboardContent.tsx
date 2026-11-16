@@ -30,6 +30,7 @@ import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
 import { applyAlbumProfileFieldsRetarget } from '@/app/artists/lib/updateArtistProfileFields';
+import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import type { ListenHistoryEntry } from '@/app/artists/types';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
@@ -518,6 +519,7 @@ export function DashboardContent({
         matching2: albumFormData.matching2 === ' ' ? '' : albumFormData.matching2,
       };
       await updateAlbumInDB(editingAlbum.id, data);
+      invalidateCatalogLibraryCache();
       toast.success('앨범 정보가 수정되었습니다.');
       setEditingAlbum(null);
       router.refresh();
@@ -575,6 +577,7 @@ export function DashboardContent({
       };
       setViewingAlbum(updated);
       setAudioTags((payload.audio_tags as string[]) ?? []);
+      invalidateCatalogLibraryCache();
       toast.success('앨범 소개와 태그를 갱신했습니다.');
     } catch {
       toast.error('앨범 소개 갱신에 실패했습니다.');
