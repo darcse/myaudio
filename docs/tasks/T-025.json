@@ -1,0 +1,26 @@
+{
+  "id": "T-025",
+  "goal": "클래식 분리(대메뉴 Popular/Classic 분리 + 클래식 전용 등록 폼) 구현 전에, 영향 범위와 구현 단계를 코드 기준으로 조사해 보고서로 정리한다. 이 작업에서는 코드를 수정하지 않는다.",
+  "context": "배경과 확정된 결정: (1) 데이터는 album 테이블 하나를 공유하고 구분 기준은 genre1 === 'Classic'(isClassicGenre) 하나다. (2) 메뉴는 Popular(가칭)에 앨범·아티스트, Classic에 앨범·연주자·원작곡가 탭을 둔다. 기존 /albums, /artists 경로는 Popular로 유지하고 /classic/... 을 추가하는 방향이다. 일반(Popular) 쪽에서는 클래식을 숨긴다. (3) 다이어리·인사이트 통계는 통합 유지(나중에 장르 필터로 분리 가능). (4) 앨범 목록 필터의 Popular·Classic 태그는 제거하고 '전체'와 'All Time'만 남긴다. (5) 클래식 전용 등록 폼을 분리한다(클래식 폼은 장르 Classic 고정, 일반 폼은 Classic 선택지 제거, 수정 폼에서 클래식↔비클래식 장르 전환 불가). (6) 'Popular' 라벨은 가칭이므로 코드 상수와 분리한다. 이번 작업은 조사 전용이며 아래를 확인해 보고서(docs/classic-split-investigation.md 신규 파일, 마크다운)로 정리한다. 보고서는 파일·행·한 줄 설명으로 근거를 달고 추측은 추측이라고 표시한다. 조사 항목: A. 클래식 의존 지점 전수: isClassicGenre, 'Classic' 리터럴, CLASSIC_FORM_OPTIONS·isClassicFormOption, composer·composers 관련 코드, 무드 제외 로직(albumEnrichment 등)을 파일별로 나열하고 분류(등록 폼 / 저장 로직 / 상세 표시 / 목록·필터 / 통계 / 기타). B. 메뉴·라우팅: Navigation의 navItems와 활성 판별(getActive), AppShell, albums 하위 페이지(diary, stats)와 AlbumPageHeader 내비, artists 페이지의 role 쿼리. /albums, /artists, /artists?role=composer 로 향하는 모든 링크·router push·쿼리 파라미터 사용처를 전수 목록으로 정리. C. 앨범 목록 필터: LIBRARY_TAGS, albumMatchesLibraryTag, enableLibraryTags, 가챠(LOTTERY_CATALOG_TAGS·albumLotteryDraw), 'All Time' 연도 필터의 정확한 의미와 사용처, Popular·Classic 태그 제거 시 영향. D. 아티스트 화면: buildArtistSummaries가 클래식 앨범을 어떻게 포함하는지, role 탭 구조(ArtistsLibraryContent, ArtistTopControlBar, useArtistFilters, ArtistLotteryModal), 일반 아티스트에서 클래식 앨범을 제외하면 달라지는 것, 클래식 연주자(album.artist)와 원작곡가(composers)를 각각 별도 탭으로 보여줄 때 필요한 변경. E. 통계·소비처: 대시보드, 인사이트(GenreStatsContent), 앨범 통계(AlbumStatsContent), 다이어리, 가사, 레코드선반, 추첨, 플레이어 등 album 데이터를 읽는 곳 중 클래식 포함/제외 판단이 필요한 곳을 표로 정리하고 이번 결정(통합 유지)에서 그대로 두면 되는 곳과 손볼 곳을 구분. F. 재사용성: AlbumsLibraryContent·AlbumList·ArtistsLibraryContent 등의 크기, props, 결합도를 보고, scope('popular'|'classic') 같은 prop이나 경로 기반으로 재사용할 때의 설계안 2가지 이내를 장단점과 함께 제시하고 하나를 추천한다. G. 등록 폼 분리: AlbumForm의 클래식 분기 전수, AlbumForm을 사용하는 모든 진입점(앨범 화면, 대시보드, 아티스트 화면, 통계, 가사 등)과 각자 초기값, AlbumSearchSection(MusicBrainz 검색) 연동에서 클래식 폼으로 갈 때의 영향, 수정 폼에서 장르 전환 금지를 구현해야 할 지점, 기존 AlbumForm에서 클래식 분기를 걷어낸 뒤의 모습. H. 구현 단계 제안: 위 조사를 바탕으로 한 번에 하나씩 검증 가능한 단계(작업 단위)로 나누고, 단계마다 변경 파일 범위, 위험, 되돌리기 쉬운 정도, 의존 순서를 적는다. 추천 순서와 근거를 포함한다. I. 열린 질문과 위험: 결정이 더 필요한 항목, 깨질 수 있는 기능, 예상 못 한 의존성. 규칙: 코드·설정·DB를 수정하지 않는다(보고서 신규 파일 외 변경 금지). SQL은 실행하지 않는다(데이터 경계 확인용 조회는 JW가 별도로 실행한다). 에이전트가 더 나은 구조를 발견하면 근거와 함께 제안한다. J. 부가 정보 일괄 수정의 범위(추가 조사): T-023·T-024에서 만든 updateArtistProfileFields는 이름이 일치하는 모든 앨범에 구분·국적·위키를 갱신한다. 분리 후에는 같은 이름 아티스트가 Popular와 Classic 양쪽에 앨범을 가질 수 있다(현재 데이터: Erich Kunzel 클래식 1·기타 1, Various Artist 클래식 1·기타 8). 아티스트 구분(artist_type)은 Popular 어휘(솔로·아이돌·밴드·걸스 밴드·그룹)와 Classic 어휘(연주자·지휘자·음악감독 등)가 달라서, 한쪽 메뉴에서 수정한 값이 반대쪽 앨범까지 덮어쓰면 안 된다. 국적·위키는 사람 단위 정보라 양쪽에 반영해도 되는지 검토한다. 이를 반영한 설계(수정 대상 앨범을 현재 메뉴 범위로 제한하는 옵션, ARTIST_TYPE_OPTIONS를 메뉴별로 나누는 방안, 이름 변경은 양쪽 모두 바뀌는 것이 맞는지)와 영향 파일을 보고서에 포함한다. 또 Various Artist가 Classic 연주자 탭과 Popular 아티스트 목록에 어떻게 나타나는지(인사이트는 이미 제외 처리됨)도 확인한다.",
+  "scope": {
+    "in": [
+      "위 A~I 항목의 코드 조사와 보고서(docs/classic-split-investigation.md) 작성"
+    ],
+    "out": [
+      "src 등 모든 코드·설정 수정",
+      "DB 접근·SQL 실행·스키마 변경",
+      "feature_list 변경, passes 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "docs/classic-split-investigation.md가 생성되고 A~I 항목이 모두 파일·행 근거와 함께 정리되어 있다",
+    "B의 링크·쿼리 파라미터 사용처가 전수 목록이고, E의 소비처가 '그대로 둠/손봄'으로 구분되어 있다",
+    "J의 부가 정보 일괄 수정 범위(구분은 메뉴 범위로 제한, 국적·위키 처리)와 Various Artist 노출 방식이 보고서에 정리되어 있다",
+    "F의 설계안(2개 이하)과 추천, H의 단계별 작업 단위(변경 범위·위험·순서)가 제시되어 있다",
+    "보고서 외에 변경된 파일이 없다(git status로 src 변경 없음 확인)"
+  ],
+  "status": "done",
+  "result": "docs/classic-split-investigation.md 신규 작성(A~J). 요지: isClassicGenre 중심 의존 정리; Nav/링크 전수; LIBRARY_TAGS에서 Popular/Classic 제거·All Time 유지; Artists는 장르 미필터→Popular 숨김+Classic 라우트 필요; 통계·다이어리 통합 유지·목록/딥링크/일괄수정은 손봄; 재사용은 catalogScope prop(안1) 추천; 폼 분기·진입점·장르전환금지 지점; 구현 H1~H8(읽기→쓰기); J는 artist_type만 scope 제한·국적/위키/이름은 인물 단위, Various Artist는 summaries에 노출·인사이트만 제외.\n검증: git status상 src 변경 없음(수정 TASK.json, 신규 보고서만). SQL·코드 수정·git commit 없음."
+}

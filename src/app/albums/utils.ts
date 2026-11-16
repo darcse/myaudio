@@ -216,9 +216,14 @@ export const ALL_TIME_YEAR_FILTER = 'All Time';
 export const ALL_PERIOD_YEAR_FILTER = '기간 전체';
 export const UNKNOWN_YEAR_FILTER = '날짜 미상';
 
-export type AlbumLibraryTag = '전체' | 'Popular' | 'Classic' | 'All Time';
+export type AlbumLibraryTag = '전체' | 'All Time';
 
-export const LIBRARY_TAGS: AlbumLibraryTag[] = ['전체', 'Popular', 'Classic', 'All Time'];
+export const LIBRARY_TAGS: AlbumLibraryTag[] = ['전체', 'All Time'];
+
+export function parseAlbumLibraryTag(value: unknown): AlbumLibraryTag {
+  if (value === 'All Time') return 'All Time';
+  return '전체';
+}
 
 export const ALBUM_PERIOD_FILTER_OPTIONS: string[] = [
   ...INDIVIDUAL_YEAR_FILTERS,
@@ -295,10 +300,8 @@ export function albumMatchesYearFilter(item: Album, filter: string): boolean {
 }
 
 export function albumMatchesLibraryTag(item: Album, tag: AlbumLibraryTag): boolean {
-  if (tag === '전체') return true;
-  if (tag === 'Popular') return !isClassicGenre(item.genre1);
-  if (tag === 'Classic') return isClassicGenre(item.genre1);
-  return albumHasAllTimeYear(item.year);
+  if (tag === 'All Time') return albumHasAllTimeYear(item.year);
+  return true;
 }
 
 export function albumMatchesLibraryConditions(

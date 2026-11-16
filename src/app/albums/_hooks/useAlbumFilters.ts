@@ -9,6 +9,7 @@ import {
   albumMatchesYearFilter,
   buildDynamicYearOptions,
   composersFromAlbum,
+  parseAlbumLibraryTag,
 } from '../utils';
 import type { AlbumLibraryTag } from '../utils';
 
@@ -26,12 +27,16 @@ export function useAlbumFilters(
   const enableLibraryTags = options?.enableLibraryTags ?? false;
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
-  const [listLibraryTag, setListLibraryTag] = useState<AlbumLibraryTag>('전체');
+  const [listLibraryTag, setListLibraryTagState] = useState<AlbumLibraryTag>('전체');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
   const [listCountryFilter, setListCountryFilter] = useState('전체');
   const [listMediaFilter, setListMediaFilter] = useState<AlbumMediaFilter>('all');
   const [listSortOrder, setListSortOrder] = useState('release_desc');
   const [listCurrentPage, setListCurrentPage] = useState(1);
+
+  const setListLibraryTag = useCallback((value: AlbumLibraryTag | string) => {
+    setListLibraryTagState(parseAlbumLibraryTag(value));
+  }, []);
 
   const dynamicYearOptions = useMemo(() => buildDynamicYearOptions(library), [library]);
 
