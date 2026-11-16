@@ -41,22 +41,22 @@ export const genreOptions = [
 ] as const;
 
 export const CLASSIC_FORM_OPTIONS = [
-  '교향곡 / 관현악',
-  '협주곡',
-  '실내악',
-  '기악 / 독주',
-  '성악 / 오페라 / 합창',
-  '발레 / 극장·부수음악',
-  '컴필레이션',
+  'Orchestral',
+  'Concerto',
+  'Chamber',
+  'Solo',
+  'Opera/Choral',
+  'Stage',
+  'Compilation',
 ] as const;
 
 export const CLASSIC_INSTRUMENT_OPTIONS = [
-  '피아노',
-  '바이올린',
-  '첼로',
-  '오케스트라',
-  '성악/합창',
-  '기타',
+  'Piano',
+  'Violin',
+  'Cello',
+  'Orchestra',
+  'Vocal',
+  'Other',
 ] as const;
 
 export const COMPOSER_ERA_OPTIONS = [

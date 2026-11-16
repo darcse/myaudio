@@ -1,27 +1,27 @@
 {
-  "id": "T-040",
-  "goal": "Pop & Rock과 Classic 앨범 목록 카드에서 물리 매체(CD·LP·카세트)를 칩 대신 앨범 커버 우측 상단의 아이콘으로 표시한다(레코드선반은 현재 유지).",
-  "context": "대상: src/app/albums/_components/AlbumList.tsx의 카드(커버 썸네일과 태그 영역)와 albumBoardShared.tsx의 PhysicalOwnedBadges(공용 컴포넌트, 다른 화면과 레코드선반에서도 쓰이므로 동작을 바꾸지 말고 AlbumList에서 분기하거나 새 작은 컴포넌트를 추가한다). 현재: 태그 영역에 PhysicalOwnedBadges 칩이 있고 Classic은 classicCardTags 분기에서도 같은 컴포넌트를 쓴다. 요구사항: (1) AlbumList가 variant='albums'(Pop & Rock·Classic 목록)일 때, 소장한 매체(owns_cd, owns_lp, owns_cassette)가 있으면 태그 영역의 물리 매체 칩은 표시하지 않고, 커버 우측 상단에 매체별 아이콘을 표시한다. 매체가 여러 개면 가로로 나란히(최대 3개, CD·LP·카세트 순) 보인다. 매체가 없으면 아무것도 표시하지 않는다. (2) 아이콘: 세 가지가 한눈에 구분돼야 한다. 설치된 lucide-react에 적합한 아이콘이 있으면 사용하고(예: CD는 Disc, LP는 Disc3 계열, 카세트는 CassetteTape 계열 — 버전별 존재 여부는 확인한다), 없거나 구분이 어려우면 인라인 SVG를 쓴다. 커버 위에서 읽히도록 반투명 어두운 배경 원형/둥근 사각 버튼 형태에 밝은 아이콘으로 하고, 접근성을 위해 각 아이콘에 title/aria-label(CD, LP, 카세트)을 둔다. 크기는 커버 대비 과하지 않게(모바일 포함) 한다. (3) 아이콘은 표시 전용이며 클릭 이벤트를 가로채지 않는다(카드 클릭으로 상세가 열리는 동작 유지, 필요하면 pointer-events-none). (4) variant='recordshelf'(레코드선반)는 지금처럼 칩 표시를 유지하고 아이콘을 추가하지 않는다. 대시보드·다이어리·보드(무드보드·장르보드)·상세 화면 등 AlbumList 밖의 PhysicalOwnedBadges 사용처는 변경하지 않는다. (5) AlbumList에 커버가 없는 보기(리스트형 등)가 있으면 그 보기의 처리 방식을 확인해 칩을 유지할지 판단하고 result에 적는다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다. 더 나은 방법이 있으면 근거와 함께 제안한다.",
+  "id": "T-041",
+  "goal": "Classic의 형식과 대표 악기 옵션명을 영문으로 바꾼다(DB 값도 영문으로 이관되는 전제).",
+  "context": "src/app/albums/constants.ts의 CLASSIC_FORM_OPTIONS(형식, album.genre2에 저장)와 CLASSIC_INSTRUMENT_OPTIONS(대표 악기, album.classic_instrument에 저장)의 값 문자열을 영문으로 바꾼다. 저장 값이 곧 표시 문구이므로 상수의 문자열을 바꾸면 폼 선택지·카드 칩·필터가 모두 영문이 된다. 매핑(순서 대응): 형식 — '교향곡 / 관현악'→'Orchestral', '협주곡'→'Concerto', '실내악'→'Chamber', '기악 / 독주'→'Solo', '성악 / 오페라 / 합창'→'Opera/Choral', '발레 / 극장·부수음악'→'Stage', '컴필레이션'→'Compilation'. 대표 악기 — '피아노'→'Piano', '바이올린'→'Violin', '첼로'→'Cello', '오케스트라'→'Orchestra', '성악/합창'→'Vocal', '기타'→'Other'. 전제: JW가 Supabase에서 기존 클래식 앨범의 genre2·classic_instrument 값을 같은 매핑으로 SQL 이관한다(Cursor는 SQL·DB 수정 금지). 작업 내용: (1) 상수 문자열 교체. (2) 두 상수의 옛 한국어 값을 코드 곳곳에서 문자열로 직접 쓰는 곳이 있는지 전수 grep한다(예: 형식 값을 조건으로 쓰는 분기, AI 프롬프트·무드 매핑·필터·정렬·통계·테스트 데이터, albumDetailMoodMiniCard 등). 있으면 영문 값으로 바꾸거나, 바꾸면 안 되는 이유가 있으면 result에 보고한다. 한국어 키워드로 장르 분위기를 판별하는 매핑(예: '실내악' 키워드)은 형식 상수와 무관하면 그대로 둔다. (3) 옵션 밖 값 처리: 이미 구현된 '옵션에 없는 기존 값은 폼에서 그대로 보존'과 카드 칩의 isClassicFormOption/isClassicInstrumentOption 판정이 이관 전 옛 값에서 어떻게 동작하는지(칩 숨김·폼 보존 여부) 확인해 result에 적는다. 이관 후에는 모두 영문 값이므로 별도 호환 코드는 추가하지 않는다. (4) 'Compilation' 철자는 올바른 철자로 통일한다. 라벨 이외의 로직·구조 변경은 하지 않는다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
   "scope": {
     "in": [
-      "AlbumList(Pop & Rock·Classic 목록)의 물리 매체 칩 제거와 커버 우측 상단 아이콘 추가",
-      "매체 아이콘 컴포넌트 신규(필요 시)"
+      "CLASSIC_FORM_OPTIONS·CLASSIC_INSTRUMENT_OPTIONS 값의 영문 교체",
+      "옛 한국어 값을 문자열로 직접 쓰는 코드 전수 확인과 필요한 교체",
+      "옵션 밖 값 동작 확인 보고"
     ],
     "out": [
-      "레코드선반(variant='recordshelf')의 칩 표시",
-      "PhysicalOwnedBadges의 기존 동작과 다른 화면(대시보드·다이어리·보드·상세)의 매체 표시",
-      "필터·정렬·클릭 로직",
-      "DB·SQL",
+      "DB 스키마·SQL 실행·데이터 이관(JW가 직접 실행)",
+      "Pop & Rock의 album_type '컴필레이션' 등 다른 옵션 라벨",
+      "필터·카드·폼의 구조·로직 변경",
       "feature_list의 passes 변경",
       "git add/commit/push"
     ]
   },
   "done": [
-    "Pop & Rock과 Classic 목록 카드에서 소장 매체는 칩 대신 커버 우측 상단 아이콘으로 보이고, 두 개 이상이면 나란히 표시되며 소장 매체가 없으면 아이콘이 없다",
-    "CD·LP·카세트 아이콘이 서로 구분되고 커버 위에서 읽히며 title/aria-label이 있고, 아이콘 위를 눌러도 카드 클릭(상세 열림)이 이전처럼 동작한다",
-    "레코드선반과 AlbumList 밖 화면의 물리 매체 표시는 이전과 같다",
+    "Classic 폼의 형식 선택지가 Orchestral, Concerto, Chamber, Solo, Opera/Choral, Stage, Compilation이고 대표 악기 선택지가 Piano, Violin, Cello, Orchestra, Vocal, Other이며, 카드 칩과 필터 선택지도 같은 영문 값으로 보인다",
+    "옛 한국어 값을 문자열로 직접 참조하던 코드가 없거나 모두 교체되었고 전수 검색 결과가 result에 적혀 있다",
+    "이관 전 옛 값(한국어)이 남은 앨범이 폼·카드에서 어떻게 보이는지 result에 적혀 있다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "status": "done",
-  "result": "albumBoardShared에 PhysicalOwnedCoverIcons 추가(CD=Disc, LP=Disc3, 카세트=CassetteTape, 반투명 원형·pointer-events-none·title/aria-label, CD→LP→카세트 순). AlbumList albums 변형은 태그 칩을 빼고 커버 우측 상단에 아이콘을 올린다. recordshelf는 PhysicalOwnedBadges 유지·아이콘 없음. PhysicalOwnedBadges 본체와 보드 등 외부 사용처는 미변경. AlbumList 자체는 항상 커버 그리드만 렌더하고 무드/장르보드는 별도 컴포넌트라 이번 범위 밖(칩 유지). 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albumBoardShared.tsx, AlbumList.tsx."
+  "result": "constants.ts CLASSIC_FORM_OPTIONS→Orchestral/Concerto/Chamber/Solo/Opera/Choral/Stage/Compilation, CLASSIC_INSTRUMENT_OPTIONS→Piano/Violin/Cello/Orchestra/Vocal/Other.\n\n전수 grep(src): 옛 형식·악기 옵션 문자열 하드코딩은 constants.ts뿐이었고 교체 완료. 남은 '실내악'은 albumDetailMoodMiniCard.tsx 무드 키워드(형식 상수와 무관)라 유지. AlbumForm의 album_type '컴필레이션' 라벨은 Pop & Rock 범위라 미변경. docs/feature_list/CONVENTIONS의 한국어 설명은 scope.out·문서라 코드 미변경.\n\n이관 전 옛 값 동작: 폼은 isClassicFormOption/isClassicInstrumentOption 실패 시 현재 값을 임시 <option>으로 보존·표시. 카드 형식 칩은 isClassicFormOption 통과 시에만 표시→옛 한국어 genre2는 칩 숨김. 악기 칩은 trim 있으면 옵션 검사 없이 표시→옛 한국어 classic_instrument는 칩에 그대로 보임. 필터 select는 영문 옵션만이라 옛 값 앨범은 해당 필터에서 제외. 호환 코드 추가 없음(이관 전제).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: constants.ts."
 }
