@@ -1,24 +1,31 @@
 {
-  "id": "T-016",
-  "goal": "아티스트 > 원작곡가 화면의 '시대' 필터 셀렉트에서 시대 옵션이 가나다순이 아니라 고음악 → 바로크 → 고전주의 → 낭만주의 → 근현대 순서로 나온다.",
-  "context": "대상: 아티스트 화면의 원작곡가 탭에서 쓰는 '시대' 필터 셀렉트(관련 컴포넌트와 옵션 생성 위치는 에이전트가 직접 찾는다. 후보: ArtistTopControlBar 등). 현재는 옵션이 가나다순(고음악 (중세·르네상스), 고전주의, 근현대, 낭만주의, 바로크)으로 나온다. 요구 순서: 고음악 → 바로크 → 고전주의 → 낭만주의 → 근현대. 맨 위의 '시대'(전체·선택 안 함에 해당하는 첫 항목)는 현재 위치를 유지한다. 옵션의 표시 문구('고음악 (중세·르네상스)' 등)와 필터 값, 선택·해제 동작은 바꾸지 않고 순서만 바꾼다. 위 다섯 가지 외의 시대 값이 데이터나 코드에 있으면 추측하지 말고, 지정 순서 뒤에 기존 정렬(가나다순)로 붙이고 어떤 값인지 result에 보고한다. 순서는 코드의 고정 순서(상수 배열 등)로 지정하고, 시대 값은 코드에서 확인한 실제 표기를 사용한다. 이 옵션 목록이 다른 화면의 셀렉트(예: 앨범·작곡가 입력 폼)와 같은 상수나 함수를 공유한다면, 이번에는 이 필터에만 적용하고 공유 여부를 result에 보고한다. 더 나은 방식이 보이면 근거와 함께 제안한다.",
+  "id": "T-020",
+  "feature_id": "ALBUM-046",
+  "goal": "원작곡가 이름 일괄 수정 시 복수 작곡가 앨범의 composers 배열 안 이름과 대표 composer 컬럼이 함께 바뀌고, 작곡가 AI 소개가 비대표 작곡가 앨범도 반영하며, 작곡가 입력 상한이 6명으로 늘어난다.",
+  "context": "스펙 원본은 feature_list/ALBUM.json의 ALBUM-046이다(최대 인원 문구는 이미 6명으로 고쳐 두었다). T-018·T-019로 album.composers(jsonb [{name,country,era,wiki_url}])의 저장·읽기가 끝났고 composer*는 대표(첫 번째) 작곡가 값이다. composersFromAlbum·sanitizeComposersForSave·normalizeComposerNameKey는 src/app/albums/utils.ts에 있으니 재사용한다. 이번에 세 가지를 한다. (1) 이름 일괄 수정: src/app/artists/lib/updateArtistNames.ts의 updateAlbumArtistNames가 album.composer를 .eq('composer', oldName)로만 갱신하므로 composers 배열 안 이름은 그대로 남는다. 배열 안 oldName 항목의 name도 newName으로 바꾸고, 그 앨범의 대표 composer 컬럼도 새 첫 번째 항목과 맞춘다(대표가 아닌 작곡가의 이름만 바뀌면 composer 컬럼은 그대로). 배열을 부분 갱신하는 SQL 없이 클라이언트에서 해당 앨범 행을 조회해 배열을 고쳐 update하는 방식을 기본안으로 한다(대상 조회는 composers에 oldName이 들어 있는 행). RPC나 DB 함수가 필요하면 만들지 말고 result에 제안만 한다. 이름 바꾸기 결과 같은 앨범 안에 같은 이름이 두 번 생기면(이미 newName 작곡가가 같은 앨범에 있는 경우) 하나로 합치고 첫 번째 위치 기준으로 남긴다. 기존 album.artist 갱신과 아티스트 병합 흐름(mergeArtistRename)은 동작이 바뀌면 안 된다. 화면 상태를 즉시 갱신하는 applyAlbumNameRetarget(같은 파일 하단)도 composers 배열과 대표 composer를 같은 규칙으로 갱신하도록 맞춘다. 호출처 4곳(ArtistsLibraryContent, GenreStatsContent, DashboardContent, AlbumStatsContent)은 시그니처가 유지되면 수정하지 않는다. (2) 작곡가 AI 소개: src/app/api/artist-bio/route.ts의 role === 'composer' 분기가 .eq('composer', artistName)만 쓴다. 비대표로만 이름이 등장하는 앨범도 포함하도록 composers에 해당 작곡가가 있는 앨범을 대상으로 하고, 국가·시대는 앨범의 대표 컬럼이 아니라 그 작곡가 항목의 값을 쓴다(레거시 composers null이면 composer* 폴백). 이름 비교는 normalizeComposerNameKey 기준으로 하고, 이름에 쉼표·따옴표·괄호 같은 특수문자가 있어도 조회가 깨지지 않아야 한다. (3) 작곡가 상한 변경: src/app/albums/utils.ts의 MAX_ALBUM_COMPOSERS를 4에서 6으로 올린다. src/app/albums/_components/AlbumForm.tsx의 안내 문구 '작곡가는 최대 4명까지 입력할 수 있습니다.'는 숫자가 문자열에 고정돼 있으므로 상수를 따라가게 고친다. 6명일 때 모바일에서 폼이 지나치게 길어지는지 확인해 문제가 보이면 result에 개선안(예: 접기)을 보고만 한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
   "scope": {
     "in": [
-      "원작곡가 화면 '시대' 필터 셀렉트의 옵션 정렬 순서"
+      "updateArtistNames.ts의 album 작곡가 이름 갱신(composers 배열 + 대표 composer 컬럼)과 applyAlbumNameRetarget",
+      "api/artist-bio/route.ts의 composer 분기 앨범 조회와 국가·시대 산출",
+      "MAX_ALBUM_COMPOSERS 6으로 변경과 AlbumForm 안내 문구 상수화"
     ],
     "out": [
-      "시대 옵션의 표시 문구·필터 값·필터링 동작 변경",
-      "다른 화면의 시대 셀렉트·정렬 변경(공유 여부만 보고)",
-      "서버·DB·환경변수 변경",
+      "DB 스키마·SQL·RPC·DB 함수 추가, composer* 컬럼 삭제",
+      "아티스트(연주자) 이름 갱신 로직과 아티스트 병합 동작 변경",
+      "원작곡가 탭 집계·앨범 상세·자동완성 등 T-019에서 끝낸 읽기 쪽 재변경",
+      "AlbumForm 레이아웃 변경(접기 UI 등)은 보고만",
+      "feature_list의 passes 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
       "git add/commit/push"
     ]
   },
   "done": [
-    "원작곡가 화면 '시대' 셀렉트에 고음악, 바로크, 고전주의, 낭만주의, 근현대 순서로 옵션이 나오고 첫 항목 '시대'는 맨 위에 유지된다",
-    "각 옵션의 표시 문구와 선택 시 필터링 동작은 기존과 같다",
-    "다섯 가지 외의 시대 값이 있으면 그 뒤에 가나다순으로 나오고 result에 보고되어 있다. 같은 옵션을 공유하는 다른 화면의 유무도 보고되어 있다",
+    "원작곡가 이름을 바꾸면 그 작곡가가 대표가 아닌 앨범에서도 composers 배열 안 이름이 새 이름으로 바뀌고, 대표인 앨범은 composer 컬럼도 함께 바뀐다. 화면 새로고침 없이 목록·상세에 새 이름이 반영된다",
+    "이름을 이미 같은 앨범에 있는 다른 작곡가 이름으로 바꾸면 앨범 안에서 중복 없이 하나로 합쳐지고, 기존 연주자 이름 갱신과 아티스트 병합은 기존과 같다",
+    "작곡가 AI 소개 생성이 비대표로만 등장하는 앨범도 반영하고 국가·시대가 해당 작곡가 값으로 들어간다. 특수문자가 든 이름도 오류 없이 동작한다",
+    "작곡가를 최대 6명까지 추가할 수 있고 7번째는 막히며 안내 문구가 6명으로 나온다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "status": "done",
-  "result": "useArtistFilters eraOptions 정렬만 변경: COMPOSER_ERA_OPTIONS(albums/constants.ts) 인덱스 순 → 고음악 (중세·르네상스)·바로크·고전주의·낭만주의·근현대·혼합 / 옴니버스. 상수에 없는 값은 그 뒤 ko 가나다. ArtistTopControlBar의 '시대'(value=전체) 첫 항목 유지. 필터 값·동작 미변경. 공유: COMPOSER_ERA_OPTIONS는 AlbumForm 시대 셀렉트도 씀(이미 동일 순서). 이번 정렬 로직은 아티스트 필터에만 적용. 검증: tsc·lint 통과. git 미수행."
+  "result": "updateComposerNamesInAlbums: composer=old 또는 composers≠null 조회 후 클라이언트에서 normalize 매칭·배열 rename·중복 합침(첫 위치 유지)·대표 composer* 동기화. 레거시(배열 null)는 composer 컬럼만 갱신. applyAlbumNameRetarget 동일 규칙(시그니처 유지). artist-bio: album 전체 select 후 composersFromAlbum 매칭(특수문자 OK), country/era는 항목값. MAX_ALBUM_COMPOSERS=6, AlbumForm 안내 상수화. 모바일: 6명 전개 시 폼이 길어질 수 있음→필요 시 2번째부터 접기 UI 제안(미구현). RPC 불필요. 검증: tsc·lint 통과. passes·git 미수행."
 }

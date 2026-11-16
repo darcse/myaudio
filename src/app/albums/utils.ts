@@ -5,7 +5,7 @@ import type {
   AlbumFormData,
 } from './types';
 
-export const MAX_ALBUM_COMPOSERS = 4;
+export const MAX_ALBUM_COMPOSERS = 6;
 
 export function isClassicGenre(genre1: string | null | undefined): boolean {
   return genre1?.trim() === 'Classic';

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateArtistBio } from '@/lib/openaiArtistBio';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { getArtistMetaFromAlbums } from '@/app/artists/utils';
+import { composersFromAlbum, normalizeComposerNameKey } from '@/app/albums/utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,22 +22,39 @@ export async function POST(req: NextRequest) {
 
     let meta: ReturnType<typeof getArtistMetaFromAlbums>;
     if (role === 'composer') {
+      const composerKey = normalizeComposerNameKey(artistName);
       const { data: albums, error: albumsError } = await supabase
         .from('album')
-        .select('composer_country, composer_era, genre1, genre2')
-        .eq('composer', artistName);
+        .select('composer, composer_country, composer_era, composers, genre1, genre2');
       if (albumsError) {
         return NextResponse.json({ error: albumsError.message }, { status: 500 });
       }
-      meta = getArtistMetaFromAlbums(
-        (albums ?? []).map((album) => ({
-          country: typeof album.composer_country === 'string' ? album.composer_country : null,
-          artist_type: typeof album.composer_era === 'string' ? album.composer_era : '작곡가',
-          genre1:
-            (typeof album.genre2 === 'string' && album.genre2.trim()) ||
-            (typeof album.genre1 === 'string' ? album.genre1 : null),
-        })),
-      );
+      const matched = (albums ?? [])
+        .map((album) => {
+          const entry = composersFromAlbum(album).find(
+            (item) =>
+              item.name.trim() &&
+              normalizeComposerNameKey(item.name) === composerKey,
+          );
+          if (!entry) return null;
+          return {
+            country: entry.country.trim() || null,
+            artist_type: entry.era.trim() || '작곡가',
+            genre1:
+              (typeof album.genre2 === 'string' && album.genre2.trim()) ||
+              (typeof album.genre1 === 'string' ? album.genre1 : null),
+          };
+        })
+        .filter(
+          (
+            row,
+          ): row is {
+            country: string | null;
+            artist_type: string;
+            genre1: string | null;
+          } => row != null,
+        );
+      meta = getArtistMetaFromAlbums(matched);
     } else {
       const { data: albums, error: albumsError } = await supabase
         .from('album')

@@ -1,4 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Album, AlbumComposerFormEntry, AlbumComposerStored } from '@/app/albums/types';
+import {
+  composersFromAlbum,
+  normalizeComposerNameKey,
+  sanitizeComposersForSave,
+} from '@/app/albums/utils';
 import { isSameArtistName, normalizeArtistNameAlt } from '../utils';
 
 export type ArtistNamesPatch = {
@@ -12,6 +18,11 @@ export type UpdateArtistNamesResult = {
   error?: string;
   mergedArtistId?: string;
 };
+
+type AlbumComposerRow = Pick<
+  Album,
+  'id' | 'composer' | 'composer_country' | 'composer_era' | 'composer_wiki_url' | 'composers'
+>;
 
 const MERGEABLE_FIELDS = [
   'bio',
@@ -43,6 +54,114 @@ function collectOldAlbumArtistNames(patch: ArtistNamesPatch, newName: string): s
   return [...names];
 }
 
+function renameComposerEntries(
+  entries: AlbumComposerFormEntry[],
+  oldName: string,
+  newName: string,
+): AlbumComposerFormEntry[] {
+  const oldKey = normalizeComposerNameKey(oldName);
+  const nextName = newName.trim();
+  const rewritten: AlbumComposerFormEntry[] = [];
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    let name = entry.name.trim();
+    if (!name) continue;
+    if (normalizeComposerNameKey(name) === oldKey) name = nextName;
+    if (!name) continue;
+    const key = normalizeComposerNameKey(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rewritten.push({ ...entry, name });
+  }
+  return rewritten;
+}
+
+function primaryFieldsFromStored(composers: AlbumComposerStored[]): {
+  composer: string | null;
+  composer_country: string | null;
+  composer_era: string | null;
+  composer_wiki_url: string | null;
+} {
+  const primary = composers[0];
+  return {
+    composer: primary?.name ?? null,
+    composer_country: primary?.country ?? null,
+    composer_era: primary?.era ?? null,
+    composer_wiki_url: primary?.wiki_url ?? null,
+  };
+}
+
+async function updateComposerNamesInAlbums(
+  supabase: SupabaseClient,
+  oldName: string,
+  newName: string,
+): Promise<{ error?: string }> {
+  const oldKey = normalizeComposerNameKey(oldName);
+  if (!oldKey) return {};
+
+  const selectCols =
+    'id, composer, composer_country, composer_era, composer_wiki_url, composers';
+  const [{ data: primaryHits, error: primaryError }, { data: arrayHits, error: arrayError }] =
+    await Promise.all([
+      supabase.from('album').select(selectCols).eq('composer', oldName),
+      supabase.from('album').select(selectCols).not('composers', 'is', null),
+    ]);
+  if (primaryError) {
+    return {
+      error: `연주자 이름은 반영됐지만 작곡가 이름 조회에 실패했습니다. ${primaryError.message}`,
+    };
+  }
+  if (arrayError) {
+    return {
+      error: `연주자 이름은 반영됐지만 작곡가 이름 조회에 실패했습니다. ${arrayError.message}`,
+    };
+  }
+
+  const byId = new Map<number, AlbumComposerRow>();
+  for (const row of [...(primaryHits ?? []), ...(arrayHits ?? [])] as AlbumComposerRow[]) {
+    byId.set(row.id, row);
+  }
+
+  for (const row of byId.values()) {
+    const hadArray = Array.isArray(row.composers) && row.composers.length > 0;
+    const entries = composersFromAlbum(row).filter((entry) => entry.name.trim());
+    const hasOld = entries.some(
+      (entry) => normalizeComposerNameKey(entry.name) === oldKey,
+    );
+    if (!hasOld) continue;
+
+    if (!hadArray) {
+      const { error } = await supabase
+        .from('album')
+        .update({ composer: newName.trim() || null })
+        .eq('id', row.id);
+      if (error) {
+        return {
+          error: `연주자 이름은 반영됐지만 작곡가 이름(album.composer) 갱신에 실패했습니다. ${error.message}`,
+        };
+      }
+      continue;
+    }
+
+    const rewritten = renameComposerEntries(entries, oldName, newName);
+    const stored = sanitizeComposersForSave(rewritten);
+    const { error } = await supabase
+      .from('album')
+      .update({
+        composers: stored.length > 0 ? stored : null,
+        ...primaryFieldsFromStored(stored),
+      })
+      .eq('id', row.id);
+    if (error) {
+      return {
+        error: `연주자 이름은 반영됐지만 작곡가 이름(album.composers) 갱신에 실패했습니다. ${error.message}`,
+      };
+    }
+  }
+
+  return {};
+}
+
 async function updateAlbumArtistNames(
   supabase: SupabaseClient,
   oldNames: string[],
@@ -57,15 +176,8 @@ async function updateAlbumArtistNames(
       return { error: `연주자 이름(album.artist) 갱신에 실패했습니다. ${artistError.message}` };
     }
 
-    const { error: composerError } = await supabase
-      .from('album')
-      .update({ composer: newName })
-      .eq('composer', oldName);
-    if (composerError) {
-      return {
-        error: `연주자 이름은 반영됐지만 작곡가 이름(album.composer) 갱신에 실패했습니다. ${composerError.message}`,
-      };
-    }
+    const composerResult = await updateComposerNamesInAlbums(supabase, oldName, newName);
+    if (composerResult.error) return composerResult;
   }
   return {};
 }
@@ -246,18 +358,57 @@ export function shouldRetargetAlbumArtist(
   );
 }
 
-export function applyAlbumNameRetarget<T extends { artist?: string | null; composer?: string | null }>(
-  album: T,
-  albumArtistName: string,
-  recordArtistName: string,
-  newName: string,
-): T {
+export function applyAlbumNameRetarget<
+  T extends {
+    artist?: string | null;
+    composer?: string | null;
+    composer_country?: string | null;
+    composer_era?: string | null;
+    composer_wiki_url?: string | null;
+    composers?: AlbumComposerStored[] | null;
+  },
+>(album: T, albumArtistName: string, recordArtistName: string, newName: string): T {
   const nextArtist = shouldRetargetAlbumArtist(album.artist, albumArtistName, recordArtistName)
     ? newName
     : album.artist;
-  const nextComposer = shouldRetargetAlbumArtist(album.composer, albumArtistName, recordArtistName)
-    ? newName
-    : album.composer;
-  if (nextArtist === album.artist && nextComposer === album.composer) return album;
-  return { ...album, artist: nextArtist, composer: nextComposer };
+
+  const hadArray = Array.isArray(album.composers) && album.composers.length > 0;
+  const entries = composersFromAlbum(album).filter((entry) => entry.name.trim());
+  const shouldRenameComposer = entries.some((entry) =>
+    shouldRetargetAlbumArtist(entry.name, albumArtistName, recordArtistName),
+  );
+
+  if (!shouldRenameComposer) {
+    if (nextArtist === album.artist) return album;
+    return { ...album, artist: nextArtist };
+  }
+
+  const oldNames = [albumArtistName, recordArtistName]
+    .map((name) => name.trim())
+    .filter(Boolean);
+  let rewritten = entries;
+  for (const oldName of oldNames) {
+    if (isSameArtistName(oldName, newName)) continue;
+    rewritten = renameComposerEntries(rewritten, oldName, newName);
+  }
+  const stored = sanitizeComposersForSave(rewritten);
+  const primary = primaryFieldsFromStored(stored);
+
+  if (!hadArray) {
+    return {
+      ...album,
+      artist: nextArtist,
+      composer: primary.composer,
+    };
+  }
+
+  return {
+    ...album,
+    artist: nextArtist,
+    composers: stored.length > 0 ? stored : null,
+    composer: primary.composer,
+    composer_country: primary.composer_country,
+    composer_era: primary.composer_era,
+    composer_wiki_url: primary.composer_wiki_url,
+  };
 }

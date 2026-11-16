@@ -540,7 +540,9 @@ export function AlbumForm({
                     작곡가 추가
                   </button>
                   {formData.composers.length >= MAX_ALBUM_COMPOSERS ? (
-                    <p className="mt-1 text-[11px] opacity-60">작곡가는 최대 4명까지 입력할 수 있습니다.</p>
+                    <p className="mt-1 text-[11px] opacity-60">
+                      작곡가는 최대 {MAX_ALBUM_COMPOSERS}명까지 입력할 수 있습니다.
+                    </p>
                   ) : null}
                   {composerDupError ? (
                     <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
