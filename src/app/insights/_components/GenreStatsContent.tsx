@@ -16,6 +16,7 @@ import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
 import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
+import { applyAlbumProfileFieldsRetarget } from '@/app/artists/lib/updateArtistProfileFields';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import {
   buildGenre1ListenRankings,
@@ -926,6 +927,11 @@ export function GenreStatsContent() {
               }
               return next;
             });
+          }}
+          onArtistProfileFieldsUpdated={({ name, patch }) => {
+            setAlbums((prev) =>
+              prev.map((album) => applyAlbumProfileFieldsRetarget(album, 'artist', name, patch)),
+            );
           }}
         />
       ) : null}

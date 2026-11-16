@@ -18,6 +18,11 @@ import { useArtistFilters } from '../_hooks/useArtistFilters';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import { updateArtistNames, applyAlbumNameRetarget } from '../lib/updateArtistNames';
 import {
+  applyAlbumProfileFieldsRetarget,
+  updateArtistProfileFields,
+  type ArtistProfileFieldsPatch,
+} from '../lib/updateArtistProfileFields';
+import {
   applyArtistNameAltMap,
   buildArtistSummaries,
   buildComposerSummaries,
@@ -34,6 +39,7 @@ import {
 } from '../utils';
 import type { ArtistLibraryRole, ArtistRecord, ArtistSummary, ListenHistoryEntry } from '../types';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
+import type { ArtistSaveOptions } from './ArtistInfoEditModal';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
 import { ArtistLotteryModal } from './ArtistLotteryModal';
@@ -126,6 +132,7 @@ export function ArtistsLibraryContent() {
   const [linksSaving, setLinksSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [nameSaving, setNameSaving] = useState(false);
+  const [profileFieldsSaving, setProfileFieldsSaving] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(
     () => (typeof window !== 'undefined' ? !window.matchMedia(LG_UP_MQ).matches : false),
   );
@@ -503,10 +510,13 @@ export function ArtistsLibraryContent() {
     }
   };
 
-  const handleSaveNames = async (patch: {
-    name: string;
-    nameAlt: string | null;
-  }): Promise<boolean> => {
+  const handleSaveNames = async (
+    patch: {
+      name: string;
+      nameAlt: string | null;
+    },
+    options?: ArtistSaveOptions,
+  ): Promise<boolean> => {
     if (!selectedName || !artistRecord?.id || isAuthenticated !== true) return false;
     const albumArtistName = selectedName;
     const recordArtistName = artistRecord.artist_name.trim();
@@ -589,13 +599,54 @@ export function ArtistsLibraryContent() {
             : prev,
         );
       }
-      toast.success('아티스트 이름을 저장했습니다.');
+      if (!options?.silentSuccess) {
+        toast.success('아티스트 이름을 저장했습니다.');
+      }
       return true;
     } catch {
       toast.error('이름 저장에 실패했습니다.');
       return false;
     } finally {
       setNameSaving(false);
+    }
+  };
+
+  const handleSaveProfileFields = async (
+    patch: ArtistProfileFieldsPatch,
+    options?: ArtistSaveOptions,
+  ): Promise<boolean> => {
+    if (!selectedName || isAuthenticated !== true) return false;
+    if (Object.keys(patch).length === 0) {
+      if (!options?.silentSuccess) {
+        toast.success('변경된 항목이 없습니다.');
+      }
+      return true;
+    }
+    setProfileFieldsSaving(true);
+    try {
+      const result = await updateArtistProfileFields(createClient(), {
+        role,
+        name: selectedName,
+        patch,
+      });
+      if (result.error) {
+        toast.error(result.error);
+        return false;
+      }
+      setAlbums((prev) =>
+        prev.map((album) => applyAlbumProfileFieldsRetarget(album, role, selectedName, patch)),
+      );
+      if (!options?.silentSuccess) {
+        toast.success('부가 정보를 저장했습니다.');
+      }
+      return true;
+    } catch {
+      toast.error(
+        '부가 정보 저장에 실패했습니다. 일부 앨범만 반영됐을 수 있습니다. 다시 저장하면 맞춰집니다.',
+      );
+      return false;
+    } finally {
+      setProfileFieldsSaving(false);
     }
   };
 
@@ -813,6 +864,7 @@ export function ArtistsLibraryContent() {
       linksSaving={linksSaving}
       profileSaving={profileSaving}
       nameSaving={nameSaving}
+      profileFieldsSaving={profileFieldsSaving}
       isAuthenticated={isAuthenticated}
       onAlbumClick={setViewingAlbum}
       onAddAlbum={handleAlbumAddClick}
@@ -821,6 +873,7 @@ export function ArtistsLibraryContent() {
       onSaveLinks={handleSaveLinks}
       onSaveProfileImage={handleSaveProfileImage}
       onSaveNames={handleSaveNames}
+      onSaveProfileFields={handleSaveProfileFields}
     />
   );
 
@@ -923,6 +976,7 @@ export function ArtistsLibraryContent() {
                   linksSaving={linksSaving}
                   profileSaving={profileSaving}
                   nameSaving={nameSaving}
+                  profileFieldsSaving={profileFieldsSaving}
                   isAuthenticated={isAuthenticated}
                   onAlbumClick={setViewingAlbum}
                   onAddAlbum={handleAlbumAddClick}
@@ -931,6 +985,7 @@ export function ArtistsLibraryContent() {
                   onSaveLinks={handleSaveLinks}
                   onSaveProfileImage={handleSaveProfileImage}
                   onSaveNames={handleSaveNames}
+                  onSaveProfileFields={handleSaveProfileFields}
                 />
               </div>
             </div>,

@@ -59,6 +59,18 @@ export const COMPOSER_ERA_OPTIONS = [
   '혼합 / 옴니버스',
 ] as const;
 
+export const ARTIST_TYPE_OPTIONS = [
+  '솔로',
+  '아이돌',
+  '밴드',
+  '걸스 밴드',
+  '그룹',
+  '연주자',
+  '지휘자',
+  '음악감독',
+  '기타',
+] as const;
+
 export function isClassicFormOption(value: string | null | undefined): boolean {
   return !!value && (CLASSIC_FORM_OPTIONS as readonly string[]).includes(value);
 }

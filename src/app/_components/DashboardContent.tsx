@@ -29,6 +29,7 @@ import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { useHeadfiDacAmpMapLazyAnalysis } from '@/app/headfi/useHeadfiDacAmpMapLazyAnalysis';
 import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
+import { applyAlbumProfileFieldsRetarget } from '@/app/artists/lib/updateArtistProfileFields';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
 import type { ListenHistoryEntry } from '@/app/artists/types';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
@@ -899,6 +900,11 @@ export function DashboardContent({
               prev.map((album) =>
                 applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
               ),
+            );
+          }}
+          onArtistProfileFieldsUpdated={({ name, patch }) => {
+            setArtistModalAlbums((prev) =>
+              prev.map((album) => applyAlbumProfileFieldsRetarget(album, 'artist', name, patch)),
             );
           }}
         />

@@ -14,6 +14,7 @@ import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
 import { albumToFormData } from '@/app/albums/utils';
 import { ArtistDetailModal } from '@/app/artists/_components/ArtistDetailModal';
 import { applyAlbumNameRetarget } from '@/app/artists/lib/updateArtistNames';
+import { applyAlbumProfileFieldsRetarget } from '@/app/artists/lib/updateArtistProfileFields';
 import { updateHeadfiInDB, uploadHeadfiFrGraphImage, uploadHeadfiDeviceImage } from '@/app/headfi/actions';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiForm } from '@/app/headfi/_components/HeadfiForm';
@@ -1011,6 +1012,11 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
               prev.map((album) =>
                 applyAlbumNameRetarget(album, albumArtistName, recordArtistName, newName),
               ),
+            );
+          }}
+          onArtistProfileFieldsUpdated={({ name, patch }) => {
+            setAlbums((prev) =>
+              prev.map((album) => applyAlbumProfileFieldsRetarget(album, 'artist', name, patch)),
             );
           }}
         />

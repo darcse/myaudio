@@ -7,8 +7,13 @@ import { createClient } from '@/lib/supabase/client';
 import type { Album } from '@/app/albums/types';
 import { ensureArtistRecord } from '../lib/ensureArtistRecord';
 import { updateArtistNames } from '../lib/updateArtistNames';
+import {
+  updateArtistProfileFields,
+  type ArtistProfileFieldsPatch,
+} from '../lib/updateArtistProfileFields';
 import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistDetailPanel } from './ArtistDetailPanel';
+import type { ArtistSaveOptions } from './ArtistInfoEditModal';
 import {
   buildArtistSummaries,
   buildArtistNameAltMap,
@@ -35,6 +40,10 @@ type ArtistDetailModalProps = {
     newName: string;
     nameAlt: string | null;
   }) => void;
+  onArtistProfileFieldsUpdated?: (context: {
+    name: string;
+    patch: ArtistProfileFieldsPatch;
+  }) => void;
 };
 
 export function ArtistDetailModal({
@@ -46,12 +55,14 @@ export function ArtistDetailModal({
   onAlbumClick,
   onSelectArtist,
   onArtistNamesUpdated,
+  onArtistProfileFieldsUpdated,
 }: ArtistDetailModalProps) {
   const [artistRecord, setArtistRecord] = useState<ArtistRecord | null>(null);
   const [bioLoading, setBioLoading] = useState(false);
   const [linksSaving, setLinksSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [nameSaving, setNameSaving] = useState(false);
+  const [profileFieldsSaving, setProfileFieldsSaving] = useState(false);
   const [artistProfileUrls, setArtistProfileUrls] = useState<Record<string, string | null>>({});
   const [artistNameAltByName, setArtistNameAltByName] = useState<Record<string, string | null>>({});
 
@@ -183,10 +194,13 @@ export function ArtistDetailModal({
     }
   };
 
-  const handleSaveNames = async (patch: {
-    name: string;
-    nameAlt: string | null;
-  }): Promise<boolean> => {
+  const handleSaveNames = async (
+    patch: {
+      name: string;
+      nameAlt: string | null;
+    },
+    options?: ArtistSaveOptions,
+  ): Promise<boolean> => {
     if (!artistRecord?.id || isAuthenticated !== true) return false;
     const albumArtistName = artist?.name ?? artistName;
     const recordArtistName = artistRecord.artist_name.trim();
@@ -261,13 +275,54 @@ export function ArtistDetailModal({
       if (nameChanged || result.mergedArtistId) {
         onSelectArtist(newName);
       }
-      toast.success('아티스트 이름을 저장했습니다.');
+      if (!options?.silentSuccess) {
+        toast.success('아티스트 이름을 저장했습니다.');
+      }
       return true;
     } catch {
       toast.error('이름 저장에 실패했습니다.');
       return false;
     } finally {
       setNameSaving(false);
+    }
+  };
+
+  const handleSaveProfileFields = async (
+    patch: ArtistProfileFieldsPatch,
+    options?: ArtistSaveOptions,
+  ): Promise<boolean> => {
+    if (isAuthenticated !== true) return false;
+    const name = artist?.name ?? artistName;
+    if (!name.trim()) return false;
+    if (Object.keys(patch).length === 0) {
+      if (!options?.silentSuccess) {
+        toast.success('변경된 항목이 없습니다.');
+      }
+      return true;
+    }
+    setProfileFieldsSaving(true);
+    try {
+      const result = await updateArtistProfileFields(createClient(), {
+        role: 'artist',
+        name,
+        patch,
+      });
+      if (result.error) {
+        toast.error(result.error);
+        return false;
+      }
+      onArtistProfileFieldsUpdated?.({ name, patch });
+      if (!options?.silentSuccess) {
+        toast.success('부가 정보를 저장했습니다.');
+      }
+      return true;
+    } catch {
+      toast.error(
+        '부가 정보 저장에 실패했습니다. 일부 앨범만 반영됐을 수 있습니다. 다시 저장하면 맞춰집니다.',
+      );
+      return false;
+    } finally {
+      setProfileFieldsSaving(false);
     }
   };
 
@@ -300,6 +355,7 @@ export function ArtistDetailModal({
             linksSaving={linksSaving}
             profileSaving={profileSaving}
             nameSaving={nameSaving}
+            profileFieldsSaving={profileFieldsSaving}
             isAuthenticated={isAuthenticated}
             onAlbumClick={onAlbumClick}
             onSelectArtist={onSelectArtist}
@@ -307,6 +363,7 @@ export function ArtistDetailModal({
             onSaveLinks={handleSaveLinks}
             onSaveProfileImage={handleSaveProfileImage}
             onSaveNames={handleSaveNames}
+            onSaveProfileFields={handleSaveProfileFields}
             nameHref={`/artists?role=artist&artist=${encodeURIComponent(artist?.name ?? artistName)}`}
             onNameClick={onClose}
           />

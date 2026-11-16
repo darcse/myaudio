@@ -9,8 +9,9 @@ import type { Album } from '@/app/albums/types';
 import { countryFlag, findArtistWikiUrl, findComposerWikiUrl, getPrimaryGenre1 } from '../utils';
 import type { ArtistLibraryRole, ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
+import type { ArtistProfileFieldsPatch } from '../lib/updateArtistProfileFields';
 import { ArtistExternalLinksSection, type ArtistLinksPatch } from './ArtistExternalLinksSection';
-import { ArtistNameEditPopover } from './ArtistNameEditPopover';
+import { ArtistInfoEditModal, type ArtistSaveOptions } from './ArtistInfoEditModal';
 import { ArtistProfileImage } from './ArtistProfileImage';
 import { ArtistRelatedSection } from './ArtistRelatedSection';
 import { ArtistStatsSection } from './ArtistStatsSection';
@@ -27,6 +28,7 @@ type ArtistDetailPanelProps = {
   linksSaving: boolean;
   profileSaving: boolean;
   nameSaving: boolean;
+  profileFieldsSaving: boolean;
   isAuthenticated: boolean | null;
   showMobileBack?: boolean;
   onMobileBack?: () => void;
@@ -36,7 +38,14 @@ type ArtistDetailPanelProps = {
   onRefreshBio: () => void;
   onSaveLinks: (patch: ArtistLinksPatch) => Promise<boolean>;
   onSaveProfileImage: (profileImageUrl: string | null) => Promise<boolean>;
-  onSaveNames: (patch: { name: string; nameAlt: string | null }) => Promise<boolean>;
+  onSaveNames: (
+    patch: { name: string; nameAlt: string | null },
+    options?: ArtistSaveOptions,
+  ) => Promise<boolean>;
+  onSaveProfileFields: (
+    patch: ArtistProfileFieldsPatch,
+    options?: ArtistSaveOptions,
+  ) => Promise<boolean>;
   nameHref?: string;
   onNameClick?: () => void;
 };
@@ -52,6 +61,7 @@ export function ArtistDetailPanel({
   linksSaving,
   profileSaving,
   nameSaving,
+  profileFieldsSaving,
   isAuthenticated,
   showMobileBack = false,
   onMobileBack,
@@ -62,6 +72,7 @@ export function ArtistDetailPanel({
   onSaveLinks,
   onSaveProfileImage,
   onSaveNames,
+  onSaveProfileFields,
   nameHref,
   onNameClick,
 }: ArtistDetailPanelProps) {
@@ -136,12 +147,19 @@ export function ArtistDetailPanel({
           <p className="mt-0.5 text-base font-medium opacity-60 sm:hidden">{nameAltDisplay}</p>
         ) : null}
       </div>
-      <ArtistNameEditPopover
+      <ArtistInfoEditModal
+        role={role}
+        albumCount={artist.albumCount}
         artistName={artist.name}
         nameAlt={nameAlt}
-        saving={nameSaving}
+        country={artist.country}
+        wikiUrl={wikiUrl}
+        artistType={artist.artistType}
+        era={artist.era ?? null}
+        saving={nameSaving || profileFieldsSaving}
         isAuthenticated={isAuthenticated}
-        onSave={onSaveNames}
+        onSaveNames={onSaveNames}
+        onSaveProfileFields={onSaveProfileFields}
       />
     </div>
   );
