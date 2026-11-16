@@ -105,6 +105,10 @@ export function AlbumsLibraryContent({
     setListLibraryTag,
     listGenreFilter,
     setListGenreFilter,
+    listInstrumentFilter,
+    setListInstrumentFilter,
+    listFormFilter,
+    setListFormFilter,
     listCountryFilter,
     setListCountryFilter,
     listMediaFilter,
@@ -728,6 +732,10 @@ export function AlbumsLibraryContent({
               classicCardTags={isClassicScope}
               listGenreFilter={listGenreFilter}
               setListGenreFilter={setListGenreFilter}
+              listInstrumentFilter={listInstrumentFilter}
+              setListInstrumentFilter={setListInstrumentFilter}
+              listFormFilter={listFormFilter}
+              setListFormFilter={setListFormFilter}
               listCountryFilter={listCountryFilter}
               setListCountryFilter={setListCountryFilter}
               listMediaFilter={listMediaFilter}

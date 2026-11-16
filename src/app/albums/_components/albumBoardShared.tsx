@@ -2,7 +2,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Crown, LayoutGrid, LayoutList, Music } from 'lucide-react';
+import { CassetteTape, Crown, Disc, Disc3, LayoutGrid, LayoutList, Music } from 'lucide-react';
 import type { Album } from '../types';
 import { albumHasAllTimeYear, releaseYearFromAlbum } from '../utils';
 import { getMoodGradientPair, hexToRgba } from '../moodGradient';
@@ -47,6 +47,37 @@ export function PhysicalOwnedBadges({ album }: { album: Album }) {
         </span>
       ))}
     </>
+  );
+}
+
+const PHYSICAL_OWNED_COVER_ICONS = [
+  { key: 'cd', label: 'CD', owned: (album: Album) => Boolean(album.owns_cd), Icon: Disc },
+  { key: 'lp', label: 'LP', owned: (album: Album) => Boolean(album.owns_lp), Icon: Disc3 },
+  {
+    key: 'cassette',
+    label: '카세트',
+    owned: (album: Album) => Boolean(album.owns_cassette),
+    Icon: CassetteTape,
+  },
+] as const;
+
+export function PhysicalOwnedCoverIcons({ album }: { album: Album }) {
+  const items = PHYSICAL_OWNED_COVER_ICONS.filter((item) => item.owned(album));
+  if (items.length === 0) return null;
+  return (
+    <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 pointer-events-none">
+      {items.map(({ key, label, Icon }) => (
+        <span
+          key={key}
+          className="inline-flex size-6 items-center justify-center rounded-full sm:size-7"
+          style={{ background: 'rgba(0, 0, 0, 0.55)', color: '#F5F5F7' }}
+          title={label}
+          aria-label={label}
+        >
+          <Icon className="size-3.5 sm:size-4" strokeWidth={2} aria-hidden />
+        </span>
+      ))}
+    </div>
   );
 }
 

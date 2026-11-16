@@ -4,12 +4,23 @@
 import { useEffect, useState } from 'react';
 import { LayoutGrid, LayoutList, List, Music, X } from 'lucide-react';
 import type { LibraryViewMode } from './albumBoardShared';
-import { PhysicalOwnedBadges } from './albumBoardShared';
-import { countryOptions, genreOptions, isClassicFormOption } from '../constants';
+import { PhysicalOwnedBadges, PhysicalOwnedCoverIcons } from './albumBoardShared';
+import {
+  CLASSIC_FORM_OPTIONS,
+  CLASSIC_INSTRUMENT_OPTIONS,
+  countryOptions,
+  genreOptions,
+  isClassicFormOption,
+} from '../constants';
 import type { Album } from '../types';
 import { isIndividualYearFilter, LIBRARY_TAGS } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
 import type { AlbumLibraryTag, AlbumMediaFilter } from '../_hooks/useAlbumFilters';
+
+const GENRE1_CHIP_STYLE = {
+  background: 'rgba(0,91,193,0.12)',
+  color: '#005bc1',
+} as const;
 
 interface AlbumListProps {
   yearOptions: string[];
@@ -24,6 +35,10 @@ interface AlbumListProps {
   setListLibraryTag?: (v: AlbumLibraryTag) => void;
   listGenreFilter: string;
   setListGenreFilter: (v: string) => void;
+  listInstrumentFilter?: string;
+  setListInstrumentFilter?: (v: string) => void;
+  listFormFilter?: string;
+  setListFormFilter?: (v: string) => void;
   listCountryFilter: string;
   setListCountryFilter: (v: string) => void;
   listSortOrder: string;
@@ -57,6 +72,10 @@ export function AlbumList({
   setListLibraryTag,
   listGenreFilter,
   setListGenreFilter,
+  listInstrumentFilter = '전체',
+  setListInstrumentFilter,
+  listFormFilter = '전체',
+  setListFormFilter,
   listCountryFilter,
   setListCountryFilter,
   listSortOrder,
@@ -86,16 +105,35 @@ export function AlbumList({
     ? genreOptions.filter((genre) => genre !== 'Classic')
     : genreOptions;
 
+  const toggleInstrumentFilter = (value: string) => {
+    if (!setListInstrumentFilter) return;
+    setListInstrumentFilter(listInstrumentFilter === value ? '전체' : value);
+  };
+  const toggleFormFilter = (value: string) => {
+    if (!setListFormFilter) return;
+    setListFormFilter(listFormFilter === value ? '전체' : value);
+  };
+
   const activeFilters = [
     !isRecordshelf && defaultYearFilter && listYearFilter !== defaultYearFilter && {
       key: 'year',
       label: `연도: ${listYearFilter}`,
       reset: () => setListYearFilter(defaultYearFilter),
     },
-    !isRecordshelf && listGenreFilter !== '전체' && {
+    !isRecordshelf && !classicCardTags && listGenreFilter !== '전체' && {
       key: 'genre',
       label: `장르: ${listGenreFilter}`,
       reset: () => setListGenreFilter('전체'),
+    },
+    classicCardTags && listInstrumentFilter !== '전체' && {
+      key: 'instrument',
+      label: `악기: ${listInstrumentFilter}`,
+      reset: () => setListInstrumentFilter?.('전체'),
+    },
+    classicCardTags && listFormFilter !== '전체' && {
+      key: 'form',
+      label: `형식: ${listFormFilter}`,
+      reset: () => setListFormFilter?.('전체'),
     },
     !isRecordshelf && listCountryFilter !== '전체' && {
       key: 'country',
@@ -133,16 +171,49 @@ export function AlbumList({
 
   const filterSelects = (
     <>
-      <select
-        className="select-apple px-3 py-2 text-sm h-[38px]"
-        value={listGenreFilter}
-        onChange={(e) => setListGenreFilter(e.target.value)}
-      >
-        <option value="전체">장르: 전체</option>
-        {genreSelectOptions.map((g) => (
-          <option key={g} value={g}>{g}</option>
-        ))}
-      </select>
+      {classicCardTags ? (
+        <>
+          <select
+            className="select-apple px-3 py-2 text-sm h-[38px]"
+            value={listInstrumentFilter}
+            onChange={(e) => setListInstrumentFilter?.(e.target.value)}
+            aria-label="대표 악기 필터"
+          >
+            <option value="전체">악기: 전체</option>
+            {CLASSIC_INSTRUMENT_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <select
+            className="select-apple px-3 py-2 text-sm h-[38px]"
+            value={listFormFilter}
+            onChange={(e) => setListFormFilter?.(e.target.value)}
+            aria-label="형식 필터"
+          >
+            <option value="전체">형식: 전체</option>
+            {CLASSIC_FORM_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <select
+          className="select-apple px-3 py-2 text-sm h-[38px]"
+          value={listGenreFilter}
+          onChange={(e) => setListGenreFilter(e.target.value)}
+        >
+          <option value="전체">장르: 전체</option>
+          {genreSelectOptions.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+      )}
       <select
         className="select-apple px-3 py-2 text-sm h-[38px]"
         value={listCountryFilter}
@@ -423,6 +494,7 @@ export function AlbumList({
                   >
                     No Cover
                   </div>
+                  {!isRecordshelf ? <PhysicalOwnedCoverIcons album={item} /> : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
@@ -445,33 +517,50 @@ export function AlbumList({
                     {classicCardTags ? (
                       <>
                         {item.classic_instrument?.trim() ? (
-                          <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
+                          <button
+                            type="button"
+                            className="text-[12px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90"
+                            style={
+                              listInstrumentFilter === item.classic_instrument.trim()
+                                ? { background: 'var(--foreground)', color: 'var(--background)' }
+                                : GENRE1_CHIP_STYLE
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleInstrumentFilter(item.classic_instrument!.trim());
+                            }}
+                            aria-pressed={listInstrumentFilter === item.classic_instrument.trim()}
+                          >
                             {item.classic_instrument.trim()}
-                          </span>
+                          </button>
                         ) : null}
                         {item.genre2?.trim() && isClassicFormOption(item.genre2) ? (
-                          onSubGenreLabelClick ? (
-                            <button
-                              type="button"
-                              className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90 badge-apple"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onSubGenreLabelClick(item.genre2!);
-                              }}
-                            >
-                              {item.genre2}
-                            </button>
-                          ) : (
-                            <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
-                              {item.genre2}
-                            </span>
-                          )
+                          <button
+                            type="button"
+                            className={
+                              listFormFilter === item.genre2.trim()
+                                ? 'text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90'
+                                : 'text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90 badge-apple'
+                            }
+                            style={
+                              listFormFilter === item.genre2.trim()
+                                ? { background: 'var(--foreground)', color: 'var(--background)' }
+                                : undefined
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFormFilter(item.genre2!.trim());
+                            }}
+                            aria-pressed={listFormFilter === item.genre2.trim()}
+                          >
+                            {item.genre2}
+                          </button>
                         ) : null}
-                        <PhysicalOwnedBadges album={item} />
+                        {isRecordshelf ? <PhysicalOwnedBadges album={item} /> : null}
                       </>
                     ) : (
                       <>
-                        <PhysicalOwnedBadges album={item} />
+                        {isRecordshelf ? <PhysicalOwnedBadges album={item} /> : null}
                         {item.release_date && !hideYearTagOnCard && (
                           <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
                             {item.release_date.substring(0, 4)}
@@ -483,7 +572,7 @@ export function AlbumList({
                             <button
                               type="button"
                               className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90"
-                              style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
+                              style={GENRE1_CHIP_STYLE}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onGenreLabelClick(item.genre1!);
@@ -494,7 +583,7 @@ export function AlbumList({
                           ) : (
                             <span
                               className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full"
-                              style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
+                              style={GENRE1_CHIP_STYLE}
                             >
                               {item.genre1.toUpperCase()}
                             </span>

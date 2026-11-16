@@ -35,6 +35,8 @@ export function useAlbumFilters(
   const [listYearFilter, setListYearFilter] = useState('');
   const [listLibraryTag, setListLibraryTagState] = useState<AlbumLibraryTag>('전체');
   const [listGenreFilter, setListGenreFilter] = useState('전체');
+  const [listInstrumentFilter, setListInstrumentFilter] = useState('전체');
+  const [listFormFilter, setListFormFilter] = useState('전체');
   const [listCountryFilter, setListCountryFilter] = useState('전체');
   const [listMediaFilter, setListMediaFilter] = useState<AlbumMediaFilter>('all');
   const [listSortOrder, setListSortOrder] = useState('release_desc');
@@ -72,6 +74,8 @@ export function useAlbumFilters(
     listYearFilter,
     listLibraryTag,
     listGenreFilter,
+    listInstrumentFilter,
+    listFormFilter,
     listCountryFilter,
     listMediaFilter,
     listSortOrder,
@@ -80,6 +84,10 @@ export function useAlbumFilters(
   const listFilterCommon = useCallback(
     (item: Album) => {
       const matchesGenre = listGenreFilter === '전체' || item.genre1 === listGenreFilter;
+      const matchesInstrument =
+        listInstrumentFilter === '전체' ||
+        (item.classic_instrument?.trim() ?? '') === listInstrumentFilter;
+      const matchesForm = listFormFilter === '전체' || (item.genre2?.trim() ?? '') === listFormFilter;
       const matchesCountry = listCountryFilter === '전체' || item.country === listCountryFilter;
       const matchesMedia =
         listMediaFilter === 'all' ||
@@ -98,9 +106,24 @@ export function useAlbumFilters(
         matchesArtistNameSearch(lowerQuery, artistName, nameAlt) ||
         (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery)) ||
         matchesComposer;
-      return matchesGenre && matchesCountry && matchesMedia && matchesSearch;
+      return (
+        matchesGenre &&
+        matchesInstrument &&
+        matchesForm &&
+        matchesCountry &&
+        matchesMedia &&
+        matchesSearch
+      );
     },
-    [listGenreFilter, listCountryFilter, listMediaFilter, listSearchQuery, artistNameAltByName],
+    [
+      listGenreFilter,
+      listInstrumentFilter,
+      listFormFilter,
+      listCountryFilter,
+      listMediaFilter,
+      listSearchQuery,
+      artistNameAltByName,
+    ],
   );
 
   const filteredLibrary = useMemo(
@@ -157,6 +180,10 @@ export function useAlbumFilters(
     setListLibraryTag,
     listGenreFilter,
     setListGenreFilter,
+    listInstrumentFilter,
+    setListInstrumentFilter,
+    listFormFilter,
+    setListFormFilter,
     listCountryFilter,
     setListCountryFilter,
     listMediaFilter,
