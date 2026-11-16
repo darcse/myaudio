@@ -23,6 +23,7 @@ export interface Album {
   year?: string[] | null;
   genre1: string | null;
   genre2: string | null;
+  classic_instrument?: string | null;
   composer?: string | null;
   composer_country?: string | null;
   composer_era?: string | null;
@@ -72,6 +73,7 @@ export interface AlbumFormData {
   release_date: string;
   genre1: string;
   genre2: string;
+  classic_instrument: string;
   composer: string;
   composer_country: string;
   composer_era: string;

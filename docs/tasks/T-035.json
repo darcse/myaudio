@@ -1,0 +1,29 @@
+{
+  "id": "T-035",
+  "goal": "저장·수정 직후 반대 탭으로 이동했을 때 옛 데이터가 잠깐 보이지 않게 하고, T-034에서 빠진 캐시 무효화 경로를 채운다.",
+  "context": "T-034(src/lib/catalogLibraryCache.ts) 후속 보완이다. 문제 1: 캐시가 무효화(stale)된 상태에서도 AlbumsLibraryContent와 ArtistsLibraryContent(catalog 모드)가 캐시를 먼저 그린 뒤 revalidate하므로, 저장 직후 반대 탭에서 수정 전 값이 잠깐 보였다가 바뀐다. 기본안: 마운트 시 캐시가 stale이면 캐시를 화면에 쓰지 않고 로딩 상태에서 최신 조회 후 표시한다(stale이 아닐 때의 즉시 표시와 백그라운드 재검증은 유지). 이를 위해 캐시 모듈에 stale 여부를 읽는 함수(예: isCatalogLibraryStale)를 최소로 추가한다. 두 Content의 캐시 분기 로직이 중복이면 가능한 범위에서 공통화하되 전체 재작성은 하지 않는다. 문제 2: 무효화 호출이 빠진 경로를 추가한다. (a) 아티스트 프로필 이미지 저장: ArtistsLibraryContent의 handleSaveProfileImage와 ArtistDetailModal의 프로필 이미지 저장(캐시된 artists 메타의 profile_image_url에 영향). 링크·bio 저장은 캐시된 컬럼이 아니므로 제외 가능하나 확인한다. (b) GlobalAlbumPlayer의 saveAlbumYoutubeTracks 성공 후. (c) AlbumDetailModal의 헤드폰 추천 저장(/api/album-headphone-recommend 응답 처리 후). (d) AlbumListenHistorySection의 날씨 보강 업데이트가 album_listen_history를 수정하므로 캐시된 청취 기록에 영향이 있는지 확인하고 필요하면 호출을 추가한다. 이외에 albumEnrichment·서버 쪽 저장은 클라이언트에서 직접 호출할 수 없으니 변경하지 않는다. 변경 후에도 T-034의 호출 목록을 다시 grep으로 확인해, 앨범·album_listen_history·artists 쓰기 지점 중 무효화가 빠진 곳이 없는지 result에 갱신된 전수표로 적는다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "stale 캐시 사용 중단(마운트 시 로딩 후 최신 표시)과 캐시 모듈의 stale 확인 함수 추가",
+      "프로필 이미지 저장·YouTube 트랙 저장·헤드폰 추천 저장·날씨 보강 경로의 무효화 호출 추가",
+      "무효화 전수표 갱신"
+    ],
+    "out": [
+      "캐시 구조 변경·라이브러리 도입",
+      "목록 select 컬럼 축소(B), 라우트 레이아웃 개편(C)",
+      "레코드선반 조회",
+      "DB 스키마·SQL",
+      "서버 쪽 enrichment 코드 변경",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "앨범을 저장·수정·삭제한 직후 반대 탭(앨범↔아티스트)으로 이동하면 수정 전 값이 보이지 않고 로딩 후 최신 값이 바로 표시된다. 변경이 없던 상태의 탭 이동은 이전처럼 로딩 없이 즉시 표시된다",
+    "아티스트 프로필 이미지, YouTube 트랙 저장, 헤드폰 추천 저장 후 캐시가 무효화되고, 날씨 보강은 필요 여부를 판단해 처리 결과를 result에 적는다",
+    "앨범·album_listen_history·artists 쓰기 지점과 무효화 호출 위치의 갱신된 전수표가 result에 있고 빠진 경로가 없다(제외 항목은 이유 명시)",
+    "레코드선반 동작이 변하지 않고, npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "접근: stale면 즉시 표시하지 않고 force fetch; 빠진 무효화만 추가.\n\n변경: isCatalogLibraryStale + getFreshCatalogLibraryCache; Albums/Artists는 fresh 캐시만 즉시 표시+revalidate, stale/miss는 로딩 후 ensure(force).\n추가 무효화: ArtistsLibraryContent·ArtistDetailModal 프로필 이미지, GlobalAlbumPlayer YouTube 트랙, AlbumDetailModal 헤드폰 추천.\n\n날씨 보강: 캐시는 album_id·listened_at만 보관 → weather_condition/temperature 갱신은 캐시 내용과 무관 → 무효화 생략.\n링크·bio: artistsMeta에 없음 → 생략.\n서버 enrichment: 클라이언트 호출 불가 → 다음 revalidate에 의존(변경 없음).\n\n무효화 전수표:\n| 쓰기 | 위치 | 무효화 |\n|------|------|--------|\n| 앨범 CRUD | useAlbumMutations | O |\n| 앨범 소개·무드 assign | useAlbumMutations | O |\n| 아티스트 화면 앨범 CRUD·소개 | ArtistsLibraryContent | O |\n| 이름·부가정보 | ArtistsLibraryContent, ArtistDetailModal | O |\n| 프로필 이미지 | ArtistsLibraryContent, ArtistDetailModal | O(신규) |\n| 대시보드 앨범·소개 | DashboardContent | O |\n| Apple Music·무드 set | AlbumInfoSection | O |\n| 헤드폰 추천 | AlbumDetailModal | O(신규) |\n| YouTube tracks | GlobalAlbumPlayer | O(신규) |\n| 감상 기록 CRUD | AlbumListenHistorySection, AlbumDiaryContent | O |\n| Head-fi 앨범 소개 | HeadfiLibraryContent, HeadfiMatchContent | O |\n| 날씨 보강 update | AlbumListenHistorySection | 제외(캐시 컬럼 외) |\n| 링크·bio | artists.update | 제외(캐시 외) |\n| albumEnrichment | 서버 after | 제외 |\n\n검증: tsc·lint 통과. 레코드선반 미변경."
+}

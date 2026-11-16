@@ -52,6 +52,7 @@ const initialFormData: AlbumFormData = {
   release_date: '',
   genre1: '',
   genre2: '',
+  classic_instrument: '',
   composer: '',
   composer_country: '',
   composer_era: '',
@@ -724,6 +725,7 @@ export function AlbumsLibraryContent({
               listLibraryTag={physicalOwnedOnly || isClassicScope ? undefined : listLibraryTag}
               setListLibraryTag={physicalOwnedOnly || isClassicScope ? undefined : setListLibraryTag}
               hideClassicGenreOption={!physicalOwnedOnly && catalogScope === 'popular'}
+              classicCardTags={isClassicScope}
               listGenreFilter={listGenreFilter}
               setListGenreFilter={setListGenreFilter}
               listCountryFilter={listCountryFilter}

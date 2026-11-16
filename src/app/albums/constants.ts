@@ -50,6 +50,15 @@ export const CLASSIC_FORM_OPTIONS = [
   '컴필레이션',
 ] as const;
 
+export const CLASSIC_INSTRUMENT_OPTIONS = [
+  '피아노',
+  '바이올린',
+  '첼로',
+  '오케스트라',
+  '성악/합창',
+  '기타',
+] as const;
+
 export const COMPOSER_ERA_OPTIONS = [
   '고음악 (중세·르네상스)',
   '바로크',
@@ -90,6 +99,10 @@ export function artistTypeOptionsForCatalog(scope: 'popular' | 'classic') {
 
 export function isClassicFormOption(value: string | null | undefined): boolean {
   return !!value && (CLASSIC_FORM_OPTIONS as readonly string[]).includes(value);
+}
+
+export function isClassicInstrumentOption(value: string | null | undefined): boolean {
+  return !!value && (CLASSIC_INSTRUMENT_OPTIONS as readonly string[]).includes(value);
 }
 
 export const albumYearOptions = [

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { LayoutGrid, LayoutList, List, Music, X } from 'lucide-react';
 import type { LibraryViewMode } from './albumBoardShared';
 import { PhysicalOwnedBadges } from './albumBoardShared';
-import { countryOptions, genreOptions } from '../constants';
+import { countryOptions, genreOptions, isClassicFormOption } from '../constants';
 import type { Album } from '../types';
 import { isIndividualYearFilter, LIBRARY_TAGS } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
@@ -41,6 +41,7 @@ interface AlbumListProps {
   listMediaFilter?: AlbumMediaFilter;
   setListMediaFilter?: (v: AlbumMediaFilter) => void;
   hideClassicGenreOption?: boolean;
+  classicCardTags?: boolean;
 }
 
 export function AlbumList({
@@ -73,6 +74,7 @@ export function AlbumList({
   listMediaFilter = 'all',
   setListMediaFilter,
   hideClassicGenreOption = false,
+  classicCardTags = false,
 }: AlbumListProps) {
   const isRecordshelf = variant === 'recordshelf';
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -440,53 +442,84 @@ export function AlbumList({
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    <PhysicalOwnedBadges album={item} />
-                    {item.release_date && !hideYearTagOnCard && (
-                      <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
-                        {item.release_date.substring(0, 4)}
-                      </span>
-                    )}
+                    {classicCardTags ? (
+                      <>
+                        {item.classic_instrument?.trim() ? (
+                          <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
+                            {item.classic_instrument.trim()}
+                          </span>
+                        ) : null}
+                        {item.genre2?.trim() && isClassicFormOption(item.genre2) ? (
+                          onSubGenreLabelClick ? (
+                            <button
+                              type="button"
+                              className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90 badge-apple"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSubGenreLabelClick(item.genre2!);
+                              }}
+                            >
+                              {item.genre2}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
+                              {item.genre2}
+                            </span>
+                          )
+                        ) : null}
+                        <PhysicalOwnedBadges album={item} />
+                      </>
+                    ) : (
+                      <>
+                        <PhysicalOwnedBadges album={item} />
+                        {item.release_date && !hideYearTagOnCard && (
+                          <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
+                            {item.release_date.substring(0, 4)}
+                          </span>
+                        )}
 
-                    {item.genre1 && (
-                      onGenreLabelClick ? (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90"
-                          style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onGenreLabelClick(item.genre1!);
-                          }}
-                        >
-                          {item.genre1.toUpperCase()}
-                        </button>
-                      ) : (
-                        <span
-                          className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
-                        >
-                          {item.genre1.toUpperCase()}
-                        </span>
-                      )
-                    )}
+                        {item.genre1 && (
+                          onGenreLabelClick ? (
+                            <button
+                              type="button"
+                              className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90"
+                              style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onGenreLabelClick(item.genre1!);
+                              }}
+                            >
+                              {item.genre1.toUpperCase()}
+                            </button>
+                          ) : (
+                            <span
+                              className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full"
+                              style={{ background: 'rgba(0,91,193,0.12)', color: '#005bc1' }}
+                            >
+                              {item.genre1.toUpperCase()}
+                            </span>
+                          )
+                        )}
 
-                    {!isRecordshelf && item.genre2 && (
-                      onSubGenreLabelClick ? (
-                        <button
-                          type="button"
-                          className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90 badge-apple"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSubGenreLabelClick(item.genre2!);
-                          }}
-                        >
-                          {item.genre2}
-                        </button>
-                      ) : (
-                        <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
-                          {item.genre2}
-                        </span>
-                      )
+                        {!isRecordshelf && item.genre2 && (
+                          onSubGenreLabelClick ? (
+                            <button
+                              type="button"
+                              className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full cursor-pointer hover:opacity-90 badge-apple"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSubGenreLabelClick(item.genre2!);
+                              }}
+                            >
+                              {item.genre2}
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full badge-apple">
+                              {item.genre2}
+                            </span>
+                          )
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

@@ -186,6 +186,7 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     release_date: item.release_date ?? '',
     genre1: item.genre1 ?? '',
     genre2: item.genre2 ?? '',
+    classic_instrument: item.classic_instrument ?? '',
     ...(() => {
       const composers = composersFromAlbum(item);
       return { composers, ...primaryComposerFieldsFromEntries(composers) };

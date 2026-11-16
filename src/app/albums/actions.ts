@@ -41,6 +41,9 @@ function mapAlbumData(data: AlbumFormData) {
     release_date: formatReleaseDate(data.release_date || '') || null,
     genre1: data.genre1,
     genre2: data.genre2,
+    classic_instrument: isClassicGenre(data.genre1)
+      ? data.classic_instrument.trim() || null
+      : null,
     cover_image_url: data.cover_image_url,
     matching1: data.matching1,
     matching2: data.matching2,
