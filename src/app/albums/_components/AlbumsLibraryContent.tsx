@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -26,6 +26,12 @@ import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from 
 import { albumToFormData } from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { CatalogTabBar } from '@/components/CatalogTabBar';
+import {
+  catalogAlbumsPath,
+  filterAlbumsByScope,
+  type CatalogScope,
+} from '@/lib/catalogScope';
 
 const ITEMS_PER_PAGE = 20;
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
@@ -60,7 +66,13 @@ const initialFormData: AlbumFormData = {
   owns_cassette: false,
 };
 
-export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOwnedOnly?: boolean }) {
+export function AlbumsLibraryContent({
+  physicalOwnedOnly = false,
+  catalogScope = 'popular',
+}: {
+  physicalOwnedOnly?: boolean;
+  catalogScope?: CatalogScope;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAuthenticated = useAuthState();
@@ -71,6 +83,12 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
   const [library, setLibrary] = useState<Album[]>([]);
   const [artistNameAltByName, setArtistNameAltByName] = useState<Record<string, string | null>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const isClassicScope = !physicalOwnedOnly && catalogScope === 'classic';
+  const albumsBasePath = physicalOwnedOnly ? '/recordshelf' : catalogAlbumsPath(catalogScope);
+  const scopedLibrary = useMemo(() => {
+    if (physicalOwnedOnly) return library;
+    return filterAlbumsByScope(library, catalogScope);
+  }, [library, physicalOwnedOnly, catalogScope]);
   const {
     listSearchQuery,
     setListSearchQuery,
@@ -93,7 +111,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     paginatedLibrary,
     totalFilteredCount,
     listTotalPages,
-  } = useAlbumFilters(library, artistNameAltByName, {
+  } = useAlbumFilters(scopedLibrary, artistNameAltByName, {
     disableYearGrouping: physicalOwnedOnly,
     enableLibraryTags: !physicalOwnedOnly,
   });
@@ -160,9 +178,9 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
   useEffect(() => {
     const m = searchParams.get('mood');
     const g = searchParams.get('genre');
-    if (!physicalOwnedOnly && m?.trim()) setLibraryViewMode('moodboard');
+    if (!physicalOwnedOnly && !isClassicScope && m?.trim()) setLibraryViewMode('moodboard');
     else if (g?.trim()) setLibraryViewMode('genreboard');
-  }, [searchParams, physicalOwnedOnly]);
+  }, [searchParams, physicalOwnedOnly, isClassicScope]);
 
   useEffect(() => {
     const panel = searchParams.get('panel');
@@ -308,6 +326,8 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     setMbSearchOpen(true);
   };
 
+  const classicFormDefaults = isClassicScope ? { genre1: 'Classic' } : {};
+
   const handleManualRegister = () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
@@ -315,7 +335,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     }
     closeMbSearch();
     setSelectedItem({ isManual: true });
-    setFormData(initialFormData);
+    setFormData({ ...initialFormData, ...classicFormDefaults });
   };
 
   const handleSelectAlbum = (album: MusicBrainzSearchItem) => {
@@ -326,6 +346,7 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
     setSelectedItem(album);
     setFormData({
       ...initialFormData,
+      ...classicFormDefaults,
       album_name: album.album_name || '',
       artist: album.artist || '',
       release_date: album.release_date || '',
@@ -403,15 +424,16 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
 
   const navigateToMood = (moodName: string) => {
     setViewingItem(null);
+    if (isClassicScope) return;
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete('view');
     sp.set('mood', moodName);
-    router.replace(`/albums?${sp.toString()}`);
+    router.replace(`${albumsBasePath}?${sp.toString()}`);
     setLibraryViewMode('moodboard');
   };
 
   const handleLibraryViewModeChange = (mode: LibraryViewMode) => {
-    if (physicalOwnedOnly && mode === 'moodboard') return;
+    if ((physicalOwnedOnly || isClassicScope) && mode === 'moodboard') return;
     setLibraryViewMode(mode);
   };
 
@@ -548,13 +570,14 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
 
   return (
     <div className="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 py-8" style={{ color: 'var(--foreground)' }}>
+      {!physicalOwnedOnly ? <CatalogTabBar scope={catalogScope} /> : null}
       <AlbumPageHeader
         title={physicalOwnedOnly ? 'RecordShelf' : 'Albums'}
         showAlbumNav={!physicalOwnedOnly}
         isAuthenticated={isAuthenticated}
         showRegister={!physicalOwnedOnly}
         onRandomClick={physicalOwnedOnly ? undefined : () => setRandomLotteryOpen(true)}
-        onTasteClick={physicalOwnedOnly ? undefined : () => void handleAnalyzeTaste()}
+        onTasteClick={physicalOwnedOnly || isClassicScope ? undefined : () => void handleAnalyzeTaste()}
         onRegisterClick={physicalOwnedOnly ? undefined : toggleMbSearch}
         registerAriaLabel={mbSearchOpen ? '앨범 등록 검색 닫기' : '앨범 등록 검색 열기'}
         registerPressed={mbSearchOpen}
@@ -607,9 +630,9 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
         </div>
       ) : (
         <div className={`${isAuthenticated && !physicalOwnedOnly ? 'mt-8 pt-8 border-t-2' : ''}`} style={{ borderColor: 'var(--border)' }}>
-          {!physicalOwnedOnly && libraryViewMode === 'moodboard' ? (
+          {!physicalOwnedOnly && !isClassicScope && libraryViewMode === 'moodboard' ? (
             <AlbumMoodboard
-              library={library}
+              library={scopedLibrary}
               onAlbumClick={openAlbumDetail}
               viewMode={libraryViewMode}
               onViewModeChange={setLibraryViewMode}
@@ -617,15 +640,15 @@ export function AlbumsLibraryContent({ physicalOwnedOnly = false }: { physicalOw
             />
           ) : libraryViewMode === 'genreboard' ? (
             <AlbumGenreboard
-              library={library}
+              library={scopedLibrary}
               onAlbumClick={openAlbumDetail}
               viewMode={libraryViewMode}
               onViewModeChange={handleLibraryViewModeChange}
-              hiddenModes={physicalOwnedOnly ? ['moodboard'] : undefined}
-              basePath={physicalOwnedOnly ? '/recordshelf' : '/albums'}
+              hiddenModes={physicalOwnedOnly || isClassicScope ? ['moodboard'] : undefined}
+              basePath={albumsBasePath}
               iconsLeading={physicalOwnedOnly}
             />
-          ) : library.length === 0 ? (
+          ) : scopedLibrary.length === 0 ? (
             <div className="empty-state-apple text-center py-12">
               <p>
                 {physicalOwnedOnly

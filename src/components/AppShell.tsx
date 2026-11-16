@@ -45,7 +45,7 @@ function AlbumPlayerLazyMounts() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const hideFooterOnDesktop = pathname === '/artists';
+  const hideFooterOnDesktop = pathname === '/artists' || pathname === '/classic/artists';
 
   return (
     <LyricsPlayerProvider>

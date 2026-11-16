@@ -46,7 +46,7 @@ function ComposerAvatarLink({
 
   return (
     <Link
-      href={`/artists?role=composer&artist=${encodeURIComponent(name)}`}
+      href={`/classic/artists?role=composer&artist=${encodeURIComponent(name)}`}
       onClick={onNavigate}
       className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-opacity hover:opacity-90"
     >
@@ -576,7 +576,7 @@ export function AlbumInfoSection({
               <p className="min-w-0">
                 <strong>작곡가:</strong>{' '}
                 <Link
-                  href={`/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
+                  href={`/classic/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
                   onClick={onClose}
                   className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
                 >

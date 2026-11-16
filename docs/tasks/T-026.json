@@ -1,0 +1,27 @@
+{
+  "id": "T-026",
+  "goal": "앨범 목록의 라이브러리 필터 칩에서 'Popular'와 'Classic'을 없애고 '전체'와 'All Time'만 남긴다.",
+  "context": "클래식 분리 작업의 첫 단계다(근거는 docs/classic-split-investigation.md의 A·C항). 클래식 분리 후 메뉴가 Pop & Rock/Classic으로 나뉘므로 목록 안의 Popular·Classic 칩은 의미가 없어진다. 대상: src/app/albums/utils.ts의 AlbumLibraryTag 타입과 LIBRARY_TAGS(현재 '전체'|'Popular'|'Classic'|'All Time', 약 219-221행), albumMatchesLibraryTag(약 297-302행)의 Popular·Classic 분기, AlbumList.tsx의 칩 렌더링(약 187-188행), useAlbumFilters.ts의 listLibraryTag 사용부(기본값 '전체', 약 26·95-99행), AlbumsLibraryContent.tsx의 enableLibraryTags. 변경: AlbumLibraryTag를 '전체'|'All Time'으로 줄이고 LIBRARY_TAGS와 매칭 함수를 맞춘다. 'All Time'은 장르가 아니라 앨범 year 메타(albumHasAllTimeYear) 기반이므로 동작을 바꾸지 않는다. 가챠의 LOTTERY_CATALOG_TAGS와 레코드선반(enableLibraryTags가 꺼져 있음)은 건드리지 않는다. 주의: 선택된 라이브러리 태그가 URL 쿼리나 localStorage 등에 저장·복원되는 곳이 있으면 과거 값 'Popular'/'Classic'이 남아 있어도 오류 없이 '전체'로 처리되게 한다(있는지 확인하고 result에 보고). 이 작업 직후에도 클래식 앨범은 '전체' 목록에 그대로 보이고, 장르 필터(genreOptions의 Classic)로 따로 볼 수 있다. 클래식 숨김은 이후 단계의 일이므로 여기서 하지 않는다. 새 scope 헬퍼나 상수는 이번에 만들지 않는다(실제로 쓰는 단계에서 추가). 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "AlbumLibraryTag·LIBRARY_TAGS·albumMatchesLibraryTag에서 Popular·Classic 제거",
+      "AlbumList 칩 UI와 useAlbumFilters의 관련 처리, 저장된 과거 태그 값의 폴백"
+    ],
+    "out": [
+      "클래식 앨범 숨김, 메뉴·라우트 추가, 등록 폼 변경",
+      "All Time 의미·동작 변경, 가챠(LOTTERY_CATALOG_TAGS)·레코드선반 변경",
+      "DB·SQL, feature_list 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "앨범 목록의 필터 칩이 '전체'와 'All Time' 두 개만 보인다",
+    "'전체'에서는 클래식 포함 모든 앨범이 보이고, 장르 필터를 Classic으로 하면 클래식만 보인다",
+    "'All Time'을 선택하면 기존처럼 All Time 앨범만 보이고 연도 select가 비활성화되는 동작이 그대로다",
+    "과거에 저장된 태그 값(Popular/Classic)이 남아 있어도 오류 없이 '전체'로 열린다. 레코드선반과 가챠 동작은 그대로다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "AlbumLibraryTag·LIBRARY_TAGS를 '전체'|'All Time'만 남김. albumMatchesLibraryTag에서 Popular/Classic 분기 제거(All Time=year 메타, 그 외 전체). parseAlbumLibraryTag 추가·useAlbumFilters setter에 연결(알 수 없는 값→전체). AlbumList는 LIBRARY_TAGS 맵이라 칩 2개만 표시.\n저장 위치: URL·localStorage에 listLibraryTag 저장/복원 코드 없음(메모리 state만). 폴백은 방어용.\n가챠 LOTTERY_CATALOG_TAGS·레코드선반(enableLibraryTags false) 미변경.\n검증: npx tsc --noEmit OK, npm run lint OK. git add/commit/push 안 함."
+}

@@ -7,12 +7,21 @@ import { Home, LogIn, LogOut, Menu, RefreshCw, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CATALOG_SCOPE_LABELS } from '@/lib/catalogScope';
 
-type NavItem = { name: string; path: string };
+type NavItem = { name: string; path: string; matchPaths?: string[] };
 
 const navItems: NavItem[] = [
-  { name: 'Albums', path: '/albums' },
-  { name: 'Artists', path: '/artists' },
+  {
+    name: CATALOG_SCOPE_LABELS.popular,
+    path: '/albums',
+    matchPaths: ['/albums', '/artists'],
+  },
+  {
+    name: CATALOG_SCOPE_LABELS.classic,
+    path: '/classic/albums',
+    matchPaths: ['/classic'],
+  },
   { name: 'Lyrics', path: '/lyrics' },
   { name: 'RecordShelf', path: '/recordshelf' },
   { name: 'Head-fi', path: '/headfi' },
@@ -58,16 +67,19 @@ export function Navigation() {
   }, [reloading]);
 
   const getActive = useCallback(
-    (path: string) =>
-      pathname === path ||
-      (path !== '/' && pathname?.startsWith(path)),
-    [pathname]
+    (item: NavItem) => {
+      const prefixes = item.matchPaths ?? [item.path];
+      return prefixes.some(
+        (prefix) => pathname === prefix || (prefix !== '/' && Boolean(pathname?.startsWith(`${prefix}/`))),
+      );
+    },
+    [pathname],
   );
 
   const navLinks = useMemo(
     () =>
       navItems.map((item) => {
-        const active = getActive(item.path);
+        const active = getActive(item);
         return (
           <Link
             key={item.path}
@@ -81,7 +93,7 @@ export function Navigation() {
           </Link>
         );
       }),
-    [getActive]
+    [getActive],
   );
 
   return (
@@ -209,7 +221,7 @@ export function Navigation() {
             >
               <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-4 py-3">
                 {navItems.map((item) => {
-                  const active = getActive(item.path);
+                  const active = getActive(item);
                   return (
                     <Link
                       key={item.path}

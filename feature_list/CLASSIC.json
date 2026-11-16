@@ -1,0 +1,18 @@
+[
+    {
+      "id": "CLASSIC-001",
+      "category": "CLASSIC",
+      "title": "Classic 메뉴 — 클래식 앨범·연주자·원작곡가를 한 메뉴에서 보기",
+      "description": "상단 내비를 Pop & Rock과 Classic 두 항목으로 나누고, Classic 메뉴에서 장르1이 Classic인 앨범·연주자·원작곡가를 탭으로 본다.",
+      "steps": [
+        "상단 내비(모바일 햄버거 포함)에 'Pop & Rock'과 'Classic'이 있고 기존 'Albums'·'Artists' 항목은 없다. Pop & Rock은 /albums로, Classic은 /classic/albums로 이동하며 현재 경로에 맞게 활성 표시된다",
+        "Pop & Rock의 /albums, /artists 페이지 상단에 '앨범 | 아티스트' 탭이 보이고 서로 이동할 수 있다. Classic 메뉴에는 '앨범 | 연주자 | 원작곡가' 탭이 보인다",
+        "/classic/albums에는 장르1이 Classic인 앨범만 보이고 검색·정렬·필터·앨범 상세·앨범 추가가 기존 앨범 화면과 같이 동작한다",
+        "연주자 탭은 클래식 앨범 기준으로 연주자 목록·상세를 보여주고 앨범 수·청취 통계가 클래식 앨범만 집계한다. 원작곡가 탭은 기존 원작곡가 목록·상세와 같다",
+        "앨범 상세의 작곡가 링크와 북마크한 옛 주소(/artists?role=composer&artist=…)를 열면 Classic 원작곡가 탭의 해당 작곡가로 이동한다",
+        "인증 규칙은 기존과 같다: /classic/albums는 /albums처럼 로그인이 필요하고 /classic/artists는 /artists처럼 공개 규칙을 따른다",
+        "엣지 케이스: 해당 탭에 데이터가 없으면 빈 상태 문구가 나오고, 이 단계에서는 Pop & Rock 목록에도 클래식이 그대로 보이며, 다이어리·통계 페이지와 레코드선반·가사 화면은 변하지 않는다"
+      ],
+      "passes": false
+    }
+]

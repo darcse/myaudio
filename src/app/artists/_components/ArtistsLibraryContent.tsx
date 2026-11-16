@@ -44,6 +44,12 @@ import type { ArtistLinksPatch } from './ArtistExternalLinksSection';
 import { ArtistListSidebar } from './ArtistListSidebar';
 import { ArtistLotteryModal } from './ArtistLotteryModal';
 import { ArtistTopControlBar } from './ArtistTopControlBar';
+import { CatalogTabBar } from '@/components/CatalogTabBar';
+import {
+  catalogArtistsPath,
+  filterAlbumsByScope,
+  type CatalogScope,
+} from '@/lib/catalogScope';
 
 const LG_UP_MQ = '(min-width: 1024px)';
 
@@ -115,7 +121,11 @@ function albumFormDataFromArtist(
   };
 }
 
-export function ArtistsLibraryContent() {
+export function ArtistsLibraryContent({
+  catalogScope = 'popular',
+}: {
+  catalogScope?: CatalogScope;
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const artistQuery = searchParams.get('artist')?.trim() || null;
@@ -157,12 +167,21 @@ export function ArtistsLibraryContent() {
   const overlayScrollRef = useRef<HTMLDivElement>(null);
   const prevOverlayArtistRef = useRef<string | null>(null);
 
-  const buildLibraryPath = useCallback((nextRole: ArtistLibraryRole, name?: string | null) => {
-    const params = new URLSearchParams();
-    params.set('role', nextRole);
-    if (name) params.set('artist', name);
-    return `/artists?${params.toString()}`;
-  }, []);
+  const buildLibraryPath = useCallback(
+    (nextRole: ArtistLibraryRole, name?: string | null) => {
+      const params = new URLSearchParams();
+      if (catalogScope === 'classic') {
+        if (nextRole === 'composer') params.set('role', 'composer');
+      } else {
+        params.set('role', nextRole);
+      }
+      if (name) params.set('artist', name);
+      const base = catalogArtistsPath(catalogScope);
+      const query = params.toString();
+      return query ? `${base}?${query}` : base;
+    },
+    [catalogScope],
+  );
 
   const replaceLibraryUrl = useCallback(
     (nextRole: ArtistLibraryRole, name?: string | null) => {
@@ -181,13 +200,20 @@ export function ArtistsLibraryContent() {
   const mobileOverlayOpen = Boolean(artistQuery) && isMobileViewport;
   useLockBodyScroll(mobileOverlayOpen);
 
+  const scopedAlbums = useMemo(
+    () => filterAlbumsByScope(albums, catalogScope),
+    [albums, catalogScope],
+  );
+
   const summaries = useMemo(
     () =>
       applyArtistNameAltMap(
-        role === 'composer' ? buildComposerSummaries(albums) : buildArtistSummaries(albums),
+        role === 'composer'
+          ? buildComposerSummaries(scopedAlbums)
+          : buildArtistSummaries(scopedAlbums),
         artistNameAltByName,
       ),
-    [albums, artistNameAltByName, role],
+    [scopedAlbums, artistNameAltByName, role],
   );
   const artistLotteryPool = useMemo(
     () =>
@@ -877,38 +903,44 @@ export function ArtistsLibraryContent() {
     />
   );
 
+  const artistRoleLabel =
+    role === 'composer' ? '원작곡가' : catalogScope === 'classic' ? '연주자' : '아티스트';
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:pb-0" style={{ color: 'var(--foreground)' }}>
+      <CatalogTabBar scope={catalogScope} />
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="page-title flex shrink-0 items-center gap-2">
           <Mic2 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
           Artists
         </h1>
-        <div
-          className="flex items-center gap-1.5"
-          role="group"
-          aria-label="아티스트 역할"
-        >
-          {(['artist', 'composer'] as const).map((value) => {
-            const active = role === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleRoleChange(value)}
-                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
-                style={{
-                  background: active ? 'var(--foreground)' : 'var(--badge-bg)',
-                  color: active ? 'var(--background)' : 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                }}
-                aria-pressed={active}
-              >
-                {value === 'composer' ? '원작곡가' : '아티스트'}
-              </button>
-            );
-          })}
-        </div>
+        {catalogScope === 'popular' ? (
+          <div
+            className="flex items-center gap-1.5"
+            role="group"
+            aria-label="아티스트 역할"
+          >
+            {(['artist', 'composer'] as const).map((value) => {
+              const active = role === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleRoleChange(value)}
+                  className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                  style={{
+                    background: active ? 'var(--foreground)' : 'var(--badge-bg)',
+                    color: active ? 'var(--background)' : 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                  aria-pressed={active}
+                >
+                  {value === 'composer' ? '원작곡가' : '아티스트'}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       {isLoading ? (
@@ -917,7 +949,7 @@ export function ArtistsLibraryContent() {
         <p className="text-sm opacity-70">
           {role === 'composer'
             ? '작곡가가 등록된 앨범이 없습니다.'
-            : '등록된 앨범이 없어 아티스트를 표시할 수 없습니다.'}
+            : `등록된 앨범이 없어 ${artistRoleLabel}를 표시할 수 없습니다.`}
         </p>
       ) : (
         <>
