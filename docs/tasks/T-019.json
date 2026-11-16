@@ -1,0 +1,33 @@
+{
+  "id": "T-019",
+  "feature_id": "ALBUM-046",
+  "goal": "복수 작곡가 앨범이 원작곡가 탭에서 각 작곡가 아래 모두 나타나고(작곡가별 앨범 수 +1), 앨범 상세에 모든 작곡가가 각각 링크로 표시되며, 작곡가 자동완성에서 대표가 아닌 작곡가도 검색된다.",
+  "context": "스펙 원본은 feature_list/ALBUM.json의 ALBUM-046이다. T-018(쓰기 쪽)은 완료되어 album.composers(jsonb [{name,country,era,wiki_url}])가 저장되고 composer*는 대표(첫 번째) 작곡가로 동기화된다. 클래식 기존 27건은 마이그레이션으로 composers가 1항목 배열이다. composersFromAlbum(레거시 폴백 포함)은 src/app/albums/utils.ts에 이미 있으니 읽기 쪽도 이것을 재사용하고 새 헬퍼를 중복으로 만들지 않는다. 대상(현재 상태): (1) src/app/artists/utils.ts buildComposerSummaries — album.composer 문자열 하나로만 그룹핑한다. composers 배열을 펼쳐 작곡가별로 앨범을 묶고(앨범 1건이 여러 작곡가 그룹에 들어감), albumCount는 그 작곡가 그룹의 앨범 수, country·era는 기존처럼 그 작곡가 항목들 중 최빈값을 쓴다. 같은 앨범 안에서 같은 이름이 중복되어도 한 번만 센다. (2) findComposerWikiUrl(artists/utils.ts)과 ArtistDetailPanel — 현재 album.composer_wiki_url 기준이라 비대표 작곡가는 위키를 못 찾는다. 해당 작곡가 이름과 일치하는 composers 항목의 wiki_url을 기준으로 하도록 고친다(대표 컬럼 의존 제거). (3) ArtistsLibraryContent의 원작곡가 탭 '앨범 추가' 프리필과 검색·필터(useAlbumFilters의 composer 검색 포함)가 비대표 작곡가에서도 동작하게 한다. 앨범 목록 검색(useAlbumFilters.ts L82 부근)은 composers의 모든 이름을 대상으로 한다. (4) src/app/albums/_components/AlbumInfoSection.tsx L397~513 — 대표 작곡가 1명만 '작곡가:' 링크(/artists?role=composer&artist=이름)와 국가·시대 메타로 표시한다. 클래식일 때 composers 전체를 순서대로 각각 같은 형식의 링크+메타로 표시한다(작곡가가 하나면 기존과 같은 모양 유지, 모바일에서 줄바꿈). composers가 비었으면 composer*로 폴백한다. (5) src/app/albums/_components/ComposerComboSelect.tsx L116~ — album에서 composer* 컬럼만 select해 옵션을 만든다. composers도 select해서 모든 작곡가 이름이 자동완성 후보가 되게 하고, 선택 시 채워지는 국가·시대·위키는 그 이름의 composers 항목 값을 우선하되 기존 최빈값 로직과 레거시(composers null) 호환을 유지한다. buildComposerComboOptions·ComposerComboRow 타입 수정은 최소로 한다. 이번에 하지 않는 것: 이름 일괄 수정(updateArtistNames, applyAlbumNameRetarget)과 작곡가 바이오 조회(api/artist-bio, openaiArtistBio)는 T-020에서 한다. 단, 구현 중 이번 변경 때문에 그 두 곳이 깨질 위험이 보이면 수정하지 말고 result에 보고한다. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "buildComposerSummaries의 composers 펼침 집계와 작곡가별 앨범 수",
+      "findComposerWikiUrl·ArtistDetailPanel의 작곡가별 위키 URL",
+      "원작곡가 탭 프리필·앨범 목록 검색의 비대표 작곡가 대응",
+      "AlbumInfoSection의 복수 작곡가 표시(각각 링크+메타)",
+      "ComposerComboSelect·buildComposerComboOptions의 composers 반영"
+    ],
+    "out": [
+      "이름 일괄 수정(updateArtistNames, applyAlbumNameRetarget)과 작곡가 바이오 조회(artist-bio, openaiArtistBio) — T-020",
+      "작곡가 입력 폼(AlbumForm)과 저장 로직 변경",
+      "DB 스키마·SQL·composer* 컬럼 삭제",
+      "클래식이 아닌 앨범 동작 변경, 아티스트(연주자) 탭 집계 변경",
+      "feature_list의 passes 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "작곡가가 2명인 앨범이 원작곡가 탭에서 두 작곡가 각각의 앨범 목록에 나타나고, 두 작곡가의 앨범 수가 각각 1 늘어난다. 같은 작곡가의 다른 앨범 집계는 기존과 같다",
+    "비대표(두 번째 이후) 작곡가를 선택해도 국가·시대·위키 링크가 해당 작곡가 값으로 표시된다",
+    "클래식 앨범 상세에 작곡가가 입력 순서대로 모두 표시되고 각각 원작곡가 탭 해당 작곡가로 이동하는 링크다. 작곡가가 1명인 앨범은 기존과 같은 모양이다",
+    "앨범 등록 폼의 작곡가 자동완성에서 비대표 작곡가 이름도 검색·선택되고 국가·시대·위키가 채워진다. 앨범 목록 검색에서도 비대표 작곡가 이름으로 앨범이 찾아진다",
+    "composers가 null인 레거시 앨범도 위 화면에서 기존과 동일하게 동작한다. npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "buildComposerSummaries: composersFromAlbum 펼침·앨범내 normalize 중복제거·country/era는 항목별 최빈. findComposerWikiUrl(albums, name?) 항목 wiki 기준; DetailPanel·프리필에 artist.name 전달. AlbumInfoSection: 클래식 composers 전체 링크+메타(1명이면 기존 모양). useAlbumFilters: 전 작곡가명 검색. ComposerComboSelect select에 composers, buildComposerComboOptions도 펼침+최빈. T-020 위험(미수정): updateArtistNames는 .eq('composer')만·배열 미갱신; artist-bio도 .eq('composer')라 비대표만 있는 앨범 누락. 검증: tsc·lint 통과. passes·git 미수행."
+}

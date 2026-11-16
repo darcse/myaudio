@@ -1,5 +1,6 @@
 import { countryOptions } from '@/app/albums/constants';
 import type { Album } from '@/app/albums/types';
+import { composersFromAlbum, normalizeComposerNameKey } from '@/app/albums/utils';
 import type { ArtistStats, ArtistSummary, ListenHistoryEntry, RelatedArtist } from './types';
 
 export function normalizeArtistNameAlt(value: string | null | undefined): string | null {
@@ -110,18 +111,30 @@ export function buildArtistSummaries(albums: Album[]): ArtistSummary[] {
 }
 
 export function buildComposerSummaries(albums: Album[]): ArtistSummary[] {
-  const map = new Map<string, Album[]>();
+  type ComposerHit = { album: Album; country: string; era: string };
+  const map = new Map<string, { displayName: string; hits: ComposerHit[] }>();
 
   for (const album of albums) {
-    const name = album.composer?.trim();
-    if (!name) continue;
-    const rows = map.get(name) ?? [];
-    rows.push(album);
-    map.set(name, rows);
+    const seenKeys = new Set<string>();
+    for (const entry of composersFromAlbum(album)) {
+      const displayName = entry.name.trim();
+      if (!displayName) continue;
+      const key = normalizeComposerNameKey(displayName);
+      if (!key || seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      const bucket = map.get(key) ?? { displayName, hits: [] };
+      bucket.hits.push({
+        album,
+        country: entry.country.trim(),
+        era: entry.era.trim(),
+      });
+      if (!map.has(key)) map.set(key, bucket);
+    }
   }
 
   const summaries: ArtistSummary[] = [];
-  for (const [name, composerAlbums] of map) {
+  for (const { displayName, hits } of map.values()) {
+    const composerAlbums = hits.map((hit) => hit.album);
     const sortedAlbums = [...composerAlbums].sort((a, b) =>
       (b.release_date || '').localeCompare(a.release_date || ''),
     );
@@ -133,12 +146,12 @@ export function buildComposerSummaries(albums: Album[]): ArtistSummary[] {
       ),
     ].sort((a, b) => a.localeCompare(b, 'ko'));
     summaries.push({
-      name,
+      name: displayName,
       nameAlt: null,
-      albumCount: composerAlbums.length,
-      country: pickMostCommon(composerAlbums.map((a) => a.composer_country ?? '')),
+      albumCount: hits.length,
+      country: pickMostCommon(hits.map((hit) => hit.country)),
       artistType: null,
-      era: pickMostCommon(composerAlbums.map((a) => a.composer_era ?? '')),
+      era: pickMostCommon(hits.map((hit) => hit.era)),
       genres,
       albums: sortedAlbums,
     });
@@ -172,14 +185,23 @@ export function findArtistWikiUrl(albums: Album[]): string | null {
   return null;
 }
 
-export function findComposerWikiUrl(albums: Album[]): string | null {
-  const filled = albums
-    .map((album) => ({
-      url: album.composer_wiki_url?.trim() ?? '',
-      createdAt: album.created_at ?? '',
-      id: album.id,
-    }))
-    .filter((row) => row.url);
+export function findComposerWikiUrl(albums: Album[], composerName?: string): string | null {
+  const targetKey = composerName?.trim()
+    ? normalizeComposerNameKey(composerName)
+    : null;
+  const filled: { url: string; createdAt: string; id: number }[] = [];
+  for (const album of albums) {
+    for (const entry of composersFromAlbum(album)) {
+      const url = entry.wiki_url.trim();
+      if (!url || !entry.name.trim()) continue;
+      if (targetKey && normalizeComposerNameKey(entry.name) !== targetKey) continue;
+      filled.push({
+        url,
+        createdAt: album.created_at ?? '',
+        id: album.id,
+      });
+    }
+  }
   if (filled.length === 0) return null;
 
   const counts = new Map<string, number>();

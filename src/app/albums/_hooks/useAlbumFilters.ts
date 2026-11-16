@@ -8,6 +8,7 @@ import {
   albumMatchesLotteryYearFilter,
   albumMatchesYearFilter,
   buildDynamicYearOptions,
+  composersFromAlbum,
 } from '../utils';
 import type { AlbumLibraryTag } from '../utils';
 
@@ -74,12 +75,15 @@ export function useAlbumFilters(
       const lowerQuery = listSearchQuery.toLowerCase().trim();
       const artistName = item.artist?.trim() ?? '';
       const nameAlt = artistName ? (artistNameAltByName[artistName] ?? null) : null;
+      const matchesComposer = composersFromAlbum(item).some((entry) =>
+        entry.name.trim().toLowerCase().includes(lowerQuery),
+      );
       const matchesSearch =
         !lowerQuery ||
         (item.album_name && item.album_name.toLowerCase().includes(lowerQuery)) ||
         matchesArtistNameSearch(lowerQuery, artistName, nameAlt) ||
         (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery)) ||
-        (item.composer && item.composer.toLowerCase().includes(lowerQuery));
+        matchesComposer;
       return matchesGenre && matchesCountry && matchesMedia && matchesSearch;
     },
     [listGenreFilter, listCountryFilter, listMediaFilter, listSearchQuery, artistNameAltByName],

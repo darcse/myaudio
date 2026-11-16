@@ -12,7 +12,7 @@ import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
-import { getYoutubeId, isClassicGenre } from '../utils';
+import { composersFromAlbum, getYoutubeId, isClassicGenre } from '../utils';
 import type { Album } from '../types';
 import { getMoodVibeEmoji, MoodMiniCard } from './albumDetailMoodMiniCard';
 import { AlbumCoverBlurBackdrop } from './AlbumCoverBlurBackdrop';
@@ -394,13 +394,10 @@ export function AlbumInfoSection({
     }
   };
 
-  const composerName = viewingItem.composer ?? '';
-  const composerCountry = viewingItem.composer_country?.trim() ?? '';
-  const composerEra = viewingItem.composer_era?.trim() ?? '';
-  const composerCountryLabel = composerCountry
-    ? `${countryOptions.find((c) => c.name === composerCountry)?.flag ?? ''} ${composerCountry}`.trim()
-    : '';
-  const composerMeta = [composerCountryLabel, composerEra].filter(Boolean).join(' · ');
+  const composerEntries = isClassicGenre(viewingItem.genre1)
+    ? composersFromAlbum(viewingItem).filter((entry) => entry.name.trim())
+    : [];
+  const legacyComposerEra = viewingItem.composer_era?.trim() ?? '';
 
   return (
     <>
@@ -493,24 +490,36 @@ export function AlbumInfoSection({
         <div className="flex flex-col gap-y-2 min-w-0 flex-1 opacity-90">
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
-          {isClassicGenre(viewingItem.genre1) && composerName.trim() ? (
-            <div className="min-w-0">
-              <p className="min-w-0">
-                <strong>작곡가:</strong>{' '}
-                <Link
-                  href={`/artists?role=composer&artist=${encodeURIComponent(composerName)}`}
-                  onClick={onClose}
-                  className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
-                >
-                  {composerName.trim()}
-                </Link>
-              </p>
-              {composerMeta ? (
-                <p className="mt-0.5 break-words text-xs opacity-55">{composerMeta}</p>
-              ) : null}
+          {composerEntries.length > 0 ? (
+            <div className="flex min-w-0 flex-col gap-y-2">
+              {composerEntries.map((entry, index) => {
+                const country = entry.country.trim();
+                const era = entry.era.trim();
+                const countryLabel = country
+                  ? `${countryOptions.find((c) => c.name === country)?.flag ?? ''} ${country}`.trim()
+                  : '';
+                const meta = [countryLabel, era].filter(Boolean).join(' · ');
+                return (
+                  <div key={`${index}-${entry.name}`} className="min-w-0">
+                    <p className="min-w-0">
+                      <strong>작곡가:</strong>{' '}
+                      <Link
+                        href={`/artists?role=composer&artist=${encodeURIComponent(entry.name.trim())}`}
+                        onClick={onClose}
+                        className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
+                      >
+                        {entry.name.trim()}
+                      </Link>
+                    </p>
+                    {meta ? (
+                      <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
-          ) : isClassicGenre(viewingItem.genre1) && composerEra ? (
-            <p><strong>시대:</strong> {composerEra}</p>
+          ) : isClassicGenre(viewingItem.genre1) && legacyComposerEra ? (
+            <p><strong>시대:</strong> {legacyComposerEra}</p>
           ) : null}
         </div>
       </div>

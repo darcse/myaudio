@@ -88,7 +88,9 @@ export function ArtistDetailPanel({
 
   const flag = countryFlag(artist.country);
   const wikiUrl =
-    role === 'composer' ? findComposerWikiUrl(artist.albums) : findArtistWikiUrl(artist.albums);
+    role === 'composer'
+      ? findComposerWikiUrl(artist.albums, artist.name)
+      : findArtistWikiUrl(artist.albums);
   const primaryGenre1 = getPrimaryGenre1(artist);
   const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
   const nameAltDisplay = nameAlt?.trim() || null;

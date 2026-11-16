@@ -80,7 +80,7 @@ function albumFormDataFromArtist(
   role: ArtistLibraryRole = 'artist',
 ): AlbumFormData {
   if (role === 'composer') {
-    const wiki = findComposerWikiUrl(artist.albums) ?? '';
+    const wiki = findComposerWikiUrl(artist.albums, artist.name) ?? '';
     return {
       ...initialAlbumFormData,
       composer: artist.name,

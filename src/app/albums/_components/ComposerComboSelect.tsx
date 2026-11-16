@@ -116,7 +116,7 @@ export function ComposerComboSelect({
     setLoading(true);
     void createClient()
       .from('album')
-      .select('composer, composer_country, composer_era, composer_wiki_url, created_at')
+      .select('composer, composer_country, composer_era, composer_wiki_url, composers, created_at')
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {

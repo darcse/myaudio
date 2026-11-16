@@ -104,6 +104,7 @@ export type ComposerComboRow = {
   composer_country: string | null;
   composer_era: string | null;
   composer_wiki_url: string | null;
+  composers?: AlbumComposerStored[] | null;
   created_at: string | null;
 };
 
@@ -129,34 +130,32 @@ function pickModeOrLatest(entries: { value: string; createdAt: string }[]): stri
 }
 
 export function buildComposerComboOptions(rows: ComposerComboRow[]): ComposerComboOption[] {
-  const byName = new Map<string, ComposerComboRow[]>();
+  type Meta = { country: string; era: string; wiki_url: string; createdAt: string };
+  const byName = new Map<string, { displayName: string; metas: Meta[] }>();
   for (const row of rows) {
-    const name = row.composer?.trim();
-    if (!name) continue;
-    const group = byName.get(name) ?? [];
-    group.push(row);
-    byName.set(name, group);
+    const createdAt = row.created_at ?? '';
+    for (const entry of composersFromAlbum(row)) {
+      const displayName = entry.name.trim();
+      if (!displayName) continue;
+      const key = normalizeComposerNameKey(displayName);
+      if (!key) continue;
+      const bucket = byName.get(key) ?? { displayName, metas: [] };
+      bucket.metas.push({
+        country: entry.country.trim(),
+        era: entry.era.trim(),
+        wiki_url: entry.wiki_url.trim(),
+        createdAt,
+      });
+      if (!byName.has(key)) byName.set(key, bucket);
+    }
   }
-  return [...byName.entries()]
-    .map(([name, group]) => ({
-      name,
-      country: pickModeOrLatest(
-        group.map((row) => ({
-          value: row.composer_country?.trim() ?? '',
-          createdAt: row.created_at ?? '',
-        })),
-      ),
-      era: pickModeOrLatest(
-        group.map((row) => ({
-          value: row.composer_era?.trim() ?? '',
-          createdAt: row.created_at ?? '',
-        })),
-      ),
+  return [...byName.values()]
+    .map(({ displayName, metas }) => ({
+      name: displayName,
+      country: pickModeOrLatest(metas.map((m) => ({ value: m.country, createdAt: m.createdAt }))),
+      era: pickModeOrLatest(metas.map((m) => ({ value: m.era, createdAt: m.createdAt }))),
       wikiUrl: pickModeOrLatest(
-        group.map((row) => ({
-          value: row.composer_wiki_url?.trim() ?? '',
-          createdAt: row.created_at ?? '',
-        })),
+        metas.map((m) => ({ value: m.wiki_url, createdAt: m.createdAt })),
       ),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
