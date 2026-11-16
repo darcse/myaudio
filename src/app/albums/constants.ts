@@ -25,6 +25,8 @@ const COUNTRY_OPTIONS_SOURCE = [
   { name: '스페인', flag: '🇪🇸' },
   { name: '네덜란드', flag: '🇳🇱' },
   { name: '멕시코', flag: '🇲🇽' },
+  { name: '아르헨티나', flag: '🇦🇷' },
+  { name: '라트비아', flag: '🇱🇻' },
   { name: '기타', flag: '🏳️' },
 ] as const;
 
