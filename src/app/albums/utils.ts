@@ -1,7 +1,95 @@
-import type { Album, AlbumFormData } from './types';
+import type {
+  Album,
+  AlbumComposerFormEntry,
+  AlbumComposerStored,
+  AlbumFormData,
+} from './types';
+
+export const MAX_ALBUM_COMPOSERS = 4;
 
 export function isClassicGenre(genre1: string | null | undefined): boolean {
   return genre1?.trim() === 'Classic';
+}
+
+export function emptyComposerFormEntry(): AlbumComposerFormEntry {
+  return { name: '', country: '', era: '', wiki_url: '' };
+}
+
+export function normalizeComposerNameKey(name: string): string {
+  return name.trim().normalize('NFKC').toLocaleLowerCase();
+}
+
+export function primaryComposerFieldsFromEntries(
+  entries: AlbumComposerFormEntry[],
+): Pick<AlbumFormData, 'composer' | 'composer_country' | 'composer_era' | 'composer_wiki_url'> {
+  const first = entries.find((entry) => entry.name.trim()) ?? entries[0] ?? emptyComposerFormEntry();
+  return {
+    composer: first.name,
+    composer_country: first.country,
+    composer_era: first.era,
+    composer_wiki_url: first.wiki_url,
+  };
+}
+
+function parseStoredComposerEntry(raw: unknown): AlbumComposerFormEntry | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  const name = typeof row.name === 'string' ? row.name : '';
+  return {
+    name,
+    country: typeof row.country === 'string' ? row.country : '',
+    era: typeof row.era === 'string' ? row.era : '',
+    wiki_url: typeof row.wiki_url === 'string' ? row.wiki_url : '',
+  };
+}
+
+export function composersFromAlbum(
+  item: Pick<
+    Album,
+    'composers' | 'composer' | 'composer_country' | 'composer_era' | 'composer_wiki_url'
+  >,
+): AlbumComposerFormEntry[] {
+  if (Array.isArray(item.composers) && item.composers.length > 0) {
+    const parsed = item.composers
+      .map(parseStoredComposerEntry)
+      .filter((entry): entry is AlbumComposerFormEntry => entry != null)
+      .slice(0, MAX_ALBUM_COMPOSERS);
+    if (parsed.length > 0) return parsed;
+  }
+  const legacyName = item.composer?.trim() ?? '';
+  if (legacyName) {
+    return [
+      {
+        name: item.composer ?? '',
+        country: item.composer_country ?? '',
+        era: item.composer_era ?? '',
+        wiki_url: item.composer_wiki_url ?? '',
+      },
+    ];
+  }
+  return [emptyComposerFormEntry()];
+}
+
+export function sanitizeComposersForSave(
+  entries: AlbumComposerFormEntry[] | null | undefined,
+): AlbumComposerStored[] {
+  const out: AlbumComposerStored[] = [];
+  const seen = new Set<string>();
+  for (const entry of entries ?? []) {
+    const name = entry.name.trim();
+    if (!name) continue;
+    const key = normalizeComposerNameKey(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      name,
+      country: entry.country.trim() || null,
+      era: entry.era.trim() || null,
+      wiki_url: entry.wiki_url.trim() || null,
+    });
+    if (out.length >= MAX_ALBUM_COMPOSERS) break;
+  }
+  return out;
 }
 
 export type ComposerComboOption = {
@@ -93,10 +181,10 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     release_date: item.release_date ?? '',
     genre1: item.genre1 ?? '',
     genre2: item.genre2 ?? '',
-    composer: item.composer ?? '',
-    composer_country: item.composer_country ?? '',
-    composer_era: item.composer_era ?? '',
-    composer_wiki_url: item.composer_wiki_url ?? '',
+    ...(() => {
+      const composers = composersFromAlbum(item);
+      return { composers, ...primaryComposerFieldsFromEntries(composers) };
+    })(),
     cover_image_url: item.cover_image_url ?? '',
     matching1: item.matching1 ?? '',
     matching2: item.matching2 ?? '',

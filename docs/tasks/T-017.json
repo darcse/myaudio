@@ -1,0 +1,28 @@
+{
+  "id": "T-017",
+  "goal": "앨범의 작곡가 정보(composer, composer_country, composer_era, composer_wiki_url)를 쓰는 모든 코드 지점을 조사해, 한 앨범에 복수 작곡가를 지원하는 변경(앨범에 작곡가 배열을 추가하고 기존 composer* 컬럼은 대표 작곡가로 유지하는 안)의 영향 범위를 result에 보고한다. 이번 작업은 조사만 하며 코드·DB를 수정하지 않는다.",
+  "context": "배경: 클래식 앨범 등록 시 작곡가를 한 명만 입력할 수 있다. 'Beethoven: Symphony No. 6 ... - Schubert: Symphony No. 5 ...'처럼 복수 작곡가 앨범을 어떻게 다룰지 검토 중이다. 검토 중인 안(D안): album에 작곡가 배열 컬럼(각 작곡가의 name, country, era, wiki_url)을 추가하고, 기존 composer·composer_country·composer_era·composer_wiki_url 컬럼은 지우지 않고 첫 번째(대표) 작곡가 값으로 계속 채워 기존 화면과의 호환을 유지한다. 폼에는 '작곡가 추가'를 두고, 아티스트 화면 원작곡가 탭은 배열을 풀어 작곡가마다 앨범을 연결한다. 이번 조사로 이 안이 현실적인지 판단하려 한다. 이미 확인된 단서(재확인 불필요, 필요한 만큼만 보완): album 타입의 composer* 필드는 src/app/albums/types.ts, 저장 시 클래식(장르1)일 때만 composer*를 저장하는 로직은 src/app/albums/actions.ts의 mapAlbumData, 작곡가 자동완성 옵션은 src/app/albums/utils.ts의 buildComposerComboOptions, 원작곡가 탭 집계는 src/app/artists/utils.ts(약 L116-178), 이름 일괄 수정은 src/app/artists/lib/updateArtistNames.ts다. 나머지 사용처는 에이전트가 'composer' 키워드와 관련 컴포넌트를 직접 전수 탐색한다. 테이블·컬럼명·타입은 추측하지 말고 코드(타입 정의, 쿼리, 마이그레이션·SQL 파일)에서 확인한 것만 적는다. DB 실데이터는 조회하지 않는다. 코드에서 확인되지 않은 내용은 확인하지 못했다고 구분해서 적는다.",
+  "scope": {
+    "in": [
+      "composer 관련 코드 전수 읽기(폼, 저장·수정 액션, 아티스트 탭 집계·필터·상세, 앨범 상세·목록 표시, 검색, 자동완성, 일괄 이름 수정, 통계·인사이트, AI 프롬프트 입력 등)",
+      "result에 조사 보고 작성(status는 done으로 갱신)"
+    ],
+    "out": [
+      "코드·설정·DB·스키마·환경변수 수정",
+      "DB 실데이터 조회·SQL 실행",
+      "result에 API 키, 환경변수 값 포함",
+      "mybooks 전용 테이블 및 공용 요소(auth.users, RLS, monthly_review_comments) 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "result에 composer 필드의 쓰기 경로(폼 입력, 저장·수정 액션, 외부 검색 결과에서의 자동 채움, 일괄 수정 등)가 file:line 근거와 함께 정리되어 있다",
+    "읽기 경로(아티스트 원작곡가 탭의 집계·필터·정렬·상세 패널, 앨범 상세·목록·검색 표시, 자동완성, 통계·추천·AI 입력 등)가 file:line 근거와 함께 정리되어 있다",
+    "작곡가 이름 일괄 수정(updateArtistNames)이 어떤 컬럼을 어떤 방식으로 갱신하는지, 복수 작곡가를 이미 문자열로 처리하려는 흔적(구분자 분리 등)이 있는지가 정리되어 있다",
+    "D안 도입 시 변경이 필요한 지점을 '대표 작곡가 컬럼 유지로 그대로 동작하는 곳'과 '배열 대응이 꼭 필요한 곳'으로 나누고, 위험이 큰 지점(집계 중복 카운트, 일괄 수정, 필터 등)을 사실 위주로 적었다",
+    "코드에서 확인되지 않은 내용이 별도 항목으로 분리되어 있고 result가 간결하다(약 70줄 이내, 핵심 시그니처 외 코드 블록 없음)",
+    "git diff에 TASK.json 외 변경이 없다"
+  ],
+  "status": "done",
+  "result": "## 스키마(코드 근거)\n- album.composer|composer_country|composer_era|composer_wiki_url: string|null — albums/types.ts:12-15, FormData:60-63\n- 별도 작곡가 테이블 없음(CONVENTIONS.md:133). PG 타입·배열 컬럼·CREATE SQL: 레포에 없음 → 확인 못함\n- Classic만 입력·표시(CONVENTIONS:154; mapAlbumData isClassicGenre 분기 actions.ts:56-63)\n\n## 쓰기\n- 폼: AlbumForm.tsx:364-409(ComposerComboSelect+국적/시대/위키). Classic일 때만 섹션 노출(동일 파일 Classic 조건)\n- 저장/수정: mapAlbumData→saveAlbumToDB/updateAlbumInDB — actions.ts:56-63,211+,243+. Classic이 아니면 composer*를 payload에 안 넣음(기존 DB 값 clear 안 함)\n- albumToFormData 복사 — albums/utils.ts:96-99\n- 원작곡가 탭 '앨범 추가' 프리필 — ArtistsLibraryContent.tsx:81-88\n- MusicBrainz/외부 검색→composer 자동 채움: 코드에서 미발견(폼 기본 '')\n- 일괄 이름: updateAlbumArtistNames — updateArtistNames.ts:60-63 .eq('composer', oldName).update({composer:newName}); applyAlbumNameRetarget도 composer 단일 문자열 비교:249-262. 구분자 split 등 복수 처리 흔적 없음\n\n## 읽기\n- 집계: buildComposerSummaries — artists/utils.ts:112-147 (album.composer exact key, albumCount=해당 이름 앨범 수; country/era=composer_* mode)\n- 위키: findComposerWikiUrl — utils.ts:175+\n- 필터: useArtistFilters era/country 등 summary.era·country (composer_*에서 옴). 검색은 이름/앨범\n- 상세: ArtistDetailPanel era·wiki(role=composer). AlbumInfoSection:397-513 링크 `/artists?role=composer&artist=`\n- 자동완성: ComposerComboSelect select composer* — :119; buildComposerComboOptions — albums/utils.ts:43-75\n- 바이오 AI: artist-bio/route.ts:23-39 .eq('composer', artistName) 후 openaiArtistBio(role=composer). 앨범 intro/무드 Gemini select에 composer 없음(albumEnrichment.ts:12)\n- 통계·인사이트·다이어리·가사·Dashboard 등: composer 필드는 폼 더미/빈 초기값만(실사용 집계 미발견)\n\n## D안 영향\n### 대표 composer* 유지 시 대체로 그대로\n- AlbumInfoSection 단일 표시·링크, 이름 변경 .eq('composer'), artist-bio .eq('composer'), 비-Classic map 생략 동작, intro AI(미사용)\n### 배열 대응 필수\n- AlbumForm(+타입/FormData/mapAlbumData/albumToFormData): 복수 입력·대표 동기화\n- buildComposerSummaries / 원작곡가 탭: 배열 unfold→작곡가마다 앨범 연결(동일 앨범이 여러 summary에 등장→albumCount·필터·로또 풀 중복 가능)\n- buildComposerComboOptions·ComposerComboSelect 쿼리: 배열에서 name 추출\n- findComposerWikiUrl / ArtistDetailPanel / 앨범추가 프리필: 배열 또는 대표 정책\n- updateArtistNames: 배열 요소 rename + 대표 컬럼 동기화(현재 exact match만)\n- artist-bio .eq('composer'): 비대표만 배열에 있으면 누락→contains/unnest 필요\n\n## 위험(사실)\n- 집계 중복: 한 앨범이 여러 작곡가에 잡히면 albumCount·목록 길이 증가(현재는 1:1)\n- 일괄수정: 대표만 바꾸면 배열 잔존 stale; 배열만 바꾸면 .eq('composer') 미적용\n- 필터 era/country: 앨범 단위 다시대면 pickMostCommon 의미 변화\n- DB: 배열 컬럼 타입·마이그레이션 SQL 레포에 없음→스키마는 JW 결정 필요\n\n## 확인 못함\n- PG 컬럼 타입/제약/RLS, 실데이터에 복수명 문자열 여부, MusicBrainz composer 매핑 여부(코드 없음)"
+}

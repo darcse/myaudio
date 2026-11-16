@@ -1,3 +1,17 @@
+export type AlbumComposerStored = {
+  name: string;
+  country: string | null;
+  era: string | null;
+  wiki_url: string | null;
+};
+
+export type AlbumComposerFormEntry = {
+  name: string;
+  country: string;
+  era: string;
+  wiki_url: string;
+};
+
 export interface Album {
   id: number;
   artist: string | null;
@@ -13,6 +27,7 @@ export interface Album {
   composer_country?: string | null;
   composer_era?: string | null;
   composer_wiki_url?: string | null;
+  composers?: AlbumComposerStored[] | null;
   cover_image_url: string | null;
   dominant_colors?: string[] | null;
   matching1: string | null;
@@ -61,6 +76,7 @@ export interface AlbumFormData {
   composer_country: string;
   composer_era: string;
   composer_wiki_url: string;
+  composers: AlbumComposerFormEntry[];
   cover_image_url: string;
   matching1: string;
   matching2: string;

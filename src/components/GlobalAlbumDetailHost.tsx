@@ -32,6 +32,7 @@ const emptyFormData: AlbumFormData = {
   composer_country: '',
   composer_era: '',
   composer_wiki_url: '',
+  composers: [{ name: '', country: '', era: '', wiki_url: '' }],
   cover_image_url: '',
   matching1: '',
   matching2: '',

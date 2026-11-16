@@ -59,6 +59,7 @@ const initialAlbumFormData: AlbumFormData = {
   composer_country: '',
   composer_era: '',
   composer_wiki_url: '',
+  composers: [{ name: '', country: '', era: '', wiki_url: '' }],
   cover_image_url: '',
   matching1: '',
   matching2: '',
@@ -79,13 +80,22 @@ function albumFormDataFromArtist(
   role: ArtistLibraryRole = 'artist',
 ): AlbumFormData {
   if (role === 'composer') {
+    const wiki = findComposerWikiUrl(artist.albums) ?? '';
     return {
       ...initialAlbumFormData,
       composer: artist.name,
       genre1: 'Classic',
       composer_country: artist.country ?? '',
       composer_era: artist.era ?? '',
-      composer_wiki_url: findComposerWikiUrl(artist.albums) ?? '',
+      composer_wiki_url: wiki,
+      composers: [
+        {
+          name: artist.name,
+          country: artist.country ?? '',
+          era: artist.era ?? '',
+          wiki_url: wiki,
+        },
+      ],
       wiki_url: findArtistWikiUrl(artist.albums) ?? '',
     };
   }
