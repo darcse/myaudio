@@ -1,4 +1,4 @@
-export const countryOptions = [
+const COUNTRY_OPTIONS_SOURCE = [
   { name: '한국', flag: '🇰🇷' },
   { name: '일본', flag: '🇯🇵' },
   { name: '중국', flag: '🇨🇳' },
@@ -24,7 +24,15 @@ export const countryOptions = [
   { name: '핀란드', flag: '🇫🇮' },
   { name: '스페인', flag: '🇪🇸' },
   { name: '네덜란드', flag: '🇳🇱' },
+  { name: '멕시코', flag: '🇲🇽' },
   { name: '기타', flag: '🏳️' },
+] as const;
+
+export const countryOptions = [
+  ...COUNTRY_OPTIONS_SOURCE.filter((c) => c.name !== '기타').sort((a, b) =>
+    a.name.localeCompare(b.name, 'ko'),
+  ),
+  ...COUNTRY_OPTIONS_SOURCE.filter((c) => c.name === '기타'),
 ] as const;
 
 export const genreOptions = [

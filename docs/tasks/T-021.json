@@ -1,0 +1,32 @@
+{
+  "id": "T-021",
+  "goal": "클래식 앨범 상세에서 작곡가가 2명 이상이면 세로 나열 대신 원형 썸네일+이름만 한 줄 3명씩 그리드로 보여주고, 누르면 원작곡가 탭의 해당 작곡가로 이동한다. 또한 앨범 등록·수정 폼의 국가 선택(연주자 국가, 작곡가 국가) 옵션을 가나다 순으로 정렬하고 '기타'는 항상 맨 아래에 둔다.",
+  "context": "대상은 src/app/albums/_components/AlbumInfoSection.tsx의 작곡가 표시 블록(composerEntries.map, 현재 '작곡가:' 라벨+이름 링크+국가·시대 메타를 작곡가마다 세로로 반복)이다. 작곡가가 6명까지 가능해져 목록이 너무 길어지는 것이 문제다. 기본안: (1) composerEntries가 1명이면 현재 모양(이름 링크 + 국가·시대 메타)을 그대로 둔다. (2) 2명 이상이면 '작곡가' 라벨을 한 번만 쓰고 그 아래 3열 그리드(grid-cols-3)로 원형 썸네일과 이름만 보여준다. 각 항목은 지금과 같은 링크(/artists?role=composer&artist=이름, 이동 시 모달 닫는 onClose)이며 국가·시대 메타는 그리드에서 뺀다. 이름은 한 줄 말줄임 대신 2줄까지 표시(line-clamp-2)해 긴 이름이 잘리지 않게 하고, 모바일 폭에서도 3열이 깨지지 않게 한다. (3) 썸네일 표시 방식은 아티스트 상세의 '유사한 아티스트' 항목(src/app/artists/_components/ArtistRelatedSection.tsx의 SimilarArtistItem: 원형 size-20, 이미지 없거나 로드 실패 시 UserCircle 아이콘 폴백, 테두리·배경 var(--border)/var(--badge-bg))과 같은 모양으로 맞춘다. 그 컴포넌트는 RelatedArtist 타입과 onSelect 버튼에 묶여 있으므로 그대로 재사용이 어려우면 필요한 최소만 분리·공유하거나 같은 스타일로 새로 만든다(기존 아티스트 화면 동작은 바뀌면 안 된다). (4) 썸네일 데이터: 작곡가 프로필 사진은 artists 테이블의 artist_name, profile_image_url에 있다(ArtistsLibraryContent가 같은 컬럼을 조회한다). 앨범 상세 모달은 이 데이터를 갖고 있지 않으므로, 작곡가가 2명 이상일 때만 해당 작곡가 이름들로 artists를 한 번 조회해 이름→이미지 URL로 쓴다. 이름 비교는 정규화(normalizeComposerNameKey) 기준이 안전하다. 조회 실패나 이미지 없음은 오류 없이 아이콘 폴백으로 처리한다. 클라이언트에서 createClient(@/lib/supabase/client)를 쓰는 기존 패턴을 따른다. artists에 작곡가 레코드가 없는 것은 정상이다(생성하지 않는다). 더 나은 설계가 있으면 근거와 함께 제안한다. [추가 항목: 국가 옵션 정렬] 국가 옵션 원본은 src/app/albums/constants.ts의 countryOptions(현재 임의 순서, '기타'가 마지막)이다. 앨범 등록 폼(AlbumForm.tsx의 연주자 국가 select와 작곡가별 국적 select)이 이 배열을 그대로 map한다. 기본안은 constants.ts의 countryOptions 자체를 한글 가나다 순(localeCompare 'ko')으로 정렬하고 '기타'를 마지막에 두는 것이다. as const 타입과 name·flag 구조는 유지한다. 이 배열을 쓰는 다른 곳(앨범 목록 필터 AlbumList, 가사 번역 목록 LyricsTranslateLibraryContent, 아티스트 화면 ArtistTopControlBar)의 드롭다운 순서도 함께 바뀌는데, 이는 의도한 일관성으로 본다. 다만 이 배열의 인덱스나 순서에 의존하는 로직이 있는지 확인하고, 있으면 건드리지 말고 result에 보고한다. 정렬은 하드코딩된 새 순서 배열이든 로드 시 정렬이든 결과가 같으면 된다. 아티스트 화면의 동적 국가 목록(useArtistFilters의 dynamicCountries)은 이번에 바꾸지 않는다.",
+  "scope": {
+    "in": [
+      "AlbumInfoSection의 복수 작곡가(2명 이상) 표시를 썸네일+이름 3열 그리드로 변경",
+      "작곡가 썸네일용 artists 조회(2명 이상일 때만)와 이미지 폴백",
+      "필요 시 썸네일 항목 스타일의 최소 분리·공유",
+      "countryOptions(constants.ts) 가나다 순 정렬, '기타' 맨 아래"
+    ],
+    "out": [
+      "작곡가 1명일 때의 표시 변경",
+      "AlbumForm(입력 폼), 저장 로직, 원작곡가 탭 집계 등 ALBUM-046 기존 구현 변경",
+      "artists 테이블 레코드 생성·수정, 프로필 이미지 업로드, DB 스키마·SQL",
+      "아티스트 화면(유사한 아티스트)의 기존 동작 변경",
+      "feature_list 항목 추가·passes 변경",
+      "mybooks 전용 테이블 및 공용 요소 접근",
+      "git add/commit/push",
+      "아티스트 화면 동적 국가 목록(useArtistFilters) 정렬 변경"
+    ]
+  },
+  "done": [
+    "작곡가가 2명 이상인 클래식 앨범 상세에서 '작곡가' 라벨 아래 원형 썸네일과 이름이 한 줄 3명씩 그리드로 나오고(6명이면 2줄), 누르면 원작곡가 탭의 해당 작곡가로 이동하며 모달이 닫힌다",
+    "프로필 사진이 없거나 로드에 실패한 작곡가는 오류 없이 기본 아이콘으로 나오고, 긴 이름은 2줄까지 보인다",
+    "작곡가가 1명이거나 composers가 null인 레거시 앨범은 기존 모양(이름 링크+국가·시대) 그대로이고 추가 조회가 일어나지 않는다",
+    "앨범 등록·수정 폼의 연주자 국가와 작곡가 국적 select가 가나다 순이고 '기타'가 맨 아래다. 기존에 저장된 국가 값은 수정 폼에서 그대로 선택되어 보인다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "AlbumInfoSection: 1명은 기존 링크+메타; 2명+는 '작곡가' 라벨+grid-cols-3 ComposerAvatarLink(size-20 원형·UserCircle 폴백·line-clamp-2). 2명+일 때만 artists.profile_image_url 조회(normalizeComposerNameKey). ArtistRelatedSection 미변경. countryOptions: ko 가나다 정렬·'기타' 맨 아래(인덱스 의존 로직 없음·find/map만). 검증: tsc·lint 통과. git 미수행."
+}

@@ -1,18 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Music, Play, Tv } from 'lucide-react';
+import { Music, Play, Tv, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
 import { AppleMusicIcon } from '@/components/streamingServiceIcons';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { createClient } from '@/lib/supabase/client';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
 import { countryOptions } from '../constants';
-import { composersFromAlbum, getYoutubeId, isClassicGenre } from '../utils';
+import {
+  composersFromAlbum,
+  getYoutubeId,
+  isClassicGenre,
+  normalizeComposerNameKey,
+} from '../utils';
 import type { Album } from '../types';
 import { getMoodVibeEmoji, MoodMiniCard } from './albumDetailMoodMiniCard';
 import { AlbumCoverBlurBackdrop } from './AlbumCoverBlurBackdrop';
@@ -25,6 +31,44 @@ type AlbumInfoSectionProps = {
   onAlbumPatch?: (album: Album) => void;
   onClose?: () => void;
 };
+
+function ComposerAvatarLink({
+  name,
+  imageUrl,
+  onNavigate,
+}: {
+  name: string;
+  imageUrl: string | null;
+  onNavigate?: () => void;
+}) {
+  const [imageError, setImageError] = useState(false);
+  const showImage = Boolean(imageUrl && !imageError);
+
+  return (
+    <Link
+      href={`/artists?role=composer&artist=${encodeURIComponent(name)}`}
+      onClick={onNavigate}
+      className="flex min-w-0 flex-col items-center gap-1.5 text-center transition-opacity hover:opacity-90"
+    >
+      <div
+        className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full"
+        style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+      >
+        {showImage ? (
+          <img
+            src={imageUrl!}
+            alt={`${name} 프로필`}
+            className="size-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <UserCircle className="size-12 opacity-35" strokeWidth={1.25} aria-hidden />
+        )}
+      </div>
+      <p className="w-full line-clamp-2 text-xs font-medium leading-tight">{name}</p>
+    </Link>
+  );
+}
 
 export function AlbumInfoHeroSection({
   viewingItem,
@@ -234,11 +278,51 @@ export function AlbumInfoSection({
   );
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const [composerProfiles, setComposerProfiles] = useState<Record<string, string | null>>({});
 
   const currentMood =
     typeof viewingItem.mood_name === 'string' ? viewingItem.mood_name.trim() : '';
   const showMoodUi = !isClassicGenre(viewingItem.genre1);
   const canEditMood = isAuthenticated === true && typeof onAlbumPatch === 'function';
+  const composerEntries = useMemo(
+    () =>
+      isClassicGenre(viewingItem.genre1)
+        ? composersFromAlbum(viewingItem).filter((entry) => entry.name.trim())
+        : [],
+    [viewingItem],
+  );
+  const composerNamesKey = composerEntries.map((entry) => entry.name.trim()).join('\u0001');
+
+  useEffect(() => {
+    const names = composerNamesKey
+      ? [...new Set(composerNamesKey.split('\u0001').filter(Boolean))]
+      : [];
+    if (names.length < 2) {
+      setComposerProfiles({});
+      return;
+    }
+    let cancelled = false;
+    void createClient()
+      .from('artists')
+      .select('artist_name, profile_image_url')
+      .in('artist_name', names)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const next: Record<string, string | null> = {};
+        for (const row of data ?? []) {
+          const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
+          if (!name) continue;
+          next[normalizeComposerNameKey(name)] =
+            typeof row.profile_image_url === 'string'
+              ? row.profile_image_url.trim() || null
+              : null;
+        }
+        setComposerProfiles(next);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [composerNamesKey]);
 
   const updatePickerPosition = () => {
     const el = triggerRef.current;
@@ -394,9 +478,6 @@ export function AlbumInfoSection({
     }
   };
 
-  const composerEntries = isClassicGenre(viewingItem.genre1)
-    ? composersFromAlbum(viewingItem).filter((entry) => entry.name.trim())
-    : [];
   const legacyComposerEra = viewingItem.composer_era?.trim() ?? '';
 
   return (
@@ -490,33 +571,48 @@ export function AlbumInfoSection({
         <div className="flex flex-col gap-y-2 min-w-0 flex-1 opacity-90">
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
-          {composerEntries.length > 0 ? (
-            <div className="flex min-w-0 flex-col gap-y-2">
-              {composerEntries.map((entry, index) => {
-                const country = entry.country.trim();
-                const era = entry.era.trim();
+          {composerEntries.length === 1 ? (
+            <div className="min-w-0">
+              <p className="min-w-0">
+                <strong>작곡가:</strong>{' '}
+                <Link
+                  href={`/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
+                  onClick={onClose}
+                  className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
+                >
+                  {composerEntries[0].name.trim()}
+                </Link>
+              </p>
+              {(() => {
+                const country = composerEntries[0].country.trim();
+                const era = composerEntries[0].era.trim();
                 const countryLabel = country
                   ? `${countryOptions.find((c) => c.name === country)?.flag ?? ''} ${country}`.trim()
                   : '';
                 const meta = [countryLabel, era].filter(Boolean).join(' · ');
-                return (
-                  <div key={`${index}-${entry.name}`} className="min-w-0">
-                    <p className="min-w-0">
-                      <strong>작곡가:</strong>{' '}
-                      <Link
-                        href={`/artists?role=composer&artist=${encodeURIComponent(entry.name.trim())}`}
-                        onClick={onClose}
-                        className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
-                      >
-                        {entry.name.trim()}
-                      </Link>
-                    </p>
-                    {meta ? (
-                      <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
-                    ) : null}
-                  </div>
-                );
-              })}
+                return meta ? (
+                  <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
+                ) : null;
+              })()}
+            </div>
+          ) : composerEntries.length > 1 ? (
+            <div className="min-w-0">
+              <p className="mb-2">
+                <strong>작곡가</strong>
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {composerEntries.map((entry, index) => {
+                  const name = entry.name.trim();
+                  return (
+                    <ComposerAvatarLink
+                      key={`${index}-${name}`}
+                      name={name}
+                      imageUrl={composerProfiles[normalizeComposerNameKey(name)] ?? null}
+                      onNavigate={onClose}
+                    />
+                  );
+                })}
+              </div>
             </div>
           ) : isClassicGenre(viewingItem.genre1) && legacyComposerEra ? (
             <p><strong>시대:</strong> {legacyComposerEra}</p>
