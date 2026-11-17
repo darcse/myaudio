@@ -16,7 +16,7 @@ alwaysApply: true
 
 1. `HARNESS.md` — 하네스 운용 규칙
 2. `CONVENTIONS.md` — 프로젝트 스택 및 도메인 규칙
-3. `claude-progress.txt` — 이전 세션 작업 내용
+3. `TASK.json`과 `docs/tasks/`의 최근 파일 — 현재·이전 작업 내용
 4. `feature_list/` — 현재 passes: false 항목 파악
 
 ---
@@ -26,11 +26,10 @@ alwaysApply: true
 - 브랜치 생성 금지 — main 직접 푸시
 - worktree 사용 금지
 - feature 1개씩만 작업 — 범위 확장 금지
-- passes 변경은 Claude Code만 한다
+- passes 변경은 Claude(플래너)만 한다 — Cursor는 건드리지 않는다
 - passes 변경 후 grep으로 실제 저장 여부 반드시 확인
 - 개발 서버 보호 절을 따른다
 - 실행 중인 개발 서버가 쓰는 `.next`를 덮어쓰는 `npm run build`는 쓰지 않는다. Next 컴파일 검증은 `npm run build:check`만 사용한다
-- 작업 후 claude-progress.txt에 한 줄로 업데이트
 - 전체 파일 재작성 금지 — 변경되는 부분만 최소 수정
 - 주석 추가 금지
 - Playwright 사용 금지 — 브라우저 테스트는 수동 확인

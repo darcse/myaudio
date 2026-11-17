@@ -22,6 +22,6 @@
     "주소 입력 후 가져오기로 앨범명·발매일·커버가 채워지고 저장까지 정상 동작하며, 주소를 비워 두고 수동 입력해도 막힘이 없다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
-  "status": "todo",
-  "result": ""
+  "status": "done",
+  "result": "AlbumForm에서 appleMusicField를 한 곳으로 두고 !isEdit면 그리드 최상단, isEdit면 기존(유튜브 재생목록 옆)에 렌더. 새 등록 시 selectedItem 변경마다 input.focus({preventScroll:true}). 프리필·가져오기 로직 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: AlbumForm.tsx."
 }

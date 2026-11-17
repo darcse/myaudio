@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
@@ -125,6 +125,7 @@ export function AlbumForm({
       ? selectedItem.title_song_url
       : formData.title_song_url,
   );
+  const appleMusicUrlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDeleteConfirmOpen(false);
@@ -172,6 +173,12 @@ export function AlbumForm({
   const isClassicMode = resolvedMode === 'classic';
   const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
   const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
+
+  useEffect(() => {
+    if (isEdit) return;
+    appleMusicUrlInputRef.current?.focus({ preventScroll: true });
+  }, [selectedItem, isEdit]);
+
   const handleAppleMusicImport = async () => {
     if (appleMusicImporting) return;
     setAppleMusicImportError(null);
@@ -282,6 +289,50 @@ export function AlbumForm({
     );
   };
 
+  const appleMusicField = (
+    <div className="min-w-0">
+      <label className="block text-sm font-semibold mb-1 opacity-90">애플뮤직 주소</label>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <input
+          ref={appleMusicUrlInputRef}
+          type="text"
+          className={`${inputBaseClass} sm:flex-1`}
+          value={formData.apple_music_url ?? ''}
+          onChange={(e) => {
+            setFormData({ ...formData, apple_music_url: e.target.value });
+            if (appleMusicError) setAppleMusicError(false);
+            if (appleMusicImportError) setAppleMusicImportError(null);
+          }}
+          placeholder="https://music.apple.com/kr/album/..."
+          aria-invalid={appleMusicError || Boolean(appleMusicImportError)}
+        />
+        <button
+          type="button"
+          className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          onClick={() => void handleAppleMusicImport()}
+          disabled={appleMusicImporting || isSaving || isDeleting}
+          aria-busy={appleMusicImporting}
+        >
+          {appleMusicImporting
+            ? '가져오는 중…'
+            : isEdit
+              ? '커버·발매일 가져오기'
+              : '앨범 정보 가져오기'}
+        </button>
+      </div>
+      {appleMusicError ? (
+        <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+          music.apple.com 주소를 입력해 주세요.
+        </p>
+      ) : null}
+      {appleMusicImportError ? (
+        <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+          {appleMusicImportError}
+        </p>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="modal-overlay-apple fixed inset-0 flex items-center justify-center p-4 z-50">
       <div className="modal-panel-apple max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
@@ -292,6 +343,7 @@ export function AlbumForm({
           </button>
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          {!isEdit ? <div className="col-span-2">{appleMusicField}</div> : null}
           <div className="col-span-2">
             {renderInput('앨범명', 'album_name', 'album_name')}
           </div>
@@ -431,47 +483,12 @@ export function AlbumForm({
               </label>
             </div>
           </div>
-          <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-            <div className="min-w-0">
-              <label className="block text-sm font-semibold mb-1 opacity-90">애플뮤직 주소</label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                <input
-                  type="text"
-                  className={`${inputBaseClass} sm:flex-1`}
-                  value={formData.apple_music_url ?? ''}
-                  onChange={(e) => {
-                    setFormData({ ...formData, apple_music_url: e.target.value });
-                    if (appleMusicError) setAppleMusicError(false);
-                    if (appleMusicImportError) setAppleMusicImportError(null);
-                  }}
-                  placeholder="https://music.apple.com/kr/album/..."
-                  aria-invalid={appleMusicError || Boolean(appleMusicImportError)}
-                />
-                <button
-                  type="button"
-                  className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                  onClick={() => void handleAppleMusicImport()}
-                  disabled={appleMusicImporting || isSaving || isDeleting}
-                  aria-busy={appleMusicImporting}
-                >
-                  {appleMusicImporting
-                    ? '가져오는 중…'
-                    : isEdit
-                      ? '커버·발매일 가져오기'
-                      : '앨범 정보 가져오기'}
-                </button>
-              </div>
-              {appleMusicError ? (
-                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
-                  music.apple.com 주소를 입력해 주세요.
-                </p>
-              ) : null}
-              {appleMusicImportError ? (
-                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
-                  {appleMusicImportError}
-                </p>
-              ) : null}
-            </div>
+          <div
+            className={`col-span-2 grid grid-cols-1 gap-x-6 gap-y-4 ${
+              isEdit ? 'sm:grid-cols-2' : ''
+            }`}
+          >
+            {isEdit ? appleMusicField : null}
             <div className="min-w-0">
               <label className="block text-sm font-semibold mb-1 opacity-90">유튜브 뮤직 재생목록</label>
               <input

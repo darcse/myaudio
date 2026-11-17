@@ -4,142 +4,96 @@
 
 | 파일 | 역할 |
 |------|------|
-| `CLAUDE.md` | Claude Code 행동 규칙 (절대 규칙, 코딩 규칙, Git 규칙) |
-| `AGENTS.md` | Codex 행동 규칙 (CLAUDE.md와 동일 내용, Codex 자동 인식) |
+| `AGENTS.md` | 에이전트 행동 규칙 (절대 규칙, 코딩 규칙, Task handoff). Cursor가 자동 인식 |
+| `CLAUDE.md` | AGENTS.md와 같은 규칙의 Claude Code용 사본 |
 | `CONVENTIONS.md` | 프로젝트별 스택·DB·도메인 규칙 |
-| `feature_list/` | 구현·검증 기준. `passes` 필드만 수정 가능. 항목 삭제·수정 금지 |
-| `feedback.md` | 검증 결과 및 재작업 지시 |
-| `claude-progress.txt` | Claude Code / Cursor 세션별 작업 로그 |
-| `Codex-progress.txt` | Codex 세션별 작업 로그 |
+| `TASK.json` | 현재 작업 지시 1건. 새 작업마다 덮어쓴다 |
+| `docs/tasks/` | 지난 TASK.json 보관 ({id}.json). 보관 파일은 수정하지 않는다 |
+| `feature_list/` | 기능 스펙·검증 기준. 항목 삭제 금지. 기능이 바뀌면 steps 문구는 플래너가 고친다. `passes`는 플래너만 변경 |
 
 ---
 
 ## 개발 흐름
 
 ```
-Claude Chat → feature_list/ → Cursor or Codex (구현) → 브라우저 수동 확인 → Claude Code (검증·git)
+JW 요청 → Claude(플래너)가 TASK.json 작성 → Cursor 구현 → "확인해줘"로 Claude가 result·diff 검토 → JW 동작 확인 → Claude가 passes 변경 → JW 커밋·푸시
 ```
 
-1. **Claude Chat** — 기능 아이디어를 feature JSON + SQL + 실행 프롬프트로 변환
-2. **JW** — feature_list/에 복붙·업데이트, SQL Supabase에서 직접 실행
-3. **Cursor / Codex** — feature_list/ 읽고 구현 (CLAUDE.md / AGENTS.md 규칙 준수)
-4. **브라우저** — 수동 확인 (Playwright 사용 안 함)
-5. **Claude Code** — 검증 후 git commit & push to main
+1. **JW** — 요구사항을 말한다.
+2. **Claude(플래너)** — 레포의 TASK.json에 작업 지시를 쓴다. 새 기능이면 feature_list에도 항목을 추가한다. SQL이 필요하면 JW가 Supabase에서 직접 실행한다.
+3. **Cursor** — "TASK.json 읽고 구현해" 요청으로 구현하고 status/result만 갱신한다.
+4. **Claude(플래너)** — result와 git diff를 검토한다. scope 이탈, 중복·불필요한 복잡도, 죽은 코드를 본다.
+5. **JW** — 브라우저에서 동작을 직접 확인한다. (Playwright 사용 안 함)
+6. **Claude(플래너)** — 확인된 feature의 passes를 변경하고 파일을 다시 읽어 저장을 확인한다.
+7. **JW** — 직접 커밋하고 푸시한다. 에이전트는 git add/commit/push를 하지 않는다.
 
----
-
-## 에이전트별 진행 파일
-
-| 에이전트 | 규칙 파일 | 진행 파일 |
-|----------|-----------|-----------|
-| Cursor | CLAUDE.md | claude-progress.txt |
-| Claude Code | CLAUDE.md | claude-progress.txt |
-| Codex | AGENTS.md | Codex-progress.txt |
+문제가 있으면 새 TASK.json(수정 작업)으로 넘긴다.
 
 ---
 
 ## 세션 시작 절차 (공통)
 
-1. 에이전트별 progress 파일 읽기 — 이전 세션 파악
+1. `TASK.json`과 `docs/tasks/`의 최근 파일 읽기 — 현재·이전 작업 파악
 2. `feature_list/` 읽기 — passes: false 항목 파악
 3. JW가 띄운 개발 서버 접속 주소를 확인한다. 모르면 물어본다. 직접 실행·종료하지 않는다.
 
 ---
 
-## 구현 규칙 (Cursor / Codex)
+## 구현 규칙 (Cursor)
 
-- passes: false 항목 중 1개 선택 → 사용자 승인 후 시작
-- 작업 범위는 해당 feature의 description과 steps에 한정
-- 수정할 파일을 작업 전 명시한다
-- 한 번에 한 feature만 구현한다
-- 작업 중 발견한 버그는 BUG- 항목으로 feature_list/에 추가만 하고 즉시 수정하지 않는다
-- passes는 절대 변경하지 않는다 — Claude Code 전용
-
----
-
-## 검증 규칙 (Claude Code)
-
-- feature_list의 steps를 하나씩 브라우저 또는 curl로 직접 확인
-- "잘 될 것 같다"는 passes: true 사유가 안 된다
-- steps 전체 통과한 경우에만 passes: true 변경
-- 하나라도 실패하면 passes: false 유지
-- passes 변경은 Edit 도구로 직접 저장 후 grep으로 반드시 확인
+- TASK.json 1건만 작업한다. 범위는 goal, context, scope에 한정한다.
+- scope.out에 해당하는 수정이 필요해 보이면 변경하지 말고 result에 보고한다.
+- 수정할 파일을 작업 전 한 줄로 요약한다.
+- 작업 중 발견한 버그나 개선점은 즉시 고치지 않고 result에 보고한다. BUG 항목 추가는 플래너가 한다.
+- passes는 변경하지 않는다.
+- 지시보다 나은 설계나 놓친 리스크가 보이면 반박하고 대안을 제안한다.
 
 ---
 
-## 테스트 루프 (커밋 전 필수)
+## 검증 규칙
 
-순서대로 실행:
+- 플래너: TASK.json의 result와 git diff를 코드 품질 기준으로 검토한다. 기능 동작 테스트는 하지 않는다.
+- JW: feature_list steps를 브라우저에서 직접 확인한다.
+- "잘 될 것 같다"는 passes: true 사유가 안 된다. steps 전체가 통과하고 JW가 확인한 경우에만 true로 바꾼다.
+- 하나라도 실패하면 passes: false를 유지한다.
+- passes 변경은 파일에 직접 저장한 뒤 다시 읽어 반드시 확인한다.
+
+---
+
+## 테스트 루프
+
+TASK.json의 done에 따른다. 로직이나 구조를 건드리는 작업은 기본으로 아래 둘을 실행한다.
 
 1. `npx tsc --noEmit` — 타입 오류 확인
-2. `npm run build:check` — Next 컴파일 성공 확인 (.next-buildcheck, 실행 중 dev의 .next를 덮지 않음)
-3. `npm run lint` — 린트 에러 확인
+2. `npm run lint` — 린트 에러 확인
 
-실패 시:
-- `feedback.md`에 오류 내용 기록
-- 스스로 수정 후 재시도 (최대 3회)
-- 3회 실패 시 사용자에게 보고 후 중단
-- 테스트 통과 후에만 커밋 진행
+구조가 크게 바뀐 작업은 `npm run build:check`(.next-buildcheck, 실행 중 dev의 .next를 덮지 않음)를 추가한다. `npm run build`는 쓰지 않는다.
+
+실패 시: 스스로 수정 후 재시도(최대 3회). 3회 실패하면 result에 원인과 시도 내용을 적고 status를 blocked로 둔다.
 
 ---
 
-## 세션 종료 절차 (공통)
+## 세션 종료 절차
 
-1. `feature_list/` passes 업데이트 (Claude Code만, Cursor/Codex는 건드리지 않음)
-2. 에이전트별 progress 파일에 한 줄 추가
-
-```
-# 형식
-[날짜] [에이전트] 작업내용 | passes 변경: ID false→true
-
-# 예시
-[2026-06-08] [Cursor] SETUP-001 구현 완료 | passes: 변경 없음
-[2026-06-08] [Codex] BOOK-001 구현 완료 | passes: 변경 없음
-[2026-06-08] [Claude Code] BOOK-001 검증 통과 | passes: BOOK-001 false→true
-```
-
-3. 테스트 루프 통과 확인
-4. git commit & push to main
+1. TASK.json의 status를 done으로, result에 변경 요약·건너뛴 항목과 이유·검증 결과·`git diff --stat` 요약을 기록한다.
+2. 테스트 루프 통과를 확인한다.
+3. 커밋·푸시는 JW가 한다.
 
 ---
 
-## feedback.md 작성 형식
+## 규칙 문서 보강 (플래너)
 
-```markdown
-## [ID] 기능명 — 검증 결과
+검토 중 같은 종류의 실수가 docs/tasks/의 최근 result에서 2회 이상 반복되면 AGENTS.md와 CLAUDE.md를 보강한다.
 
-**날짜:** YYYY-MM-DD
-**결과:** 통과 / 실패
-
-### 확인 항목
-- [x] steps 항목 1
-- [x] steps 항목 2
-- [ ] steps 항목 3 (실패)
-
-### 실패 내용
-(실패한 항목의 구체적인 상황 설명)
-
-### 재작업 지시
-(Cursor/Codex에게 전달할 수정 내용. 구체적으로 작성)
-```
-
----
-
-## 패턴 감지 → 자동 규칙 업데이트 (Claude Code 전용)
-
-검증 완료 후 `feedback.md`와 `claude-progress.txt` 최근 5개 항목을 읽고 반복 패턴 확인.
-
-**CLAUDE.md / AGENTS.md 보강 트리거:**
-- 특정 API 응답 구조 오해 2회 이상 반복
-- Supabase RLS·Auth 실수 2회 이상 반복
+- 특정 API 응답 구조 오해
+- Supabase RLS·Auth 실수
 - 컴포넌트 구조 반복 오해
-- 같은 종류의 실수 2회 이상 (try/catch 누락, import 경로 오류 등)
+- 같은 종류의 실수 (try/catch 누락, import 경로 오류 등)
 
-패턴 없으면 규칙 파일 수정 금지.
+패턴이 없으면 규칙 문서를 수정하지 않는다.
 
 ---
 
 ## 회귀 테스트 (새 기능 추가 후 선택적 실행)
 
-passes: true 항목 전체를 대상으로 steps 중 핵심 1~2개만 빠르게 확인.
-깨진 항목 발견 시 `feedback.md`에 BUG- 항목으로 추가.
+passes: true 항목 전체를 대상으로 steps 중 핵심 1~2개만 빠르게 확인한다. 깨진 항목은 BUG 항목으로 추가하고 새 TASK.json으로 수정한다.

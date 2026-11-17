@@ -26,7 +26,7 @@ alwaysApply: true
 - 브랜치 생성 금지 — main 직접 푸시
 - worktree 사용 금지
 - feature 1개씩만 작업 — 범위 확장 금지
-- passes 변경은 Claude Code만 한다
+- passes 변경은 Claude(플래너)만 한다 — Cursor는 건드리지 않는다
 - passes 변경 후 grep으로 실제 저장 여부 반드시 확인
 - 개발 서버 보호 절을 따른다
 - 실행 중인 개발 서버가 쓰는 `.next`를 덮어쓰는 `npm run build`는 쓰지 않는다. Next 컴파일 검증은 `npm run build:check`만 사용한다
@@ -131,6 +131,6 @@ YYMMDD_HHMM (type): 설명
 - `done` 항목을 모두 만족하지 못하면 `blocked`로 기록한다.
 - 지시보다 나은 설계나 놓친 리스크가 보이면 반박하고 대안을 제안한다.
 - `TASK.json`은 작업 1건만 담는다. 새 작업을 쓰기 전에 기존 내용을 `docs/tasks/{id}.json`으로 복사해 보관한 뒤 덮어쓴다. 보관 파일은 수정하지 않는다.
-- 새 기능 작업은 `feature_id`로 `feature_list/` 항목과 연결한다. 기능 스펙은 feature_list가 원본이다. `passes`는 JW가 갱신하며 에이전트는 건드리지 않는다. 위 절대 규칙의 "passes 변경은 Claude Code만 한다"보다 이 규칙이 우선한다.
+- 새 기능 작업은 `feature_id`로 `feature_list/` 항목과 연결한다. 기능 스펙은 feature_list가 원본이다. `passes`는 Claude(플래너)가 갱신하며 Cursor 등 구현 에이전트는 건드리지 않는다.
 - mybooks 전용 테이블(books, comics, photobook, book_highlights, book_stats_comments)은 건드리지 않는다. 공용 요소(auth.users, RLS, monthly_review_comments) 변경이 필요하면 구현하지 말고 `result`에 보고한다.
 - window.confirm / alert / prompt는 사용하지 않는다(Tauri 웹뷰). 인라인 확인 UI를 쓴다.

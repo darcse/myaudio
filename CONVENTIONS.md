@@ -94,8 +94,8 @@ myaudio/
 ├── AGENTS.md
 ├── HARNESS.md
 ├── CONVENTIONS.md
-├── claude-progress.txt
-└── Codex-progress.txt
+├── TASK.json
+└── docs/tasks/
 ```
 
 ---
