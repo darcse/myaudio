@@ -573,3 +573,4 @@
 [2026-11-09] [Cursor] style: 랜덤 추천 결과 레이아웃 압축·버튼 상단 고정 | passes: 변경 없음
 [2026-11-09] [Cursor] style: 랜덤 추천 버튼을 Play/Refresh 원형 아이콘으로 변경 | passes: 변경 없음
 [2026-11-09] [Cursor] style: 헤드파이 레이더 다크 대비·툴팁 문구 개선 | passes: 변경 없음
+[2026-11-17] [Cursor] feat: 청취 이력 Media에 Stage+ 추가 | passes: 변경 없음

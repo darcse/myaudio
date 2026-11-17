@@ -4,6 +4,7 @@ export const LISTEN_HISTORY_MEDIA_OPTIONS = [
   'Apple Music',
   'Spotify',
   'YouTube Music',
+  'Stage+',
   'CD',
   'LP',
   'Cassette',

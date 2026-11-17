@@ -386,7 +386,7 @@ mylibrary / mybooks와 동일한 Supabase 인스턴스를 공유한다.
 
 | 항목 | 컬럼 | 선택 가능 카테고리 / 값 | 필수 |
 |------|------|-------------------------|------|
-| Media | `media` (text) | Apple Music, Spotify, YouTube Music, CD, LP, Cassette, FLAC/MP3(저장값은 `FLAC`), 기타 | 필수 |
+| Media | `media` (text) | Apple Music, Spotify, YouTube Music, Stage+, CD, LP, Cassette, FLAC/MP3(저장값은 `FLAC`), 기타 | 필수 |
 | Source | `source_id` (FK headfi, ON DELETE SET NULL) | Source, DAP | 필수 |
 | Amp 1 | `dac_amp_id` | DAC, AMP, DAC/AMP, 기타 | 선택 |
 | Amp 2 | `dac_amp2_id` (FK headfi, ON DELETE SET NULL) | DAC, AMP, DAC/AMP, 기타 | 선택 |

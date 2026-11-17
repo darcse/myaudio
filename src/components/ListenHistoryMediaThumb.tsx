@@ -16,6 +16,7 @@ const MEDIA_THUMB: Record<string, MediaThumbSpec> = {
   'Apple Music': { background: '#FC3C44', Icon: AppleMusicIcon, branded: true },
   Spotify: { background: '#1DB954', Icon: SpotifyIcon, branded: true },
   'YouTube Music': { background: '#FF0000', Icon: YoutubeIcon, branded: true },
+  'Stage+': { background: 'var(--badge-bg)', Icon: Headphones },
   CD: { background: 'var(--badge-bg)', Icon: Disc },
   LP: { background: 'var(--badge-bg)', Icon: Disc3 },
   Cassette: { background: 'var(--badge-bg)', Icon: CassetteTape },
