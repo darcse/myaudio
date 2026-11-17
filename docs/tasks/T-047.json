@@ -1,0 +1,29 @@
+{
+  "id": "T-047",
+  "feature_id": "ALBUM-047",
+  "goal": "기존 앨범 수정 폼에서도 Apple Music 주소로 커버 이미지와 발매일만 가져올 수 있게 한다(저장 전에는 DB가 바뀌지 않는다).",
+  "context": "ALBUM-047 확장이다. 현재 src/app/albums/_components/AlbumForm.tsx의 showAppleMusicImport = !isEdit이고 handleAppleMusicImport는 새 등록 전용 동작(앨범명·발매일·커버·아티스트·유형 채우기)이다. 변경: (1) 수정 모드(isEdit)에서도 Apple Music 주소 칸 옆에 가져오기 버튼을 보여준다. 라벨은 '커버·발매일 가져오기'로 구분한다(새 등록 폼의 '앨범 정보 가져오기'는 그대로). (2) 수정 모드 동작: 같은 /api/apple-music-import 라우트를 호출하되, 응답에서 cover_image_url(coverImageUrl이 null이면 기존 커버 유지)과 release_date(응답 releaseDate가 없으면 기존 값 유지)만 폼 상태에 반영하고, apple_music_url은 응답의 정리된 주소로 갱신한다. 앨범명·아티스트·앨범 유형·구분·국가·장르 등 다른 칸은 절대 바꾸지 않는다. Pop & Rock·Classic 수정 폼 모두 동일하게 동작한다. (3) Apple Music 주소 칸이 비어 있으면 새 등록 폼과 같은 인라인 안내('Apple Music 주소를 입력해 주세요.')를 보인다. 자동 검색으로 주소를 찾는 기능은 만들지 않는다(JW가 직접 주소를 넣는다). (4) 폼 상태만 바꾸고 저장 버튼을 누르기 전에는 DB·캐시가 바뀌지 않아야 한다. 저장은 기존 저장 경로(updateAlbumInDB)를 그대로 쓰며, 기존 무효화(catalogLibraryCache)로 목록·상세에 새 커버가 반영되는지 확인한다. (5) 수정 폼에서 새 커버가 반영되는 흐름에서 dominant_colors(커버 색상)가 새 커버 기준으로 다시 계산되는지 saveAlbumToDB/updateAlbumInDB 경로를 코드로 확인하고, 재계산되지 않는다면 그 사실과 현재 동작을 result에 보고한다(수정이 필요하면 최소 범위로 제안만 하고 사용자 승인 전에는 저장 규칙을 바꾸지 않는다). (6) 가져오는 중 중복 클릭 방지, 실패 시 인라인 문구와 기존 입력 유지는 새 등록 폼과 같은 방식으로 재사용한다. 건드리지 말 것: 새 등록 폼의 가져오기 동작, 라우트 응답 스키마, DB 스키마·SQL, 기존 앨범 데이터 일괄 변경. window.confirm/alert/prompt 사용 금지. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
+  "scope": {
+    "in": [
+      "수정 폼의 '커버·발매일 가져오기' 버튼과 커버·발매일·Apple 주소만 반영하는 동작",
+      "dominant_colors 재계산 여부 확인 보고"
+    ],
+    "out": [
+      "새 등록 폼의 가져오기 동작 변경",
+      "Apple 자동 검색",
+      "앨범명·아티스트·유형 등 다른 칸 변경",
+      "라우트 응답 스키마·DB·SQL",
+      "기존 앨범 일괄 변경",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock·Classic 기존 앨범 수정 폼에 '커버·발매일 가져오기' 버튼이 있고, Apple 주소를 넣고 누르면 커버 이미지와 발매일만 폼에 반영되며 앨범명·아티스트·유형·구분·국가·장르 등 다른 칸은 변하지 않는다",
+    "저장 버튼을 누르기 전에는 DB가 바뀌지 않고, 저장하면 목록과 상세에 새 커버와 발매일이 반영된다(캐시 무효화 포함)",
+    "Apple 주소 칸이 비어 있으면 인라인 안내가 나오고, 실패·커버 없음·발매일 없음이면 해당 값은 기존 값이 유지되며, 가져오는 중 중복 클릭이 막힌다. 새 등록 폼의 가져오기는 이전과 같다",
+    "dominant_colors가 새 커버 기준으로 재계산되는지 여부가 result에 적혀 있고, npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "수정 폼에도 가져오기 버튼 표시(라벨 '커버·발매일 가져오기'). isEdit 시 release_date·cover_image_url·apple_music_url만 갱신(null이면 기존 유지), 다른 칸 미변경. 새 등록 동작 유지. 저장 전엔 폼 state만 변경. dominant_colors: updateAlbumInDB가 매 저장마다 resolveDominantColors(data.cover_image_url)로 재계산·update에 포함 — 새 커버 저장 시 색상도 갱신됨(추가 수정 불필요). 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: AlbumForm.tsx."
+}

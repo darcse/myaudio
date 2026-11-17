@@ -27,6 +27,7 @@ const COUNTRY_OPTIONS_SOURCE = [
   { name: '멕시코', flag: '🇲🇽' },
   { name: '아르헨티나', flag: '🇦🇷' },
   { name: '라트비아', flag: '🇱🇻' },
+  { name: '호주', flag: '🇦🇺' },
   { name: '기타', flag: '🏳️' },
 ] as const;
 

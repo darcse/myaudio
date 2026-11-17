@@ -5,9 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
-import {
-  searchMusicBrainz,
-} from '../actions';
 import { useAlbumMutations } from '../_hooks/useAlbumMutations';
 import { AlbumList } from './AlbumList';
 import { AlbumMoodboard } from './AlbumMoodboard';
@@ -15,14 +12,13 @@ import { AlbumGenreboard } from './AlbumGenreboard';
 import type { LibraryViewMode } from './albumBoardShared';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
 import { MusicTasteModal, type TasteResult } from './MusicTasteModal';
-import { AlbumSearchSection } from './AlbumSearchSection';
 import { AlbumPageHeader } from './AlbumPageHeader';
 import { AlbumForm } from './AlbumForm';
 import { AlbumDetailModal } from './AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
-import type { Album, AlbumFormData, MusicBrainzSearchItem, SelectedAlbum } from '../types';
+import type { Album, AlbumFormData, SelectedAlbum } from '../types';
 import { ALL_PERIOD_YEAR_FILTER, albumFormModeFromGenre1, albumToFormData } from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
@@ -38,9 +34,6 @@ import {
   revalidateCatalogLibrary,
   resolveCatalogCacheUserId,
 } from '@/lib/catalogLibraryCache';
-
-const ITEMS_PER_PAGE = 20;
-const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
 
 const initialFormData: AlbumFormData = {
   artist: '',
@@ -128,15 +121,8 @@ export function AlbumsLibraryContent({
     defaultYearToAllPeriod: isClassicScope,
   });
 
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<MusicBrainzSearchItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SelectedAlbum | null>(null);
   const [formData, setFormData] = useState<AlbumFormData>(initialFormData);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [mbSearchOpen, setMbSearchOpen] = useState(false);
-  const [totalResults, setTotalResults] = useState(0);
-  const [mbCurrentPage, setMbCurrentPage] = useState(1);
   const [headfiOwnedHeadphones, setHeadfiOwnedHeadphones] = useState<
     { id: number; brand: string; model: string }[]
   >([]);
@@ -334,81 +320,15 @@ export function AlbumsLibraryContent({
       });
   }, [isAuthenticated]);
 
-  const mbTotalPages = Math.ceil(totalResults / ITEMS_PER_PAGE) || 1;
-
-  const handleSearch = async (page = 1, searchQuery?: string) => {
-    const q = (searchQuery ?? query).trim();
-    if (!q) return;
-    if (searchQuery != null) setQuery(searchQuery);
-    setHasSearched(true);
-    setIsSearching(true);
-    try {
-      const result = await searchMusicBrainz(q, page, ITEMS_PER_PAGE);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      setSearchResults(result.items || []);
-      setTotalResults(result.total || 0);
-      setMbCurrentPage(page);
-    } catch {
-      toast.error('검색 중 오류가 발생했습니다.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setQuery('');
-    setSearchResults([]);
-    setTotalResults(0);
-    setHasSearched(false);
-    setMbCurrentPage(1);
-  };
-
-  const closeMbSearch = () => {
-    setMbSearchOpen(false);
-    handleClearSearch();
-  };
-
-  const toggleMbSearch = () => {
-    if (mbSearchOpen) {
-      closeMbSearch();
-      return;
-    }
-    setMbSearchOpen(true);
-  };
-
   const classicFormDefaults = isClassicScope ? { genre1: 'Classic' } : {};
 
-  const handleManualRegister = () => {
+  const handleRegisterClick = () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
       return;
     }
-    closeMbSearch();
     setSelectedItem({ isManual: true });
     setFormData({ ...initialFormData, ...classicFormDefaults });
-  };
-
-  const handleSelectAlbum = (album: MusicBrainzSearchItem) => {
-    if (isAuthenticated === false) {
-      toast.error('로그인이 필요합니다.');
-      return;
-    }
-    setSelectedItem(album);
-    setFormData({
-      ...initialFormData,
-      ...classicFormDefaults,
-      album_name: album.album_name || '',
-      artist: album.artist || '',
-      release_date: album.release_date || '',
-      album_type: album.album_type || '',
-      cover_image_url: album.cover_image_url || '',
-      wiki_url: '',
-      year: ['2026'],
-      mood_names: [],
-    });
   };
 
   const openAlbumDetail = (item: Album) => {
@@ -547,7 +467,6 @@ export function AlbumsLibraryContent({
     if (result.status === 'skipped' || result.status === 'error') return;
 
     setSelectedItem(null);
-    handleClearSearch();
     await fetchLibrary(true);
 
     if (result.status === 'updated' && updateId != null && result.album) {
@@ -630,30 +549,9 @@ export function AlbumsLibraryContent({
         isAuthenticated={isAuthenticated}
         showRegister={!physicalOwnedOnly}
         onRandomClick={physicalOwnedOnly ? undefined : () => setRandomLotteryOpen(true)}
-        onRegisterClick={physicalOwnedOnly ? undefined : toggleMbSearch}
-        registerAriaLabel={mbSearchOpen ? '앨범 등록 검색 닫기' : '앨범 등록 검색 열기'}
-        registerPressed={mbSearchOpen}
+        onRegisterClick={physicalOwnedOnly ? undefined : handleRegisterClick}
+        registerAriaLabel="새 앨범 등록"
       />
-
-      {isAuthenticated && !physicalOwnedOnly && mbSearchOpen ? (
-        <AlbumSearchSection
-          query={query}
-          setQuery={setQuery}
-          albums={searchResults}
-          hasSearched={hasSearched}
-          isSearching={isSearching}
-          totalResults={totalResults}
-          currentPage={mbCurrentPage}
-          itemsPerPage={ITEMS_PER_PAGE}
-          mbTotalPages={mbTotalPages}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
-          onSelectAlbum={handleSelectAlbum}
-          onManualRegister={handleManualRegister}
-          isAuthenticated={isAuthenticated}
-          inputBaseClass={inputBaseClass}
-        />
-      ) : null}
 
       {selectedItem && (
         <AlbumForm

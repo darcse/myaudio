@@ -53,16 +53,6 @@ export interface Album {
   [key: string]: unknown;
 }
 
-export interface MusicBrainzSearchItem {
-  mbid?: string;
-  album_name?: string;
-  artist?: string;
-  album_type?: string;
-  release_date?: string;
-  cover_image_url?: string;
-  [key: string]: unknown;
-}
-
 export interface AlbumFormData {
   artist: string;
   artist_type: string;
@@ -96,4 +86,4 @@ export interface AlbumFormData {
   owns_cassette: boolean;
 }
 
-export type SelectedAlbum = Album | MusicBrainzSearchItem | { isManual: true };
+export type SelectedAlbum = Album | { isManual: true };
