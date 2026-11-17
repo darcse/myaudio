@@ -172,10 +172,8 @@ export function AlbumForm({
   const isClassicMode = resolvedMode === 'classic';
   const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
   const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
-  const showAppleMusicImport = !isEdit;
-
   const handleAppleMusicImport = async () => {
-    if (appleMusicImporting || isEdit) return;
+    if (appleMusicImporting) return;
     setAppleMusicImportError(null);
     const parsed = parseAppleMusicAlbumInput(formData.apple_music_url ?? '');
     if (parsed.status === 'empty') {
@@ -203,31 +201,40 @@ export function AlbumForm({
         );
         return;
       }
-      const importedArtist = data.artist?.trim() ?? '';
-      setFormData((prev) => {
-        const shared = {
+      if (isEdit) {
+        setFormData((prev) => ({
           ...prev,
-          album_name: data.albumName?.trim() || prev.album_name,
           release_date: data.releaseDate?.trim() || prev.release_date,
           cover_image_url: data.coverImageUrl?.trim() || prev.cover_image_url,
           apple_music_url: data.appleMusicUrl?.trim() || prev.apple_music_url,
-        };
-        if (isClassicMode) return shared;
-        const existingArtist = prev.artist.trim();
-        const nextArtist = existingArtist || importedArtist;
-        const defaults = nextArtist
-          ? artistDefaultsFromLibrary(artistDefaultsLibrary, nextArtist)
-          : { artist_type: '', country: '' };
-        return {
-          ...shared,
-          artist: nextArtist,
-          album_type: data.albumType?.trim() || prev.album_type,
-          artist_type: prev.artist_type.trim()
-            ? prev.artist_type
-            : defaults.artist_type || prev.artist_type,
-          country: prev.country.trim() ? prev.country : defaults.country || prev.country,
-        };
-      });
+        }));
+      } else {
+        const importedArtist = data.artist?.trim() ?? '';
+        setFormData((prev) => {
+          const shared = {
+            ...prev,
+            album_name: data.albumName?.trim() || prev.album_name,
+            release_date: data.releaseDate?.trim() || prev.release_date,
+            cover_image_url: data.coverImageUrl?.trim() || prev.cover_image_url,
+            apple_music_url: data.appleMusicUrl?.trim() || prev.apple_music_url,
+          };
+          if (isClassicMode) return shared;
+          const existingArtist = prev.artist.trim();
+          const nextArtist = existingArtist || importedArtist;
+          const defaults = nextArtist
+            ? artistDefaultsFromLibrary(artistDefaultsLibrary, nextArtist)
+            : { artist_type: '', country: '' };
+          return {
+            ...shared,
+            artist: nextArtist,
+            album_type: data.albumType?.trim() || prev.album_type,
+            artist_type: prev.artist_type.trim()
+              ? prev.artist_type
+              : defaults.artist_type || prev.artist_type,
+            country: prev.country.trim() ? prev.country : defaults.country || prev.country,
+          };
+        });
+      }
       setAppleMusicError(false);
     } catch {
       setAppleMusicImportError('앨범 정보를 가져오지 못했습니다.');
@@ -427,10 +434,10 @@ export function AlbumForm({
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div className="min-w-0">
               <label className="block text-sm font-semibold mb-1 opacity-90">애플뮤직 주소</label>
-              <div className={showAppleMusicImport ? 'flex flex-col gap-2 sm:flex-row sm:items-start' : ''}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                 <input
                   type="text"
-                  className={`${inputBaseClass} ${showAppleMusicImport ? 'sm:flex-1' : ''}`}
+                  className={`${inputBaseClass} sm:flex-1`}
                   value={formData.apple_music_url ?? ''}
                   onChange={(e) => {
                     setFormData({ ...formData, apple_music_url: e.target.value });
@@ -440,17 +447,19 @@ export function AlbumForm({
                   placeholder="https://music.apple.com/kr/album/..."
                   aria-invalid={appleMusicError || Boolean(appleMusicImportError)}
                 />
-                {showAppleMusicImport ? (
-                  <button
-                    type="button"
-                    className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                    onClick={() => void handleAppleMusicImport()}
-                    disabled={appleMusicImporting || isSaving || isDeleting}
-                    aria-busy={appleMusicImporting}
-                  >
-                    {appleMusicImporting ? '가져오는 중…' : '앨범 정보 가져오기'}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-3 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  onClick={() => void handleAppleMusicImport()}
+                  disabled={appleMusicImporting || isSaving || isDeleting}
+                  aria-busy={appleMusicImporting}
+                >
+                  {appleMusicImporting
+                    ? '가져오는 중…'
+                    : isEdit
+                      ? '커버·발매일 가져오기'
+                      : '앨범 정보 가져오기'}
+                </button>
               </div>
               {appleMusicError ? (
                 <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>

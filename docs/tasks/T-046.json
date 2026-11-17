@@ -1,0 +1,27 @@
+{
+  "id": "T-046",
+  "goal": "Apple Music 가져오기가 이미 입력된 아티스트 이름을 덮어쓰지 않고, 아티스트 칸이 비어 있을 때만 Apple의 아티스트명으로 채우게 한다.",
+  "context": "T-044 후속 수정이다. src/app/albums/_components/AlbumForm.tsx의 handleAppleMusicImport에서 Pop & Rock 모드일 때 artist: importedArtist || prev.artist로 아티스트 이름을 항상 Apple 값으로 덮어쓴다. 아티스트 상세(ArtistsLibraryContent의 albumFormDataFromArtist)에서 '앨범 추가'로 연 폼은 아티스트 이름·구분·국가·위키·장르1이 미리 채워지는데, Apple의 표기가 다르면(예: 일본·한국 아티스트의 영문/현지 표기 차이, 피처링 표기) 이름이 바뀌어 같은 아티스트가 두 개로 갈라진다. 변경: 아티스트 칸에 이미 값(공백 제거 후)이 있으면 그대로 두고, 비어 있을 때만 importedArtist로 채운다. 이름이 미리 채워진 경우 같은 아티스트의 기존 구분·국가 재사용(artistDefaultsFromLibrary)은 미리 채워진 이름 기준으로 계산하는 것이 맞는지 확인하고, 현재 importedArtist 기준이라면 입력된 이름이 있을 때는 그 이름 기준으로 계산하도록 정리한다(이미 구분·국가가 채워져 있으면 기존대로 건드리지 않는다). 앨범명·발매일·커버·앨범 유형·Apple Music 주소 채우기, Classic 모드 동작(아티스트 미변경)은 바꾸지 않는다. 안내 문구는 추가하지 않는다. 최소 수정으로 처리하고, 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
+  "scope": {
+    "in": [
+      "handleAppleMusicImport의 아티스트 이름 채우기 조건 변경",
+      "아티스트 기본값 재사용 계산 기준 정리"
+    ],
+    "out": [
+      "앨범명·발매일·커버·앨범 유형·Apple 주소 채우기",
+      "Classic 모드 동작",
+      "안내 문구 추가",
+      "라우트·DB·SQL",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "아티스트 상세에서 앨범 추가로 연 폼에서 Apple Music 가져오기를 눌러도 아티스트 이름이 그대로 유지되고, 앨범명·발매일·커버·앨범 유형만 채워진다",
+    "처음부터 새로 등록하는 폼(아티스트 칸이 비어 있음)에서 가져오면 아티스트가 Apple의 아티스트명으로 채워지고 기존 동작과 같다",
+    "미리 채워진 아티스트의 구분·국가는 덮어쓰이지 않으며, 비어 있을 때의 기본값 재사용은 입력된 이름 기준으로 동작한다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "handleAppleMusicImport: Pop 모드에서 nextArtist = prev.artist.trim() || importedArtist. artistDefaultsFromLibrary도 nextArtist(이미 입력된 이름 우선) 기준으로 계산하고, artist_type/country는 비어 있을 때만 채움. Classic·다른 필드 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: AlbumForm.tsx."
+}
