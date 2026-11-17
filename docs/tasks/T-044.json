@@ -1,0 +1,33 @@
+{
+  "id": "T-044",
+  "feature_id": "ALBUM-047",
+  "goal": "새 앨범 등록 폼에서 Apple Music 앨범 링크를 붙여 넣고 가져오기를 누르면 앨범명·발매일·커버 이미지(Pop & Rock은 아티스트·앨범 유형 포함)가 채워지게 한다. 채워진 값은 모두 수정 가능하다.",
+  "context": "ALBUM-047 구현이다. 시작 전 코드에서 먼저 확인하고 한 줄로 요약한 뒤 진행한다: (a) 새 앨범 등록 진입 흐름(AlbumSearchSection의 MusicBrainz 검색 → AlbumsLibraryContent의 selectedItem → AlbumForm)과 수동 입력 진입, 그리고 Pop & Rock/Classic 폼 모드(AlbumFormMode)별 차이. (b) AlbumForm의 Apple Music 주소 칸(apple_music_url, appleMusicError)과 parseAppleMusicAlbumInput(src/lib/appleMusic.ts). (c) 커버 이미지 저장 방식: onImageUpload가 어디에 어떤 형태로 저장하는지(Supabase Storage 업로드인지 외부 URL 저장인지), cover_image_url 값의 형태, dominant_colors 계산(saveAlbumToDB) 의존 여부. (d) 기존 iTunes 검색 코드(src/app/api/apple-music-album/route.ts, SEARCH_COUNTRIES, toKrAppleAlbumUrl)와 서버 라우트의 인증·에러 처리 패턴. 구현 방향: 서버 라우트(예: POST /api/apple-music-import 또는 기존 라우트 확장)가 Apple Music 앨범 URL을 받아 앨범 ID를 추출하고(/album/{slug}/{id}, 트랙 링크의 ?i= 파라미터는 앨범 ID가 아니므로 구분), iTunes Lookup API(itunes.apple.com/lookup?id={id}&entity=album)를 스토어별로(URL의 국가 코드 우선, 그 다음 KR·US·JP 순, 기존 SEARCH_COUNTRIES 패턴과 타임아웃 재사용) 조회해 다음을 돌려준다: 아티스트명, 앨범명(Apple의 ' - EP', ' - Single' 접미사는 앨범명에서 제거하고 앨범 유형 판정에 사용, 기존 stripAppleCatalogSuffix 재사용), 발매일(releaseDate의 날짜 부분을 YYYY-MM-DD로; UTC 시각 때문에 하루 어긋날 수 있으니 한국·일본 앨범 샘플로 확인), 커버 이미지(artworkUrl100의 크기 토큰을 1200x1200 등 고해상도로 치환), 앨범 유형(앨범/EP/싱글: 앱의 album_type 옵션 값에 맞춘다), 정리된 KR 앨범 URL(toKrAppleAlbumUrl). 폼 동작: AlbumForm의 Apple Music 주소 칸 옆에 '앨범 정보 가져오기' 버튼을 둔다(새 앨범 등록 폼에만, 기존 앨범 수정 폼에서는 표시하지 않는다). 누르면 가져온 값으로 앨범명·발매일·커버 이미지를 채운다(이미 입력된 값이 있어도 사용자가 의도적으로 누른 것이므로 덮어쓴다). Pop & Rock 모드에서는 아티스트와 앨범 유형도 채우고, Classic 모드에서는 연주자·작곡가 칸을 건드리지 않는다(Apple의 클래식 아티스트 표기는 작곡가·지휘자·오케스트라가 섞여 앱의 연주자 칸에 맞지 않는다). Apple Music 주소 칸에는 정리된 주소를 넣는다. 가져오는 중에는 버튼을 비활성화하고 중복 호출을 막는다. 실패(주소 형식 오류, 앨범 없음, 타임아웃, 네트워크)는 폼 안 인라인 문구로 안내하고 기존 입력값은 변경하지 않는다. window.confirm/alert/prompt는 쓰지 않는다. 커버 이미지: 수동 업로드와 같은 형태의 cover_image_url 값이 저장되어 목록·상세·dominant_colors 계산이 정상 동작해야 한다. 기존 업로드가 Supabase Storage에 파일을 올리는 방식이면 서버에서 Apple 이미지를 받아 같은 방식으로 올려 저장하는 쪽을 우선하고(Apple 서버 변경에 의존하지 않게), 구조상 어렵거나 외부 URL 저장이 기존 관행이면 URL 저장으로 하되 선택 이유를 result에 적는다. 이미지 다운로드 용량·타임아웃·허용 호스트(mzstatic.com 등)를 제한한다. Pop & Rock에서 같은 아티스트 재사용: 가져온 아티스트명이 이미 등록된 아티스트와 일치하면(공백·대소문자 정규화 비교, 기존 정규화 유틸 재사용) 그 아티스트의 기존 앨범에서 artist_type과 country를 가져와 해당 칸이 비어 있을 때만 채운다. 클라이언트 라이브러리 캐시(catalogLibraryCache) 등 이미 로드된 데이터를 우선 활용하고 별도 대량 조회를 만들지 않는다. 검증 샘플: 구현 후 실제 iTunes Lookup을 호출해 (1) 한국 앨범 1~2개 (2) 일본 앨범 1~2개 (3) 서양 팝/록 앨범 1개 (4) 클래식 앨범 1~2개(예: 도이치 그라모폰 앨범)의 응답으로 앨범명·발매일·커버·앨범 유형·스토어 선택이 기대대로인지 확인하고, 하루 어긋남이나 날짜 누락이 있었던 앨범과 처리 방법을 result에 표로 적는다. 호출이 막히면 막힌 이유를 보고한다. 건드리지 말 것: 기존 MusicBrainz 검색 UI(AlbumSearchSection)의 제거·변경, 수정 폼에서의 가져오기, AI 자동 채우기, YouTube 재생목록·Stage+·Wikipedia 칸, DB 스키마·SQL, saveAlbumToDB/updateAlbumInDB의 저장 규칙 변경. 더 나은 설계가 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "Apple Music 앨범 URL → iTunes Lookup 서버 라우트(앨범명·발매일·커버·아티스트·앨범 유형·정리된 URL)",
+      "새 앨범 등록 폼의 '앨범 정보 가져오기' 버튼과 값 채우기(Pop & Rock/Classic 차이 반영)",
+      "가져온 커버의 저장 방식 결정과 구현",
+      "Pop & Rock에서 같은 아티스트의 기존 구분·국가 재사용",
+      "샘플 앨범 검증 결과 보고"
+    ],
+    "out": [
+      "기존 앨범 수정 폼의 가져오기",
+      "MusicBrainz 검색 UI 변경·제거",
+      "AI 자동 채우기, 국가·장르·작곡가 자동 입력",
+      "YouTube 재생목록·Stage+·Wikipedia 칸",
+      "DB 스키마·SQL, 저장 규칙 변경",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock 새 앨범 폼에서 Apple Music 앨범 링크로 가져오면 아티스트, 앨범명, 발매일(연-월-일), 커버 이미지, 앨범 유형, 정리된 Apple Music 주소가 채워지고, 값을 수정해 저장하면 저장 후 목록·상세에 커버가 정상 표시된다",
+    "Classic 새 앨범 폼에서 가져오면 앨범명·발매일·커버만 채워지고 연주자·작곡가 칸은 그대로이며, 기존 앨범 수정 폼에는 가져오기 버튼이 없다",
+    "Pop & Rock에서 이미 등록된 아티스트의 앨범을 가져오면 아티스트 구분과 국가가 해당 칸이 비어 있을 때만 기존 값으로 채워진다",
+    "Apple 주소가 아니거나 앨범을 찾지 못하거나 타임아웃이면 폼 안 인라인 문구가 나오고 기존 입력값이 유지되며, 가져오는 중 중복 클릭이 막힌다",
+    "한국·일본·서양 팝/록·클래식 샘플 앨범의 실제 조회 결과(발매일 어긋남 여부 포함)가 result에 표로 있고, 커버 저장 방식 선택 이유가 적혀 있으며, npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "구현: POST /api/apple-music-import(로그인 필요) — URL에서 앨범 ID 추출(?i= 트랙 ID 무시), storefront→KR/US/JP lookup, stripAppleCatalogSuffix·albumType·YYYY-MM-DD(문자열 앞 10자)·1200 artwork·toKrAppleAlbumUrl. 커버: 기존 업로드가 FileReader data URL이라 Supabase Storage 경로 없음 → 서버가 mzstatic.com만 받아 data URL 반환(최대 5MB, 8s). AlbumForm 새 등록만 '앨범 정보 가져오기'(Pop: 아티스트·유형·빈 칸일 때 library 기반 type/country, Classic: 앨범명·날짜·커버만). Albums/Artists 라이브러리에서 artistDefaultsLibrary 전달.\n\n샘플 검증(iTunes search/lookup 실호출, 발매일=releaseDate 앞 10자):\n| 샘플 | 스토어 | 아티스트 | 앨범명(정리) | 유형 | 발매일 | 비고 |\n|---|---|---|---|---|---|---|\n| ILLIT SUPER REAL ME | US | ILLIT | SUPER REAL ME | EP | 2024-03-25 | - EP 접미사 제거, 커버 1200 OK |\n| NewJeans Get Up | US | NewJeans | NewJeans 2nd EP 'Get Up' | Album | 2023-07-21 | 이름에 EP 있으나 - EP 접미사 없어 Album |\n| YOASOBI THE BOOK | JP | YOASOBI | THE BOOK | Album | 2021-01-06 | |\n| Official髭男dism Editorial | JP | Official髭男dism | Editorial | Album | 2021-08-18 | |\n| Radiohead OK Computer | US | Radiohead | OK Computer | Album | 1997-05-21 | |\n| Beethoven Symphonies (Rattle) | US | Berlin Philharmonic… | Beethoven: Symphonies… | Album | 2016-06-15 | 클래식 아티스트 표기 혼합 |\n| Chopin Argerich 1965 | US | Martha Argerich | Chopin: The Legendary 1965 Recording | Album | 1999-03-01 | |\n발매일 하루 어긋남 없음(UTC Date 파싱 대신 문자열 YMD 사용). 커버 다운로드 smoke: 1200 JPEG 약 779KB 성공.\n검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: appleMusic.ts, api/apple-music-import/route.ts, AlbumForm.tsx, AlbumsLibraryContent.tsx, ArtistsLibraryContent.tsx."
+}

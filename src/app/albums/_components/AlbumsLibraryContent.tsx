@@ -667,6 +667,7 @@ export function AlbumsLibraryContent({
           onImageUpload={handleImageUpload}
           isSaving={isSaving}
           isDeleting={isDeleting}
+          artistDefaultsLibrary={library}
           mode={
             'id' in selectedItem && typeof selectedItem.id === 'number'
               ? albumFormModeFromGenre1(formData.genre1)

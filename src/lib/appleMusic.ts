@@ -94,3 +94,77 @@ export function toKrAppleAlbumUrl(collectionViewUrl: string): string | null {
     return null;
   }
 }
+
+export type AppleMusicAlbumType = 'Album' | 'EP' | 'Single';
+
+export type AppleMusicAlbumRef = {
+  albumId: string;
+  storefront: string | null;
+};
+
+const STOREFRONT_RE = /^[a-z]{2}$/i;
+
+export function extractAppleMusicAlbumRef(raw: string): AppleMusicAlbumRef | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.replace(/^www\./, '').toLowerCase();
+    if (host !== 'music.apple.com') return null;
+    const parts = url.pathname.split('/').filter(Boolean);
+    let storefront: string | null = null;
+    let albumIndex = -1;
+    if (parts[0]?.toLowerCase() === 'album') {
+      albumIndex = 0;
+    } else if (parts[1]?.toLowerCase() === 'album' && STOREFRONT_RE.test(parts[0] ?? '')) {
+      storefront = parts[0]!.toLowerCase();
+      albumIndex = 1;
+    } else {
+      return null;
+    }
+    const afterAlbum = parts.slice(albumIndex + 1);
+    const idToken = afterAlbum.find((part) => /^\d+$/.test(part));
+    if (!idToken) return null;
+    return { albumId: idToken, storefront };
+  } catch {
+    return null;
+  }
+}
+
+export function detectAppleMusicAlbumType(collectionName: string): AppleMusicAlbumType {
+  const name = collectionName.trim();
+  if (/\s[-–—]\s*EP\s*$/i.test(name) || /[(\uFF08]\s*EP\s*[)\uFF09]\s*$/i.test(name)) {
+    return 'EP';
+  }
+  if (/\s[-–—]\s*Single\s*$/i.test(name) || /[(\uFF08]\s*Single\s*[)\uFF09]\s*$/i.test(name)) {
+    return 'Single';
+  }
+  return 'Album';
+}
+
+export function appleMusicReleaseDateYmd(releaseDate: string | null | undefined): string | null {
+  if (!releaseDate) return null;
+  const match = releaseDate.trim().match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? null;
+}
+
+export function upscaleAppleArtworkUrl(artworkUrl: string, size = 1000): string | null {
+  const trimmed = artworkUrl.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.toLowerCase();
+    if (host !== 'mzstatic.com' && !host.endsWith('.mzstatic.com')) return null;
+    url.pathname = url.pathname.replace(/\d+x\d+([a-z]*)(\.[a-z]+)?$/i, `${size}x${size}$1$2`);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function lookupCountriesForAppleStorefront(storefront: string | null): string[] {
+  const preferred = storefront?.toUpperCase() ?? null;
+  const ordered = ['KR', 'US', 'JP'] as const;
+  if (!preferred) return [...ordered];
+  return [preferred, ...ordered.filter((code) => code !== preferred)];
+}

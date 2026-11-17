@@ -1,0 +1,28 @@
+{
+  "id": "T-045",
+  "goal": "Apple Music 가져오기의 커버 이미지를 DB에 data URL로 넣지 않고, 기존 대다수 앨범처럼 이미지 주소(mzstatic.com)로 저장한다.",
+  "context": "T-044 후속 수정이다. 현재 src/app/api/apple-music-import/route.ts의 downloadCoverDataUrl이 Apple 이미지를 내려받아 data URL(coverImageDataUrl, 1200px 약 780KB→base64 약 1MB)로 반환하고 AlbumForm이 이를 cover_image_url에 넣는다. JW의 album 테이블 조사 결과 cover_image_url은 약 99%가 외부 이미지 주소(i.scdn.co 552, 외부 사이트 다수, 이미 is1-ssl.mzstatic.com 8건)이고 data URL은 수동 업로드 4건뿐이다. album select('*') 전체 조회 구조에서 앨범당 1MB data URL은 목록 로딩을 무겁게 하므로 기존 관행에 맞춰 주소를 저장한다. 변경: (1) 라우트에서 커버 다운로드·base64 변환 코드(downloadCoverDataUrl, COVER_TIMEOUT_MS, COVER_MAX_BYTES와 관련 상수)를 제거하고, 응답 필드를 coverImageUrl(https 이미지 주소 문자열 또는 null)로 바꾼다. 주소는 iTunes Lookup의 artworkUrl100에서 크기 토큰을 1000x1000으로 치환한 값을 쓴다(기존 upscaleAppleArtworkUrl 재사용, 크기 상수만 1000으로). 호스트가 mzstatic.com(또는 *.mzstatic.com)이고 https인 경우에만 돌려준다. (2) 반환 전에 해당 주소가 실제로 이미지로 열리는지 짧은 요청(HEAD 또는 range GET, 타임아웃 2~3초)으로 확인하고, 실패하면 600x600으로 한 번 더 시도하며, 그래도 실패하면 coverImageUrl을 null로 돌려주고 폼에는 커버 없이 채운다(앨범명·발매일 등은 그대로). (3) AlbumForm의 응답 타입(AppleMusicImportResponse)과 값 채우기를 coverImageUrl로 바꿔 cover_image_url에 주소를 넣는다. 기존 사진 미리보기·저장 경로가 외부 주소 커버에서 정상 동작하는 것은 기존 앨범이 증명하므로 폼의 이미지 처리 로직은 바꾸지 않는다. (4) 저장 후 dominant_colors 계산(saveAlbumToDB)과 목록·상세 표시가 mzstatic 주소에서도 정상인지 확인한다. 기존에 mzstatic 커버 8건이 있으니 그 앨범과 같은 경로임을 코드로 확인하고 result에 적는다. 크로스오리진 문제(canvas)가 있으면 기존 외부 주소 커버가 쓰는 처리와 같은 방식으로 맞춘다. (5) 샘플 호출로 갱신된 라우트가 7개 샘플(한국·일본·서양 팝/록·클래식)에서 coverImageUrl을 돌려주는지, 이미지가 실제로 열리는지(HTTP 200, content-type image/*)를 확인하고 result에 표로 요약한다. 건드리지 말 것: 발매일·앨범명·아티스트·앨범 유형·같은 아티스트 재사용 로직, 기존 수동 업로드(FileReader) 흐름, DB 스키마·SQL, 기존 앨범 데이터. window.confirm/alert/prompt 사용 금지. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
+  "scope": {
+    "in": [
+      "apple-music-import 라우트의 커버 처리를 data URL 변환에서 mzstatic 이미지 주소 반환(검증·600px 폴백 포함)으로 변경",
+      "AlbumForm의 응답 타입과 커버 채우기를 주소 기반으로 변경",
+      "샘플 호출 확인과 dominant_colors·표시 경로 확인 보고"
+    ],
+    "out": [
+      "발매일·앨범명·아티스트·앨범 유형·아티스트 기본값 재사용 로직",
+      "수동 업로드 흐름",
+      "기존 앨범 데이터 변경·이관",
+      "DB 스키마·SQL",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "라우트가 커버를 base64로 내려받지 않고 mzstatic.com의 https 이미지 주소(1000x1000, 열리지 않으면 600x600, 모두 실패하면 null)를 coverImageUrl로 반환하며 응답 크기가 작다",
+    "새 앨범 폼에서 가져오기를 하면 cover_image_url에 이 주소가 들어가고, 저장 후 목록·상세에 커버가 정상 표시되며 dominant_colors 계산이 기존 mzstatic 커버와 같은 경로로 동작한다",
+    "커버를 못 찾았을 때도 앨범명·발매일 등은 채워지고 폼이 정상이며, 수동 업로드 흐름은 이전과 같다",
+    "샘플 7개의 coverImageUrl과 이미지 열림 결과가 result에 표로 있고, npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "apple-music-import에서 downloadCoverDataUrl 제거, coverImageUrl(mzstatic https) 반환. upscale 기본/호출 1000, HEAD→range GET 검증 후 실패 시 600 폴백·둘 다 실패면 null. AlbumForm은 coverImageUrl을 cover_image_url에 저장. dominant_colors: albumCoverColors.server loadCoverBuffer가 data:가 아니면 fetch(URL) — 기존 mzstatic 커버와 동일 경로(서버사이드라 canvas CORS 이슈 없음). 목록·상세는 <img src=cover_image_url>로 외부 URL 그대로 표시.\n\n샘플(artwork→1000x1000, HEAD 200 image/jpeg, urlLen≈128~137):\n| 샘플 | 스토어 | size | status | content-type | urlLen |\n|---|---|---|---|---|---|\n| ILLIT SUPER REAL ME | US | 1000 | 200 | image/jpeg | 137 |\n| NewJeans Get Up | US | 1000 | 200 | image/jpeg | 137 |\n| YOASOBI THE BOOK for, | JP | 1000 | 200 | image/jpeg | 131 |\n| Official髭男dism Editorial (Instrumental) | JP | 1000 | 200 | image/jpeg | 131 |\n| Radiohead OK Computer | US | 1000 | 200 | image/jpeg | 131 |\n| Beethoven Symphonies (Rattle) | US | 1000 | 200 | image/jpeg | 132 |\n| Chopin Argerich 1965 | US | 1000 | 200 | image/jpeg | 128 |\n검증: npx tsc --noEmit 통과, npm run lint 통과."
+}

@@ -1087,6 +1087,7 @@ export function ArtistsLibraryContent({
           onSave={() => void handleAlbumSave()}
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}
+          artistDefaultsLibrary={albums}
           mode={
             'id' in albumFormItem && typeof albumFormItem.id === 'number'
               ? albumFormModeFromGenre1(albumFormData.genre1)
