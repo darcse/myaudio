@@ -1,27 +1,30 @@
 # 🎧 myaudio — 개인 음악, 실물 음반 및 헤드파이 라이브러리 명세서
 
-myaudio는 개인이 보유하고 감상한 **음악 앨범(Albums), 아티스트·작곡가(Artists), 가사 번역 노트(Lyrics), RecordShelf(CD/LP/Cassette 실물 음반), 헤드파이 기기(Head-fi), 가사·음원 플레이어(Works), 청취 통계 및 아카이브(Insights)**를 한곳에서 체계적으로 등록, 검색, 분석, 회고하는 프리미엄 개인 오디오 라이브러리 웹 애플리케이션입니다. 
+> 문서 갱신 기준일: 2026-11-18 · 작업·핸드오프 절차는 [HARNESS.md](HARNESS.md)를 기준으로 합니다.
 
-본 애플리케이션은 **MusicBrainz API**를 연동하여 앨범 메타데이터를 자동화하고, **Gemini AI / OpenAI GPT / Anthropic Claude** 다중 AI 프로바이더 모델을 깊이 있게 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다. 또한 **유튜브 뮤직 앨범 재생목록을 앱 안의 전역 플레이어로 바로 재생**하고, **애플뮤직·유튜브 뮤직 앱으로 바로 연결**해 추천받은 앨범을 곧바로 들을 수 있습니다.
+myaudio는 개인이 보유하고 감상한 **음악 앨범(Pop & Rock / Classic), 아티스트·작곡가(Artists), 가사 번역 노트(Lyrics), RecordShelf(CD/LP/Cassette 실물 음반), 헤드파이 기기(Head-fi), 가사·음원 플레이어(Works), 청취 통계 및 아카이브(Insights)**를 한곳에서 체계적으로 등록, 검색, 분석, 회고하는 프리미엄 개인 오디오 라이브러리 웹 애플리케이션입니다. 
+
+본 애플리케이션은 **Apple Music(iTunes Lookup/Search API)**을 연동하여 앨범 메타데이터와 커버를 가져오고, **Gemini AI / OpenAI GPT / Anthropic Claude** 다중 AI 프로바이더 모델을 깊이 있게 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다. 또한 **유튜브 뮤직 앨범 재생목록을 앱 안의 전역 플레이어로 바로 재생**하고, **애플뮤직·유튜브 뮤직·Stage+ 앱으로 바로 연결**해 추천받은 앨범을 곧바로 들을 수 있습니다.
 
 ---
 
 ## 1. 기술 스택 (Tech Stack)
 
-*   **Framework**: Next.js 15 (App Router, Server Actions, Route Handlers), React 19, TypeScript 5
+*   **Framework**: Next.js 15 (`15.5.19`, App Router, Server Actions, Route Handlers), React 19 (`19.1.0`), TypeScript 5
 *   **Styling**: Tailwind CSS v4, CSS 변수 기반 테마 시스템 (Light / Dark / Auto), Pretendard 폰트
 *   **Database & Storage**: Supabase (PostgreSQL, Supabase Auth, Storage, RLS)
     *   *주의: 기존 mylibrary / mybooks 서비스와 동일한 Supabase 인스턴스를 공유하며, myaudio 도메인 테이블만 독립적으로 사용합니다.*
-*   **AI Integration (Multi-Provider Architecture)**: 모델명 기본값은 `src/lib/aiModels.ts` 한 곳에서 관리합니다. (OpenAI / Anthropic은 환경변수로 덮어쓸 수 있음)
-    *   **Google Gemini**: `gemini-3.5-flash-lite` — 앨범 소개·무드 분류, 기분/앨범 추천, 포지션 라벨, 외부 리뷰 검색 요약(Google Search 연동) 등 (Gemini 13개 기능이 같은 모델 사용)
+*   **AI Integration (Multi-Provider Architecture)**: 모델명 기본값은 `src/lib/aiModels.ts` 한 곳에서 관리합니다. (Gemini / OpenAI / Anthropic 모두 환경변수로 덮어쓸 수 있음)
+    *   **Google Gemini**: `gemini-3.5-flash-lite` — 앨범 소개·무드 분류, 기분/앨범 추천, 포지션 라벨, 외부 리뷰 검색 요약(Google Search 연동) 등
     *   **OpenAI**: `gpt-5.4-mini` — 기기 조합 매칭 스코어링(Chat Completions), 아티스트 국문 바이오(Responses API + Web Search)
-    *   **Anthropic**: Claude Sonnet — 청음 AI 분석, 추천 앨범 해설, FR 그래프 비전 해석, 가사 번역
-*   **External APIs**: MusicBrainz API, Cover Art Archive, Wikipedia API, YouTube IFrame Player API, YouTube oEmbed, YouTube Music 카탈로그(비공식, 한국 앨범 트랙 제목 한정), iTunes Search API (유튜브·애플 연동은 모두 API 키 불필요)
+    *   **Anthropic**: `claude-sonnet-5-5` — 청음 AI 분석, 추천 앨범 해설, FR 그래프 비전 해석, 가사 번역
+*   **External APIs**: Wikipedia API, YouTube IFrame Player API, YouTube oEmbed, YouTube Music 카탈로그(비공식, 한국 앨범 트랙 제목 한정), iTunes Lookup / Search API (유튜브·애플 연동은 모두 API 키 불필요)
 *   **Key Libraries**:
     *   `lucide-react` (아이콘)
     *   `sonner` (Toast 알림)
     *   `react-markdown` (AI 텍스트 렌더링)
     *   `recharts` (헤드파이 레이더 차트)
+    *   `sharp` (PWA 아이콘 생성 스크립트)
 *   **Dev Launcher**: Tauri 웹뷰(macOS). 외부 링크는 런처 capabilities의 shell open 권한(`http`/`https`)으로 기본 브라우저에서 연다.
 
 ---
@@ -33,31 +36,33 @@ myaudio/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx                  # 전역 레이아웃 (Theme, Lyrics/Album Player, Navigation, Footer 등)
-│   │   ├── page.tsx                    # 메인 대시보드 (Stat 바, 최근 청취 7장 캐러셀, 최근 구매 기기, 타임머신)
+│   │   ├── page.tsx                    # 메인 대시보드 (Stat 바, 보유 기기, 이번 주 Weekly Hot, 최근 청취/등록 앨범, 이달의 리시버, 최근 구매 기기)
 │   │   ├── globals.css                 # 전역 스타일 및 Tailwind v4 유틸리티 클래스
 │   │   ├── login/                      # 로그인 페이지
-│   │   ├── albums/                     # 앨범 라이브러리, 음감 다이어리(/diary - 리스트/캘린더 뷰), 작곡가 콤보박스 등
-│   │   ├── artists/                    # 아티스트·작곡가 관리 (토글, URL 기준 선택, GPT 바이오, 외부 링크, 아티스트 빠칭코)
+│   │   ├── albums/                     # Pop & Rock 앨범 라이브러리, 음감 다이어리(/albums/diary), 통계(/albums/stats), 작곡가 콤보박스 등
+│   │   ├── classic/                    # Classic 카탈로그 (/classic → /classic/albums 리다이렉트, /classic/albums, /classic/artists)
+│   │   ├── artists/                    # Pop & Rock 아티스트 관리 (URL 기준 선택, GPT 바이오, 외부 링크, 아티스트 빠칭코; role=composer는 /classic/artists로 리다이렉트)
 │   │   ├── lyrics/                     # 가사 번역 노트 (AI 번역, 원문·발음·번역, 유튜브 연동, 트랙리스트 편집)
-│   │   ├── recordshelf/                # CD / LP / Cassette Tape 실물 음반 전용 라이브러리 (리스트/장르보드)
+│   │   ├── recordshelf/                # CD / LP / Cassette Tape 실물 음반 전용 라이브러리
 │   │   ├── headfi/                     # 헤드파이 기기 목록, 조합 관리, 매칭(/match), 포지션맵(/map), 판매관리, 액세서리 관리
 │   │   ├── works/                      # 가사·음원 라이브러리 및 전역 HTML5 연속 오디오 플레이어
 │   │   ├── insights/                   # 청취 통계 및 아카이브 대통합 (랭킹, 추이, 사용통계, 장르통계, 아카이브)
 │   │   ├── archive/                    # (레거시 호환) /insights?tab=archive 리다이렉트
-│   │   └── api/                        # AI 연동, 유튜브 트랙 제목 조회, 애플뮤직 앨범 찾기 등 API 라우트
-│   ├── components/                     # 공통 및 도메인별 UI 컴포넌트
-│   │   ├── ui/                         # 아토믹 UI 요소 (버튼, 카드, 모달, 팝오버, 콤보박스 등)
-│   │   ├── layout/                     # 헤더, 푸터, 네비게이션(GNB) 등 공통 레이아웃
-│   │   ├── features/                   # 도메인별 기능 컴포넌트
-│   │   └── GlobalAlbumPlayer.tsx       # 앨범 전역 플레이어 (하단 띠 + 확장 모달)
+│   │   └── api/                        # AI 연동, Apple Music 가져오기/찾기, 유튜브 트랙 제목 조회, 수동 무드 지정 등 API 라우트
+│   ├── components/                     # 공통 및 도메인별 UI 컴포넌트 (CatalogTabBar, Navigation, GlobalAlbumPlayer, GlobalLyricsPlayer 등)
 │   ├── contexts/                       # 전역 Context (LyricsPlayerProvider, AlbumPlayerContext)
-│   ├── hooks/                          # 공용 커스텀 훅 (useAlbumMutations, useAlbumFilters, useHeadfiFilters 등)
+│   ├── hooks/                          # 공용 커스텀 훅 (useAuthState, useLockBodyScroll 등)
 │   ├── lib/                            # 유틸리티 라이브러리
-│   │   ├── supabase/                   # Supabase client / server / middleware 설정
-│   │   ├── aiModels.ts                 # AI 모델명 기본값 단일 관리 (OpenAI/Anthropic은 env로 덮어쓰기 가능)
-│   │   ├── musicbrainz.ts              # MusicBrainz API 연동 모듈
+│   │   ├── supabase/                   # Supabase client / server 설정
+│   │   ├── aiModels.ts                 # AI 모델명 기본값 단일 관리 (Gemini/OpenAI/Anthropic은 env로 덮어쓰기 가능)
+│   │   ├── catalogScope.ts             # Pop & Rock('popular') / Classic('classic') 스코프 및 경로 헬퍼
+│   │   ├── catalogLibraryCache.ts      # 카탈로그 탭 이동 메모리 캐시 및 백그라운드 재검증
 │   │   ├── gemini.ts                   # Gemini API 헬퍼 및 retry 로직 (검색 근거 URL 반환 포함)
-│   │   ├── albumEnrichment.ts          # 신규 앨범 등록 후 소개·무드 자동 생성 (단계별 로그 포함)
+│   │   ├── openaiArtistBio.ts          # OpenAI Responses API 기반 아티스트 바이오 생성
+│   │   ├── openaiHeadfi.ts             # OpenAI Chat Completions 기반 기기 조합 매칭 스코어
+│   │   ├── anthropicHeadfi.ts          # Anthropic Claude 기반 청음 AI 분석·추천·FR 비전 해석
+│   │   ├── anthropicLyricsTranslate.ts # Anthropic Claude 기반 가사 번역
+│   │   ├── albumEnrichment.ts          # 신규 앨범 등록 후 소개·무드 자동 생성 및 수동 무드 저장
 │   │   ├── listenHistoryGear.ts        # 청취 이력 Source / Amp / Receiver / Media 공용 상수·포매터
 │   │   ├── headfiSoundScores.ts        # 청음 평점(성능 13 + 성향 4) AI 프롬프트 블록 공용 정의
 │   │   ├── headfiPosition.ts           # 포지션 맵 좌표 공식 (유선 HP/IEM)
@@ -65,10 +70,11 @@ myaudio/
 │   │   ├── youtubePlaylist.ts          # 유튜브 재생목록 주소 → ID 추출
 │   │   ├── youtubeIframeApi.ts         # IFrame API 스크립트 1회 로드, 플레이어 준비 판정
 │   │   ├── youtubeTracks.ts            # 트랙 목록 캐시 형식·불일치 판정
-│   │   ├── appleMusic.ts               # 애플뮤직 검색 결과 정규화·일치도 판정
-│   │   └── timeMachineRecall.server.ts # 대시보드 과거 청취 타임머신 발굴 로직
-│   └── proxy.ts                        # 쿠키 기반 세션 갱신 및 토큰 프록시
-├── feature_list/                       # 하네스 검증용 JSON 파일군 (SETUP, ALBUM, GEAR, LYRICS, RecordShelf, UX, STATS, BUG 등)
+│   │   ├── appleMusic.ts               # 애플뮤직 URL 파싱 및 iTunes 검색 결과 정규화·일치도 판정
+│   │   └── weeklyHot.ts                # 롤링 7일 Weekly Hot 집계
+│   ├── middleware.ts                   # src/proxy.ts re-export
+│   └── proxy.ts                        # 쿠키 기반 세션 갱신 및 보호 경로 리다이렉트
+├── feature_list/                       # 하네스 검증용 JSON 파일군 (SETUP, ALBUM, CLASSIC, GEAR, LYRICS, LYRICSTRANSLATE, RecordShelf, UX, STATS, BUG)
 ├── public/                             # PWA 아이콘 및 정적 에셋
 ├── CONVENTIONS.md                      # 프로젝트 코딩 컨벤션 및 DB 맵핑 규칙
 ├── HARNESS.md                          # 하네스 운용 및 에이전트 작업 절차
@@ -85,8 +91,8 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 
 | 테이블명 | 용도 | 설명 |
 | :--- | :--- | :--- |
-| `album` | 앨범 메타데이터 정보 | 제목, 아티스트(연주자), 아티스트 구분(`artist_type`: 밴드/솔로/아이돌/그룹/걸스 밴드/연주자/지휘자/음악감독/기타), 발매일, 장르(`genre1`, `genre2` — Classic일 때 장르2는 형식), 국가(연주자 국적), 오디오 태그, 실물 음반 보유 여부(`owns_cd`, `owns_lp`, `owns_cassette`), 앨범 타입(정규/EP/싱글/라이브/리메이크/리믹스 등), AI 소개문, 커버 URL, 무드(`mood_name`), 수동 무드 재분류 플래그(`mood_manually_set`), **Classic 작곡가 정보**(`composer`, `composer_country`, `composer_era`, `composer_wiki_url`), **재생 연결**(유튜브 뮤직 재생목록 ID `youtube_playlist_id`, 트랙 목록 캐시 `youtube_tracks` jsonb, 애플뮤직 앨범 주소 `apple_music_url`) 등 |
-| `album_listen_history` | 앨범 청취 이력 | 청취 일자, 소감(리뷰), 감상 시 날씨/온도, 매체(`media`), 소스 기기(`source_id`), 앰프 1·2(`dac_amp_id`, `dac_amp2_id`), 리시버(`headphone_id`)를 누적 기록. 구성: Media + Source / Amp 1 + Amp 2 + Receiver |
+| `album` | 앨범 메타데이터 정보 | 제목, 아티스트(연주자), 아티스트 구분(`artist_type`: 솔로/아이돌/밴드/걸스 밴드/그룹/연주자/지휘자/음악감독/기타), 발매일, 장르(`genre1`, `genre2` — Classic일 때 장르2는 형식), 국가(연주자 국적), 오디오 태그, 실물 음반 보유 여부(`owns_cd`, `owns_lp`, `owns_cassette`), 앨범 타입(정규/EP/싱글/라이브/컴필레이션/베스트·스페셜/OST/리메이크/리믹스), AI 소개문, 커버 URL, 무드(`mood_name`), 수동 무드 재분류 플래그(`mood_manually_set`), **Classic 전용 필드**(`classic_instrument` 대표 악기, `composers` jsonb 최대 6명 및 대표 작곡가 레거시 컬럼 `composer` / `composer_country` / `composer_era` / `composer_wiki_url`), **외부·재생 연결**(`title_song_url` Pop은 유튜브 URL / Classic은 Stage+ URL, 유튜브 뮤직 재생목록 ID `youtube_playlist_id`, 트랙 목록 캐시 `youtube_tracks` jsonb, 애플뮤직 앨범 주소 `apple_music_url`) 등 |
+| `album_listen_history` | 앨범 청취 이력 | 청취 일자, 소감(리뷰), 감상 시 날씨/온도, 매체(`media`: Apple Music / Spotify / YouTube Music / Stage+ / CD / LP / Cassette / FLAC / 기타), 소스 기기(`source_id`), 앰프 1·2(`dac_amp_id`, `dac_amp2_id`), 리시버(`headphone_id`)를 누적 기록. 구성: Media + Source / Amp 1 + Amp 2 + Receiver |
 | `album_mood_groups` | 무드보드 그룹 캐시 | AI가 분류한 앨범들의 무드 그룹(9가지 대표 무드) 분류 데이터를 캐싱 |
 | `album_moods` | 사용자 지정 무드 이름 | 사용자가 앨범 무드 관리를 위해 커스텀 정의한 무드 키-벨류 정보 |
 | `artists` | 아티스트 메타데이터 | 아티스트명(`artist_name` UNIQUE), 보조이름(`name_alt`), 프로필 이미지, 위키피디아 요약, GPT 생성 국문 Bio, 외부 공식 SNS 링크 등을 관리. 작곡가도 같은 이름이면 이 프로필을 공유 |
@@ -112,35 +118,45 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 
 ### 4.1. 공통 UX & PWA & 메인 대시보드
 *   **반응형 메인 대시보드 (`/`)**:
-    *   **Stat 바**: 총 앨범 수, 보유 기기 수(보유중 기준), 이번 달 청취 건수 집계 노출.
-    *   **최근 청취 7장 스와이프 캐러셀**: 1:1 커버 비율 유지, 대칭 Peek 효과, 3초 오토 슬라이드, 다이어리 바로가기 배지 탑재.
-    *   **과거 오늘 타임머신 회상 (Time Machine)**: 과거 동일 날짜(1년 전, 2년 전 등)의 청취 기록을 발굴하여 대시보드에 감성적으로 노출 (±3일 윈도우 OR 필터 쿼리 최적화).
-    *   **최근 구매 기기 목록**: 구매일 최신순 기기 5개 및 대시보드 보유 기기 3x3 그리드 제공.
-*   **랜덤 앨범 추천 (`ALBUM-037`)**: 최상단 랜덤 추천 버튼은 모달만 열고 자동 추첨하지 않는다. 기간(기본: 기간 전체)과 태그(기본: 전체 / Popular / Classic / All Time)를 선택한 뒤 "추천 받기"로 조건에 맞는 앨범 한 장을 빠칭코 방식 커버 애니메이션 후 확정하고, "다시 추천"으로 같은 조건에서 재추첨한다. 조건에 맞는 앨범이 없으면 안내를 표시한다. 앨범 메뉴의 랜덤 버튼과 기분 추천 진입점은 제거했다(`/api/mood-recommend`와 관련 코드는 유지).
-*   **GNB 인터랙션 & 테마 토글**: 라이트/다크/자동(System) 모드 지원, 부드러운 상단 스크롤 `BackToTop`, GNB 새로고침 버튼 비동기 스핀 애니메이션(`animate-spin`, `aria-busy`).
+    *   **Stat 바**: 총 앨범 수, 보유 기기 수(`보유중` 기준), 총 청취 건수 집계 노출.
+    *   **상단 2열 (보유 기기 / 이번 주)**: 카테고리별 보유 기기 수 그리드와 롤링 7일 **Weekly Hot**(핫 아티스트 1명, 핫 앨범 TOP3, 7일 청취 요약, 랜덤 추천 진입 버튼) 노출.
+    *   **하단 2열 ① (최근 청취 앨범 / 최근 등록 앨범)**: 최근 청취 앨범 스와이프 캐러셀(1:1 커버 비율, 오토 슬라이드, 다이어리 바로가기) 및 최근 등록 앨범 2장.
+    *   **하단 2열 ② (이달의 리시버 / 최근 구매 기기)**: 이달 최다 사용 리시버 TOP3 및 구매일 최신순 기기 2개.
+*   **랜덤 앨범 추천 (`ALBUM-037`)**: 상단 랜덤 추천 버튼은 모달만 열고 자동 추첨하지 않는다. 기간(발매 연도), 장르1(DB 실제 값 및 개수 표기), 앨범 타입 칩(`전체` / `정규` / `EP` / `정규+EP`), `All Time` 토글(`전체` / `All Time`, 켜면 기간 무시)을 선택한 뒤 추천 버튼으로 조건에 맞는 앨범 한 장을 빠칭코 방식 커버 애니메이션 후 확정하고 다시 추첨할 수 있다. 조건에 맞는 앨범이 없으면 버튼을 비활성화한다. 기분 추천 진입점은 제거되었다(`/api/mood-recommend`와 관련 코드는 유지).
+*   **GNB 인터랙션 & 테마 토글**: 상단 메뉴는 `Pop & Rock`(`/albums`), `Classic`(`/classic/albums`), `Lyrics`, `RecordShelf`, `Head-fi`, `Works`, `Insights`로 구성. 라이트/다크/자동(System) 모드 지원, 부드러운 상단 스크롤 `BackToTop`, GNB 새로고침 버튼 비동기 스핀 애니메이션(`animate-spin`, `aria-busy`).
 *   **인라인 확인 모달 전면 표준화**: 브라우저 기본 `window.confirm` 대화상자로 인한 모달 중첩 오류를 방지하기 위해, 전 도메인(앨범, 헤드파이 기기/액세서리/판매/세팅, 청취 이력, 가사, 포지션맵 등)에서 **커스텀 인라인 확인 UI**로 전면 전환.
 *   **PWA(Progressive Web App)**: 모바일/데스크탑 웹 홈 화면 추가 기능(Headphones 아이콘, Manifest 지원).
 
-### 4.2. 앨범 라이브러리 & 다이어리 (Albums)
-*   **목록 및 복합 필터**: 타이틀 "Album Library". 장르(Crossover 포함), 국가(한국, 일본, 미국, 영국, 유럽, 중국, 오스트리아, 이탈리아, 체코, 폴란드, 헝가리, 핀란드, 스페인, 네덜란드 등), 연도("기간 전체" 포함), 실물 음반 매체 여부, 앨범 타입(정규/EP/싱글/라이브/컴필레이션/OST/리메이크/리믹스), 텍스트 검색(작곡가 이름 포함), 다중 정렬 지원.
-    *   **태그 버튼**: 전체 / Popular / Classic / All Time (기본 전체). All Time은 연도를 무시하고, 나머지는 연도·필터와 AND로 적용. Popular는 Classic이 아닌 모든 앨범.
-*   **MusicBrainz 및 CAA 연동**: 아티스트 검색 후 앨범 리스트 자동 완성 및 Cover Art Archive 이미지 자동 수집.
-*   **Classic 작곡가 정보 (`ALBUM-038`, `ALBUM-039`, `ALBUM-041`, `ALBUM-042`)**: Classic 앨범에서만 작곡가 이름·작곡가 국적·시대·작곡가 위키피디아 URL을 입력·표시한다. 아티스트(`album.artist`)는 연주자이고 국가(`album.country`)는 연주자 국적이다. Classic일 때 장르2는 형식 셀렉트(필수: 교향곡 / 관현악, 협주곡, 실내악, 기악 / 독주, 성악 / 오페라 / 합창, 발레 / 극장·부수음악, 컴필레이션)이고, 시대는 선택(고음악 (중세·르네상스), 바로크, 고전주의, 낭만주의, 근현대, 혼합 / 옴니버스)이다. 레거시 장르2 값은 그대로 표시하고, 비Classic으로 저장해도 DB의 작곡가 값은 유지된다.
-*   **작곡가 입력 콤보박스**: 기존에 등록된 작곡가 중 선택하거나 직접 입력한다. 목록에서 선택하면 해당 작곡가의 국적·시대·위키피디아를 자동으로 채운다(앨범들 중 가장 많이 쓰인 값, 비어 있는 필드는 기존 입력 유지).
-*   **아티스트 구분**: 밴드, 솔로, 아이돌, 그룹, 걸스 밴드, 연주자, 지휘자, 음악감독, 기타. 음악감독은 게임·영화·드라마 OST 작곡가로, Classic 작곡가 필드와는 별개다.
-*   **앨범 등록/수정 폼**: 앨범명은 한 줄 전체 폭. 물리 매체 이후 애플뮤직 주소 + 유튜브 뮤직 재생목록 / 타이틀곡 URL + Wikipedia URL / 장르1 + 장르2(형식) / 작곡가 + 작곡가 국적 / 시대 + 작곡가 위키피디아 URL 순서이며, 모바일에서는 세로로 쌓는다.
+### 4.2. 앨범 라이브러리 & 다이어리 (Pop & Rock / Classic)
+`album` 테이블을 공유하며 `catalogScope` (`'popular' | 'classic'`)로 **Pop & Rock**(`/albums`, `/artists`)과 **Classic**(`/classic/albums`, `/classic/artists`) 메뉴를 분리한다. 상단 `CatalogTabBar`로 Pop & Rock은 `앨범` / `아티스트`, Classic은 `앨범` / `연주자/지휘자` / `원작곡가` 탭을 전환하며, 카탈로그 탭 이동 캐시(`src/lib/catalogLibraryCache.ts`)로 동일 세션의 목록·아티스트 메타 데이터를 메모리에 캐싱하고 백그라운드로 재검증한다.
+
+*   **Pop & Rock (`/albums`)**:
+    *   **목록 및 복합 필터**: 장르(`Classic` 제외), 국가, 연도(`기간 전체` 포함), 태그 버튼(`전체` / `All Time` — `All Time`은 연도를 무시), 텍스트 검색(작곡가 이름 포함), 정렬(최신 등록순 / 발매일 최신순 / 발매일 과거순) 지원.
+    *   **뷰 모드**: 목록 뷰 / 무드보드 뷰 / 장르보드 뷰 전환 지원.
+    *   **상단 헤더**: 다이어리(`/albums/diary`), 랜덤 추천, `+` 버튼(즉시 등록 폼 오픈). 취향 분석 버튼은 헤더에서 제거되었다(`?panel=taste` URL 진입 및 `/api/analyze-music-taste` 코드는 유지).
+*   **Classic (`/classic/albums`)**:
+    *   **목록 및 Classic 전용 필터**: 목록 뷰 전용(무드보드·장르보드 없음), 기본 연도 필터는 `기간 전체`. 대표 악기(`Piano`, `Violin`, `Cello`, `Orchestra`, `Vocal`, `Other`), 형식(`Orchestral`, `Concerto`, `Chamber`, `Solo/Sonata`, `Opera/Choral`, `Stage`, `Compilation`), 국가, 정렬 필터 제공.
+    *   **카드 태그**: 대표 악기와 형식 칩을 표시하며 클릭 시 해당 필터를 토글한다.
+    *   **작곡가 정보 (`composers` 최대 6명)**: `ComposerComboSelect`로 기존 작곡가를 선택하거나 직접 입력한다. 목록에서 선택하면 국적·시대·작곡가 위키피디아 URL을 자동 채움(비어 있는 필드는 기존 입력 유지). 첫 번째 유효 작곡가가 대표 작곡가 레거시 컬럼(`composer`, `composer_country`, `composer_era`, `composer_wiki_url`)과 함께 저장된다.
+    *   **아티스트 구분**: Classic 모드는 `연주자`, `지휘자`, `기타`만 선택 가능(Pop 모드는 `솔로`, `아이돌`, `밴드`, `걸스 밴드`, `그룹`, `연주자`, `음악감독`, `기타`).
+*   **물리 매체 아이콘**: `Albums` / `Classic` 목록 카드 커버 우측 상단에 `CD`, `LP`, `카세트` 보유 아이콘(`PhysicalOwnedCoverIcons`)을 표시한다.
+*   **앨범 등록/수정 폼 (`AlbumForm`)**:
+    *   `+` 버튼 클릭 시 검색 단계 없이 폼이 바로 열린다(MusicBrainz 검색 제거).
+    *   폼 모드(`pop` / `classic`)가 메뉴별로 분리되며 장르 전환은 불가하다(Classic 모드는 장르 `Classic` 고정, Pop 모드는 `Classic` 선택 불가).
+    *   **Apple Music 가져오기 (`/api/apple-music-import`)**: 새 등록 시 폼 최상단에 애플뮤직 주소 입력 칸(자동 포커스)과 `앨범 정보 가져오기` 버튼이 배치되어 앨범명·발매일·커버·Apple Music URL(Pop 모드는 아티스트·앨범 타입·기존 라이브러리 기반 아티스트 구분/국적 기본값 포함)을 자동으로 채운다. 수정 폼에서는 기존 위치에서 `커버·발매일 가져오기`로 커버·발매일·Apple Music URL만 갱신한다.
+    *   폼 순서: (신규 시 최상단 애플뮤직 주소) → 앨범명(전체 폭) → 아티스트·아티스트 구분·국가·앨범 타입·연도·발매일·커버·물리 매체 → (수정 시 애플뮤직 주소) + 유튜브 뮤직 재생목록 → 타이틀곡 URL(Pop은 유튜브 / Classic은 Stage+ URL) + Wikipedia URL → 장르1 + 장르2(Classic은 형식 필수 + 대표 악기) → (Classic 전용) 작곡가 목록(최대 6명) → 앨범 소개·추천 리시버. 모바일에서는 세로로 쌓는다.
 *   **3탭 앨범 상세 모달**:
-    *   **상단 버튼**: TV(타이틀곡 영상) → 애플뮤직(애플뮤직에서 열기) → ▶(유튜브 뮤직 앨범 전체 재생). 각 버튼은 해당 데이터가 있을 때만 표시된다.
-    *   **앨범 정보**: 메타데이터, Wikipedia 요약, AI 생성 소개문 및 태그, 무드보드 바로가기 연동. Classic 앨범은 작곡가 이름 아래 줄에 국기·국적·시대를 표시한다. 아티스트명·작곡가명을 클릭하면 아티스트 메뉴의 해당 뷰로 이동한다.
+    *   **상단 버튼**: Pop은 `TV`(타이틀곡 유튜브 영상 임베드 토글), Classic은 `title_song_url`을 외부 링크 버튼(`Stage+` / `YouTube` / `링크`)으로 새 탭 오픈. 이어서 `애플뮤직에서 열기` → `▶`(유튜브 뮤직 앨범 전체 재생). 각 버튼은 해당 데이터가 있을 때만 표시된다.
+    *   **앨범 정보**: 메타데이터, Wikipedia 요약, AI 생성 소개문 및 태그, 무드보드 바로가기 연동(Classic은 무드 UI 미표시). Classic 앨범은 작곡가 1명일 때 이름 링크 + `국기 국적 · 시대`, 2명 이상일 때 3열 원형 프로필 그리드(`artists` 테이블 이미지 연동)를 표시한다. 아티스트명·작곡가명을 클릭하면 해당 스코프의 아티스트/작곡가 뷰로 이동한다.
     *   **추천 리시버**: 수동 추천 기기 및 AI 추천 리시버(헤드폰+이어폰 확장, 추천 사유 및 새로고침 지원) 노출.
     *   **청취 이력**: 청취 일자, 소감, 날씨/온도, 감상 환경(**Media + Source / Amp 1 + Amp 2 + Receiver**) 기록 및 누적 타임라인.
-        *   **Media**: Apple Music, Spotify, YouTube Music, CD, LP, Cassette, FLAC/MP3, 기타 (필수). 저장값은 `FLAC` 그대로이고 화면 표시명만 `FLAC/MP3`.
-        *   **Source**: Source·DAP 카테고리 기기에서 선택 (필수).
-        *   **Amp 1 / Amp 2**: DAC·AMP·DAC/AMP·기타 카테고리 기기에서 선택 (선택).
-        *   **Receiver**: 헤드폰·이어폰·무선 헤드폰·무선 이어폰·스피커 중 선택 (필수).
+        *   **Media**: `Apple Music`, `Spotify`, `YouTube Music`, `Stage+`, `CD`, `LP`, `Cassette`, `FLAC/MP3`, `기타` (필수). 저장값은 `FLAC` 그대로이고 화면 표시명만 `FLAC/MP3`.
+        *   **Source**: `Source`·`DAP` 카테고리 기기에서 선택 (필수).
+        *   **Amp 1 / Amp 2**: `DAC`·`AMP`·`DAC/AMP`·`기타` 카테고리 기기에서 선택 (선택).
+        *   **Receiver**: `헤드폰`·`이어폰`·`무선 헤드폰`·`무선 이어폰`·`스피커` 중 선택 (필수).
         *   기기 선택 옵션과 이력 카드에는 **브랜드 없이 모델명만** 표시. 슬롯별 카테고리 규칙은 `src/lib/listenHistoryGear.ts`에서 공용 관리.
         *   이력 카드: 날짜·시간·날씨 / 소감 / 미디어·리시버 배지 / Source / Amp 1 / Amp 2 순으로 배치하며, 카드 안에서 인라인 수정 가능.
-*   **무드보드 & 장르보드 & 수동 무드 재분류 (`ALBUM-033`)**: 9가지 무드 분류 및 대표 `genre1` 기준 스택 카드 뷰 제공. AI 자동 분류 외에 사용자가 직접 앨범 무드를 드롭다운으로 변경 가능 (`mood_manually_set` 플래그로 자동분류 덮어쓰기 방지).
+*   **무드보드 & 장르보드 & 수동 무드 재분류 (`ALBUM-033`)**: Pop & Rock에서 9가지 무드 분류 및 대표 `genre1` 기준 스택 카드 뷰 제공. AI 자동 분류 외에 사용자가 직접 앨범 무드를 드롭다운으로 변경 가능 (`/api/album-mood-set`, `mood_manually_set` 플래그로 자동분류 덮어쓰기 방지).
 *   **무드 자동 분류 시점**: 신규 등록 직후 서버 백그라운드(`after()`)에서 소개 생성에 성공하면 이어서 무드를 분류한다. 그 외에는 앨범 메뉴의 소개 새로고침(소개 생성 후 `/api/album-mood-assign`)에서만 분류한다. 수정 저장과 다른 화면(아티스트, 인사이트, 다이어리 등)의 소개 새로고침은 무드를 분류하지 않으며, 수정 저장은 기존 무드를 그대로 유지한다. 분류 실패는 화면에 표시되지 않고 서버 로그(`[album-enrichment]`, `mood_name_mismatch` 등)로만 남는다.
 *   **음감 다이어리 (`/albums/diary`, `ALBUM-032`)**: 날짜별로 그룹핑된 청취 일지 타임라인 제공. **리스트 뷰**와 **캘린더 카드 뷰** 토글 지원, 청취 이력 인라인 수정 및 삭제 지원. 기기 표기는 브랜드 없이 모델명만 노출.
 *   **공용 리시버 콤보박스 (`ALBUM-027`)**: 검색, 최근 사용 기기, 전체보기 지원 콤보박스 UI 적용.
@@ -163,13 +179,13 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 
 ### 4.4. RecordShelf (실물 음반 라이브러리, `/recordshelf`)
 *   **CD / LP / 카세트 테이프(Cassette Tape) 실물 음반 컬렉션 단독 관리**: 앨범 폼에서 `CD 보유`, `LP 보유`, `Cassette 보유`(`owns_cassette`)로 체크된 실물 음반들만 별도로 모아보는 전용 라이브러리 메뉴.
-*   **다양한 뷰 & 필터**: 리스트뷰(Albums와 동일한 커버 레이아웃) 및 장르보드 뷰 전환, CD/LP/Cassette 매체 구분 태그 표시, 매체 필터(전체/CD/LP/Cassette) 및 발매일 정렬 지원.
+*   **다양한 뷰 & 필터**: 리스트뷰(카드 제목 아래 `PhysicalOwnedBadges` 텍스트 배지로 매체 구분) 및 장르보드 뷰 전환, 매체 필터(전체/CD/LP/카세트), 장르 필터 및 정렬 지원.
 *   **상세 모달 연동**: 항목 클릭 시 앨범 상세 모달이 오픈되어 수정·삭제가 즉시 수행되며 배경 스크롤을 자동 잠금 처리.
 
-### 4.5. 아티스트 라이브러리 (Artists)
-*   **애플 뮤직 스타일 2단 레이아웃**: 좌측 아티스트 필터링/검색 목록, 우측 상세 아티스트 프로필 정보 구성.
-*   **아티스트 / 작곡가 토글 (`ALBUM-040`)**: 작곡가 뷰는 `album.composer` 기준으로 묶어 목록·상세·필터(검색 / 국적 / 시대 / 형식 태그)를 제공하고, 상세에서 앨범 추가 시 작곡가를 프리필한다. 작곡가 프로필은 같은 이름의 아티스트 프로필을 공유하고, 바이오는 작곡가 기준으로 생성하며, 위키피디아는 작곡가 위키 URL만 사용한다.
-*   **URL 기반 선택**: 토글과 선택 대상은 `/artists?role=artist|composer&artist={이름}` URL로만 결정된다. 앨범 상세 모달의 아티스트명·작곡가명, Insights 아티스트 모달의 아티스트명을 클릭하면 해당 뷰로 바로 이동하고, 새로고침·뒤로가기에도 보던 화면이 유지된다.
+### 4.5. 아티스트 라이브러리 (Pop & Rock `/artists` · Classic `/classic/artists`)
+*   **애플 뮤직 스타일 2단 레이아웃**: 좌측 아티스트 필터링/검색 목록, 우측 상세 아티스트 프로필 정보 구성. 상단 `CatalogTabBar`와 카탈로그 탭 캐시를 공유.
+*   **스코프 분리 & 작곡가 뷰 (`ALBUM-040`)**: Pop & Rock(`/artists`)은 아티스트 뷰만 제공하고, Classic(`/classic/artists`)은 `연주자/지휘자`와 `원작곡가`(`?role=composer`) 탭을 제공한다. `/artists?role=composer`로 접근하면 `/classic/artists?role=composer`로 리다이렉트된다. 작곡가 뷰는 `album.composer`·`album.composers` 기준으로 묶어 목록·상세·필터(검색 / 국적 / 시대 / 형식 태그)를 제공하고, 상세에서 앨범 추가 시 작곡가를 프리필한다. 작곡가 프로필은 같은 이름의 `artists` 행을 공유하고, 바이오는 작곡가 기준으로 생성하며, 위키피디아는 작곡가 위키 URL만 사용한다.
+*   **URL 기반 선택**: 선택 대상은 `artist={이름}`(Classic 작곡가는 `role=composer&artist={이름}`) URL로만 결정된다. 앨범 상세 모달의 아티스트명·작곡가명, Insights 아티스트 모달의 아티스트명을 클릭하면 해당 뷰로 바로 이동하고, 새로고침·뒤로가기에도 보던 화면이 유지된다.
 *   **이름2 (`name_alt`) 지원 & 정규화**: 한국어/원어 보조이름 등록 및 NFKC 정규화 비교를 통한 중복 검사, 이름 변경 시 앨범의 `artist`와 `composer`를 함께 일괄 갱신하고 기존 아티스트 병합 처리.
 *   **OpenAI Web Search 바이오**: 위키피디아와 연동 후 OpenAI Responses API + web_search 기반으로 정갈한 한국어 존대어(~습니다체) 아티스트 바이오를 자동 생성.
 *   **외부 브랜드 링크 & 빠칭코 모달**: 5대 플랫폼(Apple Music, Spotify, YouTube, X, Instagram) 브랜드 SVG 인라인 수정(Apple Music은 앨범 모달과 같은 공용 로고), 아티스트 빠칭코 무작위 추천 모달(`ALBUM-021`), 유사 아티스트 가중치 스코어링 지원.
@@ -230,40 +246,42 @@ myaudio는 AI 연동 시 **다중 AI 프로바이더 (Gemini / OpenAI / Anthropi
 
 1.  **`/api/album-intro`**: 앨범 정보를 바탕으로 AI 웹 검색 결합 앨범 영/국문 소개 및 대표 키워드 태그 생성. (Gemini)
 2.  **`/api/album-mood-assign`**: 신규 앨범 등록 직후 백그라운드와 앨범 메뉴의 소개 새로고침에서 단일 분석으로 무드보드 캐시에 동적 할당. 후보는 `album_mood_groups`의 9개 무드 중 하나로 한정. (Gemini)
-3.  **`/api/album-mood-groups`**: 전체 앨범 라이브러리를 9가지 무드 기준으로 일괄 매핑 및 캐싱. (Gemini)
-4.  **`/api/mood-recommend`**: 사용자 기분, 날씨, 시간대 감안 맞춤형 앨범 및 오디오 기기 제안. 헤드폰 후보의 온도/밝기는 `trait_warmth`/`trait_brightness` 사용. 앨범 메뉴 진입점은 제거되었고 API와 코드는 유지. (Gemini)
-5.  **`/api/analyze-music-taste`**: 앨범 장르, 국가, 연대 분포 기반 음악적 취향 종합 분석. (Gemini)
-6.  **`/api/artist-bio`**: **OpenAI (Responses API + web_search)**를 활용해 위키피디아 기반 정갈한 한국어 아티스트 생애/업적 바이오 작성. 작곡가 뷰에서는 작곡가 기준으로 생성.
-7.  **`/api/headfi-recommended-genres`**: 신규 오디오 장비 등록 시 스펙 적합 추천 음악 장르 태그 분석. (Gemini, 검색)
-8.  **`/api/headfi-album-recommend`**: **Anthropic Claude** 기반 기기 성향 대비 최적 궁합 보유 앨범 3선 및 추천 사유 제안. (성능/성향 평가 + FR + AI 분석 사용)
-9.  **`/api/headfi-sound-analysis`**: **Anthropic Claude** 기반 청음 AI 분석. 스펙(확정 사실) + 성능 13/성향 4 + FR 해석(있을 때) + 외부 리뷰 요약(있을 때)을 종합. 실패 시 기존 분석을 덮어쓰지 않음.
-10. **`/api/headfi-review-summary`**: **Gemini(Google Search 연동)**로 기기 외부 리뷰를 요약해 `ai_review_*` 컬럼에 저장. 요약이 있으면 재검색하지 않고 `force`일 때만 재검색.
-11. **`/api/headfi-fr-interpret`**: **Anthropic 비전**으로 FR 그래프 이미지를 스캔하여 저/중/고역 특성 리포트(`fr_interpretation`) 생성.
-12. **`/api/headfi-position`**: 포지션 맵 좌표 산출. 유선 헤드폰/이어폰은 공식 좌표 + Gemini 라벨, DAC/AMP는 출력 스펙 기반 AI 추정.
-13. **`/api/headfi-match-score`**: **OpenAI(Chat Completions)** 기반 기기 조합(combo_id) × 헤드폰/이어폰 궁합 점수(300점 만점) 산출.
-14. **`/api/headfi-album-match`**, **`/api/album-headphone-recommend`**: 콤보 × 앨범 매칭, 앨범 → 헤드폰 추천. (Gemini)
-15. **`/api/analyze-lyrics-vibe`**: 노랫말 문맥 분석 기반 **그라디언트 HEX 코드 2종 & 이모지** 산출. (Gemini)
-16. **`/api/lyrics-translate`**: 가사 번역. (Anthropic)
-17. **`/api/lyrics-tracklist`**: 앨범 트랙리스트 조회. (Gemini, 검색)
-18. **`/api/monthly-review-comment`**: 아카이브 월별 청취 내역 및 라이브러리 종합 AI 월간 코멘트 생성. (Gemini)
-19. **`/api/headfi`**: 헤드파이 장비 등록 및 변경 사항 처리를 위한 전용 Route Handler.
+3.  **`/api/album-mood-set`**: 상세 모달에서 사용자가 직접 선택한 무드를 저장하고 `mood_manually_set = true`로 설정. (AI 미사용, 로그인 필요)
+4.  **`/api/album-mood-groups`**: 전체 앨범 라이브러리를 9가지 무드 기준으로 일괄 매핑 및 캐싱. (Gemini)
+5.  **`/api/mood-recommend`**: 사용자 기분, 날씨, 시간대 감안 맞춤형 앨범 및 오디오 기기 제안. 헤드폰 후보의 온도/밝기는 `trait_warmth`/`trait_brightness` 사용. 앨범 메뉴 진입점은 제거되었고 API와 코드는 유지. (Gemini)
+6.  **`/api/analyze-music-taste`**: 앨범 장르, 국가, 연대 분포 기반 음악적 취향 종합 분석. (Gemini)
+7.  **`/api/artist-bio`**: **OpenAI (Responses API + web_search)**를 활용해 위키피디아 기반 정갈한 한국어 아티스트 생애/업적 바이오 작성. 작곡가 뷰에서는 작곡가 기준으로 생성.
+8.  **`/api/headfi-recommended-genres`**: 신규 오디오 장비 등록 시 스펙 적합 추천 음악 장르 태그 분석. (Gemini, 검색)
+9.  **`/api/headfi-album-recommend`**: **Anthropic Claude** 기반 기기 성향 대비 최적 궁합 보유 앨범 3선 및 추천 사유 제안. (성능/성향 평가 + FR + AI 분석 사용)
+10. **`/api/headfi-sound-analysis`**: **Anthropic Claude** 기반 청음 AI 분석. 스펙(확정 사실) + 성능 13/성향 4 + FR 해석(있을 때) + 외부 리뷰 요약(있을 때)을 종합. 실패 시 기존 분석을 덮어쓰지 않음.
+11. **`/api/headfi-review-summary`**: **Gemini(Google Search 연동)**로 기기 외부 리뷰를 요약해 `ai_review_*` 컬럼에 저장. 요약이 있으면 재검색하지 않고 `force`일 때만 재검색.
+12. **`/api/headfi-fr-interpret`**: **Anthropic 비전**으로 FR 그래프 이미지를 스캔하여 저/중/고역 특성 리포트(`fr_interpretation`) 생성.
+13. **`/api/headfi-position`**: 포지션 맵 좌표 산출. 유선 헤드폰/이어폰은 공식 좌표 + Gemini 라벨, DAC/AMP는 출력 스펙 기반 AI 추정.
+14. **`/api/headfi-match-score`**: **OpenAI(Chat Completions)** 기반 기기 조합(combo_id) × 헤드폰/이어폰 궁합 점수(300점 만점) 산출.
+15. **`/api/headfi-album-match`**, **`/api/album-headphone-recommend`**: 콤보 × 앨범 매칭, 앨범 → 헤드폰 추천. (Gemini)
+16. **`/api/analyze-lyrics-vibe`**: 노랫말 문맥 분석 기반 **그라디언트 HEX 코드 2종 & 이모지** 산출. (Gemini)
+17. **`/api/lyrics-translate`**: 가사 번역. (Anthropic)
+18. **`/api/lyrics-tracklist`**: 앨범 트랙리스트 조회. (Gemini, 검색)
+19. **`/api/monthly-review-comment`**: 아카이브 월별 청취 내역 및 라이브러리 종합 AI 월간 코멘트 생성. (Gemini)
+20. **`/api/headfi`**, **`/api/headfi/fr-graph`**, **`/api/headfi-fr-image`**: 헤드파이 장비 등록/수정 처리, FR 그래프 이미지 업로드, 원격 FR 이미지 프록시.
 
-### 5.2. 외부 재생 연동 API Route (AI 아님, 키 불필요)
+### 5.2. 외부 재생·메타데이터 연동 API Route (AI 아님, 키 불필요)
 
-1.  **`/api/youtube-track-titles`**: 유튜브 재생목록의 곡 제목 조회. 유튜브 oEmbed를 서버에서 호출(동시 4개, 요청당 ID 200개 상한, 형식 검사)하고, 한국 앨범(`album.country = '한국'`)은 제목에 한글·가나·한자가 없을 때 유튜브 뮤직 카탈로그(비공식 내부 API, 타임아웃 2초)를 추가 조회해 한글 원제를 받는다. 실패 시 oEmbed 제목으로 대체하고 `[youtube-track-titles] music_fallback` 로그를 남긴다.
+1.  **`/api/apple-music-import`**: `music.apple.com` 앨범 URL을 받아 iTunes Lookup API로 아티스트·앨범명·발매일·앨범 타입·고해상도 커버(`mzstatic.com` 1000/600px 도달 확인)를 가져온다. (로그인 필요)
 2.  **`/api/apple-music-album`**: iTunes Search API로 애플뮤직 앨범 주소 찾기. US → JP 순 조회(국가당 2.5초), 접미사 제거·정규화 후 앨범 ≥ 0.72 / 아티스트 ≥ 0.50 일치 시에만 결과 반환. 저장 주소는 `music.apple.com/kr/album/…` 형태.
+3.  **`/api/youtube-track-titles`**: 유튜브 재생목록의 곡 제목 조회. 유튜브 oEmbed를 서버에서 호출(동시 4개, 요청당 ID 200개 상한, 형식 검사)하고, 한국 앨범(`album.country = '한국'`)은 제목에 한글·가나·한자가 없을 때 유튜브 뮤직 카탈로그(비공식 내부 API, 타임아웃 2초)를 추가 조회해 한글 원제를 받는다. 실패 시 oEmbed 제목으로 대체하고 `[youtube-track-titles] music_fallback` 로그를 남긴다.
 
 ---
 
 ## 6. 인증 및 세션 아키텍처
 
-myaudio는 SSR과 비로그인 게스트의 원활한 조회 경험을 보장하는 하이브리드 Auth 구조를 취합니다.
+myaudio는 Supabase SSR 기반 인증과 읽기 전용 UI 분기를 함께 사용합니다.
 
 *   **Supabase SSR Client**: `src/lib/supabase/server.ts`의 `createClient()`는 쿠키 기반으로 서버 컴포넌트 환경 인증 상태 파악.
-*   **미들웨어 & 세션 프록시**: `src/middleware.ts`와 `src/proxy.ts`는 Supabase Auth 토큰 쿠키 세션 주기적 갱신 (`/albums`, `/headfi`, `/works`, `/lyrics`, `/archive`, `/insights` 보호 경로 관리).
+*   **미들웨어 & 세션 프록시**: `src/middleware.ts`와 `src/proxy.ts`는 Supabase Auth 토큰 쿠키 세션을 갱신하며, `PROTECTED_PREFIXES`(`/albums`, `/classic/albums`, `/headfi`, `/works`, `/lyrics`, `/archive`, `/insights`) 접근 시 비로그인 사용자를 `/login`으로 리다이렉트한다. (`/`, `/artists`, `/classic/artists`, `/recordshelf`는 미들웨어 리다이렉트 대상에 포함되지 않음)
 *   **접근 권한 위계**:
-    *   **비로그인 (Guest)**: 대시보드, Albums / Artists / Lyrics / RecordShelf / Head-fi / Works / Insights 기본 목록 검색 및 상세 모달 조회 (읽기 전용). 앨범 전체 재생과 애플뮤직·유튜브 뮤직 열기도 사용 가능하며, 트랙 목록·애플뮤직 주소는 조회만 하고 저장하지 않는다.
-    *   **로그인 (Owner)**: 신규 아이템 등록/수정/삭제, 청취 이력 작성/수정/삭제, 기기 조합(Combos) 및 액세서리(보유/방출/양도) 관리, 판매 관리, 게인 세팅 CRUD, AI 분석·외부 리뷰 수집 생성, 트랙 목록·애플뮤직 주소 캐시 저장 및 아카이브/통계 전체 접근 (쓰기/편집 권한).
+    *   **비로그인 (Guest)**: 미들웨어 보호 대상 외 경로(대시보드, `/artists`, `/classic/artists`, `/recordshelf`)의 기본 조회, 앨범 전체 재생 및 애플뮤직·유튜브 뮤직 열기 가능(단, 트랙 목록·애플뮤직 주소는 조회만 하고 저장하지 않음).
+    *   **로그인 (Owner)**: 신규 아이템 등록/수정/삭제, 청취 이력 작성/수정/삭제, 기기 조합(Combos) 및 액세서리(보유/방출/양도) 관리, 판매 관리, 게인 세팅 CRUD, AI 분석·외부 리뷰 수집 생성, 트랙 목록·애플뮤직 주소 캐시 저장 및 보호 경로 전체 접근 (쓰기/편집 권한).
     *   **Server Actions & API Route 보호**: 쓰기/수정/삭제 로직 최상단에서 서버 세션(`getCurrentUser()`)을 재검증하여 우회 입력 차단.
 
 
@@ -281,9 +299,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 GEMINI_API_KEY=your_gemini_api_key
 OPENAI_API_KEY=your_openai_api_key
 ANTHROPIC_API_KEY=your_anthropic_api_key
-MUSICBRAINZ_CONTACT_EMAIL=your_email_for_user_agent
 
 # (선택) 모델명 덮어쓰기. 설정하면 src/lib/aiModels.ts 기본값보다 우선합니다.
+# GEMINI_MODEL=
 # ANTHROPIC_HEADFI_MODEL=
 # ANTHROPIC_LYRICS_TRANSLATE_MODEL=
 # OPENAI_ARTIST_BIO_MODEL=

@@ -13,7 +13,7 @@
 - Database: Supabase (Auth + PostgreSQL + RLS) — mylibrary / mybooks와 동일 인스턴스 공유
 - Deployment: Vercel
 - AI: Gemini (`gemini-3.5-flash-lite`), OpenAI (`gpt-5.4-mini`), Anthropic Claude Sonnet. 모델명 기본값은 `src/lib/aiModels.ts` 한 곳에서 관리
-- External API: MusicBrainz, Cover Art Archive, YouTube IFrame Player API, YouTube oEmbed, YouTube Music 카탈로그(비공식 내부 API, 한국 앨범 트랙 제목 한정), iTunes Search API(애플뮤직 앨범 주소 찾기, 키 불필요)
+- External API: YouTube IFrame Player API, YouTube oEmbed, YouTube Music 카탈로그(비공식 내부 API, 한국 앨범 트랙 제목 한정), iTunes Lookup / Search API(애플뮤직 앨범 가져오기·주소 찾기, 키 불필요)
 - Font: Pretendard
 - dev 런처: Tauri 웹뷰(macOS). 외부 링크 열기는 런처 capabilities의 shell open 권한(`http`/`https` 한정)이 있어야 동작한다.
 
@@ -66,7 +66,6 @@ myaudio/
 │   │   │   ├── client.ts
 │   │   │   └── server.ts
 │   │   ├── aiModels.ts           # AI 모델명 기본값 단일 관리
-│   │   ├── musicbrainz.ts
 │   │   ├── gemini.ts
 │   │   ├── albumEnrichment.ts    # 신규 앨범 소개·무드 자동 생성 (단계별 로그)
 │   │   ├── listenHistoryGear.ts  # 청취 이력 Source/Amp/Receiver/Media 공용 상수·포매터
@@ -430,7 +429,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
-MUSICBRAINZ_CONTACT_EMAIL=   # MusicBrainz User-Agent 연락처 (배포 환경 필수 권장, 미설정 시 로그인 사용자 이메일 fallback)
 
 # (선택) 모델명 덮어쓰기 — 설정하면 src/lib/aiModels.ts 기본값보다 우선한다.
 ANTHROPIC_HEADFI_MODEL=
