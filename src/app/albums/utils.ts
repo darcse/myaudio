@@ -399,6 +399,60 @@ export function getYoutubeId(url: string): string | null {
   return match && match[2].length === 11 ? match[2] : null;
 }
 
+export type StagePlusUrlParseResult =
+  | { status: 'empty'; url: null }
+  | { status: 'ok'; url: string }
+  | { status: 'invalid'; url: null };
+
+export function normalizeStagePlusUrl(raw: string): StagePlusUrlParseResult {
+  const trimmed = raw.trim();
+  if (!trimmed) return { status: 'empty', url: null };
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'https:') return { status: 'invalid', url: null };
+    const host = url.hostname.toLowerCase();
+    if (host !== 'stage-plus.com' && host !== 'www.stage-plus.com') {
+      return { status: 'invalid', url: null };
+    }
+    const params = new URLSearchParams(url.search);
+    for (const key of [...params.keys()]) {
+      if (key.toLowerCase().startsWith('utm_')) {
+        params.delete(key);
+      }
+    }
+    const query = params.toString();
+    url.search = query ? `?${query}` : '';
+    return { status: 'ok', url: url.toString() };
+  } catch {
+    return { status: 'invalid', url: null };
+  }
+}
+
+export type ClassicTitleSongLinkKind = 'Stage+' | 'YouTube' | '링크';
+
+export function resolveClassicTitleSongLink(
+  raw: string | null | undefined,
+): { href: string; label: ClassicTitleSongLinkKind } | null {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return null;
+  const stage = normalizeStagePlusUrl(trimmed);
+  if (stage.status === 'ok' && stage.url) {
+    return { href: stage.url, label: 'Stage+' };
+  }
+  if (getYoutubeId(trimmed)) {
+    return { href: trimmed, label: 'YouTube' };
+  }
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return { href: trimmed, label: '링크' };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function buildDynamicYearOptions(library: Album[]): string[] {
   const available = new Set<(typeof YEAR_FILTER_ORDER)[number]>();
 

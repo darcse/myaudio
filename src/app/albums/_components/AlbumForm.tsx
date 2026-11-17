@@ -20,8 +20,10 @@ import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import {
   albumFormModeFromGenre1,
   emptyComposerFormEntry,
+  getYoutubeId,
   MAX_ALBUM_COMPOSERS,
   normalizeComposerNameKey,
+  normalizeStagePlusUrl,
   primaryComposerFieldsFromEntries,
   type AlbumFormMode,
 } from '../utils';
@@ -63,6 +65,12 @@ export function AlbumForm({
   const [composerDupError, setComposerDupError] = useState(false);
   const [playlistError, setPlaylistError] = useState(false);
   const [appleMusicError, setAppleMusicError] = useState(false);
+  const [stagePlusError, setStagePlusError] = useState(false);
+  const [initialTitleSongUrl, setInitialTitleSongUrl] = useState(() =>
+    'title_song_url' in selectedItem && typeof selectedItem.title_song_url === 'string'
+      ? selectedItem.title_song_url
+      : formData.title_song_url,
+  );
 
   useEffect(() => {
     setDeleteConfirmOpen(false);
@@ -70,6 +78,12 @@ export function AlbumForm({
     setComposerDupError(false);
     setPlaylistError(false);
     setAppleMusicError(false);
+    setStagePlusError(false);
+    setInitialTitleSongUrl(
+      'title_song_url' in selectedItem && typeof selectedItem.title_song_url === 'string'
+        ? selectedItem.title_song_url
+        : '',
+    );
   }, [selectedItem]);
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -333,14 +347,37 @@ export function AlbumForm({
           </div>
           <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-1 opacity-90">타이틀곡 URL (유튜브)</label>
+              <label className="block text-sm font-semibold mb-1 opacity-90">
+                {isClassicMode ? 'Stage+ URL' : '타이틀곡 URL (유튜브)'}
+              </label>
               <input
                 type="text"
                 className={inputBaseClass}
                 value={formData.title_song_url}
-                onChange={(e) => setFormData({ ...formData, title_song_url: e.target.value })}
-                placeholder="https://www.youtube.com/watch?v=..."
+                onChange={(e) => {
+                  setFormData({ ...formData, title_song_url: e.target.value });
+                  if (stagePlusError) setStagePlusError(false);
+                }}
+                placeholder={
+                  isClassicMode
+                    ? 'https://www.stage-plus.com/audio/album_...'
+                    : 'https://www.youtube.com/watch?v=...'
+                }
+                aria-invalid={stagePlusError}
               />
+              {stagePlusError ? (
+                <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                  Stage+ 주소(https://www.stage-plus.com/...)를 입력해 주세요.
+                </p>
+              ) : null}
+              {isClassicMode &&
+              formData.title_song_url.trim() &&
+              formData.title_song_url.trim() === initialTitleSongUrl.trim() &&
+              getYoutubeId(formData.title_song_url) ? (
+                <p className="mt-1 text-[11px] opacity-60">
+                  기존 YouTube 주소입니다. 수정하면 Stage+ 주소만 저장할 수 있습니다.
+                </p>
+              ) : null}
             </div>
             {renderInput('Wikipedia URL', 'wiki_url')}
             {isClassicMode ? (
@@ -666,6 +703,15 @@ export function AlbumForm({
                   setComposerDupError(true);
                   return;
                 }
+                const titleUrl = formData.title_song_url.trim();
+                if (
+                  titleUrl &&
+                  titleUrl !== initialTitleSongUrl.trim() &&
+                  normalizeStagePlusUrl(titleUrl).status !== 'ok'
+                ) {
+                  setStagePlusError(true);
+                  return;
+                }
               }
               if (parseYoutubePlaylistInput(formData.youtube_playlist_id ?? '').status === 'invalid') {
                 setPlaylistError(true);
@@ -679,6 +725,7 @@ export function AlbumForm({
               setComposerDupError(false);
               setPlaylistError(false);
               setAppleMusicError(false);
+              setStagePlusError(false);
               onSave();
             }}
             disabled={isSaving || isDeleting}

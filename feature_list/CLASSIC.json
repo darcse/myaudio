@@ -46,5 +46,19 @@
         "엣지 케이스: 대표 악기가 비어 있는 기존 클래식 앨범은 카드에 악기 태그 없이 형식·물리 매체만 표시되고, 수정 폼을 열어 저장해도 대표 악기가 비어 있는 채로 유지된다"
       ],
       "passes": true
+    },
+    {
+      "id": "CLASSIC-004",
+      "category": "CLASSIC",
+      "title": "Stage+ URL — 클래식 앨범 등록 시 타이틀곡 URL 대신 Stage+ 주소 입력",
+      "description": "Classic 앨범 등록·수정 폼에서 타이틀곡 URL(유튜브) 입력 칸의 라벨을 Stage+ URL로 바꿔 같은 필드에 저장하고, 앨범 상세에서 Classic 앨범은 임베드 재생 대신 Stage+ 페이지로 이동하는 링크 버튼을 보여준다.",
+      "steps": [
+        "Classic 앨범 추가 폼의 해당 칸 라벨은 Stage+ URL이고, Pop & Rock 앨범 폼에는 기존 타이틀곡 URL(유튜브) 칸이 그대로 있다",
+        "https://www.stage-plus.com/audio/album_...?utm_source=share 형태의 주소를 입력해 저장하면 utm 추적 쿼리가 제거된 주소로 저장되고, 다시 열면 정리된 주소가 보인다",
+        "Stage+ 주소가 아닌 주소(다른 사이트 등)를 입력하면 저장되지 않고 안내 문구가 나온다",
+        "Stage+ URL을 저장한 Classic 앨범의 상세에는 YouTube 버튼 대신 임베드 재생 없이 Stage+ 아이콘 버튼이 보이고, 누르면 새 탭에서 해당 Stage+ 페이지가 열린다. Stage+ URL이 없으면 버튼이 없다. Pop & Rock 앨범 상세의 유튜브 임베드 재생은 이전과 같다",
+        "엣지 케이스: 기존에 유튜브 주소가 저장된 Classic 앨범은 해당 칸을 수정하지 않고 저장해도 값이 유지되고 상세에서는 YouTube 링크 버튼으로 열리며, 칸을 비우고 저장하면 링크 버튼이 사라진다"
+      ],
+      "passes": false
     }
 ]

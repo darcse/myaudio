@@ -2,7 +2,12 @@
 
 import type { ComponentType } from 'react';
 import { AudioLines, CassetteTape, Disc, Disc3, Ellipsis, Headphones } from 'lucide-react';
-import { AppleMusicIcon, SpotifyIcon, YoutubeIcon } from '@/components/streamingServiceIcons';
+import {
+  AppleMusicIcon,
+  SpotifyIcon,
+  StagePlusIcon,
+  YoutubeIcon,
+} from '@/components/streamingServiceIcons';
 
 type ThumbIcon = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -16,7 +21,7 @@ const MEDIA_THUMB: Record<string, MediaThumbSpec> = {
   'Apple Music': { background: '#FC3C44', Icon: AppleMusicIcon, branded: true },
   Spotify: { background: '#1DB954', Icon: SpotifyIcon, branded: true },
   'YouTube Music': { background: '#FF0000', Icon: YoutubeIcon, branded: true },
-  'Stage+': { background: 'var(--badge-bg)', Icon: Headphones },
+  'Stage+': { background: 'var(--badge-bg)', Icon: StagePlusIcon },
   CD: { background: 'var(--badge-bg)', Icon: Disc },
   LP: { background: 'var(--badge-bg)', Icon: Disc3 },
   Cassette: { background: 'var(--badge-bg)', Icon: CassetteTape },

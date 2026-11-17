@@ -1,27 +1,27 @@
 {
-  "id": "T-041",
-  "goal": "Classic의 형식과 대표 악기 옵션명을 영문으로 바꾼다(DB 값도 영문으로 이관되는 전제).",
-  "context": "src/app/albums/constants.ts의 CLASSIC_FORM_OPTIONS(형식, album.genre2에 저장)와 CLASSIC_INSTRUMENT_OPTIONS(대표 악기, album.classic_instrument에 저장)의 값 문자열을 영문으로 바꾼다. 저장 값이 곧 표시 문구이므로 상수의 문자열을 바꾸면 폼 선택지·카드 칩·필터가 모두 영문이 된다. 매핑(순서 대응): 형식 — '교향곡 / 관현악'→'Orchestral', '협주곡'→'Concerto', '실내악'→'Chamber', '기악 / 독주'→'Solo', '성악 / 오페라 / 합창'→'Opera/Choral', '발레 / 극장·부수음악'→'Stage', '컴필레이션'→'Compilation'. 대표 악기 — '피아노'→'Piano', '바이올린'→'Violin', '첼로'→'Cello', '오케스트라'→'Orchestra', '성악/합창'→'Vocal', '기타'→'Other'. 전제: JW가 Supabase에서 기존 클래식 앨범의 genre2·classic_instrument 값을 같은 매핑으로 SQL 이관한다(Cursor는 SQL·DB 수정 금지). 작업 내용: (1) 상수 문자열 교체. (2) 두 상수의 옛 한국어 값을 코드 곳곳에서 문자열로 직접 쓰는 곳이 있는지 전수 grep한다(예: 형식 값을 조건으로 쓰는 분기, AI 프롬프트·무드 매핑·필터·정렬·통계·테스트 데이터, albumDetailMoodMiniCard 등). 있으면 영문 값으로 바꾸거나, 바꾸면 안 되는 이유가 있으면 result에 보고한다. 한국어 키워드로 장르 분위기를 판별하는 매핑(예: '실내악' 키워드)은 형식 상수와 무관하면 그대로 둔다. (3) 옵션 밖 값 처리: 이미 구현된 '옵션에 없는 기존 값은 폼에서 그대로 보존'과 카드 칩의 isClassicFormOption/isClassicInstrumentOption 판정이 이관 전 옛 값에서 어떻게 동작하는지(칩 숨김·폼 보존 여부) 확인해 result에 적는다. 이관 후에는 모두 영문 값이므로 별도 호환 코드는 추가하지 않는다. (4) 'Compilation' 철자는 올바른 철자로 통일한다. 라벨 이외의 로직·구조 변경은 하지 않는다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
+  "id": "T-043",
+  "goal": "Stage+를 나타내는 직접 그린 무대 아이콘(양쪽 커튼이 열린 무대)을 만들어, 앨범 상세의 Stage+ 링크 버튼과 청취 이력의 Stage+ 매체 아이콘에서 헤드폰 아이콘을 대체한다.",
+  "context": "T-042에서 앨범 상세(src/app/albums/_components/AlbumInfoSection.tsx, classicTitleSongLink.label === 'Stage+' 분기)가 lucide Headphones를 쓰고, 청취 이력 매체 표시(src/components/ListenHistoryMediaThumb.tsx의 'Stage+': { background, Icon: Headphones }, 필요 시 src/lib/listenHistoryGear.ts)도 같은 Headphones를 쓴다. Headphones는 다른 서비스와 구분이 안 된다는 JW 피드백으로, 원본으로 그린 무대 아이콘으로 교체한다. 요구사항: (1) src/components/streamingServiceIcons.tsx(AppleMusicIcon, YoutubeIcon이 있는 파일)에 StagePlusIcon을 추가한다. 24x24 viewBox, 선 기반(stroke=currentColor, fill=none 또는 최소한의 fill), strokeLinecap/Linejoin round로 lucide 아이콘과 같은 결로 그린다. 디자인: 위쪽에 가로 막대(무대 상단 프로시니엄), 양쪽에서 내려오는 커튼(곡선으로 열린 모양), 아래쪽에 무대 바닥선. 단순한 도형만 쓰고 세부 장식은 넣지 않는다. 공식 Stage+ 로고·글자·마크를 모방하지 않는다(오리지널 일반 무대 그림). className과 strokeWidth(기본 1.75~2)를 props로 받아 lucide 아이콘과 같은 방식으로 크기·색을 제어할 수 있게 한다(다른 아이콘 컴포넌트의 props 시그니처를 먼저 확인해 맞춘다). aria-hidden 처리. (2) 사용처 교체: AlbumInfoSection의 Stage+ 분기(상세 hero 버튼, 현재 size-3 text-white)와 ListenHistoryMediaThumb의 'Stage+' 매체 Icon을 StagePlusIcon으로 바꾼다. Headphones import가 더 이상 쓰이지 않으면 정리한다. 이 외에 Stage+를 Headphones로 표시하는 곳이 있으면 grep으로 전수 확인해 함께 바꾸고 result에 목록을 적는다. (3) 가독성: 12px 안팎(size-3)과 16~20px 두 크기에서 형태가 구분되는지 확인한다(브라우저 렌더링 캡처 등 가능한 방법으로 확인하고, 확인 방법과 결과를 result에 적는다). 작은 크기에서 뭉개지면 선 개수를 줄이거나 선 굵기를 조정한다. (4) YouTube·링크 버튼, Apple Music·Spotify 등 다른 아이콘과 클릭·링크 동작은 변경하지 않는다. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다.",
   "scope": {
     "in": [
-      "CLASSIC_FORM_OPTIONS·CLASSIC_INSTRUMENT_OPTIONS 값의 영문 교체",
-      "옛 한국어 값을 문자열로 직접 쓰는 코드 전수 확인과 필요한 교체",
-      "옵션 밖 값 동작 확인 보고"
+      "StagePlusIcon 신규 추가(streamingServiceIcons.tsx)",
+      "앨범 상세 Stage+ 버튼과 청취 이력 Stage+ 매체 아이콘 교체",
+      "Stage+를 Headphones로 표시하는 다른 곳 전수 확인과 교체"
     ],
     "out": [
-      "DB 스키마·SQL 실행·데이터 이관(JW가 직접 실행)",
-      "Pop & Rock의 album_type '컴필레이션' 등 다른 옵션 라벨",
-      "필터·카드·폼의 구조·로직 변경",
+      "Stage+ 링크·URL 검증·저장 로직",
+      "YouTube·링크·Apple Music 등 다른 아이콘과 버튼 동작",
+      "공식 Stage+ 로고 모방",
+      "DB·SQL",
       "feature_list의 passes 변경",
       "git add/commit/push"
     ]
   },
   "done": [
-    "Classic 폼의 형식 선택지가 Orchestral, Concerto, Chamber, Solo, Opera/Choral, Stage, Compilation이고 대표 악기 선택지가 Piano, Violin, Cello, Orchestra, Vocal, Other이며, 카드 칩과 필터 선택지도 같은 영문 값으로 보인다",
-    "옛 한국어 값을 문자열로 직접 참조하던 코드가 없거나 모두 교체되었고 전수 검색 결과가 result에 적혀 있다",
-    "이관 전 옛 값(한국어)이 남은 앨범이 폼·카드에서 어떻게 보이는지 result에 적혀 있다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "streamingServiceIcons.tsx에 StagePlusIcon이 추가되었고, 앨범 상세의 Stage+ 링크 버튼과 청취 이력의 Stage+ 매체 표시가 모두 이 아이콘을 쓰며 Headphones로 Stage+를 나타내는 곳이 남아 있지 않다(전수 목록이 result에 있다)",
+    "아이콘이 12px와 16~20px 크기에서 무대와 커튼 형태로 구분되고 확인 방법·결과가 result에 적혀 있으며, 현재 텍스트 색(currentColor)을 따라 어두운/밝은 배경 모두에서 보인다",
+    "Stage+ 버튼의 링크 동작과 다른 아이콘 버튼은 이전과 같고, npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "status": "done",
-  "result": "constants.ts CLASSIC_FORM_OPTIONS→Orchestral/Concerto/Chamber/Solo/Opera/Choral/Stage/Compilation, CLASSIC_INSTRUMENT_OPTIONS→Piano/Violin/Cello/Orchestra/Vocal/Other.\n\n전수 grep(src): 옛 형식·악기 옵션 문자열 하드코딩은 constants.ts뿐이었고 교체 완료. 남은 '실내악'은 albumDetailMoodMiniCard.tsx 무드 키워드(형식 상수와 무관)라 유지. AlbumForm의 album_type '컴필레이션' 라벨은 Pop & Rock 범위라 미변경. docs/feature_list/CONVENTIONS의 한국어 설명은 scope.out·문서라 코드 미변경.\n\n이관 전 옛 값 동작: 폼은 isClassicFormOption/isClassicInstrumentOption 실패 시 현재 값을 임시 <option>으로 보존·표시. 카드 형식 칩은 isClassicFormOption 통과 시에만 표시→옛 한국어 genre2는 칩 숨김. 악기 칩은 trim 있으면 옵션 검사 없이 표시→옛 한국어 classic_instrument는 칩에 그대로 보임. 필터 select는 영문 옵션만이라 옛 값 앨범은 해당 필터에서 제외. 호환 코드 추가 없음(이관 전제).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: constants.ts."
+  "result": "streamingServiceIcons에 StagePlusIcon 추가(상단 프로시니엄·양쪽 커튼 곡선·무대 바닥, stroke=currentColor, strokeWidth 기본 1.75, aria-hidden). 교체: AlbumInfoSection Stage+ hero 버튼, ListenHistoryMediaThumb 'Stage+' Icon. 전수 grep: Stage+를 Headphones로 쓰던 곳은 위 두 곳뿐이었고 모두 StagePlusIcon으로 교체. listenHistoryGear.ts는 매체 옵션 문자열만 있어 아이콘 변경 없음. Headphones 폴백(알 수 없는 매체)은 Stage+와 무관해 유지. 가독성: 임시 HTML(12/16/20px, dark/light)을 브라우저에서 렌더·스크린샷 확인 — 상단 막대·열린 커튼·바닥선이 구분되고 currentColor로 양쪽 배경에서 보임. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: streamingServiceIcons.tsx, ListenHistoryMediaThumb.tsx, AlbumInfoSection.tsx."
 }

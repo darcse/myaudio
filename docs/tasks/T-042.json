@@ -1,0 +1,31 @@
+{
+  "id": "T-042",
+  "feature_id": "CLASSIC-004",
+  "goal": "Classic 앨범 폼에서 타이틀곡 URL(유튜브) 칸의 라벨을 'Stage+ URL'로 바꿔 Stage+ 주소를 같은 필드(title_song_url)에 저장하고, 앨범 상세에서 Stage+ 링크 버튼으로 이동할 수 있게 한다.",
+  "context": "CLASSIC-004 구현이다. 새 컬럼은 만들지 않고 기존 album.title_song_url 컬럼을 Classic에서는 Stage+ 주소 저장용으로 재사용한다(DB 변경·SQL 없음). (1) AlbumForm: isClassicMode일 때 '타이틀곡 URL (유튜브)' 라벨을 'Stage+ URL'로, placeholder를 https://www.stage-plus.com/audio/album_...로 바꾼다. 입력 필드·바인딩(formData.title_song_url)은 그대로 쓴다. Pop & Rock 모드는 기존 라벨·placeholder 그대로다. (2) URL 정규화·검증: utils에 작은 함수(예: normalizeStagePlusUrl)를 만든다. https 스킴, 호스트가 stage-plus.com 또는 www.stage-plus.com일 때만 유효, 경로는 제한하지 않는다(앨범 외 페이지 가능성), utm_* 추적 쿼리 파라미터만 제거하고 나머지 쿼리·경로는 유지한다. 폼의 저장 버튼 클릭 시 classic 모드에서 값이 비어 있지 않고 유효하지 않으면 기존 재생목록 검증 방식처럼 인라인 오류 문구를 보이고 저장을 막는다(서버 액션이 던진 에러 메시지는 운영에서 가려지므로 폼에서 먼저 막고, 서버는 정규화·백스톱만 한다. 서버 에러 원문을 화면에 노출하지 않는다). (3) 기존 YouTube 값 처리: 기존 Classic 앨범의 title_song_url에는 YouTube 주소가 들어 있을 수 있다. 이 값은 지우지 않는다. 폼에서 그 값이 Stage+ URL 칸에 그대로 보이되, 사용자가 그 칸을 수정하지 않았다면(원래 값과 같으면) 검증을 통과시켜 그대로 저장되게 한다. 수정했다면 Stage+ 주소(또는 빈 값)만 허용한다. 필요하면 기존 값이 YouTube임을 알리는 작은 안내를 넣을 수 있다. (4) mapAlbumData(albums/actions.ts): classic 앨범의 title_song_url이 stage-plus.com 주소이면 정규화해 저장하고, YouTube 등 기존 값은 그대로 통과시킨다. 비클래식 앨범의 title_song_url 처리는 변경하지 않는다. (5) 앨범 상세(AlbumInfoSection): Pop & Rock 앨범은 기존처럼 title_song_url의 YouTube 주소로 모달 임베드 재생(getYoutubeId 분기)을 그대로 유지한다. Classic 앨범은 임베드 모달 재생을 쓰지 않고, title_song_url이 있으면 기존 외부 링크 버튼들이 있는 줄에 링크 버튼을 새 탭(rel=noopener noreferrer)으로 보여준다. 기존 YouTube 재생 버튼이 있는 자리에 Classic에서는 YouTube 버튼 대신 Stage+ 버튼을 둔다. 이 버튼의 모양(아이콘 버튼/텍스트 포함 여부, 크기)은 기존 YouTube 버튼과 같은 형태를 재사용하고, 아이콘은 이미 청취 이력 Stage+ 매체에 쓰는 아이콘(src/components/ListenHistoryMediaThumb.tsx의 'Stage+' Headphones)과 통일한다. 공식 Stage+ 로고 이미지는 쓰지 않는다. 라벨·title·aria-label은 'Stage+'다. URL 호스트별 표시: stage-plus.com 주소는 위 Stage+ 버튼, 기존 YouTube 주소(레거시 값)는 'YouTube' 라벨의 링크 버튼(Stage+로 오표기하지 않는다), 그 외 유효한 http(s)는 '링크' 버튼으로 새 탭에서 연다. 값이 비어 있으면 표시하지 않는다. 분기 기준은 앨범의 장르(isClassicGenre)다. (6) 건드리지 말 것: DB 스키마·SQL, 청취 이력 media의 Stage+ 옵션, Pop & Rock 폼의 타이틀곡 URL 라벨·동작과 Pop & Rock의 YouTube 임베드 재생, YouTube 임베드 로직 삭제. window.confirm/alert/prompt 사용 금지. 먼저 접근 방식을 한 줄로 요약한 뒤 진행한다. 더 나은 방법이 있으면 근거와 함께 제안한다.",
+  "scope": {
+    "in": [
+      "AlbumForm classic 모드의 타이틀곡 URL 칸 라벨·placeholder 변경과 Stage+ URL 검증",
+      "normalizeStagePlusUrl 함수와 mapAlbumData 정규화",
+      "앨범 상세: Classic은 title_song_url을 링크 버튼(Stage+/YouTube/링크 라벨)으로 표시하고 임베드 재생은 Pop & Rock만 유지"
+    ],
+    "out": [
+      "DB 스키마 변경·SQL",
+      "새 컬럼 추가",
+      "YouTube 임베드·title_song_url 컬럼 삭제 또는 의미 변경(Pop & Rock 포함)",
+      "Pop & Rock 폼·상세 동작",
+      "청취 이력 media 옵션",
+      "기존 데이터 이관",
+      "feature_list의 passes 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Classic 앨범 추가·수정 폼의 해당 칸 라벨이 'Stage+ URL'로 보이고 Pop & Rock 폼은 기존 '타이틀곡 URL (유튜브)' 그대로이며, 새 컬럼 없이 title_song_url에 저장된다",
+    "stage-plus.com 주소(utm 쿼리 포함)를 저장하면 utm 파라미터가 제거된 주소로 저장되어 다시 열었을 때 정리된 주소로 보이고, 다른 호스트·잘못된 형식은 폼에서 인라인 문구로 막힌다",
+    "Classic 앨범 상세에서는 임베드 재생 없이 Stage+ 주소가 Stage+ 아이콘 버튼(새 탭)으로 보이고 YouTube 버튼은 나타나지 않으며, 기존 YouTube 주소가 저장된 앨범은 'YouTube' 링크 버튼으로 열린다. 값이 없으면 버튼이 없고, 해당 칸을 수정하지 않고 저장해도 기존 값이 유지된다. Pop & Rock 앨범 상세의 유튜브 임베드 재생은 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "Classic title_song_url을 Stage+용으로 재사용. utils에 normalizeStagePlusUrl(https + stage-plus.com/www, utm_* 제거)·resolveClassicTitleSongLink 추가. mapAlbumData는 classic만 Stage+면 정규화, YouTube 등 레거시는 통과. AlbumForm classic은 라벨/placeholder Stage+, 인라인 검증(미수정 레거시 YouTube·빈 값 허용), 안내 문구. AlbumInfoSection classic은 임베드 없이 Stage+(Headphones)/YouTube/링크 새 탭 버튼, Pop은 기존 임베드 유지. 검증: npx tsc --noEmit 통과, npm run lint 통과. git diff --stat: utils.ts, actions.ts, AlbumForm.tsx, AlbumInfoSection.tsx (+144/-9)."
+}

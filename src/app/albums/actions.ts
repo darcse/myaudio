@@ -7,7 +7,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
-import { isClassicGenre, sanitizeComposersForSave } from './utils';
+import { isClassicGenre, normalizeStagePlusUrl, sanitizeComposersForSave } from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
   if (!dateStr) return null;
@@ -47,7 +47,13 @@ function mapAlbumData(data: AlbumFormData) {
     cover_image_url: data.cover_image_url,
     matching1: data.matching1,
     matching2: data.matching2,
-    title_song_url: data.title_song_url,
+    title_song_url: (() => {
+      if (!isClassicGenre(data.genre1)) return data.title_song_url;
+      const raw = data.title_song_url?.trim() ?? '';
+      if (!raw) return data.title_song_url;
+      const stage = normalizeStagePlusUrl(raw);
+      return stage.status === 'ok' && stage.url ? stage.url : raw;
+    })(),
     youtube_playlist_id: parseYoutubePlaylistInput(data.youtube_playlist_id ?? '').id,
     apple_music_url: parseAppleMusicAlbumInput(data.apple_music_url ?? '').url,
     wiki_url: data.wiki_url || null,

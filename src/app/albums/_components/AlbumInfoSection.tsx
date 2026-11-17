@@ -4,11 +4,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { Music, Play, Tv, UserCircle } from 'lucide-react';
+import { ExternalLink, Music, Play, Tv, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
-import { AppleMusicIcon } from '@/components/streamingServiceIcons';
+import { AppleMusicIcon, StagePlusIcon, YoutubeIcon } from '@/components/streamingServiceIcons';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { createClient } from '@/lib/supabase/client';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
@@ -19,6 +19,7 @@ import {
   getYoutubeId,
   isClassicGenre,
   normalizeComposerNameKey,
+  resolveClassicTitleSongLink,
 } from '../utils';
 import type { Album } from '../types';
 import { getMoodVibeEmoji, MoodMiniCard } from './albumDetailMoodMiniCard';
@@ -83,6 +84,10 @@ export function AlbumInfoHeroSection({
   const playlistId = viewingItem.youtube_playlist_id?.trim() ?? '';
   const savedAppleUrl = viewingItem.apple_music_url?.trim() ?? '';
   const appleHref = savedAppleUrl || foundAppleUrl;
+  const isClassicAlbum = isClassicGenre(viewingItem.genre1);
+  const classicTitleSongLink = isClassicAlbum
+    ? resolveClassicTitleSongLink(viewingItem.title_song_url)
+    : null;
   const heroBtnClass =
     'relative flex size-7 flex-shrink-0 items-center justify-center rounded-full transition-colors after:absolute after:inset-[-6px] after:content-[\'\']';
   const viewingItemRef = useRef(viewingItem);
@@ -193,7 +198,27 @@ export function AlbumInfoHeroSection({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-                {viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) ? (
+                {isClassicAlbum ? (
+                  classicTitleSongLink ? (
+                    <a
+                      href={classicTitleSongLink.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={heroBtnClass}
+                      style={{ background: 'rgba(255,255,255,0.2)' }}
+                      title={classicTitleSongLink.label}
+                      aria-label={classicTitleSongLink.label}
+                    >
+                      {classicTitleSongLink.label === 'Stage+' ? (
+                        <StagePlusIcon className="relative size-3 text-white" strokeWidth={1.75} />
+                      ) : classicTitleSongLink.label === 'YouTube' ? (
+                        <YoutubeIcon className="relative size-3 text-white" />
+                      ) : (
+                        <ExternalLink className="relative size-3 text-white" strokeWidth={1.75} />
+                      )}
+                    </a>
+                  ) : null
+                ) : viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) ? (
                   <button
                     type="button"
                     onClick={() => setYoutubeOpen((o) => !o)}
@@ -245,7 +270,10 @@ export function AlbumInfoHeroSection({
         </div>
       </div>
 
-      {youtubeOpen && viewingItem.title_song_url && getYoutubeId(viewingItem.title_song_url) ? (
+      {!isClassicAlbum &&
+      youtubeOpen &&
+      viewingItem.title_song_url &&
+      getYoutubeId(viewingItem.title_song_url) ? (
         <div className="aspect-video w-full shrink-0">
           <iframe
             width="100%"

@@ -2,6 +2,10 @@ type StreamingIconProps = {
   className?: string;
 };
 
+type StrokeIconProps = StreamingIconProps & {
+  strokeWidth?: number;
+};
+
 export function AppleMusicIcon({ className }: StreamingIconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
@@ -22,6 +26,26 @@ export function YoutubeIcon({ className }: StreamingIconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="white" aria-hidden>
       <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+export function StagePlusIcon({ className, strokeWidth = 1.75 }: StrokeIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 5h18" />
+      <path d="M4 5c2 4.5 3.5 9.5 5 14" />
+      <path d="M20 5c-2 4.5-3.5 9.5-5 14" />
+      <path d="M5 19h14" />
     </svg>
   );
 }
