@@ -6,6 +6,7 @@ import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
   artistTypeOptionsForCatalog,
   CLASSIC_FORM_OPTIONS,
+  formatClassicFormLabel,
   CLASSIC_INSTRUMENT_OPTIONS,
   COMPOSER_ERA_OPTIONS,
   countryOptions,
@@ -372,7 +373,7 @@ export function AlbumForm({
                     ) : null}
                     {CLASSIC_FORM_OPTIONS.map((option) => (
                       <option key={option} value={option}>
-                        {option}
+                        {formatClassicFormLabel(option)}
                       </option>
                     ))}
                   </select>

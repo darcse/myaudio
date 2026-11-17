@@ -103,6 +103,16 @@ export function isClassicFormOption(value: string | null | undefined): boolean {
   return !!value && (CLASSIC_FORM_OPTIONS as readonly string[]).includes(value);
 }
 
+const CLASSIC_FORM_LABELS: { [K in (typeof CLASSIC_FORM_OPTIONS)[number]]?: string } = {
+  Solo: 'Solo/Sonata',
+};
+
+export function formatClassicFormLabel(value: string): string {
+  if (!isClassicFormOption(value)) return value;
+  const option = value as (typeof CLASSIC_FORM_OPTIONS)[number];
+  return CLASSIC_FORM_LABELS[option] ?? option;
+}
+
 export function isClassicInstrumentOption(value: string | null | undefined): boolean {
   return !!value && (CLASSIC_INSTRUMENT_OPTIONS as readonly string[]).includes(value);
 }

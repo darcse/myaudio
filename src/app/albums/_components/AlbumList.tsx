@@ -7,6 +7,7 @@ import type { LibraryViewMode } from './albumBoardShared';
 import { PhysicalOwnedBadges, PhysicalOwnedCoverIcons } from './albumBoardShared';
 import {
   CLASSIC_FORM_OPTIONS,
+  formatClassicFormLabel,
   CLASSIC_INSTRUMENT_OPTIONS,
   countryOptions,
   genreOptions,
@@ -195,7 +196,7 @@ export function AlbumList({
             <option value="전체">형식: 전체</option>
             {CLASSIC_FORM_OPTIONS.map((option) => (
               <option key={option} value={option}>
-                {option}
+                {formatClassicFormLabel(option)}
               </option>
             ))}
           </select>
