@@ -1,27 +1,26 @@
 {
-  "id": "T-049",
-  "goal": "새 앨범 등록 폼을 열면 Apple Music 주소 입력 칸이 맨 위에 있고 자동으로 포커스되어, '+ → 주소 붙여넣기 → 가져오기' 순서로 바로 쓸 수 있다.",
-  "context": "대상: src/app/albums/_components/AlbumForm.tsx. 현재 Apple Music 주소 입력·가져오기 버튼(handleAppleMusicImport)의 위치를 먼저 확인하고 한 줄로 요약한 뒤 진행한다. 변경: (1) 새 등록(isEdit=false)일 때만 Apple Music 주소 칸+가져오기 버튼을 폼 최상단(다른 필드보다 위)으로 옮기고, 폼이 열릴 때 그 입력 칸에 자동 포커스한다. Pop & Rock·Classic 모두 동일. 주소 붙여넣기 후 가져오기 버튼을 누르는 기존 동작은 그대로 둔다(붙여넣기 시 자동 실행 같은 신규 동작은 추가하지 않는다). (2) 수정 폼(isEdit=true)은 현재 위치와 동작을 그대로 유지하고 자동 포커스도 넣지 않는다. (3) 아티스트 상세에서 '앨범 추가'로 열리는 새 등록 폼도 같은 AlbumForm이므로 위 변경이 적용된다. 이 경우 아티스트명·장르·국적 등 기존 프리필 동작이 영향받지 않는지 확인한다. 자동 포커스가 모달 열림 애니메이션/스크롤을 튀게 하면 preventScroll 등 최소 수정으로 해결한다. 중복 렌더링 방지를 위해 같은 UI를 두 곳에 복제하지 말고 위치만 조건부로 바꾼다. 건드리지 말 것: Apple 가져오기 로직·API, DB 스키마·SQL, feature_list. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-050",
+  "goal": "앨범 등록·수정 폼의 장르1 선택지에 World가 생겨, World 앨범을 등록하고 목록·아티스트 필터에서 World로 걸러 볼 수 있다.",
+  "context": "대상: src/app/albums/constants.ts의 genreOptions. 기본안: 'Jazz' 다음, 'Classic' 앞에 'World'를 추가한다. genreOptions는 AlbumForm(Pop & Rock 폼), AlbumList 필터, 아티스트 필터(ArtistTopControlBar), 가사 번역(LyricsTranslateLibraryContent) 장르 필터에서 함께 쓰이므로 상수 한 곳만 바꾸면 반영되는지 확인한다. 'Classic'을 제외하는 필터 로직은 그대로 두어 World가 Pop & Rock 쪽에 보이게 한다. 장르별 색상·라벨 매핑처럼 장르명을 하드코딩한 곳이 있어 World가 깨져 보이면 결과에 위치를 보고하고, 수정이 한두 줄이면 함께 고친다. Works 메뉴의 genre1Options(src/app/works/constants.ts)는 별개 시스템이라 건드리지 않는다. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "AlbumForm 새 등록 모드에서 Apple Music 주소 칸·버튼을 최상단으로 이동",
-      "새 등록 폼 열릴 때 해당 입력 칸 자동 포커스"
+      "albums/constants.ts genreOptions에 World 추가",
+      "World 표시가 깨지는 하드코딩 매핑이 있으면 최소 보완"
     ],
     "out": [
-      "수정 폼의 위치·포커스 변경",
-      "Apple 가져오기 로직·API 변경",
-      "다른 필드 순서·UI 개편",
+      "Works 메뉴 genre1Options",
+      "Classic 판별(isClassicGenre)·catalogScope 로직",
       "DB 스키마·SQL, feature_list",
+      "기존 장르 순서·이름 변경",
       "git add/commit/push"
     ]
   },
   "done": [
-    "Pop & Rock에서 + 버튼으로 새 등록 폼을 열면 Apple Music 주소 칸과 가져오기 버튼이 폼 맨 위에 있고 입력 칸에 커서가 들어가 있다",
-    "Classic 새 등록 폼과 아티스트 상세의 '앨범 추가' 폼에서도 동일하게 보이며, 아티스트 상세에서는 기존 프리필(아티스트명·장르·국적 등)이 그대로 유지된다",
-    "수정 폼은 이전과 같은 위치이고 열릴 때 자동 포커스가 없다",
-    "주소 입력 후 가져오기로 앨범명·발매일·커버가 채워지고 저장까지 정상 동작하며, 주소를 비워 두고 수동 입력해도 막힘이 없다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "Pop & Rock 새 등록·수정 폼의 장르1 드롭다운에 World가 Jazz 다음에 보인다",
+    "World로 저장한 앨범이 Pop & Rock 앨범 목록에 나오고 장르 필터에서 World 선택 시 걸러진다",
+    "Pop & Rock 아티스트 목록 장르 필터에 World가 보이고, Classic 메뉴 폼·필터에는 기존과 동일하게 영향이 없다",
+    "Works 메뉴 가사 장르 선택지는 바뀌지 않는다"
   ],
   "status": "done",
-  "result": "AlbumForm에서 appleMusicField를 한 곳으로 두고 !isEdit면 그리드 최상단, isEdit면 기존(유튜브 재생목록 옆)에 렌더. 새 등록 시 selectedItem 변경마다 input.focus({preventScroll:true}). 프리필·가져오기 로직 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: AlbumForm.tsx."
+  "result": "genreOptions에 Jazz 다음·Classic 앞에 'World' 추가. AlbumForm(popGenreOptions가 Classic만 제외)·AlbumList·ArtistTopControlBar(popular에서 Classic만 제외)·LyricsTranslateLibraryContent가 상수 공유로 World 반영. 장르 색상/라벨 하드코딩 매핑은 없음(보완 불필요). Works genre1Options·isClassicGenre 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albums/constants.ts."
 }

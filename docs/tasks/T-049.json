@@ -1,0 +1,27 @@
+{
+  "id": "T-049",
+  "goal": "새 앨범 등록 폼을 열면 Apple Music 주소 입력 칸이 맨 위에 있고 자동으로 포커스되어, '+ → 주소 붙여넣기 → 가져오기' 순서로 바로 쓸 수 있다.",
+  "context": "대상: src/app/albums/_components/AlbumForm.tsx. 현재 Apple Music 주소 입력·가져오기 버튼(handleAppleMusicImport)의 위치를 먼저 확인하고 한 줄로 요약한 뒤 진행한다. 변경: (1) 새 등록(isEdit=false)일 때만 Apple Music 주소 칸+가져오기 버튼을 폼 최상단(다른 필드보다 위)으로 옮기고, 폼이 열릴 때 그 입력 칸에 자동 포커스한다. Pop & Rock·Classic 모두 동일. 주소 붙여넣기 후 가져오기 버튼을 누르는 기존 동작은 그대로 둔다(붙여넣기 시 자동 실행 같은 신규 동작은 추가하지 않는다). (2) 수정 폼(isEdit=true)은 현재 위치와 동작을 그대로 유지하고 자동 포커스도 넣지 않는다. (3) 아티스트 상세에서 '앨범 추가'로 열리는 새 등록 폼도 같은 AlbumForm이므로 위 변경이 적용된다. 이 경우 아티스트명·장르·국적 등 기존 프리필 동작이 영향받지 않는지 확인한다. 자동 포커스가 모달 열림 애니메이션/스크롤을 튀게 하면 preventScroll 등 최소 수정으로 해결한다. 중복 렌더링 방지를 위해 같은 UI를 두 곳에 복제하지 말고 위치만 조건부로 바꾼다. 건드리지 말 것: Apple 가져오기 로직·API, DB 스키마·SQL, feature_list. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "AlbumForm 새 등록 모드에서 Apple Music 주소 칸·버튼을 최상단으로 이동",
+      "새 등록 폼 열릴 때 해당 입력 칸 자동 포커스"
+    ],
+    "out": [
+      "수정 폼의 위치·포커스 변경",
+      "Apple 가져오기 로직·API 변경",
+      "다른 필드 순서·UI 개편",
+      "DB 스키마·SQL, feature_list",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock에서 + 버튼으로 새 등록 폼을 열면 Apple Music 주소 칸과 가져오기 버튼이 폼 맨 위에 있고 입력 칸에 커서가 들어가 있다",
+    "Classic 새 등록 폼과 아티스트 상세의 '앨범 추가' 폼에서도 동일하게 보이며, 아티스트 상세에서는 기존 프리필(아티스트명·장르·국적 등)이 그대로 유지된다",
+    "수정 폼은 이전과 같은 위치이고 열릴 때 자동 포커스가 없다",
+    "주소 입력 후 가져오기로 앨범명·발매일·커버가 채워지고 저장까지 정상 동작하며, 주소를 비워 두고 수동 입력해도 막힘이 없다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "status": "done",
+  "result": "AlbumForm에서 appleMusicField를 한 곳으로 두고 !isEdit면 그리드 최상단, isEdit면 기존(유튜브 재생목록 옆)에 렌더. 새 등록 시 selectedItem 변경마다 input.focus({preventScroll:true}). 프리필·가져오기 로직 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: AlbumForm.tsx."
+}
