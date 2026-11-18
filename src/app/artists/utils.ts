@@ -1,4 +1,4 @@
-import { countryOptions } from '@/app/albums/constants';
+import { CLASSIC_INSTRUMENT_OPTIONS, countryOptions } from '@/app/albums/constants';
 import type { Album } from '@/app/albums/types';
 import { composersFromAlbum, normalizeComposerNameKey } from '@/app/albums/utils';
 import type { ArtistStats, ArtistSummary, ListenHistoryEntry, RelatedArtist } from './types';
@@ -254,6 +254,37 @@ export function buildListenHistoryIndex(
 
 export function getPrimaryGenre1(artist: ArtistSummary): string | null {
   return pickMostCommon(artist.albums.map((a) => a.genre1 ?? ''));
+}
+
+export function getPrimaryClassicInstrument(artist: ArtistSummary): string | null {
+  const counts = new Map<string, number>();
+  for (const album of artist.albums) {
+    const value = album.classic_instrument?.trim();
+    if (!value) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+
+  const order = CLASSIC_INSTRUMENT_OPTIONS as readonly string[];
+  let best: string | null = null;
+  let bestCount = 0;
+  let bestOrder = Number.POSITIVE_INFINITY;
+  for (const [value, count] of counts) {
+    const idx = order.indexOf(value);
+    const orderRank = idx >= 0 ? idx : order.length;
+    if (
+      count > bestCount ||
+      (count === bestCount && orderRank < bestOrder) ||
+      (count === bestCount &&
+        orderRank === bestOrder &&
+        (best == null || value.localeCompare(best, 'ko') < 0))
+    ) {
+      best = value;
+      bestCount = count;
+      bestOrder = orderRank;
+    }
+  }
+  return best;
 }
 
 type ArtistSimilarityProfile = {

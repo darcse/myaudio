@@ -1,0 +1,31 @@
+{
+  "id": "T-068",
+  "feature_id": "ALBUM-051",
+  "goal": "아티스트 화면 필터 줄에서 검색창이 남는 가로 공간을 채우도록 넓어지고, 태그 버튼이 다른 필터와 같은 모양으로 보인다.",
+  "context": "T-067 후속, 아직 커밋 전이며 T-067과 함께 ALBUM-051로 커밋한다. 대상: src/app/artists/_components/ArtistTopControlBar.tsx. 문제(JW 스크린샷): 검색창을 sm:w-[11rem]으로 고정해 너무 좁고, 초기화 버튼 오른쪽에 빈 공간이 크게 남는다. 또 앨범 태그 팝오버 버튼(AlbumTagFilterPopover 트리거)이 흰 배경·높이·둥글기에서 옆의 회색 select들과 달라 보인다. 기본안: 검색창은 flex-1로 남는 공간을 채우되 최소 폭(예: 12rem)을 두고, 필터·정렬·태그·초기화는 shrink-0으로 내용 폭을 유지한다. 창이 좁아 한 줄에 안 들어가면 기존처럼 줄바꿈되며, 줄바꿈 시에도 검색창이 첫 줄 전체 폭을 쓰는 등 어색하지 않게 한다. 태그 버튼은 이 화면의 select 클래스(높이·배경·둥글기·글자 크기)와 맞춘다 — AlbumTagFilterPopover에 트리거 className을 받는 선택 prop을 추가하는 정도의 최소 변경으로 하고, 앨범 목록 화면의 태그 버튼 모양은 바꾸지 않는다. Classic 연주자·작곡가 필터 줄도 같은 검색창 규칙을 적용한다. 전체 파일 재작성 금지, 최소 수정. 추가(JW 피드백): Classic 연주자·작곡가 화면의 '형식' 버튼(기존 genre2 클라우드 버튼, 라벨만 바뀐 것) 글자가 옆 select들보다 크다. 같은 줄 select와 글자 크기·굵기·높이를 맞춘다.",
+  "scope": {
+    "in": [
+      "아티스트 필터 줄 검색창 flex 확장·최소 폭",
+      "아티스트 화면 태그 버튼 모양을 select와 통일(트리거 className prop)",
+      "Classic '형식' 버튼 글자 크기·높이를 select와 통일"
+    ],
+    "out": [
+      "필터 기능·순서 변경",
+      "앨범 목록 화면 태그 버튼 모양",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "데스크톱 넓은 창에서 검색창이 남는 공간을 채워 초기화 버튼이 필터 줄 오른쪽 끝에 붙는다",
+    "창을 좁히면 검색창이 최소 폭 아래로 줄지 않고 자연스럽게 줄바꿈된다",
+    "아티스트 화면 태그 버튼이 옆 select들과 같은 높이·배경·둥글기로 보이고, 앨범 목록의 태그 버튼은 이전과 같다",
+    "Classic 연주자·작곡가의 '형식' 버튼 글자 크기·높이가 옆 select들과 같다",
+    "Classic 연주자·작곡가 필터 줄도 검색창이 같은 규칙으로 보인다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-051 아티스트 필터 줄 재구성(장르2·태그·대표 악기)",
+  "status": "done",
+  "result": "검색창 sm:flex-1·min-w-[12rem]·basis-[12rem]. AlbumTagFilterPopover에 triggerClassName/triggerStyle 선택 prop 추가(앨범 목록 기본값 유지). 아티스트 태그 트리거·Classic 형식 버튼을 select-apple h-9 text-xs rounded-full·surface-elevated로 통일. 검증: tsc/lint 통과. T-067과 함께 커밋 대기(auto_commit false).\n커밋 승인: 261118_2321 (feat): ALBUM-051 아티스트 필터 줄 재구성(장르2·태그·대표 악기) (T-067~T-068)"
+}

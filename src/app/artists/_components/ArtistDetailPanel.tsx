@@ -7,7 +7,13 @@ import { BoardExpandedAlbumGrid } from '@/app/albums/_components/albumBoardShare
 import { AlbumCoverBlurBackdrop } from '@/app/albums/_components/AlbumCoverBlurBackdrop';
 import type { Album } from '@/app/albums/types';
 import type { CatalogScope } from '@/lib/catalogScope';
-import { countryFlag, findArtistWikiUrl, findComposerWikiUrl, getPrimaryGenre1 } from '../utils';
+import {
+  countryFlag,
+  findArtistWikiUrl,
+  findComposerWikiUrl,
+  getPrimaryClassicInstrument,
+  getPrimaryGenre1,
+} from '../utils';
 import type { ArtistLibraryRole, ArtistRecord, ArtistStats, ArtistSummary, RelatedArtist } from '../types';
 import { ArtistBioSection } from './ArtistBioSection';
 import type { ArtistProfileFieldsPatch } from '../lib/updateArtistProfileFields';
@@ -105,7 +111,10 @@ export function ArtistDetailPanel({
     role === 'composer'
       ? findComposerWikiUrl(artist.albums, artist.name)
       : findArtistWikiUrl(artist.albums);
-  const primaryGenre1 = getPrimaryGenre1(artist);
+  const isClassicScope = catalogScope === 'classic';
+  const primaryGenre1 = isClassicScope ? null : getPrimaryGenre1(artist);
+  const primaryInstrument =
+    isClassicScope && role !== 'composer' ? getPrimaryClassicInstrument(artist) : null;
   const nameAlt = artistRecord?.name_alt ?? artist.nameAlt ?? null;
   const nameAltDisplay = nameAlt?.trim() || null;
   const profileImageUrl = artistRecord?.profile_image_url?.trim() || null;
@@ -222,6 +231,18 @@ export function ArtistDetailPanel({
             style={hasProfileBackdrop ? backdropTagStyle : undefined}
           >
             {primaryGenre1}
+          </span>
+        ) : null}
+        {primaryInstrument ? (
+          <span
+            className={
+              hasProfileBackdrop
+                ? backdropTagClassName
+                : 'badge-apple inline-flex px-2 py-0.5 text-[11px] font-semibold'
+            }
+            style={hasProfileBackdrop ? backdropTagStyle : undefined}
+          >
+            {primaryInstrument}
           </span>
         ) : null}
       </ArtistExternalLinksSection>
