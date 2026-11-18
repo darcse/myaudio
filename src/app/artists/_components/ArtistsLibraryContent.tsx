@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
+import { useLyricsPlayer } from '@/contexts/LyricsPlayerContext';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { deleteAlbumFromDB, saveAlbumToDB, updateAlbumInDB } from '@/app/albums/actions';
@@ -143,7 +144,10 @@ export function ArtistsLibraryContent({
     searchParams.get('role') === 'composer' ? 'composer' : 'artist';
   const role: ArtistLibraryRole = catalogScope === 'popular' ? 'artist' : roleFromUrl;
   const isAuthenticated = useAuthState();
-  const { closeIfPlayingAlbum } = useAlbumPlayer();
+  const { closeIfPlayingAlbum, current: playingAlbum } = useAlbumPlayer();
+  const { playingTrack } = useLyricsPlayer();
+  const listShellRef = useRef<HTMLDivElement>(null);
+  const [listShellHeightPx, setListShellHeightPx] = useState<number | null>(null);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [listenHistoryIndex, setListenHistoryIndex] = useState<Map<number, ListenHistoryEntry>>(
     () => new Map(),
@@ -378,6 +382,65 @@ export function ArtistsLibraryContent({
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
+
+  useEffect(() => {
+    const el = listShellRef.current;
+    if (!el) return;
+
+    let raf = 0;
+    const parseCssLength = (raw: string, rootFont: number, fallback: number) => {
+      const value = raw.trim();
+      if (!value) return fallback;
+      if (value.endsWith('rem')) {
+        const n = parseFloat(value);
+        return Number.isFinite(n) ? n * rootFont : fallback;
+      }
+      if (value.endsWith('px')) {
+        const n = parseFloat(value);
+        return Number.isFinite(n) ? n : fallback;
+      }
+      const n = parseFloat(value);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        if (!window.matchMedia(LG_UP_MQ).matches) {
+          setListShellHeightPx(null);
+          return;
+        }
+        const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const rootStyles = getComputedStyle(document.documentElement);
+        const elStyles = getComputedStyle(el);
+        const headerHeight = parseCssLength(
+          rootStyles.getPropertyValue('--app-header-height'),
+          rootFont,
+          3.5 * rootFont,
+        );
+        const playerInset = parseCssLength(
+          elStyles.getPropertyValue('--player-inset') ||
+            rootStyles.getPropertyValue('--player-inset'),
+          rootFont,
+          0,
+        );
+        const top = Math.max(el.getBoundingClientRect().top, headerHeight);
+        setListShellHeightPx(Math.max(120, window.innerHeight - top - playerInset));
+      });
+    };
+
+    measure();
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    const mq = window.matchMedia(LG_UP_MQ);
+    mq.addEventListener('change', measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+      mq.removeEventListener('change', measure);
+    };
+  }, [playingAlbum, playingTrack, isLoading, summaries.length]);
 
   useEffect(() => {
     if (lastRoleRef.current === role) return;
@@ -843,7 +906,7 @@ export function ArtistsLibraryContent({
       albumFormItem && 'id' in albumFormItem && typeof albumFormItem.id === 'number'
         ? albumFormItem.id
         : null;
-    const deletedId = viewingAlbum?.id ?? formId;
+    const deletedId = formId ?? viewingAlbum?.id;
     if (deletedId == null) return;
     setIsDeleting(true);
     try {
@@ -991,7 +1054,16 @@ export function ArtistsLibraryContent({
           {topControlBar}
           <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
             <div>
-              <div className="sticky top-[var(--app-header-height)] h-[calc(100dvh-var(--app-header-height)-var(--player-inset))] min-h-0">
+              <div
+                ref={listShellRef}
+                className="sticky top-[var(--app-header-height)] min-h-0"
+                style={{
+                  height:
+                    listShellHeightPx != null
+                      ? `${listShellHeightPx}px`
+                      : 'calc(100dvh - var(--app-header-height) - var(--player-inset))',
+                }}
+              >
                 <ArtistListSidebar {...sidebarProps} />
               </div>
             </div>

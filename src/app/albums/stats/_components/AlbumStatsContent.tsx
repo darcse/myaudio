@@ -654,7 +654,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
       albumFormItem && 'id' in albumFormItem && typeof albumFormItem.id === 'number'
         ? albumFormItem.id
         : null;
-    const deletedId = viewingAlbum?.id ?? formId;
+    const deletedId = formId ?? viewingAlbum?.id;
     if (deletedId == null) return;
     const deleted = await deleteAlbum({ albumId: deletedId });
     if (!deleted) return;
