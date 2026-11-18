@@ -1,0 +1,26 @@
+{
+  "id": "T-057",
+  "goal": "국가 선택 목록에 홍콩·마카오가 보이지 않고, 팔레스타인은 '팔레스타인'으로 보인다.",
+  "context": "T-056 후속, 아직 커밋 전이며 T-056과 함께 커밋한다. 대상: src/app/albums/constants.ts의 COUNTRY_OPTIONS_SOURCE. 변경: code 'HK'(홍콩(중국 특별행정구)), 'MO'(마카오(중국 특별행정구)) 항목 삭제(JW 결정: 중국으로 기록). code 'PS'의 name을 '팔레스타인 지구'→'팔레스타인'으로 변경(en은 그대로 두거나 'Palestine'으로 맞춰도 됨). 현재 DB에 홍콩·마카오·팔레스타인 값은 없다. 다른 항목·정렬 로직·컴포넌트는 건드리지 않는다. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "HK·MO 항목 삭제",
+      "PS 한글명 변경"
+    ],
+    "out": [
+      "다른 국가 항목·정렬·컴포넌트 변경",
+      "DB·SQL (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "앨범 국가 검색에서 '홍콩'·'마카오'를 쳐도 후보가 나오지 않는다",
+    "'팔레'를 치면 '팔레스타인'이 나오고 그 이름으로 저장된다",
+    "다른 국가 목록·국기 표시는 T-056과 동일하다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 국가 목록을 ISO 전체 정적 목록·검색 선택으로 변경, 필터는 사용 중인 국가만 표시",
+  "status": "done",
+  "result": "COUNTRY_OPTIONS_SOURCE에서 HK·MO 삭제, PS name을 '팔레스타인'(en: Palestine)으로 변경. tsc/lint 통과. 커밋 안 함(auto_commit false, T-056과 함께 예정)."
+}

@@ -1,0 +1,29 @@
+{
+  "id": "T-055",
+  "goal": "같은 세션에서 다른 앨범에 태그를 달고 저장한 직후, 어느 화면(아티스트 상세 포함)에서 앨범 폼을 열어도 방금 저장한 태그가 자동완성 후보로 보인다.",
+  "context": "T-054 후속. 원인: 앨범 저장 후 invalidateCatalogLibraryCache()는 cache.stale=true만 세우고 data는 이전 값을 유지한다. AlbumForm은 getCatalogLibraryCache()==null일 때만 ensureCatalogLibrary를 호출하므로 stale 데이터를 그대로 써서 새 태그가 후보에 없다(새로고침하면 정상 — JW 확인). 기본안: AlbumForm 마운트 시 캐시가 null이거나 isCatalogLibraryStale()이면 기존과 같은 방식(resolveCatalogCacheUserId → ensureCatalogLibrary)으로 갱신한다. ensureCatalogLibrary는 stale이면 다시 불러오고 inflight를 공유하므로 중복 요청 걱정은 그 함수에 맡긴다. 불러오는 동안은 기존 후보를 그대로 보여 준다. 실패해도 입력·저장은 정상. T-052~T-054와 함께 아직 커밋 전이다. 전체 파일 재작성 금지, 최소 수정. 추가로 T-054에서 넣은 catch 블록의 주석(/* tag suggestions optional */)은 CLAUDE.md '주석 추가 금지'에 어긋나니 제거한다.",
+  "scope": {
+    "in": [
+      "AlbumForm 캐시 갱신 조건에 stale 포함",
+      "T-054 catch 블록 주석 제거"
+    ],
+    "out": [
+      "catalogLibraryCache.ts 내부 로직 변경",
+      "각 화면의 저장 후 캐시 처리 방식",
+      "태그 저장 로직·UI",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "새로고침 없이 아티스트 상세에서 A 앨범에 '슈게이즈' 태그를 달고 저장한 뒤, 같은 화면에서 B 앨범 수정 폼을 열고 '슈'를 입력하면 '슈게이즈'가 후보로 보인다",
+    "앨범 메뉴·대시보드에서도 같은 시나리오가 동작한다",
+    "캐시가 최신일 때 폼을 열면 추가 요청이 발생하지 않는다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-049 Pop & Rock 앨범 태그 입력·표시",
+  "status": "done",
+  "result": "AlbumForm 마운트 시 null뿐 아니라 isCatalogLibraryStale()이면 ensureCatalogLibrary로 갱신. catch 주석 제거. 검증: tsc/lint 통과. 커밋 안 함(auto_commit false).\n커밋 승인: 261118_2100 (feat): ALBUM-049 Pop & Rock 앨범 태그 입력·표시 (T-052~T-055)"
+}

@@ -642,6 +642,7 @@ export function AlbumsLibraryContent({
               setListFormFilter={setListFormFilter}
               listCountryFilter={listCountryFilter}
               setListCountryFilter={setListCountryFilter}
+              countryFilterSource={scopedLibrary}
               listMediaFilter={listMediaFilter}
               setListMediaFilter={setListMediaFilter}
               listSortOrder={listSortOrder}

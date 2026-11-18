@@ -1,0 +1,31 @@
+{
+  "id": "T-056",
+  "goal": "앨범·작곡가·아티스트 국가 입력에서 전 세계 현재 국가 중 아무 나라나 검색해 고를 수 있어, 새 나라가 필요할 때마다 목록을 추가하지 않아도 된다. 필터에는 실제 데이터에 있는 나라만 보인다.",
+  "context": "현재 src/app/albums/constants.ts의 COUNTRY_OPTIONS_SOURCE(30개+기타, {name, flag})를 countryOptions로 정렬해 입력 폼(AlbumForm 앨범 국가·작곡가 국가, ArtistInfoEditModal), 필터(AlbumList, LyricsTranslateLibraryContent, ArtistTopControlBar/useArtistFilters), 국기 표시(countryOptions.find(name) 여러 곳)에서 공유한다. 저장값은 album.country, album.composer_country, album.composers[].country에 한글 국가명 문자열이다. 현재 DB의 국가 값은 모두 기존 30개 목록 안에 있다(JW 확인: 한국·일본·미국·영국 등, '기타' 9건). 기본안: (1) ISO 3166-1 현재 국가 전체를 Intl.DisplayNames('ko')·('en')로 한 번 생성해 정적 상수로 고정한다(런타임 생성 금지 — SSR/클라이언트 ICU 차이로 hydration 불일치 위험). 필드는 {code, name(한글), en(영문), flag(코드로 만든 국기 이모지)}. 기존 30개 국가명은 현재 표기를 그대로 유지(예: KR은 '대한민국'이 아니라 '한국')해 데이터 이관이 필요 없게 하고, '기타'는 맨 끝에 유지한다. 옛 국가(소련 등)는 추가하지 않는다. countryOptions의 기존 사용처(name·flag)가 그대로 동작하도록 모양을 유지한다. (2) 입력 폼 3곳의 국가 select를 검색 입력식 콤보로 바꾼다(기존 ReceiverComboSelect·ComposerComboSelect 패턴 재사용 우선, 새 공용 컴포넌트가 필요하면 하나만). 한글명·영문명으로 검색 가능. 정렬은 등록 앨범 수가 많은 나라 순(쓸 수 있는 앨범 데이터가 있는 곳에서), 그 외는 가나다순. 목록에 없는 기존 값은 '(기존 값)'으로 표시·유지. (3) 필터 3곳은 실제 데이터에 존재하는 국가만 옵션으로 보인다. 키보드(↑↓·Enter·Esc) 조작이 기존 콤보 수준으로 되면 좋다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "국가 상수를 ISO 전체 정적 목록으로 교체(기존 30개 표기 유지)",
+      "입력 폼 3곳 국가 선택을 검색 콤보로 변경",
+      "필터 3곳을 데이터에 있는 국가만 표시"
+    ],
+    "out": [
+      "DB 국가 값 변경·이관·SQL·스키마 (절대 건드리지 말 것)",
+      "옛 국가 추가",
+      "국가와 무관한 폼 필드·레이아웃 변경",
+      "장르·태그 관련 코드",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "앨범 등록 폼 국가 칸에 '헝'을 입력하면 헝가리가, 'Hun'을 입력하면 헝가리가 후보로 나오고 선택해 저장된다",
+    "작곡가 국가와 아티스트 정보 수정의 국가도 같은 검색 선택으로 동작하고, 기존 30개 국가는 이전과 같은 이름(예: 한국)으로 저장·표시된다",
+    "앨범 목록·가사 번역·아티스트 국가 필터에는 실제 앨범 데이터에 있는 나라만 보이며, 기존 국기 표시가 모든 화면에서 그대로 나온다",
+    "목록에 없는 국가 값을 가진 앨범을 수정 폼으로 열면 '(기존 값)'으로 유지된다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 국가 목록을 ISO 전체 정적 목록·검색 선택으로 변경, 필터는 사용 중인 국가만 표시",
+  "status": "done",
+  "result": "countryOptions를 ISO 3166-1 정적 목록({code,name,en,flag})으로 교체하고 기존 30개 한글 표기·기타를 유지. CountryComboSelect 추가(한글/영문 검색, 앨범 수 정렬, 기존 값 유지, ↑↓·Enter·Esc). AlbumForm 국가·작곡가 국적, ArtistInfoEditModal에 적용. AlbumList·LyricsTranslate·ArtistTopControlBar 필터는 데이터에 있는 국가만 표시. 검증: tsc/lint 통과. 커밋 안 함(auto_commit false)."
+}

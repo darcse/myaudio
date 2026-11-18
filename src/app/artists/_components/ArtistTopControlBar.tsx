@@ -73,9 +73,9 @@ export function ArtistTopControlBar({
   const artistTypeOptions = artistTypeOptionsForCatalog(catalogScope);
 
   const countrySelectOptions =
-    dynamicCountries.length > 0
-      ? dynamicCountries
-      : countryOptions.map((c) => c.name);
+    countryFilter !== '전체' && !dynamicCountries.includes(countryFilter)
+      ? [...dynamicCountries, countryFilter].sort((a, b) => a.localeCompare(b, 'ko'))
+      : dynamicCountries;
   const typeSelectOptions = [
     ...artistTypeOptions,
     ...dynamicTypes.filter(

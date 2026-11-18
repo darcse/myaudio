@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
+import {
+  albumCountryUsageCounts,
+  CountryComboSelect,
+} from '@/components/CountryComboSelect';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
   artistTypeOptionsForCatalog,
@@ -9,7 +13,6 @@ import {
   formatClassicFormLabel,
   CLASSIC_INSTRUMENT_OPTIONS,
   COMPOSER_ERA_OPTIONS,
-  countryOptions,
   genre2OptionsForGenre1,
   genreOptions,
   isClassicFormOption,
@@ -204,6 +207,10 @@ export function AlbumForm({
     () => collectKnownAlbumTags(catalogAlbums),
     [catalogAlbums],
   );
+  const countryUsageCounts = useMemo(() => {
+    if (catalogAlbums.length > 0) return albumCountryUsageCounts(catalogAlbums);
+    return albumCountryUsageCounts(artistDefaultsLibrary);
+  }, [artistDefaultsLibrary, catalogAlbums]);
   const tagSuggestions = useMemo(() => {
     const draftKey = normalizeAlbumTagKey(tagDraft);
     const selected = new Set(formData.tags.map((tag) => normalizeAlbumTagKey(tag)));
@@ -435,12 +442,12 @@ export function AlbumForm({
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">국가</label>
-            <select className="select-apple px-3 py-2 w-full h-[42px]" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })}>
-              <option value="">선택</option>
-              {countryOptions.map((c) => (
-                <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
-              ))}
-            </select>
+            <CountryComboSelect
+              value={formData.country}
+              onChange={(country) => setFormData({ ...formData, country })}
+              usageCounts={countryUsageCounts}
+              aria-label="국가"
+            />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-1 opacity-90">앨범 타입</label>
@@ -903,23 +910,18 @@ export function AlbumForm({
                         </div>
                         <div>
                           <label className="mb-1 block text-sm font-semibold opacity-90">국적</label>
-                          <select
-                            className="select-apple h-[42px] w-full px-3 py-2"
+                          <CountryComboSelect
                             value={entry.country}
-                            onChange={(e) => {
+                            onChange={(country) => {
                               const next = composers.map((row, i) =>
-                                i === index ? { ...row, country: e.target.value } : row,
+                                i === index ? { ...row, country } : row,
                               );
                               updateComposers(next);
                             }}
-                          >
-                            <option value="">선택 안 함</option>
-                            {countryOptions.map((c) => (
-                              <option key={c.name} value={c.name}>
-                                {c.flag} {c.name}
-                              </option>
-                            ))}
-                          </select>
+                            usageCounts={countryUsageCounts}
+                            emptyOptionLabel="선택 안 함"
+                            aria-label={`작곡가 ${index + 1} 국적`}
+                          />
                         </div>
                         <div>
                           <label className="mb-1 block text-sm font-semibold opacity-90">시대</label>

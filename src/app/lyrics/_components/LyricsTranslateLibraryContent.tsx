@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { countryOptions, genreOptions } from '@/app/albums/constants';
+import { usedCountryNames } from '@/components/CountryComboSelect';
 import type { LyricsAlbumCard } from '../types';
 
 type AlbumOption = {
@@ -190,6 +191,14 @@ export function LyricsTranslateLibraryContent() {
     };
   }, [pickerOpen, pickerQuery]);
 
+  const countryFilterOptions = useMemo(() => {
+    const names = usedCountryNames(cards.map((card) => card.country));
+    if (listCountryFilter !== '전체' && !names.includes(listCountryFilter)) {
+      return [...names, listCountryFilter].sort((a, b) => a.localeCompare(b, 'ko'));
+    }
+    return names;
+  }, [cards, listCountryFilter]);
+
   const filteredCards = useMemo(() => {
     const q = listSearchQuery.trim().toLowerCase();
     const filtered = cards.filter((card) => {
@@ -271,9 +280,9 @@ export function LyricsTranslateLibraryContent() {
             aria-label="국가 필터"
           >
             <option value="전체">국가: 전체</option>
-            {countryOptions.map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.flag} {c.name}
+            {countryFilterOptions.map((name) => (
+              <option key={name} value={name}>
+                {countryOptions.find((c) => c.name === name)?.flag ?? ''} {name}
               </option>
             ))}
           </select>

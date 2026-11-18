@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LayoutGrid, LayoutList, List, Music, X } from 'lucide-react';
+import { usedCountryNames } from '@/components/CountryComboSelect';
 import type { LibraryViewMode } from './albumBoardShared';
 import { PhysicalOwnedBadges, PhysicalOwnedCoverIcons } from './albumBoardShared';
 import {
@@ -58,6 +59,7 @@ interface AlbumListProps {
   setListMediaFilter?: (v: AlbumMediaFilter) => void;
   hideClassicGenreOption?: boolean;
   classicCardTags?: boolean;
+  countryFilterSource?: Album[];
 }
 
 export function AlbumList({
@@ -95,9 +97,18 @@ export function AlbumList({
   setListMediaFilter,
   hideClassicGenreOption = false,
   classicCardTags = false,
+  countryFilterSource,
 }: AlbumListProps) {
   const isRecordshelf = variant === 'recordshelf';
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const countryFilterOptions = useMemo(() => {
+    const source = countryFilterSource ?? lotteryPool;
+    const names = usedCountryNames(source.map((album) => album.country));
+    if (listCountryFilter !== '전체' && !names.includes(listCountryFilter)) {
+      return [...names, listCountryFilter].sort((a, b) => a.localeCompare(b, 'ko'));
+    }
+    return names;
+  }, [countryFilterSource, listCountryFilter, lotteryPool]);
   const [lotteryOpen, setLotteryOpen] = useState(false);
   const yearSelectDisabled = yearOptions.length === 0 || listLibraryTag === 'All Time';
   const defaultYearFilter = defaultYearFilterProp ?? yearOptions[0] ?? '';
@@ -221,8 +232,10 @@ export function AlbumList({
         onChange={(e) => setListCountryFilter(e.target.value)}
       >
         <option value="전체">국가: 전체</option>
-        {countryOptions.map((c) => (
-          <option key={c.name} value={c.name}>{c.flag} {c.name}</option>
+        {countryFilterOptions.map((name) => (
+          <option key={name} value={name}>
+            {countryOptions.find((c) => c.name === name)?.flag ?? ''} {name}
+          </option>
         ))}
       </select>
       <select

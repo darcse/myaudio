@@ -1,15 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   artistTypeOptionsForCatalog,
   COMPOSER_ERA_OPTIONS,
-  countryOptions,
 } from '@/app/albums/constants';
+import type { Album } from '@/app/albums/types';
+import {
+  albumCountryUsageCounts,
+  CountryComboSelect,
+} from '@/components/CountryComboSelect';
+import {
+  getCatalogLibraryCache,
+  subscribeCatalogLibraryCache,
+} from '@/lib/catalogLibraryCache';
 import type { CatalogScope } from '@/lib/catalogScope';
+
+const EMPTY_ALBUMS: Album[] = [];
+
+function getCatalogAlbumsSnapshot(): Album[] {
+  return getCatalogLibraryCache()?.albums ?? EMPTY_ALBUMS;
+}
 import {
   buildProfileFieldsPatchDiff,
   type ArtistProfileFieldsPatch,
@@ -71,6 +85,15 @@ export function ArtistInfoEditModal({
   const [artistTypeDraft, setArtistTypeDraft] = useState(artistType ?? '');
   const [eraDraft, setEraDraft] = useState(era ?? '');
   const [submitting, setSubmitting] = useState(false);
+  const catalogAlbums = useSyncExternalStore(
+    subscribeCatalogLibraryCache,
+    getCatalogAlbumsSnapshot,
+    () => EMPTY_ALBUMS,
+  );
+  const countryUsageCounts = useMemo(
+    () => albumCountryUsageCounts(catalogAlbums),
+    [catalogAlbums],
+  );
 
   useEffect(() => {
     setOpen(false);
@@ -261,19 +284,14 @@ export function ArtistInfoEditModal({
             ) : null}
             <div>
               <label className="mb-1 block text-[11px] font-semibold opacity-70">국적</label>
-              <select
-                className="select-apple h-[38px] w-full px-3 text-sm"
+              <CountryComboSelect
                 value={countryDraft}
-                onChange={(e) => setCountryDraft(e.target.value)}
+                onChange={setCountryDraft}
+                usageCounts={countryUsageCounts}
                 disabled={busy}
-              >
-                <option value="">선택</option>
-                {countryOptions.map((option) => (
-                  <option key={option.name} value={option.name}>
-                    {option.flag} {option.name}
-                  </option>
-                ))}
-              </select>
+                className="[&_button]:h-[38px] [&_button]:text-sm"
+                aria-label="국적"
+              />
             </div>
             {role === 'composer' ? (
               <div>
