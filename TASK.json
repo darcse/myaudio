@@ -1,33 +1,29 @@
 {
-  "id": "T-062",
-  "goal": "앨범 상세 모달 상단이 깔끔해지고(Pop & Rock은 장르1만, Classic은 형식·대표 악기), 장르2·태그는 무드 아래에서 보이며, 모달에서 실수로 삭제할 위험이 줄고 수정 폼 하단 버튼이 정돈된다.",
-  "context": "JW UI 피드백 4건. 대상 파일을 먼저 확인하고 각 항목 위치를 result에 한 줄씩 요약한다. (1) src/app/albums/_components/AlbumInfoSection.tsx의 AlbumInfoHeroSection: 현재 앨범명 위 칩 줄에 genre1·genre2·tags가 모두 나온다. Pop & Rock 앨범은 이 줄에 genre1만 남긴다. (2) Classic 앨범(isClassicAlbum 등 기존 판별 사용)은 이 줄에서 genre1('Classic')을 빼고 형식(genre2, 기존 formatClassicFormLabel 등 라벨 함수가 있으면 사용)과 대표 악기(classic_instrument)를 칩으로 보여준다. 값이 없으면 해당 칩은 생략. (3) Pop & Rock 앨범의 genre2와 tags는 앨범 정보 탭의 무드(무드보드) 표시 바로 아래로 옮겨 칩 줄로 보여준다. 장르2 칩을 먼저, 태그 칩을 뒤에, 장르2와 태그가 시각적으로 구분되게(예: 장르2는 진한 배경, 태그는 연한 배경 또는 '#' 접두 등 판단). 둘 다 없으면 줄 자체를 렌더하지 않는다. 다크·라이트 테마 모두 잘 보이게 CSS 변수 사용. (4) src/app/albums/_components/AlbumDetailModal.tsx 탭 줄 끝의 삭제(Trash2) 버튼과 그 확인 UI를 제거한다(수정 연필 버튼은 유지). 이 변경으로 AlbumDetailModal 안에서 미사용이 된 상태·props만 정리하고, 호출부까지 연쇄 수정은 lint 에러가 날 때만 최소로 한다. (5) src/app/albums/_components/AlbumForm.tsx 하단: 저장 버튼은 전체폭이 아니라 적당한 폭(예: min-w 200px 정도)으로 줄여 가운데 정렬, 수정 모드의 삭제는 텍스트 큰 버튼 대신 Trash2 아이콘 버튼 하나로 같은 줄 우측 끝에 둔다(aria-label '앨범 삭제'). 삭제 아이콘을 누르면 기존 인라인 확인 UI(deleteConfirmOpen)를 그대로 쓴다. 새 등록 모드는 삭제 아이콘 없음, 등록 버튼만 가운데. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-063",
+  "goal": "앨범 메뉴가 아닌 화면(아티스트 상세 등)에서 앨범 수정 폼을 열어도 하단 우측 휴지통 아이콘으로 앨범을 삭제할 수 있다.",
+  "context": "T-062 후속 버그. T-062에서 상세 모달의 삭제 버튼을 없앴는데, <AlbumForm>에 onDelete를 넘기는 곳은 AlbumsLibraryContent와 GlobalAlbumDetailHost뿐이라 다른 화면의 수정 폼에는 삭제 아이콘이 없다(JW 확인: 아티스트 상세). 대상: onDelete 없이 AlbumForm을 렌더하는 ArtistsLibraryContent, AlbumTrackListContent(lyrics), GenreStatsContent(insights), AlbumDiaryContent, AlbumStatsContent. 이 화면들은 이미 상세 모달용 삭제 핸들러(handleDeleteFromModal 등)를 갖고 있으니 새 로직을 만들지 말고 그것을 재사용해 AlbumForm에 onDelete·isDeleting을 넘긴다. 단, 기존 핸들러가 viewingAlbum 등 모달 상태의 id를 쓰는 경우 수정 폼 대상 앨범과 같은 앨범인지 확인하고, 다를 수 있으면 폼 대상 id로 삭제되게 최소 보완한다. 삭제 후 폼·모달이 닫히고 목록에서 사라져야 한다. DashboardContent는 기존에도 모달 삭제를 막고 '앨범 화면에서 진행' 안내만 했으므로 이번에는 그대로 둔다(결과에 현황만 보고). 수정 폼에서만 삭제가 보이고 새 등록 폼에는 없어야 한다(AlbumForm의 isEdit 조건 그대로). window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "상세 히어로 칩 줄 구성 변경(Pop & Rock·Classic)",
-      "Pop & Rock 장르2·태그 칩을 무드 표시 아래로 이동",
-      "상세 모달 탭 줄 삭제 버튼 제거",
-      "수정 폼 하단 저장·삭제 버튼 레이아웃 변경"
+      "5개 화면의 AlbumForm에 기존 삭제 핸들러 연결(onDelete·isDeleting)",
+      "필요 시 삭제 대상 id를 폼 대상 앨범으로 맞추는 최소 보완"
     ],
     "out": [
-      "삭제·저장 로직 자체(onDelete·onSave 동작)",
-      "무드 기능 로직",
-      "폼 입력 필드",
-      "목록·카드 화면의 장르·태그 표시",
+      "AlbumForm·AlbumDetailModal UI 변경",
+      "DashboardContent 삭제 정책",
+      "deleteAlbum 등 삭제 로직 자체",
       "DB·SQL·스키마 (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 앨범 상세 상단에는 장르1 칩만 보이고, 장르2·태그는 무드 표시 바로 아래 칩 줄에 구분되어 보인다(없으면 줄이 없다)",
-    "Classic 앨범 상세 상단에는 'Classic' 칩 없이 형식·대표 악기 칩이 보인다",
-    "앨범 상세 모달 탭 줄에는 수정 버튼만 있고 삭제 버튼이 없다",
-    "수정 폼 하단에서 저장 버튼은 가운데 적당한 폭, 삭제는 우측 끝 휴지통 아이콘이며 누르면 기존 인라인 확인 후 삭제된다. 새 등록 폼에는 삭제 아이콘이 없다",
+    "아티스트 상세에서 앨범 모달 → 수정으로 들어가면 하단 우측 휴지통 아이콘이 보이고, 인라인 확인 후 삭제되면 폼·모달이 닫히고 목록에서 사라진다",
+    "Lyrics·인사이트·다이어리·앨범 통계 화면에서 연 수정 폼도 같은 방식으로 삭제된다",
+    "새 등록 폼에는 휴지통 아이콘이 없고, 앨범 메뉴 수정 폼의 삭제는 T-062와 동일하다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": true,
-  "commit_message": "(style): 앨범 상세 장르·태그 표시 위치 정리, 모달 삭제 버튼 제거, 수정 폼 하단 버튼 정돈",
+  "commit_message": "(fix): 앨범 메뉴 외 화면의 수정 폼에도 삭제 아이콘 연결",
   "status": "done",
-  "result": "위치: (1)(2) AlbumInfoHeroSection 앨범명 위 칩 줄 — Pop은 genre1만, Classic은 formatClassicFormLabel(genre2)·classic_instrument. (3) AlbumInfoSection 무드 행 바로 아래 — genre2 진한 칩 + #tags 연한 칩. (4) AlbumDetailModal 탭 줄 Trash2·확인 UI 제거(onDelete/isDeleting optional 유지). (5) AlbumForm 하단 저장 min-w-[200px] 가운데 + 우측 Trash2. 검증: tsc/lint 통과."
+  "result": "ArtistsLibraryContent·AlbumTrackListContent·GenreStatsContent·AlbumDiaryContent·AlbumStatsContent의 AlbumForm에 onDelete·isDeleting 연결. handleDeleteFromModal이 viewingAlbum 없을 때 albumFormItem.id를 쓰도록 보완하고 삭제 후 폼도 닫음. DashboardContent는 기존처럼 앨범 화면 안내만(변경 없음). 검증: tsc/lint 통과."
 }

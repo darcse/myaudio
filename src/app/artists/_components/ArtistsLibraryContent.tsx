@@ -839,8 +839,12 @@ export function ArtistsLibraryContent({
       toast.error('로그인이 필요합니다.');
       return;
     }
-    if (!viewingAlbum) return;
-    const deletedId = viewingAlbum.id;
+    const formId =
+      albumFormItem && 'id' in albumFormItem && typeof albumFormItem.id === 'number'
+        ? albumFormItem.id
+        : null;
+    const deletedId = viewingAlbum?.id ?? formId;
+    if (deletedId == null) return;
     setIsDeleting(true);
     try {
       await deleteAlbumFromDB(deletedId);
@@ -1086,8 +1090,14 @@ export function ArtistsLibraryContent({
           headfiOwnedHeadphones={headfiOwnedHeadphones}
           onClose={() => setAlbumFormItem(null)}
           onSave={() => void handleAlbumSave()}
+          onDelete={
+            'id' in albumFormItem && typeof albumFormItem.id === 'number'
+              ? () => void handleDeleteFromModal()
+              : undefined
+          }
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}
+          isDeleting={isDeleting}
           artistDefaultsLibrary={albums}
           mode={
             'id' in albumFormItem && typeof albumFormItem.id === 'number'

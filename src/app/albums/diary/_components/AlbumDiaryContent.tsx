@@ -509,11 +509,16 @@ export function AlbumDiaryContent() {
   };
 
   const handleDeleteFromModal = async () => {
-    if (!viewingAlbum) return;
-    const deletedId = viewingAlbum.id;
+    const formId =
+      albumFormItem && 'id' in albumFormItem && typeof albumFormItem.id === 'number'
+        ? albumFormItem.id
+        : null;
+    const deletedId = viewingAlbum?.id ?? formId;
+    if (deletedId == null) return;
     const deleted = await deleteAlbum({ albumId: deletedId });
     if (!deleted) return;
     setViewingAlbum(null);
+    setAlbumFormItem(null);
     setAlbums((prev) => prev.filter((album) => album.id !== deletedId));
     await fetchData();
   };
@@ -918,8 +923,14 @@ export function AlbumDiaryContent() {
           headfiOwnedHeadphones={headfiOwnedHeadphones}
           onClose={() => setAlbumFormItem(null)}
           onSave={() => void handleAlbumSave()}
+          onDelete={
+            'id' in albumFormItem && typeof albumFormItem.id === 'number'
+              ? () => void handleDeleteFromModal()
+              : undefined
+          }
           onImageUpload={handleAlbumImageUpload}
           isSaving={isSaving}
+          isDeleting={isDeleting}
         />
       ) : null}
     </div>
