@@ -1,31 +1,32 @@
 {
-  "id": "T-064",
-  "goal": "데스크톱 아티스트 화면에서 창 높이와 관계없이 처음 들어왔을 때부터 왼쪽 아티스트 목록의 하단이 화면 안에 있어, 창 스크롤 없이 목록 안 스크롤이 바로 동작한다.",
-  "context": "대상: src/app/artists/_components/ArtistsLibraryContent.tsx 데스크톱(lg) 레이아웃. 현재 목록 래퍼는 sticky top-[var(--app-header-height)] + h-[calc(100dvh-var(--app-header-height)-var(--player-inset))]라, 페이지 상단(제목·필터 줄) 아래에서 시작하는 초기 상태에서는 목록 하단이 그만큼 화면 밖으로 나가고, 창을 스크롤해 목록이 헤더에 붙어야 목록 내부 스크롤이 제대로 쓰인다(JW 피드백, 창이 낮을수록 불편). 기본안: 목록 래퍼 높이를 '뷰포트 높이 − max(목록 래퍼의 현재 top, 헤더 높이) − 플레이어 inset'으로 맞춘다. 스크롤·리사이즈·플레이어 표시 변화 시 갱신(requestAnimationFrame 등으로 과도한 렌더 방지, 이벤트 정리). 순수 CSS로 더 단순하게 같은 결과를 낼 수 있으면 그쪽을 택해도 된다. CONVENTIONS.md의 Artists 레이아웃 규칙(데스크톱: 좌측 목록 sticky + 우측 페이지 스크롤, 우측 내부 스크롤 금지, 글로벌 푸터 숨김)은 유지한다. 모바일(lg 미만) 레이아웃은 건드리지 않는다. 추가 보완(별건, 같은 파일군): T-063에서 5개 화면의 handleDeleteFromModal이 viewingAlbum?.id ?? 폼 id 순으로 삭제 대상을 고른다. 이제 이 핸들러는 수정 폼에서만 호출되므로(모달 삭제 버튼 제거됨) 폼 대상 id를 우선하고 없을 때만 viewingAlbum id를 쓰도록 순서를 바꾼다(ArtistsLibraryContent, AlbumTrackListContent, GenreStatsContent, AlbumDiaryContent, AlbumStatsContent). 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-065",
+  "goal": "Pop & Rock 앨범 목록에서 장르1을 고르면 그 장르의 하위 장르(장르2)로 한 번 더 좁혀 볼 수 있다.",
+  "context": "대상: src/app/albums/_components/AlbumList.tsx(필터 줄, 활성 칩), 필요 시 AlbumsLibraryContent.tsx. 현재 Pop & Rock 목록은 '장르' select(listGenreFilter)만 있고, Classic은 '형식' select가 listFormFilter(genre2 일치 판정, useAlbumFilters의 matchesForm)를 쓴다. 기본안: 새 상태를 만들지 말고 listFormFilter를 Pop & Rock의 장르2 필터로 재사용한다. Pop & Rock(classicCardTags 아님, recordshelf 아님) 필터 줄에서 장르 select 바로 뒤에 '하위 장르: 전체' select를 둔다. 옵션은 constants.ts의 genre2OptionsForGenre1(listGenreFilter) 표준 목록(표준 순서). 장르가 '전체'이거나 매핑이 없으면 select 비활성. 장르1을 바꾸면 하위 장르 필터를 '전체'로 초기화한다. 활성 필터 칩 '하위 장르: {값}' 추가(해제 가능), 장르 칩 해제 시 하위 장르도 함께 해제. 레코드쉘프 변형과 Classic 형식 필터는 그대로. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "데스크톱 아티스트 목록 높이를 실제 시작 위치 기준으로 계산",
-      "5개 화면 삭제 대상 id 우선순위를 폼 대상 우선으로 변경"
+      "Pop & Rock 필터 줄에 장르1 연동 하위 장르 select",
+      "장르 변경 시 하위 장르 초기화",
+      "하위 장르 활성 칩"
     ],
     "out": [
-      "모바일 아티스트 레이아웃·오버레이",
-      "아티스트 상세 패널 내용",
-      "ArtistListSidebar 내부 디자인",
-      "삭제 로직 자체(deleteAlbumFromDB 등)",
+      "Classic 형식·악기 필터",
+      "레코드쉘프 필터",
+      "useAlbumFilters 판정 로직 변경(필요 최소 외)",
+      "태그 필터",
       "DB·SQL·스키마 (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "창 높이를 낮게 한 상태로 아티스트 화면에 들어가면 목록 하단이 화면 안에 있고, 창 스크롤 없이 목록 안에서 끝까지 스크롤된다",
-    "페이지를 아래로 스크롤해 목록이 헤더에 붙으면 목록이 화면 높이에 맞게 늘어나고, 창 크기를 바꾸거나 하단 플레이어가 뜨고 사라져도 목록 하단이 잘리지 않는다",
-    "우측 상세는 기존처럼 페이지 스크롤로 보이고 모바일 화면은 이전과 같다",
-    "아티스트 상세 등 5개 화면의 수정 폼에서 삭제하면 폼에 열린 앨범이 삭제된다",
+    "Pop & Rock 목록에서 장르를 J-Rock으로 고르면 하위 장르 select가 활성화되어 J-Rock 표준 7개가 보이고, Shoegaze / Dream Pop을 고르면 그 앨범만 남는다",
+    "장르를 바꾸면 하위 장르가 '전체'로 돌아가고, 장르가 '전체'일 때 하위 장르 select는 비활성이다",
+    "'하위 장르: …' 칩으로 해제되고, 장르 칩을 해제하면 하위 장르도 해제된다. 태그·국가 필터와 함께 조합된다",
+    "Classic 목록의 형식·악기 필터와 레코드쉘프 필터는 이전과 같다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": true,
-  "commit_message": "(fix): 아티스트 목록 높이를 화면 안에 맞추고 폼 삭제 대상 우선순위 보완",
+  "commit_message": "(feat): Pop & Rock 목록에 장르1 연동 하위 장르 필터 추가",
   "status": "done",
-  "result": "ArtistsLibraryContent 데스크톱 목록 래퍼 높이를 viewport − max(top, header) − player-inset으로 측정(scroll/resize/lg/플레이어 상태, rAF). 모바일 레이아웃 미변경. 5개 화면 삭제 id를 formId ?? viewingAlbum.id로 변경. 검증: tsc/lint 통과."
+  "result": "AlbumList Pop&Rock에 listFormFilter 재사용 하위 장르 select(genre2OptionsForGenre1)·활성 칩 추가. 장르 변경/칩 해제 시 하위 장르 '전체' 초기화. AlbumsLibraryContent 장르 칩 클릭도 동일 초기화. Classic·recordshelf 미변경. 검증: tsc/lint 통과."
 }

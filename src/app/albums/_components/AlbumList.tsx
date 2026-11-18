@@ -11,6 +11,7 @@ import {
   formatClassicFormLabel,
   CLASSIC_INSTRUMENT_OPTIONS,
   countryOptions,
+  genre2OptionsForGenre1,
   genreOptions,
   isClassicFormOption,
 } from '../constants';
@@ -135,6 +136,10 @@ export function AlbumList({
   const genreSelectOptions = hideClassicGenreOption
     ? genreOptions.filter((genre) => genre !== 'Classic')
     : genreOptions;
+  const showPopGenre2Filter = !isRecordshelf && !classicCardTags;
+  const popGenre2Options = showPopGenre2Filter
+    ? genre2OptionsForGenre1(listGenreFilter)
+    : null;
 
   const toggleInstrumentFilter = (value: string) => {
     if (!setListInstrumentFilter) return;
@@ -154,7 +159,15 @@ export function AlbumList({
     !isRecordshelf && !classicCardTags && listGenreFilter !== '전체' && {
       key: 'genre',
       label: `장르: ${listGenreFilter}`,
-      reset: () => setListGenreFilter('전체'),
+      reset: () => {
+        setListGenreFilter('전체');
+        setListFormFilter?.('전체');
+      },
+    },
+    showPopGenre2Filter && listFormFilter !== '전체' && {
+      key: 'genre2',
+      label: `하위 장르: ${listFormFilter}`,
+      reset: () => setListFormFilter?.('전체'),
     },
     classicCardTags && listInstrumentFilter !== '전체' && {
       key: 'instrument',
@@ -237,18 +250,44 @@ export function AlbumList({
           </select>
         </>
       ) : (
-        <select
-          className="select-apple px-3 py-2 text-sm h-[38px]"
-          value={listGenreFilter}
-          onChange={(e) => setListGenreFilter(e.target.value)}
-        >
-          <option value="전체">장르: 전체</option>
-          {genreSelectOptions.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
+        <>
+          <select
+            className="select-apple px-3 py-2 text-sm h-[38px]"
+            value={listGenreFilter}
+            onChange={(e) => {
+              setListGenreFilter(e.target.value);
+              setListFormFilter?.('전체');
+            }}
+            aria-label="장르 필터"
+          >
+            <option value="전체">장르: 전체</option>
+            {genreSelectOptions.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+          {showPopGenre2Filter ? (
+            <select
+              className="select-apple px-3 py-2 text-sm h-[38px] disabled:opacity-50"
+              value={listFormFilter}
+              onChange={(e) => setListFormFilter?.(e.target.value)}
+              disabled={popGenre2Options == null}
+              aria-label="하위 장르 필터"
+            >
+              <option value="전체">하위 장르: 전체</option>
+              {listFormFilter !== '전체' &&
+              !(popGenre2Options ?? []).includes(listFormFilter) ? (
+                <option value={listFormFilter}>{listFormFilter}</option>
+              ) : null}
+              {(popGenre2Options ?? []).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : null}
+        </>
       )}
       <select
         className="select-apple px-3 py-2 text-sm h-[38px]"

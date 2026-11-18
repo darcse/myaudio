@@ -662,6 +662,7 @@ export function AlbumsLibraryContent({
               onItemClick={openAlbumDetail}
               onGenreLabelClick={(genre) => {
                 setListGenreFilter(genre);
+                setListFormFilter('전체');
                 setListCurrentPage(1);
               }}
               onSubGenreLabelClick={(subGenre) => {
