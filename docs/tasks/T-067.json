@@ -1,0 +1,35 @@
+{
+  "id": "T-067",
+  "feature_id": "ALBUM-051",
+  "goal": "아티스트 화면 필터 줄이 정리되어, Pop & Rock은 장르2 연동 선택과 앨범 태그 클라우드로, Classic 연주자는 대표 악기로 아티스트를 좁혀 볼 수 있다.",
+  "context": "대상: src/app/artists/_components/ArtistTopControlBar.tsx, src/app/artists/_hooks/useArtistFilters.ts, src/app/artists/utils.ts(요약 데이터에 필요한 값), ArtistsLibraryContent.tsx(연결). 현재: 검색(sm:flex-1)·국적·(작곡가면 시대 / 아니면 타입·장르)·정렬·'태그' 버튼(genre2Tags 클라우드, genre2Filter)·초기화(RotateCcw). 변경: (1) 검색창 폭을 줄여 필터들이 데스크톱에서 한 줄에 들어가게 한다(예: 고정 최대폭). (2) Pop & Rock(catalogScope popular): 순서 국적·타입·장르1·장르2·정렬·태그·초기화. 장르2는 select로, 옵션은 src/app/albums/constants.ts의 genre2OptionsForGenre1(genreFilter) 표준 목록, 장르1 '전체'면 비활성, 장르1 변경 시 '전체'로 초기화, 판정은 기존 genre2Filter(아티스트 앨범 중 genre2 일치)를 재사용. '태그' 버튼은 앨범 tags 클라우드 팝오버로 바꾼다: 공용 TagCloud(src/components/TagCloud.tsx)·usePopoverPosition·textSearch(matchesSearchContains)를 써서 앨범 태그 팝오버(AlbumTagFilterPopover)와 같은 모양·동작(검색창, 전체 칩, '{태그} ({앨범 수})', 선택 시 닫힘)으로 하고, 가능하면 AlbumTagFilterPopover를 그대로 재사용한다. 새 tagFilter 상태로 아티스트의 앨범 중 하나라도 해당 태그(대소문자 무시, utils albumHasTag 재사용)가 있으면 통과. 옵션은 현재 scope 앨범의 태그 빈도순. (3) Classic 연주자/지휘자: 순서 국적·타입·형식·대표 악기·정렬·초기화. 기존 '태그' 버튼(genre2 형식 클라우드)은 라벨만 '형식'으로 바꾸고 위치를 대표 악기 앞으로. 기존 장르 select 자리에 대표 악기 select(CLASSIC_INSTRUMENT_OPTIONS, 아티스트 앨범 중 classic_instrument 일치하면 통과)를 둔다. (4) Classic 작곡가: 구성 유지, '태그' 버튼 라벨만 '형식'. (5) 초기화는 새 필터(장르2·태그·대표 악기)까지 모두 초기화. 아티스트 상세 패널·목록 디자인은 건드리지 않는다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "필터 줄 순서·검색창 폭 조정",
+      "Pop & Rock 장르2 select(장르1 연동)",
+      "Pop & Rock 앨범 태그 클라우드 필터",
+      "Classic 연주자 대표 악기 select",
+      "Classic '태그' 라벨을 '형식'으로",
+      "초기화 범위 확장"
+    ],
+    "out": [
+      "아티스트 상세 패널·목록 사이드바 디자인",
+      "앨범 목록 화면 필터",
+      "TagCloud·usePopoverPosition·textSearch 공용 코드의 동작 변경(필요 최소 props 추가 외)",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 아티스트 필터가 국적·타입·장르1·장르2·정렬·태그·초기화 순이고 검색창이 좁아져 데스크톱에서 한 줄에 들어온다",
+    "장르1 선택 시 장르2 표준 목록으로 좁힐 수 있고, 태그 팝오버에서 태그를 고르면 그 태그 앨범이 있는 아티스트만 남는다",
+    "Classic 연주자 필터가 국적·타입·형식·대표 악기·정렬·초기화이고 대표 악기 필터가 동작하며, 작곡가는 기존 구성에 '형식' 라벨만 바뀐다",
+    "초기화가 모든 필터·검색어를 지운다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-051 아티스트 필터 줄 재구성(장르2·태그·대표 악기)",
+  "status": "done",
+  "result": "ArtistTopControlBar·useArtistFilters·ArtistsLibraryContent 연결. 검색 sm:w-[11rem]. Popular: 장르1 연동 장르2 select(genre2OptionsForGenre1)·AlbumTagFilterPopover(tagFilter/albumHasTag). Classic 연주자: 형식 클라우드+대표 악기 select. 작곡가: 태그→형식. 초기화에 tag·instrument·genre2 포함. utils 요약 변경 없음(Album에 tags·classic_instrument 이미 있음). 검증: tsc/lint 통과. auto_commit false — 커밋 대기."
+}

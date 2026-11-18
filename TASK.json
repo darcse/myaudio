@@ -1,33 +1,31 @@
 {
-  "id": "T-066",
-  "goal": "국가 선택·앨범 태그 팝오버·아티스트 장르2 클라우드가 공용 팝오버 위치 계산·공용 태그 클라우드·공용 한글 검색을 함께 써서 중복 코드가 사라지고, 앨범 태그 팝오버 검색도 한글 자모 검색('슈'→슈게이즈)이 된다. 그 밖의 화면·동작은 이전과 같다.",
-  "context": "리팩터링 작업. 현재 중복: (a) 팝오버/패널 위치 계산(computePanelPosition·뷰포트 패딩·위/아래 열기 판단·resize/scroll 갱신)이 src/components/CountryComboSelect.tsx와 src/app/albums/_components/AlbumTagFilterPopover.tsx에 각각 있다. (b) 칩 클라우드(전체 칩·빈도별 글자 크기 tagFontSize·선택 강조)가 src/app/artists/_components/ArtistGenre2TagCloud.tsx와 AlbumTagFilterPopover.tsx에 각각 있다. (c) 한글 자모 정규화·영문 단어 시작 매칭·앞부분 우선 판정이 CountryComboSelect.tsx 안에만 있다. 기본안: (1) 위치 계산을 공용 훅 또는 유틸 하나(src/components 또는 src/lib, 위치는 판단)로 추출해 두 컴포넌트가 쓴다. (2) 공용 태그 클라우드 컴포넌트 하나({label,count}[]·selected·onSelect·'전체' 칩 여부 등 최소 props)를 만들어 ArtistGenre2TagCloud와 앨범 태그 팝오버가 쓴다. ArtistGenre2TagCloud는 공용 컴포넌트의 얇은 래퍼로 남기거나 호출부를 바꿔도 되나 아티스트 화면 모양·동작은 그대로. (3) 한글·영문 검색 매칭 로직을 공용 유틸(예: src/lib 하위)로 옮겨 국가 선택과 앨범 태그 팝오버 검색에서 쓴다. 태그 검색은 포함 매칭을 유지하되 한글 자모 단위로 비교한다(국가처럼 영문 단어 시작 제한은 태그에는 적용하지 않는다 — 'rock'으로 Post Rock이 걸려야 함). ReceiverComboSelect·ComposerComboSelect는 건드리지 않는다. 기존 호출부 props·화면 모양을 바꾸지 않는 것이 원칙이며, 바꿔야 하면 result에 이유를 쓴다. 이 작업으로 미사용이 된 코드는 정리한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-068",
+  "feature_id": "ALBUM-051",
+  "goal": "아티스트 화면 필터 줄에서 검색창이 남는 가로 공간을 채우도록 넓어지고, 태그 버튼이 다른 필터와 같은 모양으로 보인다.",
+  "context": "T-067 후속, 아직 커밋 전이며 T-067과 함께 ALBUM-051로 커밋한다. 대상: src/app/artists/_components/ArtistTopControlBar.tsx. 문제(JW 스크린샷): 검색창을 sm:w-[11rem]으로 고정해 너무 좁고, 초기화 버튼 오른쪽에 빈 공간이 크게 남는다. 또 앨범 태그 팝오버 버튼(AlbumTagFilterPopover 트리거)이 흰 배경·높이·둥글기에서 옆의 회색 select들과 달라 보인다. 기본안: 검색창은 flex-1로 남는 공간을 채우되 최소 폭(예: 12rem)을 두고, 필터·정렬·태그·초기화는 shrink-0으로 내용 폭을 유지한다. 창이 좁아 한 줄에 안 들어가면 기존처럼 줄바꿈되며, 줄바꿈 시에도 검색창이 첫 줄 전체 폭을 쓰는 등 어색하지 않게 한다. 태그 버튼은 이 화면의 select 클래스(높이·배경·둥글기·글자 크기)와 맞춘다 — AlbumTagFilterPopover에 트리거 className을 받는 선택 prop을 추가하는 정도의 최소 변경으로 하고, 앨범 목록 화면의 태그 버튼 모양은 바꾸지 않는다. Classic 연주자·작곡가 필터 줄도 같은 검색창 규칙을 적용한다. 전체 파일 재작성 금지, 최소 수정. 추가(JW 피드백): Classic 연주자·작곡가 화면의 '형식' 버튼(기존 genre2 클라우드 버튼, 라벨만 바뀐 것) 글자가 옆 select들보다 크다. 같은 줄 select와 글자 크기·굵기·높이를 맞춘다.",
   "scope": {
     "in": [
-      "팝오버 위치 계산 공용화(국가 선택·앨범 태그 팝오버)",
-      "태그 클라우드 공용 컴포넌트(아티스트 장르2·앨범 태그 팝오버)",
-      "한글·영문 검색 매칭 공용 유틸화, 앨범 태그 검색에 자모 매칭 적용"
+      "아티스트 필터 줄 검색창 flex 확장·최소 폭",
+      "아티스트 화면 태그 버튼 모양을 select와 통일(트리거 className prop)",
+      "Classic '형식' 버튼 글자 크기·높이를 select와 통일"
     ],
     "out": [
-      "ReceiverComboSelect·ComposerComboSelect",
-      "국가 목록 상수",
-      "필터 판정 로직(useAlbumFilters·useArtistFilters)",
-      "화면 디자인 변경",
-      "아티스트 태그 클라우드 신규 기능(다음 작업)",
+      "필터 기능·순서 변경",
+      "앨범 목록 화면 태그 버튼 모양",
       "DB·SQL·스키마 (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "앨범 폼·아티스트 정보 수정의 국가 선택이 이전과 같다('ㅎ'·'허'·'hu'·'스웯' 검색, 위치, 키보드, 기존 값 표시)",
-    "앨범 태그 팝오버의 모양·위치·닫힘 동작이 이전과 같고, 검색에서 '슈'로 슈게이즈, 'rock'으로 Post Rock 등이 걸린다",
-    "아티스트 화면 장르2 태그 클라우드의 모양·선택·해제가 이전과 같다",
-    "위치 계산·칩 클라우드·검색 매칭 코드가 각각 한 곳에만 존재한다(result에 새 파일 경로 명시)",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "데스크톱 넓은 창에서 검색창이 남는 공간을 채워 초기화 버튼이 필터 줄 오른쪽 끝에 붙는다",
+    "창을 좁히면 검색창이 최소 폭 아래로 줄지 않고 자연스럽게 줄바꿈된다",
+    "아티스트 화면 태그 버튼이 옆 select들과 같은 높이·배경·둥글기로 보이고, 앨범 목록의 태그 버튼은 이전과 같다",
+    "Classic 연주자·작곡가의 '형식' 버튼 글자 크기·높이가 옆 select들과 같다",
+    "Classic 연주자·작곡가 필터 줄도 검색창이 같은 규칙으로 보인다"
   ],
   "auto_commit": false,
-  "commit_message": "(refactor): 팝오버 위치·태그 클라우드·한글 검색 공용화",
+  "commit_message": "(feat): ALBUM-051 아티스트 필터 줄 재구성(장르2·태그·대표 악기)",
   "status": "done",
-  "result": "공용화 완료. 새 파일: src/lib/popoverPosition.ts(위치 계산), src/hooks/usePopoverPosition.ts(resize/scroll 훅), src/components/TagCloud.tsx(칩 클라우드), src/lib/textSearch.ts(자모·영문 단어시작·포함 매칭). CountryComboSelect·AlbumTagFilterPopover가 위치 훅 사용, ArtistGenre2TagCloud는 TagCloud 래퍼. 태그 검색에 matchesSearchContains 적용('슈'/'rock' 포함). Receiver/Composer 미변경. 호출부 props 유지. 검증: tsc/lint 통과. auto_commit false — 커밋 대기.\n커밋 승인: 261118_2308 (refactor): 팝오버 위치·태그 클라우드·한글 검색 공용화, AGENTS.md 커밋 보고 규칙 보완"
+  "result": "검색창 sm:flex-1·min-w-[12rem]·basis-[12rem]. AlbumTagFilterPopover에 triggerClassName/triggerStyle 선택 prop 추가(앨범 목록 기본값 유지). 아티스트 태그 트리거·Classic 형식 버튼을 select-apple h-9 text-xs rounded-full·surface-elevated로 통일. 검증: tsc/lint 통과. T-067과 함께 커밋 대기(auto_commit false).\n커밋 승인: 261118_2321 (feat): ALBUM-051 아티스트 필터 줄 재구성(장르2·태그·대표 악기) (T-067~T-068)"
 }

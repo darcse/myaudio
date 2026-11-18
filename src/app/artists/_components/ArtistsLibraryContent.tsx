@@ -260,8 +260,14 @@ export function ArtistsLibraryContent({
     genreFilter,
     setGenreFilter,
     genre2Filter,
+    setGenre2Filter,
     genre2Tags,
     handleGenre2TagSelect,
+    tagFilter,
+    setTagFilter,
+    tagFilterOptions,
+    instrumentFilter,
+    setInstrumentFilter,
     resetFilters,
     sortOption,
     setSortOption,
@@ -987,14 +993,20 @@ export function ArtistsLibraryContent({
       setTypeFilter={setTypeFilter}
       genreFilter={genreFilter}
       setGenreFilter={setGenreFilter}
+      genre2Filter={genre2Filter}
+      setGenre2Filter={setGenre2Filter}
       sortOption={sortOption}
       setSortOption={setSortOption}
       countryOptions={countryOptions}
       typeOptions={typeOptions}
       genreOptions={genreOptions}
       genre2Tags={genre2Tags}
-      genre2Filter={genre2Filter}
       onGenre2TagSelect={handleGenre2TagSelect}
+      tagFilter={tagFilter}
+      setTagFilter={setTagFilter}
+      tagFilterOptions={tagFilterOptions}
+      instrumentFilter={instrumentFilter}
+      setInstrumentFilter={setInstrumentFilter}
       onResetFilters={resetFilters}
     />
   );

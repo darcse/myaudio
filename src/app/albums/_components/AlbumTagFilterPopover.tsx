@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search } from 'lucide-react';
 import { TagCloud } from '@/components/TagCloud';
@@ -12,6 +12,8 @@ type AlbumTagFilterPopoverProps = {
   value: string;
   options: AlbumTagFilterOption[];
   onChange: (value: string) => void;
+  triggerClassName?: string;
+  triggerStyle?: CSSProperties;
 };
 
 const TAG_PANEL_OPTIONS = {
@@ -29,6 +31,8 @@ export function AlbumTagFilterPopover({
   value,
   options,
   onChange,
+  triggerClassName = 'select-apple flex h-[38px] items-center justify-between gap-2 px-3 py-2 text-left text-sm',
+  triggerStyle,
 }: AlbumTagFilterPopoverProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -131,7 +135,8 @@ export function AlbumTagFilterPopover({
       <button
         ref={triggerRef}
         type="button"
-        className="select-apple flex h-[38px] items-center justify-between gap-2 px-3 py-2 text-left text-sm"
+        className={triggerClassName}
+        style={triggerStyle}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label="태그 필터"

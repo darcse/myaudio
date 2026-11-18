@@ -2,6 +2,11 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { COMPOSER_ERA_OPTIONS } from '@/app/albums/constants';
+import {
+  albumHasTag,
+  buildAlbumTagFilterOptions,
+  type AlbumTagFilterOption,
+} from '@/app/albums/utils';
 import type { ArtistSummary } from '../types';
 import { matchesArtistNameSearch } from '../utils';
 
@@ -59,6 +64,8 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
   const [typeFilter, setTypeFilter] = useState('전체');
   const [genreFilter, setGenreFilter] = useState('전체');
   const [genre2Filter, setGenre2Filter] = useState('전체');
+  const [tagFilter, setTagFilter] = useState('전체');
+  const [instrumentFilter, setInstrumentFilter] = useState('전체');
   const [eraFilter, setEraFilter] = useState('전체');
   const [sortOption, setSortOption] = useState<ArtistSortOption>('nameAsc');
 
@@ -111,6 +118,11 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
       .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'));
   }, [summaries]);
 
+  const tagFilterOptions = useMemo((): AlbumTagFilterOption[] => {
+    const albums = summaries.flatMap((artist) => artist.albums);
+    return buildAlbumTagFilterOptions(albums);
+  }, [summaries]);
+
   const handleGenre2TagSelect = (genre: string) => {
     if (genre === '전체') {
       setGenre2Filter('전체');
@@ -119,12 +131,19 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     setGenre2Filter((prev) => (prev === genre ? '전체' : genre));
   };
 
+  const handleGenreFilterChange = useCallback((value: string) => {
+    setGenreFilter(value);
+    setGenre2Filter('전체');
+  }, []);
+
   const resetFilters = useCallback(() => {
     setSearchQuery('');
     setCountryFilter('전체');
     setTypeFilter('전체');
     setGenreFilter('전체');
     setGenre2Filter('전체');
+    setTagFilter('전체');
+    setInstrumentFilter('전체');
     setEraFilter('전체');
     setSortOption('nameAsc');
   }, []);
@@ -140,6 +159,16 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
         const hasGenre2 = artist.albums.some((album) => album.genre2?.trim() === genre2Filter);
         if (!hasGenre2) return false;
       }
+      if (tagFilter !== '전체') {
+        const hasTag = artist.albums.some((album) => albumHasTag(album, tagFilter));
+        if (!hasTag) return false;
+      }
+      if (instrumentFilter !== '전체') {
+        const hasInstrument = artist.albums.some(
+          (album) => album.classic_instrument?.trim() === instrumentFilter,
+        );
+        if (!hasInstrument) return false;
+      }
       if (!q) return true;
       if (matchesArtistNameSearch(q, artist.name, artist.nameAlt)) return true;
       return artist.albums.some(
@@ -149,7 +178,18 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
       );
     });
     return sortArtists(filtered, sortOption);
-  }, [summaries, searchQuery, countryFilter, eraFilter, typeFilter, genreFilter, genre2Filter, sortOption]);
+  }, [
+    summaries,
+    searchQuery,
+    countryFilter,
+    eraFilter,
+    typeFilter,
+    genreFilter,
+    genre2Filter,
+    tagFilter,
+    instrumentFilter,
+    sortOption,
+  ]);
 
   return {
     searchQuery,
@@ -162,10 +202,16 @@ export function useArtistFilters(summaries: ArtistSummary[]) {
     typeFilter,
     setTypeFilter,
     genreFilter,
-    setGenreFilter,
+    setGenreFilter: handleGenreFilterChange,
     genre2Filter,
+    setGenre2Filter,
     genre2Tags,
     handleGenre2TagSelect,
+    tagFilter,
+    setTagFilter,
+    tagFilterOptions,
+    instrumentFilter,
+    setInstrumentFilter,
     resetFilters,
     sortOption,
     setSortOption,
