@@ -28,5 +28,5 @@
   "auto_commit": true,
   "commit_message": "(feat): Pop & Rock 목록에 장르1 연동 하위 장르 필터 추가",
   "status": "done",
-  "result": "AlbumList Pop&Rock에 listFormFilter 재사용 하위 장르 select(genre2OptionsForGenre1)·활성 칩 추가. 장르 변경/칩 해제 시 하위 장르 '전체' 초기화. AlbumsLibraryContent 장르 칩 클릭도 동일 초기화. Classic·recordshelf 미변경. 검증: tsc/lint 통과."
+  "result": "AlbumList Pop&Rock에 listFormFilter 재사용 하위 장르 select(genre2OptionsForGenre1)·활성 칩 추가. 장르 변경/칩 해제 시 하위 장르 '전체' 초기화. AlbumsLibraryContent 장르 칩 클릭도 동일 초기화. Classic·recordshelf 미변경. 검증: tsc/lint 통과. 커밋 f57b136."
 }
