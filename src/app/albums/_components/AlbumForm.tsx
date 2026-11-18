@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Trash2 } from 'lucide-react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import {
   albumCountryUsageCounts,
@@ -1035,69 +1036,6 @@ export function AlbumForm({
           </div>
         </div>
         <div className="mt-8 flex flex-col gap-3">
-          <button
-            type="button"
-            className="btn-apple btn-apple-primary p-4 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-            onClick={() => {
-              if (isClassicMode) {
-                if (!isClassicFormOption(formData.genre2)) {
-                  setClassicFormError(true);
-                  return;
-                }
-                const keys = formData.composers
-                  .map((entry) => normalizeComposerNameKey(entry.name))
-                  .filter(Boolean);
-                if (new Set(keys).size !== keys.length) {
-                  setComposerDupError(true);
-                  return;
-                }
-                const titleUrl = formData.title_song_url.trim();
-                if (
-                  titleUrl &&
-                  titleUrl !== initialTitleSongUrl.trim() &&
-                  normalizeStagePlusUrl(titleUrl).status !== 'ok'
-                ) {
-                  setStagePlusError(true);
-                  return;
-                }
-              }
-              if (parseYoutubePlaylistInput(formData.youtube_playlist_id ?? '').status === 'invalid') {
-                setPlaylistError(true);
-                return;
-              }
-              if (parseAppleMusicAlbumInput(formData.apple_music_url ?? '').status === 'invalid') {
-                setAppleMusicError(true);
-                return;
-              }
-              setClassicFormError(false);
-              setComposerDupError(false);
-              setPlaylistError(false);
-              setAppleMusicError(false);
-              setStagePlusError(false);
-              onSave();
-            }}
-            disabled={isSaving || isDeleting}
-            aria-busy={isSaving}
-          >
-            {isSaving ? (
-              <SavingLabel />
-            ) : isEdit ? (
-              '수정 내용 저장하기'
-            ) : (
-              '라이브러리에 최종 등록'
-            )}
-          </button>
-          {isEdit && onDelete && !deleteConfirmOpen ? (
-            <button
-              type="button"
-              className="btn-apple btn-apple-danger p-4 w-full text-base disabled:opacity-60 disabled:cursor-not-allowed"
-              onClick={() => setDeleteConfirmOpen(true)}
-              disabled={isSaving || isDeleting}
-              aria-busy={isDeleting}
-            >
-              {isDeleting ? <DeletingLabel /> : '앨범 삭제'}
-            </button>
-          ) : null}
           {isEdit && onDelete && deleteConfirmOpen ? (
             <div
               className="rounded-lg border p-3"
@@ -1127,7 +1065,76 @@ export function AlbumForm({
                 </button>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="relative flex items-center justify-center">
+              <button
+                type="button"
+                className="btn-apple btn-apple-primary min-w-[200px] px-8 py-3 text-base disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => {
+                  if (isClassicMode) {
+                    if (!isClassicFormOption(formData.genre2)) {
+                      setClassicFormError(true);
+                      return;
+                    }
+                    const keys = formData.composers
+                      .map((entry) => normalizeComposerNameKey(entry.name))
+                      .filter(Boolean);
+                    if (new Set(keys).size !== keys.length) {
+                      setComposerDupError(true);
+                      return;
+                    }
+                    const titleUrl = formData.title_song_url.trim();
+                    if (
+                      titleUrl &&
+                      titleUrl !== initialTitleSongUrl.trim() &&
+                      normalizeStagePlusUrl(titleUrl).status !== 'ok'
+                    ) {
+                      setStagePlusError(true);
+                      return;
+                    }
+                  }
+                  if (parseYoutubePlaylistInput(formData.youtube_playlist_id ?? '').status === 'invalid') {
+                    setPlaylistError(true);
+                    return;
+                  }
+                  if (parseAppleMusicAlbumInput(formData.apple_music_url ?? '').status === 'invalid') {
+                    setAppleMusicError(true);
+                    return;
+                  }
+                  setClassicFormError(false);
+                  setComposerDupError(false);
+                  setPlaylistError(false);
+                  setAppleMusicError(false);
+                  setStagePlusError(false);
+                  onSave();
+                }}
+                disabled={isSaving || isDeleting}
+                aria-busy={isSaving}
+              >
+                {isSaving ? (
+                  <SavingLabel />
+                ) : isEdit ? (
+                  '수정 내용 저장하기'
+                ) : (
+                  '라이브러리에 최종 등록'
+                )}
+              </button>
+              {isEdit && onDelete ? (
+                <button
+                  type="button"
+                  className="absolute right-0 flex size-10 items-center justify-center rounded-lg transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ color: 'var(--foreground)' }}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  disabled={isSaving || isDeleting}
+                  aria-busy={isDeleting}
+                  aria-label="앨범 삭제"
+                  title="앨범 삭제"
+                >
+                  {isDeleting ? <DeletingLabel /> : <Trash2 className="size-5" strokeWidth={2} />}
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>

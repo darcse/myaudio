@@ -1,0 +1,34 @@
+{
+  "id": "T-061",
+  "feature_id": "ALBUM-050",
+  "goal": "Pop & Rock 앨범 목록의 태그 필터가 버튼 + 넉넉한 팝오버 태그 클라우드로 바뀌어, 태그를 둘러보거나 검색해 한 번에 골라 필터를 걸 수 있다.",
+  "context": "T-060 후속, 아직 커밋 전이며 T-060과 함께 ALBUM-050으로 커밋한다. 현재 태그 필터는 AlbumList.tsx의 <select>라 태그가 70개 가까이 되어 쓰기 어렵다(JW 피드백). 기본안: (1) 필터 줄에 다른 select와 같은 높이(h-[38px])·글자 크기의 버튼 '태그: 전체'/'태그: {선택값}'을 둔다. (2) 버튼을 누르면 팝오버가 열린다. 데스크톱 폭 약 480~560px, 화면 밖으로 넘치지 않게 위치하고 내용이 많으면 팝오버 내부 스크롤. 모바일은 화면 폭에 맞춰 넓게. (3) 팝오버 상단에 검색 입력(열릴 때 포커스), 아래에 태그 클라우드: 맨 앞 '전체' 칩, 이후 T-060의 tagFilterOptions 순서(사용 빈도순)로 '{태그} ({앨범 수})' 칩을 나열하고 빈도에 따라 글자 크기 단계를 둔다. 스타일은 src/app/artists/_components/ArtistGenre2TagCloud.tsx의 칩·글자 크기 단계와 톤을 맞추되 그 컴포넌트 자체는 수정하지 않는다(필요하면 동일 패턴으로 앨범용 컴포넌트 하나 추가). 검색은 대소문자 무시 포함 매칭. (4) 칩을 누르면 setListTagFilter 후 팝오버 닫힘, 선택된 칩은 강조. Esc·바깥 클릭으로 닫힘. 활성 필터 칩 동작은 T-060 그대로. 앨범 수 집계를 위해 tagFilterOptions에 count가 필요하면 utils/useAlbumFilters의 반환 형태를 최소로 확장한다. CountryComboSelect·국가 선택은 건드리지 않는다. 다중 선택은 넣지 않는다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "태그 필터 select를 버튼+팝오버 태그 클라우드로 교체",
+      "팝오버 내 검색·전체 칩·빈도별 글자 크기",
+      "앨범 수 표시를 위한 옵션 데이터 최소 확장"
+    ],
+    "out": [
+      "CountryComboSelect·국가 선택",
+      "ArtistGenre2TagCloud 수정",
+      "다중 선택",
+      "태그 필터 판정 로직 변경",
+      "Classic·레코드쉘프",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 목록에서 '태그: 전체' 버튼을 누르면 넉넉한 팝오버에 사용 빈도순 태그가 '{태그} ({수})'로 보이고, 많이 쓰인 태그일수록 글자가 크다",
+    "팝오버 검색창에 'post'를 치면 Post Rock·Post Hardcore 등으로 좁혀지고, 칩을 누르면 필터가 걸리며 팝오버가 닫히고 버튼이 '태그: {선택}'으로 바뀐다",
+    "'전체' 칩이나 활성 필터 칩으로 해제되고, Esc·바깥 클릭으로 팝오버가 닫히며, 화면 가장자리에서도 팝오버가 잘리지 않는다",
+    "필터 줄 높이·정렬이 다른 필터와 맞고 Classic 목록에는 태그 필터가 없다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-050 Pop & Rock 앨범 목록 태그 검색·필터",
+  "status": "done",
+  "result": "AlbumTagFilterPopover 추가(h-[38px] 버튼, fixed 팝오버·검색·전체 칩·빈도 글자크기·Esc/바깥클릭). tagFilterOptions를 {label,count}[]로 확장. AlbumList select 교체. 검증: tsc/lint 통과. 커밋 안 함(auto_commit false, T-060과 함께 예정).\n커밋 승인: 261118_2220 (feat): ALBUM-050 Pop & Rock 앨범 목록 태그 검색·팝오버 태그 클라우드 필터 (T-060~T-061)"
+}

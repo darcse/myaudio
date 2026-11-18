@@ -1,34 +1,33 @@
 {
-  "id": "T-061",
-  "feature_id": "ALBUM-050",
-  "goal": "Pop & Rock 앨범 목록의 태그 필터가 버튼 + 넉넉한 팝오버 태그 클라우드로 바뀌어, 태그를 둘러보거나 검색해 한 번에 골라 필터를 걸 수 있다.",
-  "context": "T-060 후속, 아직 커밋 전이며 T-060과 함께 ALBUM-050으로 커밋한다. 현재 태그 필터는 AlbumList.tsx의 <select>라 태그가 70개 가까이 되어 쓰기 어렵다(JW 피드백). 기본안: (1) 필터 줄에 다른 select와 같은 높이(h-[38px])·글자 크기의 버튼 '태그: 전체'/'태그: {선택값}'을 둔다. (2) 버튼을 누르면 팝오버가 열린다. 데스크톱 폭 약 480~560px, 화면 밖으로 넘치지 않게 위치하고 내용이 많으면 팝오버 내부 스크롤. 모바일은 화면 폭에 맞춰 넓게. (3) 팝오버 상단에 검색 입력(열릴 때 포커스), 아래에 태그 클라우드: 맨 앞 '전체' 칩, 이후 T-060의 tagFilterOptions 순서(사용 빈도순)로 '{태그} ({앨범 수})' 칩을 나열하고 빈도에 따라 글자 크기 단계를 둔다. 스타일은 src/app/artists/_components/ArtistGenre2TagCloud.tsx의 칩·글자 크기 단계와 톤을 맞추되 그 컴포넌트 자체는 수정하지 않는다(필요하면 동일 패턴으로 앨범용 컴포넌트 하나 추가). 검색은 대소문자 무시 포함 매칭. (4) 칩을 누르면 setListTagFilter 후 팝오버 닫힘, 선택된 칩은 강조. Esc·바깥 클릭으로 닫힘. 활성 필터 칩 동작은 T-060 그대로. 앨범 수 집계를 위해 tagFilterOptions에 count가 필요하면 utils/useAlbumFilters의 반환 형태를 최소로 확장한다. CountryComboSelect·국가 선택은 건드리지 않는다. 다중 선택은 넣지 않는다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-062",
+  "goal": "앨범 상세 모달 상단이 깔끔해지고(Pop & Rock은 장르1만, Classic은 형식·대표 악기), 장르2·태그는 무드 아래에서 보이며, 모달에서 실수로 삭제할 위험이 줄고 수정 폼 하단 버튼이 정돈된다.",
+  "context": "JW UI 피드백 4건. 대상 파일을 먼저 확인하고 각 항목 위치를 result에 한 줄씩 요약한다. (1) src/app/albums/_components/AlbumInfoSection.tsx의 AlbumInfoHeroSection: 현재 앨범명 위 칩 줄에 genre1·genre2·tags가 모두 나온다. Pop & Rock 앨범은 이 줄에 genre1만 남긴다. (2) Classic 앨범(isClassicAlbum 등 기존 판별 사용)은 이 줄에서 genre1('Classic')을 빼고 형식(genre2, 기존 formatClassicFormLabel 등 라벨 함수가 있으면 사용)과 대표 악기(classic_instrument)를 칩으로 보여준다. 값이 없으면 해당 칩은 생략. (3) Pop & Rock 앨범의 genre2와 tags는 앨범 정보 탭의 무드(무드보드) 표시 바로 아래로 옮겨 칩 줄로 보여준다. 장르2 칩을 먼저, 태그 칩을 뒤에, 장르2와 태그가 시각적으로 구분되게(예: 장르2는 진한 배경, 태그는 연한 배경 또는 '#' 접두 등 판단). 둘 다 없으면 줄 자체를 렌더하지 않는다. 다크·라이트 테마 모두 잘 보이게 CSS 변수 사용. (4) src/app/albums/_components/AlbumDetailModal.tsx 탭 줄 끝의 삭제(Trash2) 버튼과 그 확인 UI를 제거한다(수정 연필 버튼은 유지). 이 변경으로 AlbumDetailModal 안에서 미사용이 된 상태·props만 정리하고, 호출부까지 연쇄 수정은 lint 에러가 날 때만 최소로 한다. (5) src/app/albums/_components/AlbumForm.tsx 하단: 저장 버튼은 전체폭이 아니라 적당한 폭(예: min-w 200px 정도)으로 줄여 가운데 정렬, 수정 모드의 삭제는 텍스트 큰 버튼 대신 Trash2 아이콘 버튼 하나로 같은 줄 우측 끝에 둔다(aria-label '앨범 삭제'). 삭제 아이콘을 누르면 기존 인라인 확인 UI(deleteConfirmOpen)를 그대로 쓴다. 새 등록 모드는 삭제 아이콘 없음, 등록 버튼만 가운데. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "태그 필터 select를 버튼+팝오버 태그 클라우드로 교체",
-      "팝오버 내 검색·전체 칩·빈도별 글자 크기",
-      "앨범 수 표시를 위한 옵션 데이터 최소 확장"
+      "상세 히어로 칩 줄 구성 변경(Pop & Rock·Classic)",
+      "Pop & Rock 장르2·태그 칩을 무드 표시 아래로 이동",
+      "상세 모달 탭 줄 삭제 버튼 제거",
+      "수정 폼 하단 저장·삭제 버튼 레이아웃 변경"
     ],
     "out": [
-      "CountryComboSelect·국가 선택",
-      "ArtistGenre2TagCloud 수정",
-      "다중 선택",
-      "태그 필터 판정 로직 변경",
-      "Classic·레코드쉘프",
+      "삭제·저장 로직 자체(onDelete·onSave 동작)",
+      "무드 기능 로직",
+      "폼 입력 필드",
+      "목록·카드 화면의 장르·태그 표시",
       "DB·SQL·스키마 (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 목록에서 '태그: 전체' 버튼을 누르면 넉넉한 팝오버에 사용 빈도순 태그가 '{태그} ({수})'로 보이고, 많이 쓰인 태그일수록 글자가 크다",
-    "팝오버 검색창에 'post'를 치면 Post Rock·Post Hardcore 등으로 좁혀지고, 칩을 누르면 필터가 걸리며 팝오버가 닫히고 버튼이 '태그: {선택}'으로 바뀐다",
-    "'전체' 칩이나 활성 필터 칩으로 해제되고, Esc·바깥 클릭으로 팝오버가 닫히며, 화면 가장자리에서도 팝오버가 잘리지 않는다",
-    "필터 줄 높이·정렬이 다른 필터와 맞고 Classic 목록에는 태그 필터가 없다",
+    "Pop & Rock 앨범 상세 상단에는 장르1 칩만 보이고, 장르2·태그는 무드 표시 바로 아래 칩 줄에 구분되어 보인다(없으면 줄이 없다)",
+    "Classic 앨범 상세 상단에는 'Classic' 칩 없이 형식·대표 악기 칩이 보인다",
+    "앨범 상세 모달 탭 줄에는 수정 버튼만 있고 삭제 버튼이 없다",
+    "수정 폼 하단에서 저장 버튼은 가운데 적당한 폭, 삭제는 우측 끝 휴지통 아이콘이며 누르면 기존 인라인 확인 후 삭제된다. 새 등록 폼에는 삭제 아이콘이 없다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
-  "auto_commit": false,
-  "commit_message": "(feat): ALBUM-050 Pop & Rock 앨범 목록 태그 검색·필터",
+  "auto_commit": true,
+  "commit_message": "(style): 앨범 상세 장르·태그 표시 위치 정리, 모달 삭제 버튼 제거, 수정 폼 하단 버튼 정돈",
   "status": "done",
-  "result": "AlbumTagFilterPopover 추가(h-[38px] 버튼, fixed 팝오버·검색·전체 칩·빈도 글자크기·Esc/바깥클릭). tagFilterOptions를 {label,count}[]로 확장. AlbumList select 교체. 검증: tsc/lint 통과. 커밋 안 함(auto_commit false, T-060과 함께 예정).\n커밋 승인: 261118_2220 (feat): ALBUM-050 Pop & Rock 앨범 목록 태그 검색·팝오버 태그 클라우드 필터 (T-060~T-061)"
+  "result": "위치: (1)(2) AlbumInfoHeroSection 앨범명 위 칩 줄 — Pop은 genre1만, Classic은 formatClassicFormLabel(genre2)·classic_instrument. (3) AlbumInfoSection 무드 행 바로 아래 — genre2 진한 칩 + #tags 연한 칩. (4) AlbumDetailModal 탭 줄 Trash2·확인 UI 제거(onDelete/isDeleting optional 유지). (5) AlbumForm 하단 저장 min-w-[200px] 가운데 + 우측 Trash2. 검증: tsc/lint 통과."
 }

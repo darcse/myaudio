@@ -13,7 +13,7 @@ import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { createClient } from '@/lib/supabase/client';
 import { loadYoutubeIframeApi } from '@/lib/youtubeIframeApi';
 import { parseYoutubeTracks } from '@/lib/youtubeTracks';
-import { countryOptions } from '../constants';
+import { countryOptions, formatClassicFormLabel } from '../constants';
 import {
   composersFromAlbum,
   getYoutubeId,
@@ -162,27 +162,39 @@ export function AlbumInfoHeroSection({
           </div>
         )}
         <div className="absolute bottom-0 left-0 right-0 z-[3] p-5">
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {viewingItem.genre1 && (
-              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold text-white" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                {viewingItem.genre1}
-              </span>
-            )}
-            {viewingItem.genre2 && (
-              <span className="text-[11px] px-2.5 py-1 rounded-full font-medium text-white" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                {viewingItem.genre2}
-              </span>
-            )}
-            {(viewingItem.tags ?? []).filter((tag) => tag.trim()).map((tag) => (
-              <span
-                key={tag}
-                className="text-[11px] px-2.5 py-1 rounded-full font-medium text-white"
-                style={{ background: 'rgba(255,255,255,0.12)' }}
-              >
-                {tag.trim()}
-              </span>
-            ))}
-          </div>
+          {(() => {
+            const heroChips = isClassicAlbum
+              ? [
+                  ...(viewingItem.genre2?.trim()
+                    ? [
+                        {
+                          key: 'form',
+                          label: formatClassicFormLabel(viewingItem.genre2.trim()),
+                        },
+                      ]
+                    : []),
+                  ...(viewingItem.classic_instrument?.trim()
+                    ? [{ key: 'instrument', label: viewingItem.classic_instrument.trim() }]
+                    : []),
+                ]
+              : viewingItem.genre1?.trim()
+                ? [{ key: 'genre1', label: viewingItem.genre1.trim() }]
+                : [];
+            if (heroChips.length === 0) return null;
+            return (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {heroChips.map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                  >
+                    {chip.label}
+                  </span>
+                ))}
+              </div>
+            );
+          })()}
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-xl font-bold text-white leading-snug line-clamp-2">{viewingItem.album_name}</h2>
@@ -522,9 +534,15 @@ export function AlbumInfoSection({
   };
 
   const legacyComposerEra = viewingItem.composer_era?.trim() ?? '';
+  const detailGenre2 = !showMoodUi ? '' : (viewingItem.genre2?.trim() ?? '');
+  const detailTags = !showMoodUi
+    ? []
+    : (viewingItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
+  const showGenreTagRow = detailGenre2.length > 0 || detailTags.length > 0;
 
   return (
     <>
+      <div className="flex flex-col gap-3">
       <div className="flex flex-row gap-4 items-start text-sm">
         {showMoodUi && (currentMood || canEditMood) ? (
           <div className="relative shrink-0 w-fit max-w-full min-w-0" ref={triggerRef}>
@@ -661,6 +679,35 @@ export function AlbumInfoSection({
             <p><strong>시대:</strong> {legacyComposerEra}</p>
           ) : null}
         </div>
+      </div>
+      {showGenreTagRow ? (
+        <div className="flex flex-wrap gap-1.5">
+          {detailGenre2 ? (
+            <span
+              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              style={{
+                background: 'var(--foreground)',
+                color: 'var(--background)',
+              }}
+            >
+              {detailGenre2}
+            </span>
+          ) : null}
+          {detailTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+              style={{
+                background: 'var(--badge-bg)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
       </div>
 
       {wikiLoading ? (

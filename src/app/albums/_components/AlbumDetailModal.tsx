@@ -4,11 +4,10 @@ import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
-import { DeletingLabel } from '@/components/AsyncMutationUi';
 import type { Album } from '../types';
 import { AlbumInfoHeroSection, AlbumInfoSection } from './AlbumInfoSection';
 import { AlbumIntroSection } from './AlbumIntroSection';
@@ -27,7 +26,7 @@ interface AlbumDetailModalProps {
   onRefreshAlbumIntro: () => void;
   onClose: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   isAuthenticated: boolean | null;
   isDeleting?: boolean;
   onNavigateToMood?: (moodName: string) => void;
@@ -82,9 +81,7 @@ export function AlbumDetailModal({
   onRefreshAlbumIntro,
   onClose,
   onEdit,
-  onDelete,
   isAuthenticated,
-  isDeleting = false,
   onNavigateToMood,
   onAlbumPatch,
   onHeadfiClick,
@@ -98,7 +95,6 @@ export function AlbumDetailModal({
     viewingItem.ai_recommended_headphone_reason?.trim() || null,
   );
   const [aiRecommendLoading, setAiRecommendLoading] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -129,7 +125,6 @@ export function AlbumDetailModal({
     setActiveTab('info');
     setListenHistoryCount(0);
     setHasLyricsTracks(false);
-    setDeleteConfirmOpen(false);
   }, [viewingItem.id]);
 
   useEffect(() => {
@@ -302,59 +297,15 @@ export function AlbumDetailModal({
                     onClick={onEdit}
                     className={modalActionIconClass}
                     style={{ color: 'var(--foreground)' }}
-                    disabled={isDeleting}
                     aria-label="정보 수정하기"
                     title="정보 수정하기"
                   >
                     <Pencil className="size-4" strokeWidth={2} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteConfirmOpen(true)}
-                    className={modalActionIconClass}
-                    style={{ color: 'var(--foreground)' }}
-                    disabled={isDeleting}
-                    aria-busy={isDeleting}
-                    aria-label="삭제하기"
-                    title="삭제하기"
-                  >
-                    {isDeleting ? <DeletingLabel /> : <Trash2 className="size-4" strokeWidth={2} />}
-                  </button>
                 </div>
               ) : null}
             </div>
           </div>
-
-          {deleteConfirmOpen ? (
-            <div
-              className="mx-6 mt-3 shrink-0 rounded-lg border p-3"
-              style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
-            >
-              <p className="text-sm font-medium">정말 이 앨범을 삭제하시겠습니까?</p>
-              <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                <button
-                  type="button"
-                  className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
-                  onClick={() => setDeleteConfirmOpen(false)}
-                  disabled={isDeleting}
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  className="btn-apple btn-apple-danger h-[34px] px-3 text-sm"
-                  onClick={() => {
-                    setDeleteConfirmOpen(false);
-                    onDelete();
-                  }}
-                  disabled={isDeleting}
-                  aria-busy={isDeleting}
-                >
-                  {isDeleting ? <DeletingLabel /> : '삭제'}
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <div className="scrollbar-hide min-h-0 flex-1 overscroll-y-contain" style={modalBodyScrollStyle}>
