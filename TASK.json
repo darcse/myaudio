@@ -1,30 +1,29 @@
 {
-  "id": "T-069",
-  "goal": "Classic 연주자/지휘자 상세 헤더에 'Classic' 대신 대표 악기 배지가 보이고, 작곡가 상세 헤더에는 'Classic' 배지가 없다. Pop & Rock 아티스트 상세 헤더는 그대로다.",
-  "context": "대상: src/app/artists/_components/ArtistDetailPanel.tsx의 헤더 배지 줄(국적·시대·타입·primaryGenre1 배지). 현재 primaryGenre1(getPrimaryGenre1)이 Classic 아티스트에도 'Classic'으로 표시된다(JW 스크린샷: 김봄소리 — 한국·연주자·Classic). 변경: Classic 카탈로그(catalogScope 또는 기존 판별 사용)에서는 장르1 배지를 렌더하지 않는다. 연주자/지휘자(role !== 'composer')는 그 자리에 대표 악기 배지를 둔다: 아티스트 앨범들의 classic_instrument 중 가장 많은 값(동률이면 CLASSIC_INSTRUMENT_OPTIONS 순서상 앞의 값), 값이 없으면 배지 생략. 작곡가는 장르1 배지만 빠진다. Pop & Rock은 기존처럼 장르1 배지 유지. 배지 스타일은 기존 배지(backdropTagClassName/badge-apple)와 동일. 모바일 오버레이 상세도 같은 컴포넌트면 함께 적용된다. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-070",
+  "goal": "실행한 장르2 이관 SQL이 레포의 SQL 기록 위치에 남고, 'Claude outputs/' 폴더가 더 이상 git 변경 목록에 뜨지 않는다.",
+  "context": "정리 작업. 현재 레포 루트에 데스크톱 앱이 만든 'Claude outputs/genre2-migration-261118.sql'이 untracked로 남아 있다. 이 SQL은 2026-11-18 JW가 Supabase에서 실제 실행한 Pop & Rock 장르2 표준화 이관 SQL이다(ALBUM-048 관련). 변경: (1) 이 파일을 scripts/sql/ALBUM-048-genre2-migration.sql로 옮긴다(내용은 수정하지 않는다). (2) .gitignore 맨 끝에 'Claude outputs/' 한 줄을 추가한다(주석 없이). (3) 비게 된 'Claude outputs/' 폴더를 삭제한다. .claude/는 건드리지 않는다. 앱 코드는 수정하지 않는다.",
   "scope": {
     "in": [
-      "Classic 상세 헤더에서 장르1 배지 제거",
-      "연주자/지휘자 대표 악기 배지 추가"
+      "SQL 파일을 scripts/sql로 이동",
+      "'.gitignore'에 Claude outputs/ 추가",
+      "빈 Claude outputs/ 폴더 삭제"
     ],
     "out": [
-      "Pop & Rock 상세 헤더",
-      "필터·목록",
-      "통계 섹션·외부 링크",
-      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "SQL 내용 수정·실행",
+      "앱 코드",
+      "'.claude/' 폴더",
+      "DB (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Classic 연주자 상세(예: 김봄소리) 헤더가 '한국 · 연주자 · Violin'처럼 보이고 'Classic' 배지가 없다",
-    "지휘자는 앨범의 대표 악기 최빈값(예: Orchestra)이 보이고, 악기 값이 없는 아티스트는 악기 배지가 생략된다",
-    "작곡가 상세 헤더에 'Classic' 배지가 없고 나머지 배지는 그대로다",
-    "Pop & Rock 아티스트 상세 헤더는 이전과 같다(장르1 배지 유지)",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "scripts/sql/ALBUM-048-genre2-migration.sql이 원본과 같은 내용으로 존재한다",
+    ".gitignore에 'Claude outputs/'가 있고, git status에 'Claude outputs/'가 보이지 않는다",
+    "레포 루트에 'Claude outputs/' 폴더가 없다"
   ],
   "auto_commit": true,
-  "commit_message": "(style): Classic 아티스트 상세 헤더에서 장르 배지 제거, 연주자 대표 악기 배지 표시",
+  "commit_message": "(chore): 장르2 이관 SQL을 scripts/sql로 이동, Claude outputs 폴더 gitignore",
   "status": "done",
-  "result": "ArtistDetailPanel: classic scope에서 genre1 배지 미표시. 연주자/지휘자는 getPrimaryClassicInstrument(utils, 최빈값·CLASSIC_INSTRUMENT_OPTIONS 동률 처리) 배지 추가. 작곡가는 genre1만 제거. Pop 유지. 검증: tsc/lint 통과."
+  "result": "genre2-migration SQL을 scripts/sql/ALBUM-048-genre2-migration.sql로 이동(내용 동일 13152B). .gitignore에 Claude outputs/ 추가, 빈 폴더 삭제. git status에 Claude outputs 미표시."
 }
