@@ -1,12 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search } from 'lucide-react';
 import {
   countryOptions,
   type CountryOption,
 } from '@/app/albums/constants';
+import { usePopoverPosition } from '@/hooks/usePopoverPosition';
+import {
+  hangulContainsMatchKind,
+  matchesEnglishWordStart,
+  normalizeSearchQuery,
+  type PrefixMatchKind,
+} from '@/lib/textSearch';
 
 type CountryComboSelectProps = {
   value: string;
@@ -20,256 +27,27 @@ type CountryComboSelectProps = {
   'aria-label'?: string;
 };
 
-const PANEL_GAP = 6;
-const VIEWPORT_PADDING = 8;
-const SEARCH_HEADER_HEIGHT = 52;
-const PANEL_PREFERRED_HEIGHT = 256;
-
-type PanelPlacement = 'above' | 'below';
-
-type PanelPosition = {
-  left: number;
-  width: number;
-  maxHeight: number;
-  listMaxHeight: number;
-  placement: PanelPlacement;
-  top?: number;
-  bottom?: number;
+const COUNTRY_PANEL_OPTIONS = {
+  preferredHeight: 256,
+  matchTriggerWidth: true,
+  minWidth: 220,
+  searchHeaderHeight: 52,
+  useModalBounds: true,
+  aboveAnchor: 'css-bottom' as const,
 };
 
-function getContainingBounds(trigger: HTMLButtonElement): {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
-} {
-  const viewport = {
-    left: VIEWPORT_PADDING,
-    right: window.innerWidth - VIEWPORT_PADDING,
-    top: VIEWPORT_PADDING,
-    bottom: window.innerHeight - VIEWPORT_PADDING,
-  };
-  const modal = trigger.closest('.modal-panel-apple');
-  if (!(modal instanceof HTMLElement)) return viewport;
-  const rect = modal.getBoundingClientRect();
-  return {
-    left: Math.max(viewport.left, rect.left + VIEWPORT_PADDING),
-    right: Math.min(viewport.right, rect.right - VIEWPORT_PADDING),
-    top: Math.max(viewport.top, rect.top + VIEWPORT_PADDING),
-    bottom: Math.min(viewport.bottom, rect.bottom - VIEWPORT_PADDING),
-  };
-}
-
-function computePanelPosition(trigger: HTMLButtonElement): PanelPosition {
-  const rect = trigger.getBoundingClientRect();
-  const bounds = getContainingBounds(trigger);
-  const preferredHeight = Math.min(
-    PANEL_PREFERRED_HEIGHT,
-    Math.max(0, bounds.bottom - bounds.top) * 0.9,
-  );
-  const spaceBelow = bounds.bottom - rect.bottom;
-  const spaceAbove = rect.top - bounds.top;
-  const openBelow = spaceBelow >= preferredHeight || spaceBelow >= spaceAbove;
-  const placement: PanelPlacement = openBelow ? 'below' : 'above';
-  const availableSpace = (openBelow ? spaceBelow : spaceAbove) - PANEL_GAP;
-  const maxHeight = Math.max(SEARCH_HEADER_HEIGHT + 80, Math.min(preferredHeight, availableSpace));
-  const listMaxHeight = Math.max(80, maxHeight - SEARCH_HEADER_HEIGHT);
-  const availableWidth = Math.max(0, bounds.right - bounds.left);
-  const width = Math.min(Math.max(rect.width, 220), availableWidth);
-  const overflowRight = rect.left + width > bounds.right;
-  const left = overflowRight
-    ? Math.max(bounds.left, rect.right - width)
-    : Math.min(Math.max(bounds.left, rect.left), bounds.right - width);
-
-  if (placement === 'below') {
-    return {
-      left,
-      width,
-      maxHeight,
-      listMaxHeight,
-      placement,
-      top: rect.bottom + PANEL_GAP,
-    };
-  }
-  return {
-    left,
-    width,
-    maxHeight,
-    listMaxHeight,
-    placement,
-    bottom: window.innerHeight - rect.top + PANEL_GAP,
-  };
-}
-
-function normalizeQuery(value: string): string {
-  return value.trim().normalize('NFC').toLocaleLowerCase();
-}
-
-const HANGUL_S_BASE = 0xac00;
-const HANGUL_V_COUNT = 21;
-const HANGUL_T_COUNT = 28;
-const HANGUL_N_COUNT = HANGUL_V_COUNT * HANGUL_T_COUNT;
-
-const COMPAT_CHOSEONG = [
-  'ㄱ',
-  'ㄲ',
-  'ㄴ',
-  'ㄷ',
-  'ㄸ',
-  'ㄹ',
-  'ㅁ',
-  'ㅂ',
-  'ㅃ',
-  'ㅅ',
-  'ㅆ',
-  'ㅇ',
-  'ㅈ',
-  'ㅉ',
-  'ㅊ',
-  'ㅋ',
-  'ㅌ',
-  'ㅍ',
-  'ㅎ',
-] as const;
-
-const COMPAT_JUNGSEONG = [
-  'ㅏ',
-  'ㅐ',
-  'ㅑ',
-  'ㅒ',
-  'ㅓ',
-  'ㅔ',
-  'ㅕ',
-  'ㅖ',
-  'ㅗ',
-  'ㅘ',
-  'ㅙ',
-  'ㅚ',
-  'ㅛ',
-  'ㅜ',
-  'ㅝ',
-  'ㅞ',
-  'ㅟ',
-  'ㅠ',
-  'ㅡ',
-  'ㅢ',
-  'ㅣ',
-] as const;
-
-const COMPAT_JONGSEONG = [
-  '',
-  'ㄱ',
-  'ㄲ',
-  'ㄱㅅ',
-  'ㄴ',
-  'ㄴㅈ',
-  'ㄴㅎ',
-  'ㄷ',
-  'ㄹ',
-  'ㄹㄱ',
-  'ㄹㅁ',
-  'ㄹㅂ',
-  'ㄹㅅ',
-  'ㄹㅌ',
-  'ㄹㅍ',
-  'ㄹㅎ',
-  'ㅁ',
-  'ㅂ',
-  'ㅂㅅ',
-  'ㅅ',
-  'ㅆ',
-  'ㅇ',
-  'ㅈ',
-  'ㅊ',
-  'ㅋ',
-  'ㅌ',
-  'ㅍ',
-  'ㅎ',
-] as const;
-
-const EXPAND_COMPAT_JAMO: Record<string, string> = {
-  ㄳ: 'ㄱㅅ',
-  ㄵ: 'ㄴㅈ',
-  ㄶ: 'ㄴㅎ',
-  ㄺ: 'ㄹㄱ',
-  ㄻ: 'ㄹㅁ',
-  ㄼ: 'ㄹㅂ',
-  ㄽ: 'ㄹㅅ',
-  ㄾ: 'ㄹㅌ',
-  ㄿ: 'ㄹㅍ',
-  ㅀ: 'ㄹㅎ',
-  ㅄ: 'ㅂㅅ',
-};
-
-function toHangulJamo(value: string): string {
-  let out = '';
-  for (const char of value.normalize('NFC')) {
-    const code = char.codePointAt(0);
-    if (code == null) continue;
-
-    if (code >= HANGUL_S_BASE && code < HANGUL_S_BASE + 19 * HANGUL_N_COUNT) {
-      const sIndex = code - HANGUL_S_BASE;
-      const lIndex = Math.floor(sIndex / HANGUL_N_COUNT);
-      const vIndex = Math.floor((sIndex % HANGUL_N_COUNT) / HANGUL_T_COUNT);
-      const tIndex = sIndex % HANGUL_T_COUNT;
-      out += COMPAT_CHOSEONG[lIndex];
-      out += COMPAT_JUNGSEONG[vIndex];
-      if (tIndex > 0) out += COMPAT_JONGSEONG[tIndex];
-      continue;
-    }
-
-    if (code >= 0x1100 && code <= 0x1112) {
-      out += COMPAT_CHOSEONG[code - 0x1100];
-      continue;
-    }
-    if (code >= 0x1161 && code <= 0x1175) {
-      out += COMPAT_JUNGSEONG[code - 0x1161];
-      continue;
-    }
-    if (code >= 0x11a8 && code <= 0x11c2) {
-      out += COMPAT_JONGSEONG[code - 0x11a7];
-      continue;
-    }
-
-    if (code >= 0x3131 && code <= 0x318e) {
-      out += EXPAND_COMPAT_JAMO[char] ?? char;
-      continue;
-    }
-
-    out += char;
-  }
-  return out;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function matchesEnglishWordStart(haystack: string, needle: string): boolean {
-  if (!needle) return true;
-  const pattern = new RegExp(`(?:^|[\\s\\-(/[])${escapeRegExp(needle)}`, 'i');
-  return pattern.test(haystack);
-}
-
-function hasHangul(value: string): boolean {
-  return /[\u1100-\u11FF\u3131-\u318E\uAC00-\uD7A3]/.test(value);
-}
-
-type CountryMatchKind = 'none' | 'prefix' | 'other';
+type CountryMatchKind = PrefixMatchKind;
 
 function countryMatchKind(option: CountryOption, query: string): CountryMatchKind {
   if (!query) return 'prefix';
 
   let matched = false;
   let prefix = false;
-  const nameJamo = toHangulJamo(option.name);
-  const queryJamo = toHangulJamo(query);
 
-  if (hasHangul(query) || queryJamo !== query) {
-    if (nameJamo.includes(queryJamo)) {
-      matched = true;
-      if (nameJamo.startsWith(queryJamo)) prefix = true;
-    }
+  const hangulKind = hangulContainsMatchKind(option.name, query);
+  if (hangulKind !== 'none') {
+    matched = true;
+    if (hangulKind === 'prefix') prefix = true;
   }
 
   const en = option.en.toLocaleLowerCase();
@@ -310,7 +88,7 @@ function sortCountryOptions(
   usageCounts?: Record<string, number>,
   query = '',
 ): CountryOption[] {
-  const normalized = normalizeQuery(query);
+  const normalized = normalizeSearchQuery(query);
   return [...options].sort((a, b) => {
     if (normalized) {
       const kindA = countryMatchKind(a, normalized);
@@ -342,7 +120,6 @@ export function CountryComboSelect({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const [panelPosition, setPanelPosition] = useState<PanelPosition | null>(null);
 
   const knownNames = useMemo(
     () => new Set(countryOptions.map((option) => option.name)),
@@ -355,7 +132,7 @@ export function CountryComboSelect({
   const isLegacyValue = Boolean(value.trim()) && !knownNames.has(value);
 
   const filteredOptions = useMemo(() => {
-    const query = normalizeQuery(search);
+    const query = normalizeSearchQuery(search);
     const matched = countryOptions.filter((option) => matchesCountry(option, query));
     return sortCountryOptions(matched, usageCounts, query);
   }, [search, usageCounts]);
@@ -382,25 +159,7 @@ export function CountryComboSelect({
     return rows;
   }, [allowEmpty, emptyOptionLabel, filteredOptions, isLegacyValue, value]);
 
-  const updatePanelPosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    setPanelPosition(computePanelPosition(triggerRef.current));
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setPanelPosition(null);
-      return;
-    }
-    updatePanelPosition();
-    const handleLayoutChange = () => updatePanelPosition();
-    window.addEventListener('resize', handleLayoutChange);
-    window.addEventListener('scroll', handleLayoutChange, true);
-    return () => {
-      window.removeEventListener('resize', handleLayoutChange);
-      window.removeEventListener('scroll', handleLayoutChange, true);
-    };
-  }, [open, updatePanelPosition]);
+  const panelPosition = usePopoverPosition(open, triggerRef, COUNTRY_PANEL_OPTIONS, search);
 
   useEffect(() => {
     if (!open) return;
@@ -409,11 +168,6 @@ export function CountryComboSelect({
     const timer = window.setTimeout(() => searchRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    updatePanelPosition();
-  }, [open, search, updatePanelPosition]);
 
   useEffect(() => {
     setHighlightIndex(0);

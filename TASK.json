@@ -1,32 +1,33 @@
 {
-  "id": "T-065",
-  "goal": "Pop & Rock 앨범 목록에서 장르1을 고르면 그 장르의 하위 장르(장르2)로 한 번 더 좁혀 볼 수 있다.",
-  "context": "대상: src/app/albums/_components/AlbumList.tsx(필터 줄, 활성 칩), 필요 시 AlbumsLibraryContent.tsx. 현재 Pop & Rock 목록은 '장르' select(listGenreFilter)만 있고, Classic은 '형식' select가 listFormFilter(genre2 일치 판정, useAlbumFilters의 matchesForm)를 쓴다. 기본안: 새 상태를 만들지 말고 listFormFilter를 Pop & Rock의 장르2 필터로 재사용한다. Pop & Rock(classicCardTags 아님, recordshelf 아님) 필터 줄에서 장르 select 바로 뒤에 '하위 장르: 전체' select를 둔다. 옵션은 constants.ts의 genre2OptionsForGenre1(listGenreFilter) 표준 목록(표준 순서). 장르가 '전체'이거나 매핑이 없으면 select 비활성. 장르1을 바꾸면 하위 장르 필터를 '전체'로 초기화한다. 활성 필터 칩 '하위 장르: {값}' 추가(해제 가능), 장르 칩 해제 시 하위 장르도 함께 해제. 레코드쉘프 변형과 Classic 형식 필터는 그대로. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-066",
+  "goal": "국가 선택·앨범 태그 팝오버·아티스트 장르2 클라우드가 공용 팝오버 위치 계산·공용 태그 클라우드·공용 한글 검색을 함께 써서 중복 코드가 사라지고, 앨범 태그 팝오버 검색도 한글 자모 검색('슈'→슈게이즈)이 된다. 그 밖의 화면·동작은 이전과 같다.",
+  "context": "리팩터링 작업. 현재 중복: (a) 팝오버/패널 위치 계산(computePanelPosition·뷰포트 패딩·위/아래 열기 판단·resize/scroll 갱신)이 src/components/CountryComboSelect.tsx와 src/app/albums/_components/AlbumTagFilterPopover.tsx에 각각 있다. (b) 칩 클라우드(전체 칩·빈도별 글자 크기 tagFontSize·선택 강조)가 src/app/artists/_components/ArtistGenre2TagCloud.tsx와 AlbumTagFilterPopover.tsx에 각각 있다. (c) 한글 자모 정규화·영문 단어 시작 매칭·앞부분 우선 판정이 CountryComboSelect.tsx 안에만 있다. 기본안: (1) 위치 계산을 공용 훅 또는 유틸 하나(src/components 또는 src/lib, 위치는 판단)로 추출해 두 컴포넌트가 쓴다. (2) 공용 태그 클라우드 컴포넌트 하나({label,count}[]·selected·onSelect·'전체' 칩 여부 등 최소 props)를 만들어 ArtistGenre2TagCloud와 앨범 태그 팝오버가 쓴다. ArtistGenre2TagCloud는 공용 컴포넌트의 얇은 래퍼로 남기거나 호출부를 바꿔도 되나 아티스트 화면 모양·동작은 그대로. (3) 한글·영문 검색 매칭 로직을 공용 유틸(예: src/lib 하위)로 옮겨 국가 선택과 앨범 태그 팝오버 검색에서 쓴다. 태그 검색은 포함 매칭을 유지하되 한글 자모 단위로 비교한다(국가처럼 영문 단어 시작 제한은 태그에는 적용하지 않는다 — 'rock'으로 Post Rock이 걸려야 함). ReceiverComboSelect·ComposerComboSelect는 건드리지 않는다. 기존 호출부 props·화면 모양을 바꾸지 않는 것이 원칙이며, 바꿔야 하면 result에 이유를 쓴다. 이 작업으로 미사용이 된 코드는 정리한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "Pop & Rock 필터 줄에 장르1 연동 하위 장르 select",
-      "장르 변경 시 하위 장르 초기화",
-      "하위 장르 활성 칩"
+      "팝오버 위치 계산 공용화(국가 선택·앨범 태그 팝오버)",
+      "태그 클라우드 공용 컴포넌트(아티스트 장르2·앨범 태그 팝오버)",
+      "한글·영문 검색 매칭 공용 유틸화, 앨범 태그 검색에 자모 매칭 적용"
     ],
     "out": [
-      "Classic 형식·악기 필터",
-      "레코드쉘프 필터",
-      "useAlbumFilters 판정 로직 변경(필요 최소 외)",
-      "태그 필터",
+      "ReceiverComboSelect·ComposerComboSelect",
+      "국가 목록 상수",
+      "필터 판정 로직(useAlbumFilters·useArtistFilters)",
+      "화면 디자인 변경",
+      "아티스트 태그 클라우드 신규 기능(다음 작업)",
       "DB·SQL·스키마 (절대 건드리지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 목록에서 장르를 J-Rock으로 고르면 하위 장르 select가 활성화되어 J-Rock 표준 7개가 보이고, Shoegaze / Dream Pop을 고르면 그 앨범만 남는다",
-    "장르를 바꾸면 하위 장르가 '전체'로 돌아가고, 장르가 '전체'일 때 하위 장르 select는 비활성이다",
-    "'하위 장르: …' 칩으로 해제되고, 장르 칩을 해제하면 하위 장르도 해제된다. 태그·국가 필터와 함께 조합된다",
-    "Classic 목록의 형식·악기 필터와 레코드쉘프 필터는 이전과 같다",
+    "앨범 폼·아티스트 정보 수정의 국가 선택이 이전과 같다('ㅎ'·'허'·'hu'·'스웯' 검색, 위치, 키보드, 기존 값 표시)",
+    "앨범 태그 팝오버의 모양·위치·닫힘 동작이 이전과 같고, 검색에서 '슈'로 슈게이즈, 'rock'으로 Post Rock 등이 걸린다",
+    "아티스트 화면 장르2 태그 클라우드의 모양·선택·해제가 이전과 같다",
+    "위치 계산·칩 클라우드·검색 매칭 코드가 각각 한 곳에만 존재한다(result에 새 파일 경로 명시)",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
-  "auto_commit": true,
-  "commit_message": "(feat): Pop & Rock 목록에 장르1 연동 하위 장르 필터 추가",
+  "auto_commit": false,
+  "commit_message": "(refactor): 팝오버 위치·태그 클라우드·한글 검색 공용화",
   "status": "done",
-  "result": "AlbumList Pop&Rock에 listFormFilter 재사용 하위 장르 select(genre2OptionsForGenre1)·활성 칩 추가. 장르 변경/칩 해제 시 하위 장르 '전체' 초기화. AlbumsLibraryContent 장르 칩 클릭도 동일 초기화. Classic·recordshelf 미변경. 검증: tsc/lint 통과. 커밋 f57b136."
+  "result": "공용화 완료. 새 파일: src/lib/popoverPosition.ts(위치 계산), src/hooks/usePopoverPosition.ts(resize/scroll 훅), src/components/TagCloud.tsx(칩 클라우드), src/lib/textSearch.ts(자모·영문 단어시작·포함 매칭). CountryComboSelect·AlbumTagFilterPopover가 위치 훅 사용, ArtistGenre2TagCloud는 TagCloud 래퍼. 태그 검색에 matchesSearchContains 적용('슈'/'rock' 포함). Receiver/Composer 미변경. 호출부 props 유지. 검증: tsc/lint 통과. auto_commit false — 커밋 대기.\n커밋 승인: 261118_2308 (refactor): 팝오버 위치·태그 클라우드·한글 검색 공용화, AGENTS.md 커밋 보고 규칙 보완"
 }

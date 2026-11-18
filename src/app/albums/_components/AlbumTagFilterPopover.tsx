@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search } from 'lucide-react';
+import { TagCloud } from '@/components/TagCloud';
+import { usePopoverPosition } from '@/hooks/usePopoverPosition';
+import { matchesSearchContains } from '@/lib/textSearch';
 import type { AlbumTagFilterOption } from '../utils';
 
 type AlbumTagFilterPopoverProps = {
@@ -11,51 +14,16 @@ type AlbumTagFilterPopoverProps = {
   onChange: (value: string) => void;
 };
 
-const PANEL_GAP = 6;
-const VIEWPORT_PADDING = 8;
-const PANEL_PREFERRED_WIDTH = 520;
-const PANEL_MAX_HEIGHT = 420;
-
-type PanelPosition = {
-  left: number;
-  top: number;
-  width: number;
-  maxHeight: number;
+const TAG_PANEL_OPTIONS = {
+  preferredWidth: 520,
+  preferredHeight: 420,
+  maxHeightCap: 420,
+  minWidth: 260,
+  minHeight: 180,
+  openBelowPreferMin: 220,
+  aboveAnchor: 'css-top' as const,
+  useModalBounds: false,
 };
-
-function tagFontSize(count: number, maxCount: number): string {
-  if (maxCount <= 1) return '11px';
-  const ratio = count / maxCount;
-  if (ratio >= 0.75) return '13px';
-  if (ratio >= 0.45) return '12px';
-  return '11px';
-}
-
-function computePanelPosition(trigger: HTMLElement): PanelPosition {
-  const rect = trigger.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const width = Math.min(
-    PANEL_PREFERRED_WIDTH,
-    Math.max(260, viewportWidth - VIEWPORT_PADDING * 2),
-  );
-  let left = rect.left;
-  if (left + width > viewportWidth - VIEWPORT_PADDING) {
-    left = Math.max(VIEWPORT_PADDING, viewportWidth - VIEWPORT_PADDING - width);
-  }
-  if (left < VIEWPORT_PADDING) left = VIEWPORT_PADDING;
-
-  const spaceBelow = viewportHeight - rect.bottom - PANEL_GAP - VIEWPORT_PADDING;
-  const spaceAbove = rect.top - PANEL_GAP - VIEWPORT_PADDING;
-  const openBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove;
-  const available = openBelow ? spaceBelow : spaceAbove;
-  const maxHeight = Math.max(180, Math.min(PANEL_MAX_HEIGHT, available));
-  const top = openBelow
-    ? rect.bottom + PANEL_GAP
-    : Math.max(VIEWPORT_PADDING, rect.top - PANEL_GAP - maxHeight);
-
-  return { left, top, width, maxHeight };
-}
 
 export function AlbumTagFilterPopover({
   value,
@@ -68,36 +36,18 @@ export function AlbumTagFilterPopover({
   const searchRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [panelPosition, setPanelPosition] = useState<PanelPosition | null>(null);
 
   const filteredOptions = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    if (!query) return options;
-    return options.filter((option) => option.label.toLocaleLowerCase().includes(query));
+    if (!search.trim()) return options;
+    return options.filter((option) => matchesSearchContains(option.label, search));
   }, [options, search]);
 
-  const maxCount = useMemo(
-    () => filteredOptions.reduce((max, option) => Math.max(max, option.count), 0),
-    [filteredOptions],
+  const panelPosition = usePopoverPosition(
+    open,
+    triggerRef,
+    TAG_PANEL_OPTIONS,
+    `${search}:${filteredOptions.length}`,
   );
-
-  useEffect(() => {
-    if (!open) {
-      setPanelPosition(null);
-      return;
-    }
-    const update = () => {
-      if (!triggerRef.current) return;
-      setPanelPosition(computePanelPosition(triggerRef.current));
-    };
-    update();
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
-    };
-  }, [open, search, filteredOptions.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -166,46 +116,12 @@ export function AlbumTagFilterPopover({
           className="overflow-y-auto overscroll-y-contain p-3"
           style={{ maxHeight: Math.max(120, panelPosition.maxHeight - 56) }}
         >
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleSelect('전체')}
-              className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-              style={{
-                fontSize: '11px',
-                background: value === '전체' ? 'var(--foreground)' : 'var(--badge-bg)',
-                color: value === '전체' ? 'var(--background)' : 'var(--foreground)',
-                border: '1px solid var(--border)',
-              }}
-              aria-pressed={value === '전체'}
-            >
-              전체
-            </button>
-            {filteredOptions.length === 0 ? (
-              <p className="px-1 py-1 text-sm opacity-60">검색 결과 없음</p>
-            ) : (
-              filteredOptions.map((option) => {
-                const active = value === option.label;
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => handleSelect(option.label)}
-                    className="shrink-0 rounded-full px-2.5 py-1 font-medium transition-colors"
-                    style={{
-                      fontSize: tagFontSize(option.count, maxCount),
-                      background: active ? 'var(--foreground)' : 'var(--badge-bg)',
-                      color: active ? 'var(--background)' : 'var(--foreground)',
-                      border: '1px solid var(--border)',
-                    }}
-                    aria-pressed={active}
-                  >
-                    {option.label} ({option.count})
-                  </button>
-                );
-              })
-            )}
-          </div>
+          <TagCloud
+            items={filteredOptions}
+            selected={value}
+            onSelect={handleSelect}
+            emptyMessage="검색 결과 없음"
+          />
         </div>
       </div>
     ) : null;

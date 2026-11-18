@@ -1,0 +1,32 @@
+{
+  "id": "T-065",
+  "goal": "Pop & Rock 앨범 목록에서 장르1을 고르면 그 장르의 하위 장르(장르2)로 한 번 더 좁혀 볼 수 있다.",
+  "context": "대상: src/app/albums/_components/AlbumList.tsx(필터 줄, 활성 칩), 필요 시 AlbumsLibraryContent.tsx. 현재 Pop & Rock 목록은 '장르' select(listGenreFilter)만 있고, Classic은 '형식' select가 listFormFilter(genre2 일치 판정, useAlbumFilters의 matchesForm)를 쓴다. 기본안: 새 상태를 만들지 말고 listFormFilter를 Pop & Rock의 장르2 필터로 재사용한다. Pop & Rock(classicCardTags 아님, recordshelf 아님) 필터 줄에서 장르 select 바로 뒤에 '하위 장르: 전체' select를 둔다. 옵션은 constants.ts의 genre2OptionsForGenre1(listGenreFilter) 표준 목록(표준 순서). 장르가 '전체'이거나 매핑이 없으면 select 비활성. 장르1을 바꾸면 하위 장르 필터를 '전체'로 초기화한다. 활성 필터 칩 '하위 장르: {값}' 추가(해제 가능), 장르 칩 해제 시 하위 장르도 함께 해제. 레코드쉘프 변형과 Classic 형식 필터는 그대로. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "Pop & Rock 필터 줄에 장르1 연동 하위 장르 select",
+      "장르 변경 시 하위 장르 초기화",
+      "하위 장르 활성 칩"
+    ],
+    "out": [
+      "Classic 형식·악기 필터",
+      "레코드쉘프 필터",
+      "useAlbumFilters 판정 로직 변경(필요 최소 외)",
+      "태그 필터",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 목록에서 장르를 J-Rock으로 고르면 하위 장르 select가 활성화되어 J-Rock 표준 7개가 보이고, Shoegaze / Dream Pop을 고르면 그 앨범만 남는다",
+    "장르를 바꾸면 하위 장르가 '전체'로 돌아가고, 장르가 '전체'일 때 하위 장르 select는 비활성이다",
+    "'하위 장르: …' 칩으로 해제되고, 장르 칩을 해제하면 하위 장르도 해제된다. 태그·국가 필터와 함께 조합된다",
+    "Classic 목록의 형식·악기 필터와 레코드쉘프 필터는 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(feat): Pop & Rock 목록에 장르1 연동 하위 장르 필터 추가",
+  "status": "done",
+  "result": "AlbumList Pop&Rock에 listFormFilter 재사용 하위 장르 select(genre2OptionsForGenre1)·활성 칩 추가. 장르 변경/칩 해제 시 하위 장르 '전체' 초기화. AlbumsLibraryContent 장르 칩 클릭도 동일 초기화. Classic·recordshelf 미변경. 검증: tsc/lint 통과. 커밋 f57b136."
+}
