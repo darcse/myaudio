@@ -16,7 +16,7 @@
 ## 개발 흐름
 
 ```
-JW 요청 → Claude(플래너)가 TASK.json 작성 → Cursor 구현 → "확인해줘"로 Claude가 result·diff 검토 → JW 동작 확인 → Claude가 passes 변경 → JW 커밋·푸시
+JW 요청 → Claude(플래너)가 TASK.json 작성 → Cursor 구현 → "확인해줘"로 Claude가 result·diff 검토 → JW 동작 확인 → Claude가 passes 변경 → 커밋·푸시(auto_commit 기준)
 ```
 
 1. **JW** — 요구사항을 말한다.
@@ -25,9 +25,15 @@ JW 요청 → Claude(플래너)가 TASK.json 작성 → Cursor 구현 → "확�
 4. **Claude(플래너)** — result와 git diff를 검토한다. scope 이탈, 중복·불필요한 복잡도, 죽은 코드를 본다.
 5. **JW** — 브라우저에서 동작을 직접 확인한다. (Playwright 사용 안 함)
 6. **Claude(플래너)** — 확인된 feature의 passes를 변경하고 파일을 다시 읽어 저장을 확인한다.
-7. **JW** — 직접 커밋하고 푸시한다. 에이전트는 git add/commit/push를 하지 않는다.
+7. **커밋·푸시** — `auto_commit: true`면 Cursor가 구현·검증 직후 커밋·푸시하고, 플래너 검토는 사후에 한다. `false`면 플래너가 검토 OK 후 result에 `커밋 승인: <메시지>`를 적고, JW가 "커밋해"라고 지시하면 Cursor가 커밋·푸시한다.
 
 문제가 있으면 새 TASK.json(수정 작업)으로 넘긴다.
+
+### auto_commit 기준
+
+- 플래너가 TASK.json 작성 시 `auto_commit`과 `commit_message`(`(type): 설명`)를 정하고 JW에게 한 줄로 알린다.
+- `false`(사전 보고·검수 후 결정): 신규 기능(feature_id 있음)·규모 큰 작업, 스키마·SQL, 데이터 삭제·이관, mybooks 공용 요소, 규칙 문서 변경
+- `true`(사후 보고): 그 외 간단한 작업(버그 수정, 문구·스타일·옵션 추가, 소규모 조정)
 
 ---
 
@@ -77,7 +83,7 @@ TASK.json의 done에 따른다. 로직이나 구조를 건드리는 작업은 �
 
 1. TASK.json의 status를 done으로, result에 변경 요약·건너뛴 항목과 이유·검증 결과·`git diff --stat` 요약을 기록한다.
 2. 테스트 루프 통과를 확인한다.
-3. 커밋·푸시는 JW가 한다.
+3. 커밋·푸시는 auto_commit 기준을 따른다.
 
 ---
 

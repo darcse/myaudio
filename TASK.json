@@ -22,5 +22,5 @@
     "Works 메뉴 가사 장르 선택지는 바뀌지 않는다"
   ],
   "status": "done",
-  "result": "genreOptions에 Jazz 다음·Classic 앞에 'World' 추가. AlbumForm(popGenreOptions가 Classic만 제외)·AlbumList·ArtistTopControlBar(popular에서 Classic만 제외)·LyricsTranslateLibraryContent가 상수 공유로 World 반영. 장르 색상/라벨 하드코딩 매핑은 없음(보완 불필요). Works genre1Options·isClassicGenre 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albums/constants.ts."
+  "result": "genreOptions에 Jazz 다음·Classic 앞에 'World' 추가. AlbumForm(popGenreOptions가 Classic만 제외)·AlbumList·ArtistTopControlBar(popular에서 Classic만 제외)·LyricsTranslateLibraryContent가 상수 공유로 World 반영. 장르 색상/라벨 하드코딩 매핑은 없음(보완 불필요). Works genre1Options·isClassicGenre 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albums/constants.ts. 커밋 승인: 261118_1945 (docs): 커밋·푸시를 플래너 승인 후 Cursor가 하도록 하네스 규칙 변경"
 }
