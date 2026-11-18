@@ -10,9 +10,11 @@ import {
   CLASSIC_INSTRUMENT_OPTIONS,
   COMPOSER_ERA_OPTIONS,
   countryOptions,
+  genre2OptionsForGenre1,
   genreOptions,
   isClassicFormOption,
   isClassicInstrumentOption,
+  isGenre2OptionForGenre1,
 } from '../constants';
 import type { AlbumFormData, SelectedAlbum } from '../types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
@@ -616,7 +618,17 @@ export function AlbumForm({
                     className="select-apple px-3 py-2 w-full h-[42px]"
                     value={formData.genre1}
                     onChange={(e) => {
-                      setFormData({ ...formData, genre1: e.target.value });
+                      const nextGenre1 = e.target.value;
+                      setFormData((prev) => {
+                        const options = genre2OptionsForGenre1(nextGenre1);
+                        const current = prev.genre2.trim();
+                        const keep = !!options && !!current && options.includes(current);
+                        return {
+                          ...prev,
+                          genre1: nextGenre1,
+                          genre2: keep ? current : '',
+                        };
+                      });
                       setClassicFormError(false);
                     }}
                   >
@@ -628,7 +640,30 @@ export function AlbumForm({
                     ))}
                   </select>
                 </div>
-                {renderInput('하위 장르 (직접 입력)', 'genre2')}
+                <div>
+                  <label className="block text-sm font-semibold mb-1 opacity-90">하위 장르</label>
+                  <select
+                    className="select-apple px-3 py-2 w-full h-[42px]"
+                    value={formData.genre2}
+                    onChange={(e) => setFormData({ ...formData, genre2: e.target.value })}
+                    disabled={
+                      !formData.genre1.trim() || genre2OptionsForGenre1(formData.genre1) == null
+                    }
+                  >
+                    <option value="">선택</option>
+                    {formData.genre2.trim() &&
+                    !isGenre2OptionForGenre1(formData.genre1, formData.genre2) ? (
+                      <option value={formData.genre2}>
+                        {formData.genre2} (기존 값)
+                      </option>
+                    ) : null}
+                    {(genre2OptionsForGenre1(formData.genre1) ?? []).map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
             {isClassicMode ? (

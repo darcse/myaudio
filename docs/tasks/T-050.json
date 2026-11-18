@@ -1,0 +1,26 @@
+{
+  "id": "T-050",
+  "goal": "앨범 등록·수정 폼의 장르1 선택지에 World가 생겨, World 앨범을 등록하고 목록·아티스트 필터에서 World로 걸러 볼 수 있다.",
+  "context": "대상: src/app/albums/constants.ts의 genreOptions. 기본안: 'Jazz' 다음, 'Classic' 앞에 'World'를 추가한다. genreOptions는 AlbumForm(Pop & Rock 폼), AlbumList 필터, 아티스트 필터(ArtistTopControlBar), 가사 번역(LyricsTranslateLibraryContent) 장르 필터에서 함께 쓰이므로 상수 한 곳만 바꾸면 반영되는지 확인한다. 'Classic'을 제외하는 필터 로직은 그대로 두어 World가 Pop & Rock 쪽에 보이게 한다. 장르별 색상·라벨 매핑처럼 장르명을 하드코딩한 곳이 있어 World가 깨져 보이면 결과에 위치를 보고하고, 수정이 한두 줄이면 함께 고친다. Works 메뉴의 genre1Options(src/app/works/constants.ts)는 별개 시스템이라 건드리지 않는다. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "albums/constants.ts genreOptions에 World 추가",
+      "World 표시가 깨지는 하드코딩 매핑이 있으면 최소 보완"
+    ],
+    "out": [
+      "Works 메뉴 genre1Options",
+      "Classic 판별(isClassicGenre)·catalogScope 로직",
+      "DB 스키마·SQL, feature_list",
+      "기존 장르 순서·이름 변경",
+      "git add/commit/push"
+    ]
+  },
+  "done": [
+    "Pop & Rock 새 등록·수정 폼의 장르1 드롭다운에 World가 Jazz 다음에 보인다",
+    "World로 저장한 앨범이 Pop & Rock 앨범 목록에 나오고 장르 필터에서 World 선택 시 걸러진다",
+    "Pop & Rock 아티스트 목록 장르 필터에 World가 보이고, Classic 메뉴 폼·필터에는 기존과 동일하게 영향이 없다",
+    "Works 메뉴 가사 장르 선택지는 바뀌지 않는다"
+  ],
+  "status": "done",
+  "result": "genreOptions에 Jazz 다음·Classic 앞에 'World' 추가. AlbumForm(popGenreOptions가 Classic만 제외)·AlbumList·ArtistTopControlBar(popular에서 Classic만 제외)·LyricsTranslateLibraryContent가 상수 공유로 World 반영. 장르 색상/라벨 하드코딩 매핑은 없음(보완 불필요). Works genre1Options·isClassicGenre 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albums/constants.ts. 커밋 승인: 261118_1945 (docs): 커밋·푸시를 플래너 승인 후 Cursor가 하도록 하네스 규칙 변경"
+}

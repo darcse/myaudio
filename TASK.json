@@ -1,26 +1,32 @@
 {
-  "id": "T-050",
-  "goal": "앨범 등록·수정 폼의 장르1 선택지에 World가 생겨, World 앨범을 등록하고 목록·아티스트 필터에서 World로 걸러 볼 수 있다.",
-  "context": "대상: src/app/albums/constants.ts의 genreOptions. 기본안: 'Jazz' 다음, 'Classic' 앞에 'World'를 추가한다. genreOptions는 AlbumForm(Pop & Rock 폼), AlbumList 필터, 아티스트 필터(ArtistTopControlBar), 가사 번역(LyricsTranslateLibraryContent) 장르 필터에서 함께 쓰이므로 상수 한 곳만 바꾸면 반영되는지 확인한다. 'Classic'을 제외하는 필터 로직은 그대로 두어 World가 Pop & Rock 쪽에 보이게 한다. 장르별 색상·라벨 매핑처럼 장르명을 하드코딩한 곳이 있어 World가 깨져 보이면 결과에 위치를 보고하고, 수정이 한두 줄이면 함께 고친다. Works 메뉴의 genre1Options(src/app/works/constants.ts)는 별개 시스템이라 건드리지 않는다. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-051",
+  "feature_id": "ALBUM-048",
+  "goal": "Pop & Rock 앨범 등록·수정 폼에서 장르1을 고르면 장르2가 그 장르1의 표준 하위 장르 드롭다운으로 바뀌어, 직접 입력 없이 정해진 값만 저장된다.",
+  "context": "대상: src/app/albums/_components/AlbumForm.tsx(Pop & Rock 모드의 '하위 장르 (직접 입력)' renderInput), src/app/albums/constants.ts. 표준 분류(장르1별 장르2, 표기 그대로·순서 그대로 사용): Rock: Alternative / Indie | Hard Rock | Shoegaze / Dream Pop | Progressive / Art Rock | Psychedelic | Punk / Emo | Pop Rock; J-Rock: Alternative / Indie | Hard Rock | Shoegaze / Dream Pop | Progressive / Art Rock | Psychedelic | Punk / Emo | Pop Rock; Metal: Heavy Metal | Thrash Metal | Melodic / Power | Black / Blackgaze | Metalcore / Industrial | Gothic / Symphonic; J-Idol: Idol Pop | Kawaii / Loud Rock | Rock / Punk | Shoegaze / Post Rock | Electronic | Gothic Pop; K-Pop: Electro / Synth Pop | Dance Pop | Pop Rock / Alternative | Indie Pop | Ballad; J-Pop: Pop / Dance | Pop Rock | Indie / City Pop | Jazz Pop | Adult Contemporary | Anime / Character; Pop: Dance / Electro Pop | Pop Rock / Alternative | R&B / Soul | Adult Contemporary | Indie / Modern Pop | Chanson / World Pop | Compilation / Various; Electronic: House / Nu-disco | Synth / Electro | Ambient / IDM | Big Beat / Trip Hop; Jazz: Trio / Swing | Fusion | Contemporary / Nu Jazz | Anime / Game Jazz; OST: Game OST | Anime OST | Movie / Drama OST; Crossover: Classical Crossover | Traditional Crossover | Orchestral Game / Metal | Playlist; World: Traditional | Ethnic / Folk; 기타: Acoustic | Playlist. 기본안: constants.ts에 장르1→장르2 배열 매핑 상수를 추가하고, Pop & Rock 모드의 장르2를 select로 바꾼다. 장르1 미선택이면 장르2 select 비활성. 장르1 변경 시 현재 장르2가 새 목록에 없으면 빈 값으로 초기화. 장르2는 선택 사항(빈 값 저장 허용). 수정 폼에서 현재 genre2가 목록에 없으면(레거시 값) Classic 형식 select와 같은 패턴으로 '{값} (기존 값)' 옵션을 보여 주고 선택된 상태를 유지한다. 장르1 목록(genreOptions)에 매핑이 없는 값이 있으면 장르2 select를 비활성으로 두고 result에 보고한다. Classic 모드의 형식 select·검증(classicFormError)은 그대로. Pop & Rock 폼 외에 장르2를 자유 입력하는 다른 화면(인라인 편집 등)이 있으면 수정하지 말고 위치만 result에 보고한다. DB 데이터 정리·태그 기능은 다음 작업이다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
   "scope": {
     "in": [
-      "albums/constants.ts genreOptions에 World 추가",
-      "World 표시가 깨지는 하드코딩 매핑이 있으면 최소 보완"
+      "constants.ts에 장르1→장르2 표준 매핑 상수 추가",
+      "AlbumForm Pop & Rock 모드 장르2를 연동 select로 변경(레거시 값 표시 포함)"
     ],
     "out": [
+      "Classic 모드 형식 select·검증 로직",
+      "기존 DB 데이터 변경·SQL·스키마 (절대 건드리지 말 것)",
+      "태그 기능",
+      "장르2를 쓰는 통계·필터·AI 프롬프트 로직",
       "Works 메뉴 genre1Options",
-      "Classic 판별(isClassicGenre)·catalogScope 로직",
-      "DB 스키마·SQL, feature_list",
-      "기존 장르 순서·이름 변경",
-      "git add/commit/push"
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 새 등록·수정 폼의 장르1 드롭다운에 World가 Jazz 다음에 보인다",
-    "World로 저장한 앨범이 Pop & Rock 앨범 목록에 나오고 장르 필터에서 World 선택 시 걸러진다",
-    "Pop & Rock 아티스트 목록 장르 필터에 World가 보이고, Classic 메뉴 폼·필터에는 기존과 동일하게 영향이 없다",
-    "Works 메뉴 가사 장르 선택지는 바뀌지 않는다"
+    "Pop & Rock 새 등록 폼에서 장르1 선택 시 장르2 드롭다운에 해당 장르1의 표준 하위 장르만 표준 순서대로 보이고, 장르1 미선택 시 비활성이다",
+    "장르1을 바꾸면 새 목록에 없는 장르2는 비워지고, 장르2를 비운 채 저장할 수 있다",
+    "표준 목록에 없는 genre2를 가진 기존 앨범의 수정 폼에서 그 값이 '(기존 값)'으로 선택돼 있고, 다른 칸만 수정해 저장해도 genre2가 유지된다",
+    "Classic 등록·수정 폼의 형식 선택·필수 검증이 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-048 Pop & Rock 장르2를 장르1 연동 표준 하위 장르 선택으로 변경",
   "status": "done",
-  "result": "genreOptions에 Jazz 다음·Classic 앞에 'World' 추가. AlbumForm(popGenreOptions가 Classic만 제외)·AlbumList·ArtistTopControlBar(popular에서 Classic만 제외)·LyricsTranslateLibraryContent가 상수 공유로 World 반영. 장르 색상/라벨 하드코딩 매핑은 없음(보완 불필요). Works genre1Options·isClassicGenre 미변경. 검증: npx tsc --noEmit 통과, npm run lint 통과. 변경: albums/constants.ts. 커밋 승인: 261118_1945 (docs): 커밋·푸시를 플래너 승인 후 Cursor가 하도록 하네스 규칙 변경"
+  "result": "constants.ts에 GENRE2_OPTIONS_BY_GENRE1·genre2OptionsForGenre1·isGenre2OptionForGenre1 추가. AlbumForm Pop 모드 장르2를 select로 변경(미선택/매핑 없음 시 비활성, 장르1 변경 시 목록 밖 값 초기화, 레거시는 '{값} (기존 값)'). Classic 형식 select·검증 미변경.\n\n매핑 없는 genreOptions 값: Classic뿐(Pop 폼에서 제외·형식 select 사용). 그 외 Pop 장르1은 모두 매핑 있음.\n장르2 자유 입력 다른 화면: AlbumForm Pop만 해당했음. 표시·필터(AlbumList/AlbumInfoSection/인사이트 등)는 입력 폼 아님 → 미수정.\n검증: npx tsc --noEmit 통과, npm run lint 통과. auto_commit=false라 커밋 안 함. 변경: constants.ts, AlbumForm.tsx.\n커밋 승인: 261118_2030 (feat): ALBUM-048 Pop & Rock 장르2를 장르1 연동 표준 하위 장르 선택으로 변경"
 }

@@ -44,6 +44,101 @@ export const genreOptions = [
   'OST', 'Jazz', 'World', 'Classic', 'Crossover', '기타',
 ] as const;
 
+export const GENRE2_OPTIONS_BY_GENRE1 = {
+  Rock: [
+    'Alternative / Indie',
+    'Hard Rock',
+    'Shoegaze / Dream Pop',
+    'Progressive / Art Rock',
+    'Psychedelic',
+    'Punk / Emo',
+    'Pop Rock',
+  ],
+  'J-Rock': [
+    'Alternative / Indie',
+    'Hard Rock',
+    'Shoegaze / Dream Pop',
+    'Progressive / Art Rock',
+    'Psychedelic',
+    'Punk / Emo',
+    'Pop Rock',
+  ],
+  Metal: [
+    'Heavy Metal',
+    'Thrash Metal',
+    'Melodic / Power',
+    'Black / Blackgaze',
+    'Metalcore / Industrial',
+    'Gothic / Symphonic',
+  ],
+  'J-Idol': [
+    'Idol Pop',
+    'Kawaii / Loud Rock',
+    'Rock / Punk',
+    'Shoegaze / Post Rock',
+    'Electronic',
+    'Gothic Pop',
+  ],
+  'K-Pop': [
+    'Electro / Synth Pop',
+    'Dance Pop',
+    'Pop Rock / Alternative',
+    'Indie Pop',
+    'Ballad',
+  ],
+  'J-Pop': [
+    'Pop / Dance',
+    'Pop Rock',
+    'Indie / City Pop',
+    'Jazz Pop',
+    'Adult Contemporary',
+    'Anime / Character',
+  ],
+  Pop: [
+    'Dance / Electro Pop',
+    'Pop Rock / Alternative',
+    'R&B / Soul',
+    'Adult Contemporary',
+    'Indie / Modern Pop',
+    'Chanson / World Pop',
+    'Compilation / Various',
+  ],
+  Electronic: [
+    'House / Nu-disco',
+    'Synth / Electro',
+    'Ambient / IDM',
+    'Big Beat / Trip Hop',
+  ],
+  Jazz: ['Trio / Swing', 'Fusion', 'Contemporary / Nu Jazz', 'Anime / Game Jazz'],
+  OST: ['Game OST', 'Anime OST', 'Movie / Drama OST'],
+  Crossover: [
+    'Classical Crossover',
+    'Traditional Crossover',
+    'Orchestral Game / Metal',
+    'Playlist',
+  ],
+  World: ['Traditional', 'Ethnic / Folk'],
+  기타: ['Acoustic', 'Playlist'],
+} as const;
+
+export type Genre1WithGenre2Options = keyof typeof GENRE2_OPTIONS_BY_GENRE1;
+
+export function genre2OptionsForGenre1(genre1: string): readonly string[] | null {
+  const key = genre1.trim();
+  if (!key) return null;
+  if (!(key in GENRE2_OPTIONS_BY_GENRE1)) return null;
+  return GENRE2_OPTIONS_BY_GENRE1[key as Genre1WithGenre2Options];
+}
+
+export function isGenre2OptionForGenre1(
+  genre1: string,
+  genre2: string | null | undefined,
+): boolean {
+  const options = genre2OptionsForGenre1(genre1);
+  const value = genre2?.trim() ?? '';
+  return !!options && !!value && options.includes(value);
+}
+
 export const CLASSIC_FORM_OPTIONS = [
   'Orchestral',
   'Concerto',
