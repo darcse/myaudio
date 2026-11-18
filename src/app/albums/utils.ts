@@ -81,6 +81,45 @@ export function collectKnownAlbumTags(
   return [...byKey.values()].sort((a, b) => a.localeCompare(b, 'ko'));
 }
 
+export function albumHasTag(
+  album: { tags?: string[] | null },
+  tag: string,
+): boolean {
+  const target = normalizeAlbumTagKey(tag);
+  if (!target) return false;
+  return (album.tags ?? []).some(
+    (item) => typeof item === 'string' && normalizeAlbumTagKey(item) === target,
+  );
+}
+
+export type AlbumTagFilterOption = {
+  label: string;
+  count: number;
+};
+
+export function buildAlbumTagFilterOptions(
+  albums: readonly { tags?: string[] | null }[],
+): AlbumTagFilterOption[] {
+  const counts = new Map<string, AlbumTagFilterOption>();
+  for (const album of albums) {
+    for (const tag of album.tags ?? []) {
+      if (typeof tag !== 'string') continue;
+      const trimmed = tag.trim();
+      if (!trimmed) continue;
+      const key = normalizeAlbumTagKey(trimmed);
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, { label: trimmed, count: 1 });
+      }
+    }
+  }
+  return [...counts.values()].sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'),
+  );
+}
+
 export function primaryComposerFieldsFromEntries(
   entries: AlbumComposerFormEntry[],
 ): Pick<AlbumFormData, 'composer' | 'composer_country' | 'composer_era' | 'composer_wiki_url'> {

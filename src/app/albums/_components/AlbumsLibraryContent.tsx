@@ -109,6 +109,8 @@ export function AlbumsLibraryContent({
     setListFormFilter,
     listCountryFilter,
     setListCountryFilter,
+    listTagFilter,
+    setListTagFilter,
     listMediaFilter,
     setListMediaFilter,
     listSortOrder,
@@ -116,6 +118,7 @@ export function AlbumsLibraryContent({
     listCurrentPage,
     setListCurrentPage,
     dynamicYearOptions,
+    tagFilterOptions,
     yearLotteryPool,
     paginatedLibrary,
     totalFilteredCount,
@@ -123,6 +126,7 @@ export function AlbumsLibraryContent({
   } = useAlbumFilters(scopedLibrary, artistNameAltByName, {
     disableYearGrouping: physicalOwnedOnly,
     enableLibraryTags: !physicalOwnedOnly && !isClassicScope,
+    enableTagFilter: !physicalOwnedOnly && !isClassicScope,
     defaultYearToAllPeriod: isClassicScope,
   });
 
@@ -642,6 +646,10 @@ export function AlbumsLibraryContent({
               setListFormFilter={setListFormFilter}
               listCountryFilter={listCountryFilter}
               setListCountryFilter={setListCountryFilter}
+              listTagFilter={listTagFilter}
+              setListTagFilter={setListTagFilter}
+              tagFilterOptions={tagFilterOptions}
+              enableTagFilter={!physicalOwnedOnly && !isClassicScope}
               countryFilterSource={scopedLibrary}
               listMediaFilter={listMediaFilter}
               setListMediaFilter={setListMediaFilter}

@@ -15,8 +15,9 @@ import {
   isClassicFormOption,
 } from '../constants';
 import type { Album } from '../types';
-import { isIndividualYearFilter, LIBRARY_TAGS } from '../utils';
+import { isIndividualYearFilter, LIBRARY_TAGS, type AlbumTagFilterOption } from '../utils';
 import { AlbumLotteryModal } from './AlbumLotteryModal';
+import { AlbumTagFilterPopover } from './AlbumTagFilterPopover';
 import type { AlbumLibraryTag, AlbumMediaFilter } from '../_hooks/useAlbumFilters';
 
 const GENRE1_CHIP_STYLE = {
@@ -43,6 +44,10 @@ interface AlbumListProps {
   setListFormFilter?: (v: string) => void;
   listCountryFilter: string;
   setListCountryFilter: (v: string) => void;
+  listTagFilter?: string;
+  setListTagFilter?: (v: string) => void;
+  tagFilterOptions?: AlbumTagFilterOption[];
+  enableTagFilter?: boolean;
   listSortOrder: string;
   setListSortOrder: (v: string) => void;
   listCurrentPage: number;
@@ -81,6 +86,10 @@ export function AlbumList({
   setListFormFilter,
   listCountryFilter,
   setListCountryFilter,
+  listTagFilter = '전체',
+  setListTagFilter,
+  tagFilterOptions = [],
+  enableTagFilter = false,
   listSortOrder,
   setListSortOrder,
   listCurrentPage,
@@ -109,7 +118,17 @@ export function AlbumList({
     }
     return names;
   }, [countryFilterSource, listCountryFilter, lotteryPool]);
+  const tagSelectOptions = useMemo(() => {
+    if (
+      listTagFilter !== '전체' &&
+      !tagFilterOptions.some((option) => option.label === listTagFilter)
+    ) {
+      return [...tagFilterOptions, { label: listTagFilter, count: 0 }];
+    }
+    return tagFilterOptions;
+  }, [listTagFilter, tagFilterOptions]);
   const [lotteryOpen, setLotteryOpen] = useState(false);
+  const showTagFilter = enableTagFilter && !isRecordshelf && tagSelectOptions.length > 0;
   const yearSelectDisabled = yearOptions.length === 0 || listLibraryTag === 'All Time';
   const defaultYearFilter = defaultYearFilterProp ?? yearOptions[0] ?? '';
   const hideYearTagOnCard = !isRecordshelf && isIndividualYearFilter(listYearFilter);
@@ -151,6 +170,11 @@ export function AlbumList({
       key: 'country',
       label: `국가: ${listCountryFilter}`,
       reset: () => setListCountryFilter('전체'),
+    },
+    showTagFilter && listTagFilter !== '전체' && {
+      key: 'tag',
+      label: `태그: ${listTagFilter}`,
+      reset: () => setListTagFilter?.('전체'),
     },
   ].filter(Boolean) as { key: string; label: string; reset: () => void }[];
 
@@ -238,6 +262,13 @@ export function AlbumList({
           </option>
         ))}
       </select>
+      {showTagFilter && setListTagFilter ? (
+        <AlbumTagFilterPopover
+          value={listTagFilter}
+          options={tagSelectOptions}
+          onChange={setListTagFilter}
+        />
+      ) : null}
       <select
         className="select-apple px-3 py-2 text-sm h-[38px]"
         value={listSortOrder}

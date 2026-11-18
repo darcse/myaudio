@@ -5,9 +5,11 @@ import type { Album } from '../types';
 import { matchesArtistNameSearch } from '@/app/artists/utils';
 import {
   ALL_PERIOD_YEAR_FILTER,
+  albumHasTag,
   albumMatchesLibraryTag,
   albumMatchesLotteryYearFilter,
   albumMatchesYearFilter,
+  buildAlbumTagFilterOptions,
   buildDynamicYearOptions,
   composersFromAlbum,
   parseAlbumLibraryTag,
@@ -25,11 +27,13 @@ export function useAlbumFilters(
   options?: {
     disableYearGrouping?: boolean;
     enableLibraryTags?: boolean;
+    enableTagFilter?: boolean;
     defaultYearToAllPeriod?: boolean;
   },
 ) {
   const disableYearGrouping = options?.disableYearGrouping ?? false;
   const enableLibraryTags = options?.enableLibraryTags ?? false;
+  const enableTagFilter = options?.enableTagFilter ?? false;
   const defaultYearToAllPeriod = options?.defaultYearToAllPeriod ?? false;
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listYearFilter, setListYearFilter] = useState('');
@@ -38,6 +42,7 @@ export function useAlbumFilters(
   const [listInstrumentFilter, setListInstrumentFilter] = useState('전체');
   const [listFormFilter, setListFormFilter] = useState('전체');
   const [listCountryFilter, setListCountryFilter] = useState('전체');
+  const [listTagFilter, setListTagFilter] = useState('전체');
   const [listMediaFilter, setListMediaFilter] = useState<AlbumMediaFilter>('all');
   const [listSortOrder, setListSortOrder] = useState('release_desc');
   const [listCurrentPage, setListCurrentPage] = useState(1);
@@ -47,6 +52,10 @@ export function useAlbumFilters(
   }, []);
 
   const dynamicYearOptions = useMemo(() => buildDynamicYearOptions(library), [library]);
+  const tagFilterOptions = useMemo(
+    () => (enableTagFilter ? buildAlbumTagFilterOptions(library) : []),
+    [enableTagFilter, library],
+  );
 
   useEffect(() => {
     if (disableYearGrouping) {
@@ -77,6 +86,7 @@ export function useAlbumFilters(
     listInstrumentFilter,
     listFormFilter,
     listCountryFilter,
+    listTagFilter,
     listMediaFilter,
     listSortOrder,
   ]);
@@ -89,6 +99,10 @@ export function useAlbumFilters(
         (item.classic_instrument?.trim() ?? '') === listInstrumentFilter;
       const matchesForm = listFormFilter === '전체' || (item.genre2?.trim() ?? '') === listFormFilter;
       const matchesCountry = listCountryFilter === '전체' || item.country === listCountryFilter;
+      const matchesTagFilter =
+        !enableTagFilter ||
+        listTagFilter === '전체' ||
+        albumHasTag(item, listTagFilter);
       const matchesMedia =
         listMediaFilter === 'all' ||
         (listMediaFilter === 'cd' && Boolean(item.owns_cd)) ||
@@ -100,26 +114,33 @@ export function useAlbumFilters(
       const matchesComposer = composersFromAlbum(item).some((entry) =>
         entry.name.trim().toLowerCase().includes(lowerQuery),
       );
+      const matchesTagSearch = (item.tags ?? []).some(
+        (tag) => typeof tag === 'string' && tag.toLowerCase().includes(lowerQuery),
+      );
       const matchesSearch =
         !lowerQuery ||
         (item.album_name && item.album_name.toLowerCase().includes(lowerQuery)) ||
         matchesArtistNameSearch(lowerQuery, artistName, nameAlt) ||
         (item.genre2 && item.genre2.toLowerCase().includes(lowerQuery)) ||
-        matchesComposer;
+        matchesComposer ||
+        matchesTagSearch;
       return (
         matchesGenre &&
         matchesInstrument &&
         matchesForm &&
         matchesCountry &&
+        matchesTagFilter &&
         matchesMedia &&
         matchesSearch
       );
     },
     [
+      enableTagFilter,
       listGenreFilter,
       listInstrumentFilter,
       listFormFilter,
       listCountryFilter,
+      listTagFilter,
       listMediaFilter,
       listSearchQuery,
       artistNameAltByName,
@@ -186,6 +207,8 @@ export function useAlbumFilters(
     setListFormFilter,
     listCountryFilter,
     setListCountryFilter,
+    listTagFilter,
+    setListTagFilter,
     listMediaFilter,
     setListMediaFilter,
     listSortOrder,
@@ -193,6 +216,7 @@ export function useAlbumFilters(
     listCurrentPage,
     setListCurrentPage,
     dynamicYearOptions,
+    tagFilterOptions,
     yearLotteryPool,
     paginatedLibrary,
     totalFilteredCount,

@@ -1,0 +1,31 @@
+{
+  "id": "T-060",
+  "feature_id": "ALBUM-050",
+  "goal": "Pop & Rock 앨범 목록에서 검색어로 태그를 찾을 수 있고, 태그 필터를 걸어 해당 태그가 달린 앨범만 볼 수 있다.",
+  "context": "album.tags(text[])는 ALBUM-049에서 추가됐고 기존 genre2 데이터 이관으로 태그가 채워졌다. 대상: src/app/albums/_hooks/useAlbumFilters.ts(listFilterCommon의 matchesSearch에 태그 포함, 새 listTagFilter 상태 추가·페이지 리셋 의존성 포함), src/app/albums/_components/AlbumList.tsx(필터 영역에 태그 select와 활성 필터 칩), AlbumsLibraryContent.tsx(연결). 기본안: 태그 필터는 Pop & Rock(popular scope)에서만 노출하고 Classic·레코드쉘프 변형에서는 숨긴다. 옵션은 현재 scope 앨범에 달린 태그를 대소문자 무시로 묶어(utils의 normalizeAlbumTagKey·collectKnownAlbumTags 재사용 검토) 사용 빈도 내림차순, 같으면 가나다/알파벳순. 일치 판정도 대소문자 무시. 태그가 없으면 select를 숨긴다. 기존 국가 필터와 같은 select·칩 스타일을 따른다. 앨범 상세 태그 칩 클릭 이동, 아티스트 화면 태그 클라우드, 통계 반영은 이번 범위가 아니다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "목록 검색에 tags 포함",
+      "Pop & Rock 목록 태그 필터 select·활성 칩",
+      "필터 상태 연결"
+    ],
+    "out": [
+      "Classic·레코드쉘프 필터 UI",
+      "아티스트 화면·인사이트·추첨(lottery) 필터",
+      "태그 입력·저장 로직",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 목록 검색에 태그 텍스트(예: Post Rock)를 입력하면 그 태그가 달린 앨범이 결과에 포함된다",
+    "태그 select에서 태그를 고르면 해당 앨범만 보이고 '태그: …' 칩으로 해제할 수 있으며, 다른 필터와 AND로 조합된다",
+    "태그 옵션은 Pop & Rock 앨범의 실제 태그만 사용 빈도순으로 보이고, Classic 목록에는 태그 필터가 없다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-050 Pop & Rock 앨범 목록 태그 검색·필터",
+  "status": "done",
+  "result": "useAlbumFilters에 listTagFilter·검색 tags 포함·빈도순 tagFilterOptions 추가. AlbumList에 Pop&Rock 전용 태그 select·활성 칩. AlbumsLibraryContent 연결(Classic·recordshelf는 enableTagFilter false). utils에 albumHasTag·buildAlbumTagFilterOptions. 검증: tsc/lint 통과. 커밋 안 함(auto_commit false)."
+}
