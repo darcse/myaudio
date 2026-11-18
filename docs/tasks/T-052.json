@@ -1,0 +1,34 @@
+{
+  "id": "T-052",
+  "feature_id": "ALBUM-049",
+  "goal": "Pop & Rock 앨범 등록·수정 폼에서 태그를 여러 개 입력·삭제할 수 있고, 저장된 태그가 앨범 상세에 칩으로 보인다. 입력 시 기존 태그가 자동완성되고 대소문자 차이는 기존 표기로 통일된다.",
+  "context": "DB: album 테이블에 tags text[] NOT NULL DEFAULT '{}' 컬럼을 JW가 이미 추가했다(실행 SQL: ALTER TABLE album ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';). audio_tags는 별개 용도이니 건드리지 않는다. 대상: src/app/albums/types.ts(Album·AlbumFormData에 tags), AlbumForm.tsx(Pop & Rock 모드 장르2 아래 태그 입력), 저장 로직(actions.ts 등 insert/update 경로를 확인), 앨범 상세 표시(AlbumInfoSection 등 위치를 확인). 기본안: 칩 입력 UI — 엔터·쉼표로 추가, 칩 ×로 삭제, 입력값 trim, 빈 값 무시, 같은 앨범 내 대소문자 무시 중복 금지. 자동완성 후보는 다른 앨범들의 기존 태그(이미 로드된 앨범 목록 또는 tags 컬럼 조회 중 단순한 쪽을 판단). 입력값이 기존 태그와 대소문자만 다르면 기존 표기로 저장. 상세에서는 tags가 비어 있으면 영역 자체를 숨긴다. Classic 모드에는 태그 입력을 넣지 않으며, Classic 앨범 저장 시 tags를 덮어쓰지 않거나 기존 값을 그대로 보낸다(빈 배열로 지우면 안 됨). 실행한 SQL은 기존 관례대로 scripts/sql/ALBUM-049-album-tags.sql로 기록만 남긴다(실행하지 않음). 검색·필터 반영과 기존 genre2 데이터 이관은 다음 작업이다. 스키마 추가 변경이 필요해 보이면 ALTER 하지 말고 result에 보고. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "Album·AlbumFormData 타입에 tags 추가",
+      "Pop & Rock 폼 태그 칩 입력(자동완성·표기 통일·중복 방지)",
+      "저장 시 tags insert/update",
+      "앨범 상세 태그 칩 표시",
+      "scripts/sql/ALBUM-049-album-tags.sql 기록"
+    ],
+    "out": [
+      "audio_tags 관련 코드",
+      "Classic 폼 UI",
+      "검색·필터·통계·AI 프롬프트에 tags 반영",
+      "기존 genre2·tags 데이터 변경, SQL 실행, 추가 스키마 변경 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 등록 폼에서 엔터·쉼표로 태그 칩 추가, ×로 삭제가 되고, 빈 값과 대소문자만 다른 중복은 추가되지 않는다",
+    "다른 앨범의 기존 태그가 자동완성 후보로 보이고, 대소문자만 다르게 입력하면 기존 표기로 저장된다",
+    "저장 후 수정 폼과 앨범 상세에 태그가 그대로 보이며, 태그 없는 앨범은 상세에 태그 영역이 없다",
+    "Classic 폼에는 태그 칸이 없고 Classic 앨범을 수정 저장해도 tags가 바뀌지 않는다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-049 Pop & Rock 앨범 태그 입력·표시",
+  "status": "done",
+  "result": "Pop & Rock 폼에 태그 칩 입력(Enter/쉼표 추가, × 삭제, 대소문자 무시 중복 방지·기존 표기 통일·라이브러리 tags 자동완성)을 넣었고, mapAlbumData는 Pop만 tags를 저장·Classic은 tags 필드를 보내지 않아 덮어쓰지 않는다. 상세 히어로에 tags 칩을 표시(없으면 미표시). scripts/sql/ALBUM-049-album-tags.sql 기록만 추가(실행 안 함). 검증: npx tsc --noEmit 통과, npm run lint 통과. git diff --stat: types/utils/actions/AlbumForm/AlbumInfoSection/AlbumsLibraryContent + FormData 초기값 동기화 파일들 + SQL. 건너뜀: 검색·필터·genre2 이관·audio_tags·feature_list·커밋(auto_commit false)."
+}

@@ -173,6 +173,15 @@ export function AlbumInfoHeroSection({
                 {viewingItem.genre2}
               </span>
             )}
+            {(viewingItem.tags ?? []).filter((tag) => tag.trim()).map((tag) => (
+              <span
+                key={tag}
+                className="text-[11px] px-2.5 py-1 rounded-full font-medium text-white"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
+                {tag.trim()}
+              </span>
+            ))}
           </div>
           <div className="flex items-end justify-between gap-3">
             <div className="min-w-0 flex-1">

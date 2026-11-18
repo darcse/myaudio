@@ -1,0 +1,28 @@
+{
+  "id": "T-054",
+  "goal": "새로고침 직후 앨범·아티스트 메뉴를 거치지 않고 대시보드·인사이트·다이어리 등에서 앨범 폼을 열어도 기존 태그 자동완성 후보가 보인다.",
+  "context": "T-053 후속. AlbumForm은 catalogLibraryCache의 앨범으로 태그 후보를 만들지만, 이 캐시는 메모리 전용이고 AlbumsLibraryContent·ArtistsLibraryContent에서만 채워져 다른 화면에서는 비어 있을 수 있다. 기본안: AlbumForm 마운트 시 캐시가 비어 있으면 앨범·아티스트 메뉴가 쓰는 것과 같은 방식(resolveCatalogCacheUserId → ensureCatalogLibrary 등, 기존 호출부 패턴 확인)으로 한 번 채운다. 이미 채워져 있거나 불러오는 중이면 중복 요청하지 않는다(ensureCatalogLibrary의 inflight 처리 활용). 실패해도 폼 입력·저장은 막지 않고 후보만 없는 상태로 둔다(에러 노출 불필요). T-052·T-053과 함께 아직 커밋 전이다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "AlbumForm에서 캐시가 비었을 때 공용 캐시 로드 트리거"
+    ],
+    "out": [
+      "catalogLibraryCache.ts 내부 로직 변경",
+      "태그 저장 로직·UI",
+      "다른 화면의 데이터 로딩 방식",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "새로고침 후 대시보드에서 바로 앨범 수정 폼을 열고 태그 칸에 입력하면 다른 앨범의 기존 태그가 후보로 보인다",
+    "앨범 메뉴에서 폼을 열 때 캐시 요청이 중복으로 발생하지 않는다(기존과 동일한 로딩)",
+    "캐시 로드가 실패해도 태그 입력·저장은 정상이다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-049 Pop & Rock 앨범 태그 입력·표시",
+  "status": "done",
+  "result": "AlbumForm 마운트 시 getCatalogLibraryCache()가 null이면 resolveCatalogCacheUserId → ensureCatalogLibrary로 캐시를 채운다. 이미 있으면 스킵, 로딩 중이면 inflight 공유. 실패 시 무시(입력·저장 유지). 검증: tsc/lint 통과. 커밋 안 함(auto_commit false)."
+}

@@ -7,7 +7,12 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import type { AlbumFormData } from './types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
-import { isClassicGenre, normalizeStagePlusUrl, sanitizeComposersForSave } from './utils';
+import {
+  isClassicGenre,
+  normalizeStagePlusUrl,
+  sanitizeAlbumTagsForSave,
+  sanitizeComposersForSave,
+} from './utils';
 
 const formatReleaseDate = (dateStr: string) => {
   if (!dateStr) return null;
@@ -74,7 +79,9 @@ function mapAlbumData(data: AlbumFormData) {
             composer_wiki_url: primary?.wiki_url ?? null,
           };
         })()
-      : {}),
+      : {
+          tags: sanitizeAlbumTagsForSave(data.tags),
+        }),
   };
 }
 

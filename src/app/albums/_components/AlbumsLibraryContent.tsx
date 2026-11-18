@@ -19,7 +19,11 @@ import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import type { Headfi } from '@/app/headfi/types';
 import { useAlbumFilters } from '../_hooks/useAlbumFilters';
 import type { Album, AlbumFormData, SelectedAlbum } from '../types';
-import { ALL_PERIOD_YEAR_FILTER, albumFormModeFromGenre1, albumToFormData } from '../utils';
+import {
+  ALL_PERIOD_YEAR_FILTER,
+  albumFormModeFromGenre1,
+  albumToFormData,
+} from '../utils';
 import { buildArtistNameAltMap } from '@/app/artists/utils';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { CatalogTabBar } from '@/components/CatalogTabBar';
@@ -45,6 +49,7 @@ const initialFormData: AlbumFormData = {
   release_date: '',
   genre1: '',
   genre2: '',
+  tags: [],
   classic_instrument: '',
   composer: '',
   composer_country: '',

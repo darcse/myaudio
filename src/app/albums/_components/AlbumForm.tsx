@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
@@ -16,15 +16,25 @@ import {
   isClassicInstrumentOption,
   isGenre2OptionForGenre1,
 } from '../constants';
-import type { AlbumFormData, SelectedAlbum } from '../types';
+import type { Album, AlbumFormData, SelectedAlbum } from '../types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { normalizeArtistNameForCompare } from '@/app/artists/utils';
+import {
+  ensureCatalogLibrary,
+  getCatalogLibraryCache,
+  isCatalogLibraryStale,
+  resolveCatalogCacheUserId,
+  subscribeCatalogLibraryCache,
+} from '@/lib/catalogLibraryCache';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import {
+  addAlbumTag,
   albumFormModeFromGenre1,
+  collectKnownAlbumTags,
   emptyComposerFormEntry,
   getYoutubeId,
   MAX_ALBUM_COMPOSERS,
+  normalizeAlbumTagKey,
   normalizeComposerNameKey,
   normalizeStagePlusUrl,
   primaryComposerFieldsFromEntries,
@@ -32,6 +42,12 @@ import {
 } from '../utils';
 import type { AlbumComposerFormEntry } from '../types';
 import { ComposerComboSelect } from './ComposerComboSelect';
+
+const EMPTY_CATALOG_ALBUMS: Album[] = [];
+
+function getCatalogAlbumsSnapshot(): Album[] {
+  return getCatalogLibraryCache()?.albums ?? EMPTY_CATALOG_ALBUMS;
+}
 
 type ArtistDefaultsAlbum = {
   artist: string | null;
@@ -118,6 +134,8 @@ export function AlbumForm({
   const [classicFormError, setClassicFormError] = useState(false);
   const [composerDupError, setComposerDupError] = useState(false);
   const [playlistError, setPlaylistError] = useState(false);
+  const [tagDraft, setTagDraft] = useState('');
+  const [tagSuggestOpen, setTagSuggestOpen] = useState(false);
   const [appleMusicError, setAppleMusicError] = useState(false);
   const [appleMusicImportError, setAppleMusicImportError] = useState<string | null>(null);
   const [appleMusicImporting, setAppleMusicImporting] = useState(false);
@@ -138,6 +156,8 @@ export function AlbumForm({
     setAppleMusicImportError(null);
     setAppleMusicImporting(false);
     setStagePlusError(false);
+    setTagDraft('');
+    setTagSuggestOpen(false);
     setInitialTitleSongUrl(
       'title_song_url' in selectedItem && typeof selectedItem.title_song_url === 'string'
         ? selectedItem.title_song_url
@@ -175,11 +195,55 @@ export function AlbumForm({
   const isClassicMode = resolvedMode === 'classic';
   const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
   const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
+  const catalogAlbums = useSyncExternalStore(
+    subscribeCatalogLibraryCache,
+    getCatalogAlbumsSnapshot,
+    () => EMPTY_CATALOG_ALBUMS,
+  );
+  const existingTagSuggestions = useMemo(
+    () => collectKnownAlbumTags(catalogAlbums),
+    [catalogAlbums],
+  );
+  const tagSuggestions = useMemo(() => {
+    const draftKey = normalizeAlbumTagKey(tagDraft);
+    const selected = new Set(formData.tags.map((tag) => normalizeAlbumTagKey(tag)));
+    return existingTagSuggestions
+      .filter((tag) => {
+        const key = normalizeAlbumTagKey(tag);
+        if (!key || selected.has(key)) return false;
+        if (!draftKey) return true;
+        return key.includes(draftKey);
+      })
+      .slice(0, 8);
+  }, [existingTagSuggestions, formData.tags, tagDraft]);
+
+  const commitTagDraft = (raw: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: addAlbumTag(prev.tags, raw, [...existingTagSuggestions, ...prev.tags]),
+    }));
+    setTagDraft('');
+  };
 
   useEffect(() => {
     if (isEdit) return;
     appleMusicUrlInputRef.current?.focus({ preventScroll: true });
   }, [selectedItem, isEdit]);
+
+  useEffect(() => {
+    if (getCatalogLibraryCache() != null && !isCatalogLibraryStale()) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const userId = await resolveCatalogCacheUserId();
+        if (cancelled) return;
+        await ensureCatalogLibrary({ userId });
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleAppleMusicImport = async () => {
     if (appleMusicImporting) return;
@@ -663,6 +727,89 @@ export function AlbumForm({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-sm font-semibold opacity-90">태그</label>
+                  <div
+                    className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-[var(--radius)] px-2.5 py-1.5"
+                    style={{ border: '1px solid var(--border)', background: 'var(--card-bg)' }}
+                  >
+                    {formData.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                      >
+                        <span className="truncate">{tag}</span>
+                        <button
+                          type="button"
+                          className="opacity-60 transition-opacity hover:opacity-100"
+                          aria-label={`${tag} 삭제`}
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.filter((item) => item !== tag),
+                            })
+                          }
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <div className="relative min-w-[8rem] flex-1">
+                      <input
+                        className="w-full bg-transparent py-1 text-sm outline-none"
+                        value={tagDraft}
+                        placeholder="태그 입력 후 Enter"
+                        onChange={(e) => {
+                          setTagDraft(e.target.value);
+                          setTagSuggestOpen(true);
+                        }}
+                        onFocus={() => setTagSuggestOpen(true)}
+                        onBlur={() => {
+                          window.setTimeout(() => setTagSuggestOpen(false), 120);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                          if (e.key === 'Enter' || e.key === ',') {
+                            e.preventDefault();
+                            commitTagDraft(tagDraft.replace(/,/g, ''));
+                            setTagSuggestOpen(false);
+                          } else if (e.key === 'Backspace' && !tagDraft && formData.tags.length > 0) {
+                            setFormData({
+                              ...formData,
+                              tags: formData.tags.slice(0, -1),
+                            });
+                          }
+                        }}
+                      />
+                      {tagSuggestOpen && tagSuggestions.length > 0 ? (
+                        <ul
+                          className="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-auto rounded-[var(--radius)] py-1 text-sm shadow-md"
+                          style={{
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--border)',
+                          }}
+                        >
+                          {tagSuggestions.map((suggestion) => (
+                            <li key={suggestion}>
+                              <button
+                                type="button"
+                                className="block w-full px-3 py-1.5 text-left transition-opacity hover:opacity-80"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  commitTagDraft(suggestion);
+                                  setTagSuggestOpen(false);
+                                }}
+                              >
+                                {suggestion}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </>
             )}

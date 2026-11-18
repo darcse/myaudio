@@ -25,6 +25,62 @@ export function normalizeComposerNameKey(name: string): string {
   return name.trim().normalize('NFKC').toLocaleLowerCase();
 }
 
+export function normalizeAlbumTagKey(tag: string): string {
+  return tag.trim().toLocaleLowerCase();
+}
+
+export function canonicalizeAlbumTag(
+  raw: string,
+  knownTags: readonly string[] = [],
+): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const key = normalizeAlbumTagKey(trimmed);
+  const known = knownTags.find((tag) => normalizeAlbumTagKey(tag) === key);
+  return known?.trim() || trimmed;
+}
+
+export function sanitizeAlbumTagsForSave(
+  tags: readonly string[],
+  knownTags: readonly string[] = [],
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of tags) {
+    const canonical = canonicalizeAlbumTag(raw, [...knownTags, ...result]);
+    if (!canonical) continue;
+    const key = normalizeAlbumTagKey(canonical);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(canonical);
+  }
+  return result;
+}
+
+export function addAlbumTag(
+  current: readonly string[],
+  raw: string,
+  knownTags: readonly string[] = [],
+): string[] {
+  return sanitizeAlbumTagsForSave([...current, raw], knownTags);
+}
+
+export function collectKnownAlbumTags(
+  albums: readonly { tags?: string[] | null }[],
+): string[] {
+  const byKey = new Map<string, string>();
+  for (const album of albums) {
+    for (const tag of album.tags ?? []) {
+      if (typeof tag !== 'string') continue;
+      const trimmed = tag.trim();
+      if (!trimmed) continue;
+      const key = normalizeAlbumTagKey(trimmed);
+      if (!byKey.has(key)) byKey.set(key, trimmed);
+    }
+  }
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b, 'ko'));
+}
+
 export function primaryComposerFieldsFromEntries(
   entries: AlbumComposerFormEntry[],
 ): Pick<AlbumFormData, 'composer' | 'composer_country' | 'composer_era' | 'composer_wiki_url'> {
@@ -186,6 +242,7 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     release_date: item.release_date ?? '',
     genre1: item.genre1 ?? '',
     genre2: item.genre2 ?? '',
+    tags: sanitizeAlbumTagsForSave(Array.isArray(item.tags) ? item.tags : []),
     classic_instrument: item.classic_instrument ?? '',
     ...(() => {
       const composers = composersFromAlbum(item);

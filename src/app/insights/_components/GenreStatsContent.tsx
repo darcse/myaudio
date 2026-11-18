@@ -63,6 +63,7 @@ const initialAlbumFormData: AlbumFormData = {
   release_date: '',
   genre1: '',
   genre2: '',
+  tags: [],
   classic_instrument: '',
   composer: '',
   composer_country: '',

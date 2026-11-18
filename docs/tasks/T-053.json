@@ -1,0 +1,30 @@
+{
+  "id": "T-053",
+  "goal": "앨범 폼이 열리는 모든 화면에서 태그 자동완성과 기존 표기 통일이 동작하고, 한글·일본어 입력 중 Enter·쉼표로 태그를 추가해도 글자가 빠지거나 남지 않는다.",
+  "context": "T-052(ALBUM-049)의 후속 수정. 아직 커밋 전이며 T-052 변경과 함께 커밋한다. 문제 1: AlbumForm.tsx 태그 입력 onKeyDown에 IME 조합 처리(e.nativeEvent.isComposing 등)가 없어, 한글 조합 중 Enter 시 마지막 글자가 누락되거나 입력칸에 남을 수 있다. 조합 중에는 Enter·쉼표로 추가하지 않도록 한다. 문제 2: <AlbumForm>을 렌더하는 곳은 AlbumsLibraryContent, ArtistsLibraryContent, DashboardContent, AlbumDiaryContent, AlbumStatsContent, GenreStatsContent, AlbumTrackListContent, GlobalAlbumDetailHost 8곳인데 existingTagSuggestions는 AlbumsLibraryContent만 넘긴다. 기본안: 각 호출부에 prop을 추가하지 말고, AlbumForm 내부에서 공용 캐시(src/lib/catalogLibraryCache.ts, getCatalogLibraryCache/subscribeCatalogLibraryCache 등)의 앨범 목록으로 collectKnownAlbumTags를 계산해 쓴다. 이렇게 하면 existingTagSuggestions prop과 AlbumsLibraryContent의 knownAlbumTags 전달은 불필요해지니 정리한다(내 변경이 만든 미사용 코드만). 캐시가 비어 있으면 후보 없이도 입력·저장은 정상 동작해야 한다. 더 단순한 방법이 있으면 판단해도 되나 8곳 모두 동작해야 한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "태그 입력 IME 조합 중 Enter·쉼표 무시",
+      "AlbumForm 내부에서 공용 캐시 기반 태그 후보 계산(8개 화면 공통 적용)",
+      "그로 인해 미사용이 된 existingTagSuggestions 관련 코드 정리"
+    ],
+    "out": [
+      "태그 저장 로직(mapAlbumData, sanitizeAlbumTagsForSave)의 동작 변경",
+      "Classic 폼",
+      "검색·필터·통계 반영",
+      "DB 데이터·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "한글로 '슈게이즈'를 입력하고 Enter를 한 번 누르면 '슈게이즈' 칩 하나만 추가되고 입력칸이 비어 있다",
+    "아티스트 상세 '앨범 추가'와 대시보드·인사이트에서 연 앨범 수정 폼에서도 기존 태그 자동완성 후보가 보이고, 대소문자만 다르게 입력하면 기존 표기로 들어간다",
+    "앨범 메뉴 폼의 태그 입력·자동완성·저장이 T-052와 동일하게 동작한다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-049 Pop & Rock 앨범 태그 입력·표시",
+  "status": "done",
+  "result": "AlbumForm 태그 onKeyDown에 IME 조합 가드(isComposing/keyCode 229) 추가. 태그 후보는 existingTagSuggestions prop 대신 catalogLibraryCache(useSyncExternalStore) 앨범으로 collectKnownAlbumTags 계산해 8개 호출부 공통 적용. AlbumsLibraryContent의 knownAlbumTags/prop 전달 제거. 검증: npx tsc --noEmit 통과, npm run lint 통과. 커밋 안 함(auto_commit false, T-052와 함께 커밋 예정)."
+}
