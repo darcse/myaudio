@@ -20,7 +20,7 @@ import {
   isClassicInstrumentOption,
   isGenre2OptionForGenre1,
 } from '../constants';
-import type { Album, AlbumFormData, SelectedAlbum } from '../types';
+import type { Album, AlbumFormData, AlbumTrack, SelectedAlbum } from '../types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { normalizeArtistNameForCompare } from '@/app/artists/utils';
 import {
@@ -39,6 +39,7 @@ import {
   getYoutubeId,
   MAX_ALBUM_COMPOSERS,
   normalizeAlbumTagKey,
+  normalizeAlbumTracksFromDb,
   normalizeComposerNameKey,
   normalizeStagePlusUrl,
   primaryComposerFieldsFromEntries,
@@ -46,6 +47,7 @@ import {
 } from '../utils';
 import type { AlbumComposerFormEntry } from '../types';
 import { ComposerComboSelect } from './ComposerComboSelect';
+import { AlbumTracksSection } from './AlbumTracksSection';
 
 const EMPTY_CATALOG_ALBUMS: Album[] = [];
 
@@ -66,6 +68,7 @@ type AppleMusicImportResponse = {
   coverImageUrl?: string | null;
   albumType?: string;
   appleMusicUrl?: string;
+  tracks?: AlbumTrack[];
   error?: string;
 };
 
@@ -120,7 +123,7 @@ interface AlbumFormProps {
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
 const readonlyClass = 'opacity-60 cursor-not-allowed';
 
-type AlbumFormTabId = 'basic' | 'composers';
+type AlbumFormTabId = 'basic' | 'tracks' | 'composers';
 
 type AlbumFormTabItem = {
   id: AlbumFormTabId;
@@ -214,11 +217,16 @@ export function AlbumForm({
   const resolvedMode: AlbumFormMode =
     mode ?? (isEdit ? albumFormModeFromGenre1(formData.genre1) : 'pop');
   const isClassicMode = resolvedMode === 'classic';
+  const tracksTabLabel =
+    formData.tracks.length > 0 ? `트랙리스트 (${formData.tracks.length})` : '트랙리스트';
   const formTabs = useMemo((): AlbumFormTabItem[] => {
-    const tabs: AlbumFormTabItem[] = [{ id: 'basic', label: '기본 정보' }];
+    const tabs: AlbumFormTabItem[] = [
+      { id: 'basic', label: '기본 정보' },
+      { id: 'tracks', label: tracksTabLabel },
+    ];
     if (isClassicMode) tabs.push({ id: 'composers', label: '작곡가 정보' });
     return tabs;
-  }, [isClassicMode]);
+  }, [isClassicMode, tracksTabLabel]);
   const basicTabHasError =
     classicFormError || playlistError || stagePlusError || appleMusicError;
   const composersTabHasError = composerDupError;
@@ -320,6 +328,7 @@ export function AlbumForm({
         }));
       } else {
         const importedArtist = data.artist?.trim() ?? '';
+        const importedTracks = normalizeAlbumTracksFromDb(data.tracks);
         setFormData((prev) => {
           const shared = {
             ...prev,
@@ -327,6 +336,10 @@ export function AlbumForm({
             release_date: data.releaseDate?.trim() || prev.release_date,
             cover_image_url: data.coverImageUrl?.trim() || prev.cover_image_url,
             apple_music_url: data.appleMusicUrl?.trim() || prev.apple_music_url,
+            tracks:
+              prev.tracks.length === 0 && importedTracks.length > 0
+                ? importedTracks
+                : prev.tracks,
           };
           if (isClassicMode) return shared;
           const existingArtist = prev.artist.trim();
@@ -912,6 +925,16 @@ export function AlbumForm({
             </div>
           </div>
         </div>
+        </div>
+        <div
+          className={activeTab === 'tracks' ? '' : 'hidden'}
+          aria-hidden={activeTab !== 'tracks'}
+        >
+          <AlbumTracksSection
+            tracks={formData.tracks}
+            appleMusicUrl={formData.apple_music_url ?? ''}
+            onChange={(tracks) => setFormData((prev) => ({ ...prev, tracks }))}
+          />
         </div>
         {isClassicMode ? (
           <div

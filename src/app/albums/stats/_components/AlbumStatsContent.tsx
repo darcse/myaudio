@@ -90,6 +90,7 @@ const initialAlbumFormData: AlbumFormData = {
   owns_cd: false,
   owns_lp: false,
   owns_cassette: false,
+  tracks: [],
 };
 
 function filterToggleStyle(active: boolean): React.CSSProperties {

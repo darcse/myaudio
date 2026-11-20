@@ -1,0 +1,1 @@
+ALTER TABLE album ADD COLUMN IF NOT EXISTS tracks jsonb NOT NULL DEFAULT '[]'::jsonb;

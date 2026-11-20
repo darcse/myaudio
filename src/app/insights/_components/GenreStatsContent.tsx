@@ -83,6 +83,7 @@ const initialAlbumFormData: AlbumFormData = {
   owns_cd: false,
   owns_lp: false,
   owns_cassette: false,
+  tracks: [],
 };
 
 function padDetailSlots<T>(items: T[]): Array<T | null> {

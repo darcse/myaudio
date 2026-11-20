@@ -12,6 +12,13 @@ export type AlbumComposerFormEntry = {
   wiki_url: string;
 };
 
+export type AlbumTrack = {
+  disc: number;
+  no: number;
+  title: string;
+  duration_ms: number | null;
+};
+
 export interface Album {
   id: number;
   artist: string | null;
@@ -37,6 +44,7 @@ export interface Album {
   title_song_url: string | null;
   youtube_playlist_id?: string | null;
   apple_music_url?: string | null;
+  tracks?: AlbumTrack[] | null;
   youtube_tracks?: { videoId: string; title: string }[] | null;
   wiki_url?: string | null;
   created_at?: string;
@@ -77,6 +85,7 @@ export interface AlbumFormData {
   title_song_url: string;
   youtube_playlist_id?: string;
   apple_music_url?: string;
+  tracks: AlbumTrack[];
   wiki_url?: string | null;
   album_intro: string;
   recommended_hp1: string;

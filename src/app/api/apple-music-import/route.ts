@@ -9,6 +9,10 @@ import {
   toKrAppleAlbumUrl,
   upscaleAppleArtworkUrl,
 } from '@/lib/appleMusic';
+import {
+  parseItunesAlbumTracks,
+  type AppleMusicAlbumTrack,
+} from '@/lib/appleMusicTracks';
 import { getCurrentUser } from '@/lib/supabase/server';
 
 const LOOKUP_TIMEOUT_MS = 2500;
@@ -31,6 +35,7 @@ type ImportOk = {
   coverImageUrl: string | null;
   albumType: 'Album' | 'EP' | 'Single';
   appleMusicUrl: string;
+  tracks: AppleMusicAlbumTrack[];
 };
 
 function isAllowedArtworkHost(hostname: string): boolean {
@@ -89,34 +94,58 @@ async function resolveCoverImageUrl(artworkUrl: string): Promise<string | null> 
   return null;
 }
 
-async function fetchLookupAlbum(
+async function fetchLookupResults(
   albumId: string,
   country: string,
-): Promise<ItunesLookupAlbum | null> {
+  entity: 'album' | 'song',
+): Promise<unknown[]> {
   const endpoint = new URL('https://itunes.apple.com/lookup');
   endpoint.searchParams.set('id', albumId);
-  endpoint.searchParams.set('entity', 'album');
+  endpoint.searchParams.set('entity', entity);
   endpoint.searchParams.set('country', country);
+  if (entity === 'song') {
+    endpoint.searchParams.set('limit', '200');
+  }
   try {
     const res = await fetch(endpoint.toString(), {
       cache: 'no-store',
       signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const data: unknown = await res.json().catch(() => null);
-    const results =
-      data && typeof data === 'object' && Array.isArray((data as { results?: unknown }).results)
-        ? ((data as { results: ItunesLookupAlbum[] }).results ?? [])
-        : [];
-    const album = results.find((item) => {
-      if (typeof item.collectionName !== 'string' || !item.collectionName.trim()) return false;
-      if (item.wrapperType === 'collection') return true;
-      return typeof item.collectionType === 'string' && item.collectionType.length > 0;
-    });
-    return album ?? null;
+    if (!data || typeof data !== 'object') return [];
+    const results = (data as { results?: unknown }).results;
+    return Array.isArray(results) ? results : [];
   } catch {
-    return null;
+    return [];
   }
+}
+
+function findLookupAlbum(results: unknown[]): ItunesLookupAlbum | null {
+  for (const item of results) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as ItunesLookupAlbum;
+    if (typeof row.collectionName !== 'string' || !row.collectionName.trim()) continue;
+    if (row.wrapperType === 'collection') return row;
+    if (typeof row.collectionType === 'string' && row.collectionType.length > 0) return row;
+  }
+  return null;
+}
+
+async function fetchLookupAlbum(
+  albumId: string,
+  country: string,
+): Promise<ItunesLookupAlbum | null> {
+  const results = await fetchLookupResults(albumId, country, 'album');
+  return findLookupAlbum(results);
+}
+
+async function fetchLookupTracks(
+  albumId: string,
+  country: string,
+): Promise<AppleMusicAlbumTrack[]> {
+  const results = await fetchLookupResults(albumId, country, 'song');
+  return parseItunesAlbumTracks(results);
 }
 
 export async function POST(req: NextRequest) {
@@ -145,9 +174,13 @@ export async function POST(req: NextRequest) {
     }
 
     let album: ItunesLookupAlbum | null = null;
+    let albumCountry = '';
     for (const country of lookupCountriesForAppleStorefront(ref.storefront)) {
       album = await fetchLookupAlbum(ref.albumId, country);
-      if (album) break;
+      if (album) {
+        albumCountry = country;
+        break;
+      }
     }
     if (!album) {
       return NextResponse.json({ error: '앨범 정보를 찾지 못했습니다.' }, { status: 404 });
@@ -170,6 +203,22 @@ export async function POST(req: NextRequest) {
     const artworkUrl = typeof album.artworkUrl100 === 'string' ? album.artworkUrl100 : '';
     const coverImageUrl = artworkUrl ? await resolveCoverImageUrl(artworkUrl) : null;
 
+    let tracks: AppleMusicAlbumTrack[] = [];
+    try {
+      const trackCountries = albumCountry
+        ? [
+            albumCountry,
+            ...lookupCountriesForAppleStorefront(ref.storefront).filter((c) => c !== albumCountry),
+          ]
+        : lookupCountriesForAppleStorefront(ref.storefront);
+      for (const country of trackCountries) {
+        tracks = await fetchLookupTracks(ref.albumId, country);
+        if (tracks.length > 0) break;
+      }
+    } catch {
+      tracks = [];
+    }
+
     const payload: ImportOk = {
       artist: artistName,
       albumName: stripAppleCatalogSuffix(collectionName),
@@ -179,6 +228,7 @@ export async function POST(req: NextRequest) {
       coverImageUrl,
       albumType: detectAppleMusicAlbumType(collectionName),
       appleMusicUrl,
+      tracks,
     };
     return NextResponse.json(payload);
   } catch {

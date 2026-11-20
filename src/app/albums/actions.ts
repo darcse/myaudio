@@ -11,6 +11,7 @@ import {
   isClassicGenre,
   normalizeStagePlusUrl,
   sanitizeAlbumTagsForSave,
+  sanitizeAlbumTracksForSave,
   sanitizeComposersForSave,
 } from './utils';
 
@@ -61,6 +62,7 @@ function mapAlbumData(data: AlbumFormData) {
     })(),
     youtube_playlist_id: parseYoutubePlaylistInput(data.youtube_playlist_id ?? '').id,
     apple_music_url: parseAppleMusicAlbumInput(data.apple_music_url ?? '').url,
+    tracks: sanitizeAlbumTracksForSave(data.tracks),
     wiki_url: data.wiki_url || null,
     album_intro: data.album_intro?.trim() || null,
     manual_recommended_headphone_ids: manualIds.length > 0 ? manualIds : null,

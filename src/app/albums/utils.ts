@@ -3,6 +3,7 @@ import type {
   AlbumComposerFormEntry,
   AlbumComposerStored,
   AlbumFormData,
+  AlbumTrack,
 } from './types';
 
 export const MAX_ALBUM_COMPOSERS = 6;
@@ -19,6 +20,77 @@ export function albumFormModeFromGenre1(genre1: string | null | undefined): Albu
 
 export function emptyComposerFormEntry(): AlbumComposerFormEntry {
   return { name: '', country: '', era: '', wiki_url: '' };
+}
+
+export function emptyAlbumTrack(disc = 1, no = 1): AlbumTrack {
+  return { disc, no, title: '', duration_ms: null };
+}
+
+export function formatAlbumTrackDuration(durationMs: number | null | undefined): string {
+  if (durationMs == null || !Number.isFinite(durationMs) || durationMs < 0) return '—';
+  const totalSec = Math.round(durationMs / 1000);
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+export function renumberAlbumTracks(tracks: readonly AlbumTrack[]): AlbumTrack[] {
+  const counters = new Map<number, number>();
+  return tracks.map((track) => {
+    const disc = Number.isFinite(track.disc) && track.disc > 0 ? Math.floor(track.disc) : 1;
+    const nextNo = (counters.get(disc) ?? 0) + 1;
+    counters.set(disc, nextNo);
+    return {
+      disc,
+      no: nextNo,
+      title: typeof track.title === 'string' ? track.title : '',
+      duration_ms:
+        track.duration_ms == null || !Number.isFinite(track.duration_ms) || track.duration_ms < 0
+          ? null
+          : Math.round(track.duration_ms),
+    };
+  });
+}
+
+export function sanitizeAlbumTracksForSave(tracks: readonly AlbumTrack[] | null | undefined): AlbumTrack[] {
+  const cleaned = (tracks ?? [])
+    .filter((track) => typeof track.title === 'string' && track.title.trim())
+    .map((track) => ({
+      disc: Number.isFinite(track.disc) && track.disc > 0 ? Math.floor(track.disc) : 1,
+      no: Number.isFinite(track.no) && track.no > 0 ? Math.floor(track.no) : 1,
+      title: track.title.trim(),
+      duration_ms:
+        track.duration_ms == null || !Number.isFinite(track.duration_ms) || track.duration_ms < 0
+          ? null
+          : Math.round(track.duration_ms),
+    }));
+  return renumberAlbumTracks(cleaned);
+}
+
+export function normalizeAlbumTracksFromDb(value: unknown): AlbumTrack[] {
+  if (!Array.isArray(value)) return [];
+  const tracks: AlbumTrack[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const title = typeof row.title === 'string' ? row.title : '';
+    tracks.push({
+      disc:
+        typeof row.disc === 'number' && Number.isFinite(row.disc) && row.disc > 0
+          ? Math.floor(row.disc)
+          : 1,
+      no:
+        typeof row.no === 'number' && Number.isFinite(row.no) && row.no > 0
+          ? Math.floor(row.no)
+          : tracks.length + 1,
+      title,
+      duration_ms:
+        typeof row.duration_ms === 'number' && Number.isFinite(row.duration_ms) && row.duration_ms >= 0
+          ? Math.round(row.duration_ms)
+          : null,
+    });
+  }
+  return renumberAlbumTracks(tracks);
 }
 
 export function normalizeComposerNameKey(name: string): string {
@@ -293,6 +365,7 @@ export function albumToFormData(item: Album, overrides?: Partial<AlbumFormData>)
     title_song_url: item.title_song_url ?? '',
     youtube_playlist_id: item.youtube_playlist_id ?? '',
     apple_music_url: item.apple_music_url ?? '',
+    tracks: normalizeAlbumTracksFromDb(item.tracks),
     wiki_url: item.wiki_url ?? '',
     album_intro: item.album_intro ?? '',
     recommended_hp1: mids[0] != null ? String(mids[0]) : '',
