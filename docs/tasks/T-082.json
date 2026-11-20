@@ -1,0 +1,31 @@
+{
+  "id": "T-082",
+  "feature_id": "LYRICS-008",
+  "goal": "앨범 상세 모달 트랙리스트 탭에서 가사가 등록된 곡 옆에 가사 아이콘이 보이고, 누르면 그 곡의 가사 화면으로 바로 간다.",
+  "context": "대상: src/app/albums/_components/AlbumDetailModal.tsx(현재 lyrics_translation_tracks를 조회해 hasLyricsTracks만 세팅), src/app/albums/_components/AlbumDetailTracksSection.tsx(트랙 목록·탭 상단 Lyrics 아이콘). 곡 가사 화면 경로: /lyrics/[albumId]/[trackId]. 기본안: (1) 모달에서 이 앨범의 lyrics_translation_tracks(id, track_number, track_title)와 각 트랙의 가사·번역 존재 여부(lyrics_translations에 해당 track_id 행이 있고 lyrics_text 또는 translated_lines가 비어 있지 않음)를 읽기 전용으로 한 번에 조회해 전달한다(기존 hasLyricsTracks 조회를 확장, 요청 수 최소). (2) 매칭(보수적): album.tracks를 disc→no 순으로 평탄화한 번호(T-081과 같은 규칙)와 정규화 곡명(trim·공백 축약·대소문자 무시·NFKC)이 둘 다 같은 Lyrics 트랙을 우선 연결, 없으면 정규화 곡명이 같은 Lyrics 트랙(아직 다른 곡에 연결되지 않은 것) 연결, 둘 다 아니면 연결 안 함. 번호만 같고 곡명이 다르면 연결하지 않는다. 같은 Lyrics 트랙이 두 곡에 붙지 않게 한다. (3) 연결되고 가사·번역이 있는 곡 행에만 작은 가사 아이콘(lucide, aria-label '가사 보기')을 두고 클릭 시 router로 /lyrics/{albumId}/{trackId} 이동(모달 닫힘 처리는 기존 Lyrics 아이콘과 같게). (4) 탭 상단의 앨범 Lyrics 아이콘은 유지. (5) 조회 실패 시 아이콘 없이 트랙 목록은 정상 표시. 쓰기·삭제 쿼리 없음. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "모달의 Lyrics 트랙·가사 존재 여부 읽기 조회 확장",
+      "앨범 트랙–Lyrics 트랙 보수적 매칭",
+      "곡별 가사 아이콘·이동"
+    ],
+    "out": [
+      "Lyrics 데이터 쓰기·삭제 (절대 하지 말 것)",
+      "album.tracks 변경",
+      "Lyrics 화면 변경",
+      "DB·SQL·스키마",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "가사가 등록된 앨범의 상세 트랙리스트 탭에서 가사가 있는 곡 옆에만 가사 아이콘이 보이고, 누르면 해당 곡 가사 화면으로 이동한다",
+    "번호가 달라도 곡명이 같으면 올바른 곡에 연결되고, 번호만 같고 곡명이 다르면 아이콘이 없다",
+    "Lyrics 미등록 앨범·가사 없는 트랙에는 아이콘이 없고, 조회 실패 시에도 트랙 목록이 정상이다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): LYRICS-008 앨범 상세 트랙리스트 곡별 가사 바로가기",
+  "status": "done",
+  "result": "추가: src/app/albums/lyricsTrackMatch.ts (정규화·가사 존재 판별·보수적 매칭: 평탄번호+곡명 우선 → 곡명만, 1:1). AlbumDetailModal: lyrics_translation_tracks + lyrics_translations 읽기 조회 확장(실패 시 빈 배열). AlbumDetailTracksSection: 매칭된 곡만 Languages 아이콘, 클릭 시 /lyrics/{albumId}/{trackId}(모달 닫고 이동). 탭 상단 Lyrics 유지.\n\n매칭 스모크: 번호+곡명/곡명만 일치→연결, 번호만 일치→null, 동일 곡명 중복→1개만 연결.\n검증: tsc 통과, lint 통과. 쓰기·삭제 없음. auto_commit=false → 커밋 대기."
+}

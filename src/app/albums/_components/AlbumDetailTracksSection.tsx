@@ -1,15 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { Languages } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { FileText } from 'lucide-react';
 import { fillAlbumTracksIfEmpty } from '../actions';
+import {
+  matchAlbumTracksToLyricsTrackIds,
+  type LyricsTrackForMatch,
+} from '../lyricsTrackMatch';
 import type { Album, AlbumTrack } from '../types';
 import { formatAlbumTrackDuration, normalizeAlbumTracksFromDb } from '../utils';
 
 type AlbumDetailTracksSectionProps = {
   viewingItem: Album;
   hasLyricsTracks: boolean;
+  lyricsTracks?: LyricsTrackForMatch[];
   onOpenLyrics: () => void;
+  onOpenTrackLyrics?: (trackId: string) => void;
   onEditForTracks: () => void;
   onAlbumPatch?: (album: Album) => void;
   onImported?: () => void;
@@ -24,13 +30,20 @@ type ImportResponse = {
 export function AlbumDetailTracksSection({
   viewingItem,
   hasLyricsTracks,
+  lyricsTracks = [],
   onOpenLyrics,
+  onOpenTrackLyrics,
   onEditForTracks,
   onAlbumPatch,
   onImported,
   isAuthenticated,
 }: AlbumDetailTracksSectionProps) {
   const tracks = normalizeAlbumTracksFromDb(viewingItem.tracks);
+  const lyricsTrackIds = useMemo(
+    () => matchAlbumTracksToLyricsTrackIds(tracks, lyricsTracks),
+    [tracks, lyricsTracks],
+  );
+  const showTrackLyricsIcons = lyricsTrackIds.some((id) => Boolean(id));
   const showDiscHeaders = new Set(tracks.map((track) => (track.disc > 0 ? track.disc : 1))).size > 1;
   const appleMusicUrl = viewingItem.apple_music_url?.trim() ?? '';
   const canImportFromApple = Boolean(appleMusicUrl) && tracks.length === 0;
@@ -102,7 +115,7 @@ export function AlbumDetailTracksSection({
             aria-label="가사 보기"
             title="가사 보기"
           >
-            <Languages className="size-3.5" strokeWidth={2} />
+            <FileText className="size-3.5" strokeWidth={2} />
             Lyrics
           </button>
         ) : null}
@@ -141,11 +154,15 @@ export function AlbumDetailTracksSection({
           ) : null}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div>
           {tracks.map((track, index) => (
             <TrackRow
               key={`${track.disc}-${track.no}-${index}`}
               track={track}
+              lyricsTrackId={showTrackLyricsIcons ? lyricsTrackIds[index] ?? null : null}
+              showLyricsIconSlot={showTrackLyricsIcons}
+              onOpenTrackLyrics={onOpenTrackLyrics}
+              showDivider={index < tracks.length - 1}
               showDiscHeader={
                 showDiscHeaders &&
                 (index === 0 ||
@@ -163,9 +180,17 @@ export function AlbumDetailTracksSection({
 function TrackRow({
   track,
   showDiscHeader,
+  showDivider,
+  lyricsTrackId,
+  showLyricsIconSlot,
+  onOpenTrackLyrics,
 }: {
   track: AlbumTrack;
   showDiscHeader: boolean;
+  showDivider: boolean;
+  lyricsTrackId: string | null;
+  showLyricsIconSlot: boolean;
+  onOpenTrackLyrics?: (trackId: string) => void;
 }) {
   const disc = track.disc > 0 ? track.disc : 1;
   const duration =
@@ -174,15 +199,42 @@ function TrackRow({
       : null;
 
   return (
-    <div className="space-y-2">
+    <div className={showDiscHeader ? 'pt-2' : undefined}>
       {showDiscHeader ? (
-        <p className="pt-1 text-xs font-semibold opacity-70">Disc {disc}</p>
+        <p className="pb-1.5 text-xs font-semibold opacity-70">Disc {disc}</p>
       ) : null}
-      <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-2 sm:gap-3">
+      <div
+        className={
+          showLyricsIconSlot
+            ? 'grid grid-cols-[2.25rem_minmax(0,1fr)_auto_auto] items-start gap-2 py-2.5 sm:gap-3'
+            : 'grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-start gap-2 py-2.5 sm:gap-3'
+        }
+        style={
+          showDivider
+            ? { borderBottom: '1px solid var(--border)' }
+            : undefined
+        }
+      >
         <span className="pt-0.5 text-center text-sm font-semibold tabular-nums opacity-60">
           {track.no}
         </span>
         <p className="min-w-0 break-words text-sm leading-snug">{track.title}</p>
+        {showLyricsIconSlot ? (
+          lyricsTrackId && onOpenTrackLyrics ? (
+            <button
+              type="button"
+              onClick={() => onOpenTrackLyrics(lyricsTrackId)}
+              className="inline-flex size-7 items-center justify-center rounded-md opacity-75 transition-opacity hover:opacity-100"
+              style={{ border: '1px solid var(--border)', background: 'var(--badge-bg)' }}
+              aria-label="가사 보기"
+              title="가사 보기"
+            >
+              <FileText className="size-3.5" strokeWidth={2} />
+            </button>
+          ) : (
+            <span className="size-7" aria-hidden />
+          )
+        ) : null}
         {duration ? (
           <span className="pt-0.5 text-right text-xs tabular-nums opacity-55">{duration}</span>
         ) : (

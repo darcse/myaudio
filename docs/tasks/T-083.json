@@ -1,0 +1,29 @@
+{
+  "id": "T-083",
+  "feature_id": "LYRICS-008",
+  "goal": "Lyrics 트랙명을 원어(일본어 등)로 고쳐 앨범 트랙리스트(영문 표기)와 곡명이 달라도, 트랙 수가 같으면 곡별 가사 아이콘이 번호 순서대로 연결된다.",
+  "context": "T-082 후속, 아직 커밋 전이며 T-082와 함께 LYRICS-008로 커밋한다. 문제(JW 확인): 한국 스토어 Apple Music 트랙리스트는 일본 앨범도 영문·로마자 곡명이라, JW가 일본어 원제로 고쳐 가사를 등록한 Lyrics 트랙과 곡명이 달라 매칭되지 않는다(예: iVy 앨범 12곡 중 원래 영문 제목 2곡만 연결). 대상: src/app/albums/lyricsTrackMatch.ts의 matchAlbumTracksToLyricsTrackIds. 변경: 앨범 트랙 수(album.tracks 전체)와 그 앨범의 Lyrics 트랙 수(가사 유무와 무관하게 전체 lyrics_translation_tracks 수)가 같으면, 곡명 비교 없이 평탄화 번호(disc→no 순 1부터)와 Lyrics track_number가 같은 트랙끼리 연결한다(1:1). 이때도 아이콘은 가사·번역이 있는 Lyrics 트랙에만 표시. 트랙 수가 다르면 기존 규칙(번호+곡명 → 곡명만, 번호만 일치는 연결 안 함) 그대로. 이를 위해 매칭 함수에 가사 유무와 무관한 Lyrics 트랙 전체 목록(또는 전체 수)이 필요하면 AlbumDetailModal에서 넘기는 데이터를 최소로 확장한다. 읽기 전용이며 쓰기·삭제 없음. 일본 스토어 원어 곡명으로 받는 기능은 다음 작업이다. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "트랙 수 일치 시 번호 순서 매칭 규칙 추가",
+      "필요한 최소 데이터 전달"
+    ],
+    "out": [
+      "트랙 수 불일치 시 규칙 변경",
+      "Lyrics·album.tracks 데이터 변경 (절대 하지 말 것)",
+      "일본 스토어 곡명 가져오기",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "앨범 트랙 수와 Lyrics 트랙 수가 같은 앨범(예: iVy 12곡)은 곡명이 달라도 가사가 있는 곡 모두에 아이콘이 붙고, 누르면 같은 번호 곡의 가사 화면으로 간다",
+    "트랙 수가 다른 앨범은 T-082와 같은 곡명 기준으로만 연결된다",
+    "가사 없는 트랙에는 아이콘이 없고, 데이터 쓰기·삭제가 없다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): LYRICS-008 앨범 상세 트랙리스트 곡별 가사 바로가기",
+  "status": "done",
+  "result": "matchAlbumTracksToLyricsTrackIds: album.tracks.length === lyricsTracks.length(전체)이면 평탄번호↔track_number만으로 1:1 연결(곡명 무시), hasLyrics인 경우만 id 반환. 수 불일치 시 T-082 규칙 유지. Modal은 이미 전체 Lyrics 트랙+hasLyrics를 넘기므로 추가 전달 없음.\n\n스모크: 12=12·제목 다름→번호 연결(가사 없는 번호만 null); 3≠4→곡명 규칙(번호만 일치 null).\n검증: tsc·lint 통과. T-082와 함께 커밋 예정(auto_commit=false)."
+}

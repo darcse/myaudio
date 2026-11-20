@@ -10,6 +10,10 @@ import { createClient } from '@/lib/supabase/client';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { setPendingAlbumFormTab } from '../albumFormTabIntent';
 import type { Album } from '../types';
+import {
+  hasLyricsTranslationContent,
+  type LyricsTrackForMatch,
+} from '../lyricsTrackMatch';
 import { normalizeAlbumTracksFromDb } from '../utils';
 import { AlbumInfoHeroSection, AlbumInfoSection } from './AlbumInfoSection';
 import { AlbumIntroSection } from './AlbumIntroSection';
@@ -94,6 +98,7 @@ export function AlbumDetailModal({
   const [activeTab, setActiveTab] = useState<DetailTab>('info');
   const [listenHistoryCount, setListenHistoryCount] = useState(0);
   const [hasLyricsTracks, setHasLyricsTracks] = useState(false);
+  const [lyricsTracksForMatch, setLyricsTracksForMatch] = useState<LyricsTrackForMatch[]>([]);
   const tracksCount = normalizeAlbumTracksFromDb(viewingItem.tracks).length;
   const [localAiHeadphones, setLocalAiHeadphones] = useState(aiRecommendedHeadphones);
   const [localAiReason, setLocalAiReason] = useState<string | null>(
@@ -130,19 +135,69 @@ export function AlbumDetailModal({
     setActiveTab('info');
     setListenHistoryCount(0);
     setHasLyricsTracks(false);
+    setLyricsTracksForMatch([]);
   }, [viewingItem.id]);
 
   useEffect(() => {
     let cancelled = false;
-    void createClient()
-      .from('lyrics_translation_tracks')
-      .select('id')
-      .eq('album_id', viewingItem.id)
-      .limit(1)
-      .then(({ data, error }) => {
-        if (cancelled || error) return;
-        setHasLyricsTracks((data?.length ?? 0) > 0);
-      });
+    void (async () => {
+      try {
+        const client = createClient();
+        const { data: trackRows, error: trackError } = await client
+          .from('lyrics_translation_tracks')
+          .select('id, track_number, track_title')
+          .eq('album_id', viewingItem.id)
+          .order('track_number');
+        if (cancelled) return;
+        if (trackError || !trackRows) {
+          setHasLyricsTracks(false);
+          setLyricsTracksForMatch([]);
+          return;
+        }
+        setHasLyricsTracks(trackRows.length > 0);
+        if (trackRows.length === 0) {
+          setLyricsTracksForMatch([]);
+          return;
+        }
+
+        const ids = trackRows.map((row) => row.id);
+        const { data: translationRows, error: translationError } = await client
+          .from('lyrics_translations')
+          .select('track_id, lyrics_text, translated_lines')
+          .in('track_id', ids);
+        if (cancelled) return;
+        if (translationError) {
+          setLyricsTracksForMatch([]);
+          return;
+        }
+
+        const hasLyricsByTrack = new Set<string>();
+        for (const row of translationRows ?? []) {
+          if (
+            row?.track_id &&
+            hasLyricsTranslationContent({
+              lyrics_text: row.lyrics_text,
+              translated_lines: row.translated_lines,
+            })
+          ) {
+            hasLyricsByTrack.add(row.track_id);
+          }
+        }
+
+        setLyricsTracksForMatch(
+          trackRows.map((row) => ({
+            id: row.id,
+            track_number: Number(row.track_number),
+            track_title: String(row.track_title ?? ''),
+            hasLyrics: hasLyricsByTrack.has(row.id),
+          })),
+        );
+      } catch {
+        if (cancelled) return;
+        setHasLyricsTracks(false);
+        setLyricsTracksForMatch([]);
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -360,9 +415,14 @@ export function AlbumDetailModal({
                   <AlbumDetailTracksSection
                     viewingItem={viewingItem}
                     hasLyricsTracks={hasLyricsTracks}
+                    lyricsTracks={lyricsTracksForMatch}
                     onOpenLyrics={() => {
                       onClose();
                       router.push(`/lyrics/${viewingItem.id}`);
+                    }}
+                    onOpenTrackLyrics={(trackId) => {
+                      onClose();
+                      router.push(`/lyrics/${viewingItem.id}/${trackId}`);
                     }}
                     onEditForTracks={() => {
                       setPendingAlbumFormTab('tracks');

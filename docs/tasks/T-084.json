@@ -1,0 +1,26 @@
+{
+  "id": "T-084",
+  "feature_id": "LYRICS-008",
+  "goal": "앨범 상세 트랙리스트의 가사 바로가기 아이콘이 '번역 기능'이 아니라 '가사 문서로 이동'으로 읽히는 문서형 아이콘으로 바뀐다.",
+  "context": "T-083 후속 문구·아이콘 수정, 아직 커밋 전이며 T-082·T-083과 함께 LYRICS-008로 커밋한다. 대상: src/app/albums/_components/AlbumDetailTracksSection.tsx. 현재 곡별 가사 링크와 탭 상단 'Lyrics' 버튼 모두 lucide Languages(번역 문자) 아이콘이라, 이 화면에서 번역을 해 주는 것처럼 보인다(JW 피드백). 변경: 두 곳 모두 lucide FileText(문서) 아이콘으로 교체. 곡별 아이콘의 aria-label·title은 '가사 보기', 상단 버튼 라벨 'Lyrics'는 유지. 크기·버튼 스타일·위치는 그대로. 다른 화면의 Languages 아이콘 사용처는 건드리지 않는다. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "AlbumDetailTracksSection의 Languages 아이콘 2곳을 FileText로 교체"
+    ],
+    "out": [
+      "다른 화면 아이콘",
+      "매칭·조회 로직",
+      "DB",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "앨범 상세 트랙리스트의 곡별 가사 링크와 상단 Lyrics 버튼이 문서 아이콘으로 보인다",
+    "아이콘 클릭 동작·위치·크기는 이전과 같다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): LYRICS-008 앨범 상세 트랙리스트 곡별 가사 바로가기",
+  "status": "done",
+  "result": "AlbumDetailTracksSection: Languages→FileText 2곳(상단 Lyrics·곡별 가사 보기). 라벨·스타일·동작 유지. tsc·lint 통과. T-082~084 함께 커밋 대기."
+}
