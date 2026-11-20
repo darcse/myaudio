@@ -175,6 +175,11 @@ export function ComposerComboSelect({
     setOpen(false);
   };
 
+  const openPanel = () => {
+    setOpen(true);
+    if (inputRef.current) setPanelPosition(computePanelPosition(inputRef.current));
+  };
+
   const panelContent =
     open && panelPosition != null ? (
       <div
@@ -223,7 +228,10 @@ export function ComposerComboSelect({
                       background: selected ? 'var(--badge-bg)' : 'transparent',
                       color: 'var(--foreground)',
                     }}
-                    onClick={() => handleSelect(option)}
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      handleSelect(option);
+                    }}
                   >
                     <span className="w-full break-words text-sm">{option.name}</span>
                     {meta ? (
@@ -251,10 +259,16 @@ export function ComposerComboSelect({
           aria-label="작곡가"
           className="input-apple h-[42px] w-full px-3 py-2 pr-9 text-sm"
           value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={() => {
-            setOpen(true);
-            if (inputRef.current) setPanelPosition(computePanelPosition(inputRef.current));
+          onChange={(event) => {
+            onChange(event.target.value);
+            openPanel();
+          }}
+          onFocus={openPanel}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' && !open) {
+              event.preventDefault();
+              openPanel();
+            }
           }}
           placeholder="작곡가 검색 또는 직접 입력"
         />

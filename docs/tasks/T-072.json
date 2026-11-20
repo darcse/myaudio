@@ -1,0 +1,29 @@
+{
+  "id": "T-072",
+  "goal": "앨범 폼 작곡가 정보 탭에서 작곡가 이름을 입력해 드롭다운에 뜬 후보를 클릭하면 그 작곡가가 선택되고 국적·시대·위키 URL이 채워진다.",
+  "context": "T-071 후속 버그, 아직 커밋 전이며 T-071과 함께 커밋한다. 증상(JW): Classic 앨범 폼 작곡가 정보 탭에서 작곡가 2 이름칸에 'gargi'를 입력하면 'Julian Gargiulo' 후보가 뜨지만 클릭해도 선택되지 않는다. 관련: src/app/albums/_components/ComposerComboSelect.tsx(포털로 document.body에 패널 렌더, document mousedown 바깥 클릭 닫기, 옵션 onClick→onSelectOption), AlbumForm.tsx의 onSelectOption(같은 이름 중복이면 return). 먼저 원인을 규명해 result에 적는다: T-071 이전(HEAD의 AlbumForm.tsx)에도 같은 증상이었는지, 탭 래퍼(hidden/aria-hidden)·모달 바깥 클릭/포커스 처리·이벤트 순서(mousedown에서 닫혀 click이 안 닿음 등)·중복 판정 중 무엇이 원인인지 확인한다. 기본안: 원인에 맞춰 최소 수정(예: 옵션 선택을 onMouseDown + preventDefault로 처리, 포털 패널이 모달 외부 클릭으로 오인되지 않게 등). 중복으로 막힌 경우라면 조용히 무시하지 말고 기존 중복 오류 문구가 보이게 한다. 같은 원인이 ReceiverComboSelect 등 다른 콤보에도 있는지 전수 확인해 결과에 보고하되, 수정은 이번 증상 범위와 동일 원인인 경우에만 한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정. 추가 정보(JW 확인): T-071 이전에는 이 선택이 정상 동작했다. 따라서 T-071 변경(탭 래퍼·패널 hidden/aria-hidden·레이아웃 이동 등)과의 상호작용을 우선 의심한다.",
+  "scope": {
+    "in": [
+      "작곡가 콤보 후보 클릭 선택 버그 원인 규명·수정",
+      "동일 원인 콤보 전수 확인(보고)"
+    ],
+    "out": [
+      "탭 구조 변경",
+      "작곡가 데이터·저장 로직",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "작곡가 정보 탭에서 이름 일부를 입력하고 후보를 클릭하면 이름·국적·시대·위키 URL이 채워지고 드롭다운이 닫힌다",
+    "키보드·마우스로 다른 칸을 누르면 드롭다운이 닫히는 기존 동작은 유지된다",
+    "이미 다른 작곡가 칸에 있는 이름을 고르면 기존 중복 오류 문구가 보인다",
+    "result에 원인과 T-071 이전 동작 여부, 다른 콤보 전수 확인 결과가 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(refactor): 앨범 등록·수정 폼 탭 구조(기본 정보·작곡가 정보)로 분리",
+  "status": "done",
+  "result": "원인: T-071 이전(HEAD)에는 동일 증상 없음(JW 확인·코드상 ComposerComboSelect는 폼 본문 안에 있었음). T-071에서 작곡가 블록이 별도 탭(hidden/aria-hidden 래퍼)으로 옮겨진 뒤, 옵션 onClick이 입력 blur→모달 스크롤/레이아웃(scroll capture로 패널 재배치)과 겹치며 click이 도달하지 못하는 패턴으로 판단. 수정: ComposerComboSelect 옵션을 onMouseDown+preventDefault로 선택(blur 전에 확정). AlbumForm onSelectOption 중복 시 setComposerDupError(true)로 기존 문구 표시. 전수: CountryComboSelect·ReceiverComboSelect·AlbumTagFilterPopover도 포털+onClick 동일 패턴이나 기본 정보 탭에 있고 T-071로 깨진 보고 없어 이번엔 미수정. 태그 자동완성은 이미 onMouseDown preventDefault. 검증: tsc/lint 통과. T-071과 함께 커밋 대기."
+}

@@ -120,6 +120,21 @@ interface AlbumFormProps {
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
 const readonlyClass = 'opacity-60 cursor-not-allowed';
 
+type AlbumFormTabId = 'basic' | 'composers';
+
+type AlbumFormTabItem = {
+  id: AlbumFormTabId;
+  label: string;
+};
+
+function formTabButtonClass(active: boolean): string {
+  return `inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-0.5 pb-3 text-xs transition-colors sm:px-1 sm:text-sm ${
+    active
+      ? 'border-[var(--foreground)] font-semibold opacity-100'
+      : 'border-transparent opacity-60 hover:opacity-90'
+  }`;
+}
+
 export function AlbumForm({
   selectedItem,
   formData,
@@ -134,6 +149,7 @@ export function AlbumForm({
   mode,
   artistDefaultsLibrary = [],
 }: AlbumFormProps) {
+  const [activeTab, setActiveTab] = useState<AlbumFormTabId>('basic');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [classicFormError, setClassicFormError] = useState(false);
   const [composerDupError, setComposerDupError] = useState(false);
@@ -152,6 +168,7 @@ export function AlbumForm({
   const appleMusicUrlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setActiveTab('basic');
     setDeleteConfirmOpen(false);
     setClassicFormError(false);
     setComposerDupError(false);
@@ -197,8 +214,20 @@ export function AlbumForm({
   const resolvedMode: AlbumFormMode =
     mode ?? (isEdit ? albumFormModeFromGenre1(formData.genre1) : 'pop');
   const isClassicMode = resolvedMode === 'classic';
+  const formTabs = useMemo((): AlbumFormTabItem[] => {
+    const tabs: AlbumFormTabItem[] = [{ id: 'basic', label: '기본 정보' }];
+    if (isClassicMode) tabs.push({ id: 'composers', label: '작곡가 정보' });
+    return tabs;
+  }, [isClassicMode]);
+  const basicTabHasError =
+    classicFormError || playlistError || stagePlusError || appleMusicError;
+  const composersTabHasError = composerDupError;
   const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
   const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
+
+  useEffect(() => {
+    if (!isClassicMode && activeTab === 'composers') setActiveTab('basic');
+  }, [activeTab, isClassicMode]);
   const catalogAlbums = useSyncExternalStore(
     subscribeCatalogLibraryCache,
     getCatalogAlbumsSnapshot,
@@ -410,12 +439,40 @@ export function AlbumForm({
   return (
     <div className="modal-overlay-apple fixed inset-0 flex items-center justify-center p-4 z-50">
       <div className="modal-panel-apple max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
-        <div className="flex justify-between items-center mb-6 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex justify-between items-center mb-4 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="section-title text-xl">{isEdit ? '✏️ 앨범 정보 수정' : '➕ 신규 앨범 등록'}</h2>
           <button type="button" className="text-2xl font-semibold opacity-60 hover:opacity-100 transition-opacity" onClick={onClose}>
             &times;
           </button>
         </div>
+        <div className="mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="-mb-px flex gap-2 overflow-x-auto scrollbar-hide sm:gap-4">
+            {formTabs.map((tab) => {
+              const showErrorDot =
+                (tab.id === 'basic' && basicTabHasError) ||
+                (tab.id === 'composers' && composersTabHasError);
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={formTabButtonClass(activeTab === tab.id)}
+                  aria-pressed={activeTab === tab.id}
+                >
+                  {tab.label}
+                  {showErrorDot ? (
+                    <span
+                      className="inline-block size-1.5 shrink-0 rounded-full"
+                      style={{ background: '#ff3b30' }}
+                      aria-hidden
+                    />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className={activeTab === 'basic' ? '' : 'hidden'} aria-hidden={activeTab !== 'basic'}>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4">
           {!isEdit ? <div className="col-span-2">{appleMusicField}</div> : null}
           <div className="col-span-2">
@@ -821,186 +878,6 @@ export function AlbumForm({
                 </div>
               </>
             )}
-            {isClassicMode ? (
-              <div className="col-span-2 flex min-w-0 flex-col gap-3">
-                {(formData.composers.length > 0
-                  ? formData.composers
-                  : [emptyComposerFormEntry()]
-                ).map((entry, index) => {
-                  const composers =
-                    formData.composers.length > 0
-                      ? formData.composers
-                      : [emptyComposerFormEntry()];
-                  const duplicateName =
-                    entry.name.trim() !== '' &&
-                    composers.some(
-                      (other, otherIndex) =>
-                        otherIndex !== index &&
-                        normalizeComposerNameKey(other.name) ===
-                          normalizeComposerNameKey(entry.name),
-                    );
-                  const updateComposers = (next: AlbumComposerFormEntry[]) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      composers: next,
-                      ...primaryComposerFieldsFromEntries(next),
-                    }));
-                  };
-                  return (
-                    <div
-                      key={index}
-                      className="min-w-0 rounded-xl p-3"
-                      style={{ border: '1px solid var(--border)', background: 'var(--badge-bg)' }}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold opacity-90">
-                          작곡가 {index + 1}
-                          {index === 0 ? (
-                            <span className="ml-1 text-[11px] font-medium opacity-60">대표</span>
-                          ) : null}
-                        </p>
-                        {composers.length > 1 ? (
-                          <button
-                            type="button"
-                            className="text-[11px] font-medium opacity-70 transition-opacity hover:opacity-100"
-                            onClick={() => {
-                              const next = composers.filter((_, i) => i !== index);
-                              updateComposers(next.length > 0 ? next : [emptyComposerFormEntry()]);
-                            }}
-                          >
-                            삭제
-                          </button>
-                        ) : null}
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="min-w-0 sm:col-span-2">
-                          <label className="mb-1 block text-sm font-semibold opacity-90">이름</label>
-                          <ComposerComboSelect
-                            value={entry.name}
-                            onChange={(name) => {
-                              const next = composers.map((row, i) =>
-                                i === index ? { ...row, name } : row,
-                              );
-                              updateComposers(next);
-                            }}
-                            onSelectOption={(option) => {
-                              const key = normalizeComposerNameKey(option.name);
-                              const dup = composers.some(
-                                (row, i) =>
-                                  i !== index && normalizeComposerNameKey(row.name) === key,
-                              );
-                              if (dup) return;
-                              const next = composers.map((row, i) =>
-                                i === index
-                                  ? {
-                                      name: option.name,
-                                      country: option.country ?? row.country,
-                                      era: option.era ?? row.era,
-                                      wiki_url: option.wikiUrl ?? row.wiki_url,
-                                    }
-                                  : row,
-                              );
-                              updateComposers(next);
-                            }}
-                          />
-                          {duplicateName ? (
-                            <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
-                              같은 작곡가 이름은 한 번만 입력할 수 있습니다.
-                            </p>
-                          ) : null}
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-semibold opacity-90">국적</label>
-                          <CountryComboSelect
-                            value={entry.country}
-                            onChange={(country) => {
-                              const next = composers.map((row, i) =>
-                                i === index ? { ...row, country } : row,
-                              );
-                              updateComposers(next);
-                            }}
-                            usageCounts={countryUsageCounts}
-                            emptyOptionLabel="선택 안 함"
-                            aria-label={`작곡가 ${index + 1} 국적`}
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-semibold opacity-90">시대</label>
-                          <select
-                            className="select-apple h-[42px] w-full px-3 py-2"
-                            value={entry.era}
-                            onChange={(e) => {
-                              const next = composers.map((row, i) =>
-                                i === index ? { ...row, era: e.target.value } : row,
-                              );
-                              updateComposers(next);
-                            }}
-                          >
-                            <option value="">선택 안 함</option>
-                            {entry.era.trim() &&
-                            !(COMPOSER_ERA_OPTIONS as readonly string[]).includes(entry.era) ? (
-                              <option value={entry.era}>{entry.era}</option>
-                            ) : null}
-                            {COMPOSER_ERA_OPTIONS.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="min-w-0 sm:col-span-2">
-                          <label className="mb-1 block text-sm font-semibold opacity-90">
-                            위키피디아 URL
-                          </label>
-                          <input
-                            className={inputBaseClass}
-                            value={entry.wiki_url}
-                            onChange={(e) => {
-                              const next = composers.map((row, i) =>
-                                i === index ? { ...row, wiki_url: e.target.value } : row,
-                              );
-                              updateComposers(next);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div>
-                  <button
-                    type="button"
-                    disabled={formData.composers.length >= MAX_ALBUM_COMPOSERS}
-                    className="btn-apple btn-apple-secondary h-[36px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-40"
-                    onClick={() => {
-                      if (formData.composers.length >= MAX_ALBUM_COMPOSERS) return;
-                      const base =
-                        formData.composers.length > 0
-                          ? formData.composers
-                          : [emptyComposerFormEntry()];
-                      const next = [...base, emptyComposerFormEntry()];
-                      setFormData((prev) => ({
-                        ...prev,
-                        composers: next,
-                        ...primaryComposerFieldsFromEntries(next),
-                      }));
-                    }}
-                  >
-                    작곡가 추가
-                  </button>
-                  {formData.composers.length >= MAX_ALBUM_COMPOSERS ? (
-                    <p className="mt-1 text-[11px] opacity-60">
-                      작곡가는 최대 {MAX_ALBUM_COMPOSERS}명까지 입력할 수 있습니다.
-                    </p>
-                  ) : null}
-                  {composerDupError ? (
-                    <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
-                      같은 작곡가 이름은 한 번만 입력할 수 있습니다.
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
           </div>
           <div className="col-span-2">
             <label className="block text-sm font-semibold mb-1 opacity-90">앨범 소개 · 사운드 성향</label>
@@ -1035,6 +912,196 @@ export function AlbumForm({
             </div>
           </div>
         </div>
+        </div>
+        {isClassicMode ? (
+          <div
+            className={activeTab === 'composers' ? '' : 'hidden'}
+            aria-hidden={activeTab !== 'composers'}
+          >
+            <div className="flex min-w-0 flex-col gap-3">
+              {(formData.composers.length > 0
+                ? formData.composers
+                : [emptyComposerFormEntry()]
+              ).map((entry, index) => {
+                const composers =
+                  formData.composers.length > 0
+                    ? formData.composers
+                    : [emptyComposerFormEntry()];
+                const duplicateName =
+                  entry.name.trim() !== '' &&
+                  composers.some(
+                    (other, otherIndex) =>
+                      otherIndex !== index &&
+                      normalizeComposerNameKey(other.name) ===
+                        normalizeComposerNameKey(entry.name),
+                  );
+                const updateComposers = (next: AlbumComposerFormEntry[]) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    composers: next,
+                    ...primaryComposerFieldsFromEntries(next),
+                  }));
+                  if (composerDupError) setComposerDupError(false);
+                };
+                return (
+                  <div
+                    key={index}
+                    className="min-w-0 rounded-xl p-3"
+                    style={{ border: '1px solid var(--border)', background: 'var(--badge-bg)' }}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold opacity-90">
+                        작곡가 {index + 1}
+                        {index === 0 ? (
+                          <span className="ml-1 text-[11px] font-medium opacity-60">대표</span>
+                        ) : null}
+                      </p>
+                      {composers.length > 1 ? (
+                        <button
+                          type="button"
+                          className="text-[11px] font-medium opacity-70 transition-opacity hover:opacity-100"
+                          onClick={() => {
+                            const next = composers.filter((_, i) => i !== index);
+                            updateComposers(next.length > 0 ? next : [emptyComposerFormEntry()]);
+                          }}
+                        >
+                          삭제
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="min-w-0 sm:col-span-2">
+                        <label className="mb-1 block text-sm font-semibold opacity-90">이름</label>
+                        <ComposerComboSelect
+                          value={entry.name}
+                          onChange={(name) => {
+                            const next = composers.map((row, i) =>
+                              i === index ? { ...row, name } : row,
+                            );
+                            updateComposers(next);
+                          }}
+                          onSelectOption={(option) => {
+                            const key = normalizeComposerNameKey(option.name);
+                            const dup = composers.some(
+                              (row, i) =>
+                                i !== index && normalizeComposerNameKey(row.name) === key,
+                            );
+                            if (dup) {
+                              setComposerDupError(true);
+                              return;
+                            }
+                            const next = composers.map((row, i) =>
+                              i === index
+                                ? {
+                                    name: option.name,
+                                    country: option.country ?? row.country,
+                                    era: option.era ?? row.era,
+                                    wiki_url: option.wikiUrl ?? row.wiki_url,
+                                  }
+                                : row,
+                            );
+                            updateComposers(next);
+                          }}
+                        />
+                        {duplicateName ? (
+                          <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                            같은 작곡가 이름은 한 번만 입력할 수 있습니다.
+                          </p>
+                        ) : null}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-semibold opacity-90">국적</label>
+                        <CountryComboSelect
+                          value={entry.country}
+                          onChange={(country) => {
+                            const next = composers.map((row, i) =>
+                              i === index ? { ...row, country } : row,
+                            );
+                            updateComposers(next);
+                          }}
+                          usageCounts={countryUsageCounts}
+                          emptyOptionLabel="선택 안 함"
+                          aria-label={`작곡가 ${index + 1} 국적`}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-semibold opacity-90">시대</label>
+                        <select
+                          className="select-apple h-[42px] w-full px-3 py-2"
+                          value={entry.era}
+                          onChange={(e) => {
+                            const next = composers.map((row, i) =>
+                              i === index ? { ...row, era: e.target.value } : row,
+                            );
+                            updateComposers(next);
+                          }}
+                        >
+                          <option value="">선택 안 함</option>
+                          {entry.era.trim() &&
+                          !(COMPOSER_ERA_OPTIONS as readonly string[]).includes(entry.era) ? (
+                            <option value={entry.era}>{entry.era}</option>
+                          ) : null}
+                          {COMPOSER_ERA_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="min-w-0 sm:col-span-2">
+                        <label className="mb-1 block text-sm font-semibold opacity-90">
+                          위키피디아 URL
+                        </label>
+                        <input
+                          className={inputBaseClass}
+                          value={entry.wiki_url}
+                          onChange={(e) => {
+                            const next = composers.map((row, i) =>
+                              i === index ? { ...row, wiki_url: e.target.value } : row,
+                            );
+                            updateComposers(next);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div>
+                <button
+                  type="button"
+                  disabled={formData.composers.length >= MAX_ALBUM_COMPOSERS}
+                  className="btn-apple btn-apple-secondary h-[36px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => {
+                    if (formData.composers.length >= MAX_ALBUM_COMPOSERS) return;
+                    const base =
+                      formData.composers.length > 0
+                        ? formData.composers
+                        : [emptyComposerFormEntry()];
+                    const next = [...base, emptyComposerFormEntry()];
+                    setFormData((prev) => ({
+                      ...prev,
+                      composers: next,
+                      ...primaryComposerFieldsFromEntries(next),
+                    }));
+                  }}
+                >
+                  작곡가 추가
+                </button>
+                {formData.composers.length >= MAX_ALBUM_COMPOSERS ? (
+                  <p className="mt-1 text-[11px] opacity-60">
+                    작곡가는 최대 {MAX_ALBUM_COMPOSERS}명까지 입력할 수 있습니다.
+                  </p>
+                ) : null}
+                {composerDupError ? (
+                  <p className="mt-1 text-[11px]" style={{ color: '#ff3b30' }}>
+                    같은 작곡가 이름은 한 번만 입력할 수 있습니다.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="mt-8 flex flex-col gap-3">
           {isEdit && onDelete && deleteConfirmOpen ? (
             <div
@@ -1074,6 +1141,7 @@ export function AlbumForm({
                   if (isClassicMode) {
                     if (!isClassicFormOption(formData.genre2)) {
                       setClassicFormError(true);
+                      setActiveTab('basic');
                       return;
                     }
                     const keys = formData.composers
@@ -1081,6 +1149,7 @@ export function AlbumForm({
                       .filter(Boolean);
                     if (new Set(keys).size !== keys.length) {
                       setComposerDupError(true);
+                      setActiveTab('composers');
                       return;
                     }
                     const titleUrl = formData.title_song_url.trim();
@@ -1090,15 +1159,18 @@ export function AlbumForm({
                       normalizeStagePlusUrl(titleUrl).status !== 'ok'
                     ) {
                       setStagePlusError(true);
+                      setActiveTab('basic');
                       return;
                     }
                   }
                   if (parseYoutubePlaylistInput(formData.youtube_playlist_id ?? '').status === 'invalid') {
                     setPlaylistError(true);
+                    setActiveTab('basic');
                     return;
                   }
                   if (parseAppleMusicAlbumInput(formData.apple_music_url ?? '').status === 'invalid') {
                     setAppleMusicError(true);
+                    setActiveTab('basic');
                     return;
                   }
                   setClassicFormError(false);

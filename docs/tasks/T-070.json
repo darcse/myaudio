@@ -1,0 +1,29 @@
+{
+  "id": "T-070",
+  "goal": "실행한 장르2 이관 SQL이 레포의 SQL 기록 위치에 남고, 'Claude outputs/' 폴더가 더 이상 git 변경 목록에 뜨지 않는다.",
+  "context": "정리 작업. 현재 레포 루트에 데스크톱 앱이 만든 'Claude outputs/genre2-migration-261118.sql'이 untracked로 남아 있다. 이 SQL은 2026-11-18 JW가 Supabase에서 실제 실행한 Pop & Rock 장르2 표준화 이관 SQL이다(ALBUM-048 관련). 변경: (1) 이 파일을 scripts/sql/ALBUM-048-genre2-migration.sql로 옮긴다(내용은 수정하지 않는다). (2) .gitignore 맨 끝에 'Claude outputs/' 한 줄을 추가한다(주석 없이). (3) 비게 된 'Claude outputs/' 폴더를 삭제한다. .claude/는 건드리지 않는다. 앱 코드는 수정하지 않는다.",
+  "scope": {
+    "in": [
+      "SQL 파일을 scripts/sql로 이동",
+      "'.gitignore'에 Claude outputs/ 추가",
+      "빈 Claude outputs/ 폴더 삭제"
+    ],
+    "out": [
+      "SQL 내용 수정·실행",
+      "앱 코드",
+      "'.claude/' 폴더",
+      "DB (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "scripts/sql/ALBUM-048-genre2-migration.sql이 원본과 같은 내용으로 존재한다",
+    ".gitignore에 'Claude outputs/'가 있고, git status에 'Claude outputs/'가 보이지 않는다",
+    "레포 루트에 'Claude outputs/' 폴더가 없다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(chore): 장르2 이관 SQL을 scripts/sql로 이동, Claude outputs 폴더 gitignore",
+  "status": "done",
+  "result": "genre2-migration SQL을 scripts/sql/ALBUM-048-genre2-migration.sql로 이동(내용 동일 13152B). .gitignore에 Claude outputs/ 추가, 빈 폴더 삭제. git status에 Claude outputs 미표시."
+}
