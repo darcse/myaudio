@@ -1,31 +1,29 @@
 {
-  "id": "T-078",
-  "goal": "Apple Music 주소가 있고 트랙리스트가 비어 있는 기존 앨범의 트랙을 한 번에 채우는 일회성 스크립트가 준비되고, 미리보기(저장 없음) 결과 보고서로 성공·실패를 확인할 수 있다.",
-  "context": "ALBUM-052 후속 데이터 작업. 이번 TASK는 스크립트 작성과 미리보기 실행까지만 한다. 실제 저장(--apply)은 플래너 검토와 JW 승인 후 별도로 실행하므로 이번에는 절대 --apply를 실행하지 않는다. 현황: 앨범 848장 중 apple_music_url 있는 앨범 800장. album.tracks(jsonb, 기본 []) 컬럼과 src/lib/appleMusicTracks.ts(parseItunesAlbumTracks), src/lib/appleMusic.ts(extractAppleMusicAlbumRef 등 주소 파싱), src/app/api/apple-music-import/route.ts(국가 스토어 순회·lookup entity=song·limit=200 로직)가 있다. 기본안: (1) scripts/backfill-album-tracks.(mjs|ts) 작성. 기존 scripts/backfill-dominant-colors.mjs의 .env.local 로딩·Supabase 클라이언트 패턴(SUPABASE_SERVICE_ROLE_KEY 필요)을 따른다. 앱의 TS 함수를 재사용할 수 있으면 재사용하고(예: npx tsx로 실행), 불가능해 로직을 복제해야 하면 최소화하고 result에 이유를 쓴다. 조회 국가 순서는 가져오기 API와 같게. (2) 대상: apple_music_url이 있고 tracks가 빈 배열인 album. Classic 포함. (3) 기본은 미리보기 모드: DB에 쓰지 않고, 앨범마다 조회해 docs/reports/album-tracks-backfill-preview.json(앨범 id·아티스트·앨범명·결과 status·트랙 수·실패 사유·트랙 수가 200개라 잘렸을 가능성 표시)과 콘솔 요약(대상 수, 성공, 0곡, 실패 사유별 수)을 남긴다. (4) --apply 모드: 저장 직전 해당 앨범 tracks가 여전히 비어 있을 때만 tracks 컬럼만 업데이트(다른 컬럼 불변), 중간에 멈춰도 다시 실행하면 이어서 진행(이미 채워진 앨범 건너뜀). (5) Apple 요청 사이 1~1.5초 대기, 429/5xx는 지수 백오프 후 최대 3회 재시도. (6) --limit N(앞에서 N장만)과 --id 옵션을 지원해 소량 테스트가 가능하게. 실행 방법을 result와 스크립트 상단 사용법(주석 대신 README가 아니라 --help 출력)으로 남긴다. 서비스 키는 .env.local에서만 읽고 출력·커밋하지 않는다(JW가 실행 전에 .env.local에 SUPABASE_SERVICE_ROLE_KEY를 넣는다; 없으면 안내 후 종료). (7) 이번 TASK에서는 --limit 20 정도로 미리보기를 먼저 돌려 동작을 확인한 뒤 전체 미리보기를 실행해 요약을 result에 적는다. 서비스 키가 없어 실행이 불가하면 작성만 하고 blocked가 아니라 done으로 두되 result에 'JW 실행 필요'와 명령을 적는다.",
+  "id": "T-079",
+  "goal": "Apple Music에는 전곡이 있는데 iTunes 조회로 트랙이 0곡이거나 일부만 불러와지는 원인을 확인하고, Apple Music 앨범 페이지에서 전체 트랙을 읽어 보조 수단으로 쓸 수 있는지 판단 근거를 받는다.",
+  "context": "조사만 한다. 앱 코드·스크립트·DB는 수정하지 않는다. 배경: 트랙 일괄 채우기(T-078) 후 일부 앨범이 한국 스토어 주소로도 커버·발매일은 갱신되는데 트랙은 0곡이거나 1곡만 들어온다(JW 확인). 플래너 확인: 아래 두 앨범의 music.apple.com 페이지는 한국 스토어에서 정상 노출되며 HIStory Continues는 15곡·1시간 17분, SHISHAMO 앨범은 7곡·약 28분으로 표시된다. 가설: 현재 사용하는 iTunes lookup API(itunes.apple.com/lookup, entity=song)는 iTunes Store 곡 단위 판매 목록 기준이라, Apple Music 스트리밍 전용이거나 곡 단위 판매가 막힌 트랙은 빠진다. 조사 대상: (A) https://music.apple.com/kr/album/history-continues/1894092998 (B) https://music.apple.com/kr/album/%E5%A5%BD%E3%81%8D100-%E3%81%AE%E7%89%87%E6%80%9D%E3%81%84%E3%82%92%E3%81%97%E3%81%A6%E3%81%84%E3%82%8B%E3%81%82%E3%81%AA%E3%81%9F%E3%81%B8/1657737193 (C) 보고서에서 1곡만 들어온 앨범 중 2개: album id 10(THIS IS JAPANESE GIRL), 802(愛MUST BE) — DB의 apple_music_url 사용. 확인할 것: (1) 각 앨범 id로 lookup을 country=kr·jp·us, entity=album / entity=song(limit=200)으로 호출해 결과 수·wrapperType·collectionName을 표로 정리(원본 응답 전체를 출력하지 말고 필요한 필드만 요약). (2) 각 album 페이지의 원본 HTML(서버 응답)에 전체 트랙 목록 데이터가 들어 있는지(예: script type=application/ld+json의 MusicAlbum.tracks, 또는 serialized 데이터)와 트랙 수·곡명·길이·디스크 정보가 있는지 확인. (3) (2)가 된다면 보조 수단(iTunes 결과가 0곡이거나 페이지의 곡 수보다 적을 때만 페이지에서 보충) 구현 시 예상 위험(페이지 구조 변경, 요청 차단, 이용 약관)과 필요한 범위를 의견으로 제시. 결과는 result에 표와 결론 3~5줄로. 토큰 절약: HTML 전체를 출력하거나 읽지 말고 필요한 부분만 추출해 확인한다. 요청은 앨범당 몇 회로 제한하고 사이에 1초 이상 쉰다.",
   "scope": {
     "in": [
-      "일괄 채우기 스크립트(미리보기 기본·--apply·--limit·--id·--help)",
-      "미리보기 보고서 docs/reports/album-tracks-backfill-preview.json",
-      "미리보기 실행(가능한 경우)"
+      "iTunes lookup 응답 비교(국가·entity별 요약)",
+      "Apple Music 앨범 페이지 원본 HTML의 트랙 데이터 존재 여부 확인",
+      "보조 수단 가능성·위험 의견"
     ],
     "out": [
-      "--apply 실행 (절대 하지 말 것)",
-      "앱 코드 동작 변경(재사용을 위한 최소 export 외)",
-      "DB 스키마·SQL",
-      "서비스 키 출력·커밋",
+      "앱 코드·스크립트 수정 (절대 하지 말 것)",
+      "DB 변경",
+      "대량 요청·전체 앨범 재조사",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "scripts에 일괄 채우기 스크립트가 있고 --help로 사용법(미리보기 기본, --apply, --limit, --id)이 나온다",
-    "미리보기는 DB를 바꾸지 않고 보고서 파일과 콘솔 요약(대상·성공·0곡·실패 사유별)을 남긴다",
-    "--apply는 tracks가 비어 있는 앨범의 tracks 컬럼만 갱신하고, 재실행 시 채워진 앨범을 건너뛴다(코드로 확인)",
-    "result에 미리보기 요약 또는 JW 실행 명령이 있다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "result에 4개 앨범의 국가·entity별 lookup 결과 요약표가 있다",
+    "result에 각 앨범 페이지 원본에 전체 트랙 데이터가 있는지와 어떤 형태(필드)인지 적혀 있다",
+    "result에 원인 결론과 보조 수단 도입 의견(위험 포함)이 있다",
+    "코드·DB 변경이 없다(git diff에 TASK.json만)"
   ],
-  "auto_commit": false,
-  "commit_message": "(chore): 기존 앨범 트랙리스트 일괄 채우기 스크립트",
+  "auto_commit": true,
+  "commit_message": "(docs): T-079 Apple Music 트랙 누락 원인 조사 결과",
   "status": "done",
-  "result": "scripts/backfill-album-tracks.mjs + scripts/lib/appleMusicTracks.mjs 추가(npx tsx 불가 → plain node .mjs로 appleMusic/appleMusicTracks 로직 미러). --help/--limit/--id/--apply 지원. 미리보기 기본(DB 미기록). --apply는 저장 직전 tracks 재조회로 빈 배열일 때만 tracks 컬럼 갱신.\n\n미리보기(--limit 20): 20/20 ok.\n전체 미리보기: 대상 793 / 성공 769 / 0곡 11 / 실패 13. 사유: ok 769, empty_tracks:JP: 0 tracks 11, invalid_url:invalid Apple Music album URL 13. 200곡 절단 표시 0건. 보고서: docs/reports/album-tracks-backfill-preview.json. --apply는 미실행(플래너·JW 승인 후).\n\n실행: node scripts/backfill-album-tracks.mjs [--limit N] [--id N] [--apply]\n검증: npx tsc --noEmit 통과, npm run lint 통과. git diff --stat: scripts/backfill-album-tracks.mjs, scripts/lib/appleMusicTracks.mjs, docs/reports/album-tracks-backfill-preview.json(신규), TASK.json. auto_commit=false → 커밋 대기.\n전체 --apply 실행 완료(JW 터미널): 대상 788, 성공 764(+사전 테스트 5), 0곡 11, 주소 오류 13.\n커밋 승인: 261121_0025 (chore): 기존 앨범 트랙리스트 일괄 채우기 스크립트·실행 보고서, 토큰 경고 규칙 추가"
+  "result": "## iTunes lookup 요약 (entity=album|song, country=kr|jp|us, song limit=200)\n\n### A HIStory Continues (1894092998)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr/jp/us × album | 1 | collection | HIStory Continues | 15 | 0 |\n| kr/jp/us × song | 1 | collection만 | HIStory Continues | 15 | 0 |\n→ 앨범 메타는 있으나 entity=song으로 track(곡) 0건(전 국가).\n\n### B 好き100%の片思いをしているあなたへ (1657737193)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr/jp/us × album | 1 | collection | 好き100%… | 7 | 0 |\n| kr/jp/us × song | 1 | collection만 | 好き100%… | 7 | 0 |\n→ A와 동일 패턴(전곡 누락).\n\n### C10 THIS IS JAPANESE GIRL (DB id=10, appleId=1745288911)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr album/song | 1 | collection | … - Single | 1 | 0 |\n| jp/us album | 1 | collection | … - Single | 1 | 0 |\n| jp/us song | 2 | collection+track | … - Single | 1 | 1 |\n→ URL·컬렉션명이 Single. 1곡은 누락이 아니라 싱글 상품.\n\n### C802 愛MUST BE (DB id=802, appleId=6810500452)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr album/song | 1 | collection | … - Single | 1 | 0 |\n| jp/us album | 1 | collection | … - Single | 1 | 0 |\n| jp/us song | 2 | collection+track | … - Single | 1 | 1 |\n→ C10과 동일(싱글 URL).\n\n## 페이지 HTML 트랙 데이터\n공통: HTTP 200. `application/ld+json` MusicAlbum.tracks(MusicRecording[]) + `serialized-server-data` 임베드.\n| 앨범 | ld+json 곡수 | 필드 | serialized | 비고 |\n|---|---|---|---|---|\n| A | 15 | name, duration(ISO8601 PT…), url | title, trackNumber, discNumber, duration(ms) 15건 | 전곡 확보 가능 |\n| B | 7 | 동일 | 동일 7건 | 전곡 확보 가능 |\n| C10 | 1 | 동일 | 1건 | 페이지도 Single 1곡 |\n| C802 | 1 | 동일 | 1건 | 페이지도 Single 1곡 |\nld+json에는 disc/trackNumber 없음(배열 순서). disc·번호는 serialized 쪽이 있음.\n\n## 결론\n1. 가설 확인(A/B): iTunes lookup은 앨범 trackCount는 알리지만 entity=song 곡 목록이 비는 경우가 있음(스트리밍/판매 단위 불일치로 보임). 커버·발매일만 되고 트랙 0인 원인.\n2. C10/C802의 DB 1곡은 API 결함이 아니라 apple_music_url이 싱글 페이지를 가리킴.\n3. 보조 수단: iTunes song수=0이거나 collection.trackCount보다 적을 때만 페이지 파싱 가능. 우선 ld+json(name+duration), disc/번호 필요 시 serialized-server-data.\n4. 위험: HTML/스크립트 구조 변경, 차단·약관, 공식 API 아님. 범위는 fallback 전용·요청 간격 유지·파싱 실패 시 기존 동작 유지가 안전.\n5. 권장: 싱글 URL 오지정은 URL 교정 이슈로 분리; 0곡 앨범만 페이지 fallback 검토.\n\n검증: 앱/스크립트/DB 미변경. git: TASK.json(+docs/tasks/T-078.json 보관)."
 }
