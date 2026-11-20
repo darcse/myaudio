@@ -1,32 +1,31 @@
 {
-  "id": "T-077",
-  "feature_id": "ALBUM-052",
-  "goal": "트랙이 없는 앨범의 상세 모달 트랙리스트 탭에서 'Apple Music에서 불러오기'를 누르면 수정 폼 없이 바로 트랙이 저장·표시되고, 이후 어느 화면에서 수정 폼을 열어 저장해도 그 트랙이 유지된다.",
-  "context": "T-076 후속, 아직 커밋 전이며 T-076과 함께 ALBUM-052로 커밋한다. 대상: src/app/albums/_components/AlbumDetailTracksSection.tsx·AlbumDetailModal.tsx, src/app/albums/actions.ts(또는 기존 서버 액션 위치), 트랙 조회는 기존 /api/apple-music-import 또는 src/lib/appleMusicTracks.ts 재사용. 기본안: (1) 트랙이 비어 있고 viewingItem.apple_music_url이 있으면 빈 상태에 'Apple Music에서 불러오기' 버튼(주 버튼)과 기존 '수정에서 불러오기'(보조)를 함께 둔다. 주소가 없으면 '수정에서 불러오기'만. 트랙이 이미 있는 앨범에는 이 버튼을 두지 않는다(덮어쓰기는 폼에서만). (2) 누르면 트랙을 조회해 album.tracks만 갱신하는 전용 서버 액션으로 저장(user_id 조건, 다른 컬럼 미변경, 저장 직전 DB의 tracks가 비어 있을 때만 쓰기 — 이미 있으면 덮어쓰지 않고 안내). 진행 중 버튼 비활성·로딩, 조회 결과 0곡이거나 실패면 탭 안 안내 문구, DB 변경 없음. (3) 저장 후 모달의 목록이 즉시 보이고, 모달을 연 화면의 앨범 상태도 새 tracks로 갱신되어야 한다. AlbumDetailModal에는 이미 onAlbumPatch?: (album) => void가 있으니 이를 재사용하고, 이를 넘기지 않는 호출 화면이 있으면 연결한다(8개 화면 전수 확인, result에 화면별 연결 여부 보고). 공용 캐시는 invalidateCatalogLibraryCache로 무효화. 핵심 검증: 불러온 직후 같은 화면에서 수정 폼을 열어 다른 칸만 고쳐 저장해도 tracks가 빈 배열로 덮이지 않아야 한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-078",
+  "goal": "Apple Music 주소가 있고 트랙리스트가 비어 있는 기존 앨범의 트랙을 한 번에 채우는 일회성 스크립트가 준비되고, 미리보기(저장 없음) 결과 보고서로 성공·실패를 확인할 수 있다.",
+  "context": "ALBUM-052 후속 데이터 작업. 이번 TASK는 스크립트 작성과 미리보기 실행까지만 한다. 실제 저장(--apply)은 플래너 검토와 JW 승인 후 별도로 실행하므로 이번에는 절대 --apply를 실행하지 않는다. 현황: 앨범 848장 중 apple_music_url 있는 앨범 800장. album.tracks(jsonb, 기본 []) 컬럼과 src/lib/appleMusicTracks.ts(parseItunesAlbumTracks), src/lib/appleMusic.ts(extractAppleMusicAlbumRef 등 주소 파싱), src/app/api/apple-music-import/route.ts(국가 스토어 순회·lookup entity=song·limit=200 로직)가 있다. 기본안: (1) scripts/backfill-album-tracks.(mjs|ts) 작성. 기존 scripts/backfill-dominant-colors.mjs의 .env.local 로딩·Supabase 클라이언트 패턴(SUPABASE_SERVICE_ROLE_KEY 필요)을 따른다. 앱의 TS 함수를 재사용할 수 있으면 재사용하고(예: npx tsx로 실행), 불가능해 로직을 복제해야 하면 최소화하고 result에 이유를 쓴다. 조회 국가 순서는 가져오기 API와 같게. (2) 대상: apple_music_url이 있고 tracks가 빈 배열인 album. Classic 포함. (3) 기본은 미리보기 모드: DB에 쓰지 않고, 앨범마다 조회해 docs/reports/album-tracks-backfill-preview.json(앨범 id·아티스트·앨범명·결과 status·트랙 수·실패 사유·트랙 수가 200개라 잘렸을 가능성 표시)과 콘솔 요약(대상 수, 성공, 0곡, 실패 사유별 수)을 남긴다. (4) --apply 모드: 저장 직전 해당 앨범 tracks가 여전히 비어 있을 때만 tracks 컬럼만 업데이트(다른 컬럼 불변), 중간에 멈춰도 다시 실행하면 이어서 진행(이미 채워진 앨범 건너뜀). (5) Apple 요청 사이 1~1.5초 대기, 429/5xx는 지수 백오프 후 최대 3회 재시도. (6) --limit N(앞에서 N장만)과 --id 옵션을 지원해 소량 테스트가 가능하게. 실행 방법을 result와 스크립트 상단 사용법(주석 대신 README가 아니라 --help 출력)으로 남긴다. 서비스 키는 .env.local에서만 읽고 출력·커밋하지 않는다(JW가 실행 전에 .env.local에 SUPABASE_SERVICE_ROLE_KEY를 넣는다; 없으면 안내 후 종료). (7) 이번 TASK에서는 --limit 20 정도로 미리보기를 먼저 돌려 동작을 확인한 뒤 전체 미리보기를 실행해 요약을 result에 적는다. 서비스 키가 없어 실행이 불가하면 작성만 하고 blocked가 아니라 done으로 두되 result에 'JW 실행 필요'와 명령을 적는다.",
   "scope": {
     "in": [
-      "상세 모달 빈 상태 'Apple Music에서 불러오기' 버튼",
-      "tracks 전용 저장 서버 액션(빈 경우만 쓰기)",
-      "onAlbumPatch로 호출 화면 상태 갱신·캐시 무효화(미연결 화면 연결)"
+      "일괄 채우기 스크립트(미리보기 기본·--apply·--limit·--id·--help)",
+      "미리보기 보고서 docs/reports/album-tracks-backfill-preview.json",
+      "미리보기 실행(가능한 경우)"
     ],
     "out": [
-      "트랙이 있는 앨범 덮어쓰기(폼 전용 유지)",
-      "트랙 편집 UI",
-      "기존 앨범 일괄 채우기",
-      "DB 스키마·SQL (절대 건드리지 말 것)",
+      "--apply 실행 (절대 하지 말 것)",
+      "앱 코드 동작 변경(재사용을 위한 최소 export 외)",
+      "DB 스키마·SQL",
+      "서비스 키 출력·커밋",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Apple Music 주소가 있고 트랙이 없는 앨범의 상세 트랙리스트 탭에서 'Apple Music에서 불러오기'를 누르면 트랙이 바로 보이고, 모달을 닫았다 다시 열어도 남아 있다",
-    "불러온 직후 같은 화면에서 수정 폼을 열면 트랙리스트 탭에 트랙이 있고, 다른 칸만 고쳐 저장해도 트랙이 유지된다(앨범 메뉴·아티스트 상세·대시보드 등에서 확인)",
-    "주소가 없는 앨범은 '수정에서 불러오기'만 보이고, 조회 실패·0곡이면 안내 문구가 나오며 DB가 바뀌지 않는다",
-    "result에 8개 호출 화면의 onAlbumPatch 연결 여부가 있다",
+    "scripts에 일괄 채우기 스크립트가 있고 --help로 사용법(미리보기 기본, --apply, --limit, --id)이 나온다",
+    "미리보기는 DB를 바꾸지 않고 보고서 파일과 콘솔 요약(대상·성공·0곡·실패 사유별)을 남긴다",
+    "--apply는 tracks가 비어 있는 앨범의 tracks 컬럼만 갱신하고, 재실행 시 채워진 앨범을 건너뛴다(코드로 확인)",
+    "result에 미리보기 요약 또는 JW 실행 명령이 있다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): ALBUM-052 앨범 상세 트랙리스트 탭, Lyrics 링크 아이콘화, 상세에서 바로 불러오기",
+  "commit_message": "(chore): 기존 앨범 트랙리스트 일괄 채우기 스크립트",
   "status": "done",
-  "result": "fillAlbumTracksIfEmpty 서버 액션(빈 tracks만 갱신). 상세 빈 상태에 Apple Music 불러오기(주)+수정에서 불러오기(보조). API 조회로 트랙 받은 뒤 액션 저장·onAlbumPatch·invalidateCatalogLibraryCache. onAlbumPatch 전수: AlbumsLibrary·Dashboard·Diary·Stats·Artists·LyricsTrackList·GenreStats·GlobalAlbumDetailHost·HeadfiMatch·HeadfiLibrary 모두 기존 연결됨(추가 수정 없음). 검증: tsc/lint 통과. T-076~T-077 함께 커밋 대기.\n커밋 승인: 261120_2324 (feat): ALBUM-052 앨범 상세 트랙리스트 탭, Lyrics 링크 아이콘화, 상세에서 바로 불러오기 (T-076~T-077)"
+  "result": "scripts/backfill-album-tracks.mjs + scripts/lib/appleMusicTracks.mjs 추가(npx tsx 불가 → plain node .mjs로 appleMusic/appleMusicTracks 로직 미러). --help/--limit/--id/--apply 지원. 미리보기 기본(DB 미기록). --apply는 저장 직전 tracks 재조회로 빈 배열일 때만 tracks 컬럼 갱신.\n\n미리보기(--limit 20): 20/20 ok.\n전체 미리보기: 대상 793 / 성공 769 / 0곡 11 / 실패 13. 사유: ok 769, empty_tracks:JP: 0 tracks 11, invalid_url:invalid Apple Music album URL 13. 200곡 절단 표시 0건. 보고서: docs/reports/album-tracks-backfill-preview.json. --apply는 미실행(플래너·JW 승인 후).\n\n실행: node scripts/backfill-album-tracks.mjs [--limit N] [--id N] [--apply]\n검증: npx tsc --noEmit 통과, npm run lint 통과. git diff --stat: scripts/backfill-album-tracks.mjs, scripts/lib/appleMusicTracks.mjs, docs/reports/album-tracks-backfill-preview.json(신규), TASK.json. auto_commit=false → 커밋 대기.\n전체 --apply 실행 완료(JW 터미널): 대상 788, 성공 764(+사전 테스트 5), 0곡 11, 주소 오류 13.\n커밋 승인: 261121_0025 (chore): 기존 앨범 트랙리스트 일괄 채우기 스크립트·실행 보고서, 토큰 경고 규칙 추가"
 }

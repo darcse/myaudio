@@ -1,0 +1,32 @@
+{
+  "id": "T-077",
+  "feature_id": "ALBUM-052",
+  "goal": "트랙이 없는 앨범의 상세 모달 트랙리스트 탭에서 'Apple Music에서 불러오기'를 누르면 수정 폼 없이 바로 트랙이 저장·표시되고, 이후 어느 화면에서 수정 폼을 열어 저장해도 그 트랙이 유지된다.",
+  "context": "T-076 후속, 아직 커밋 전이며 T-076과 함께 ALBUM-052로 커밋한다. 대상: src/app/albums/_components/AlbumDetailTracksSection.tsx·AlbumDetailModal.tsx, src/app/albums/actions.ts(또는 기존 서버 액션 위치), 트랙 조회는 기존 /api/apple-music-import 또는 src/lib/appleMusicTracks.ts 재사용. 기본안: (1) 트랙이 비어 있고 viewingItem.apple_music_url이 있으면 빈 상태에 'Apple Music에서 불러오기' 버튼(주 버튼)과 기존 '수정에서 불러오기'(보조)를 함께 둔다. 주소가 없으면 '수정에서 불러오기'만. 트랙이 이미 있는 앨범에는 이 버튼을 두지 않는다(덮어쓰기는 폼에서만). (2) 누르면 트랙을 조회해 album.tracks만 갱신하는 전용 서버 액션으로 저장(user_id 조건, 다른 컬럼 미변경, 저장 직전 DB의 tracks가 비어 있을 때만 쓰기 — 이미 있으면 덮어쓰지 않고 안내). 진행 중 버튼 비활성·로딩, 조회 결과 0곡이거나 실패면 탭 안 안내 문구, DB 변경 없음. (3) 저장 후 모달의 목록이 즉시 보이고, 모달을 연 화면의 앨범 상태도 새 tracks로 갱신되어야 한다. AlbumDetailModal에는 이미 onAlbumPatch?: (album) => void가 있으니 이를 재사용하고, 이를 넘기지 않는 호출 화면이 있으면 연결한다(8개 화면 전수 확인, result에 화면별 연결 여부 보고). 공용 캐시는 invalidateCatalogLibraryCache로 무효화. 핵심 검증: 불러온 직후 같은 화면에서 수정 폼을 열어 다른 칸만 고쳐 저장해도 tracks가 빈 배열로 덮이지 않아야 한다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "상세 모달 빈 상태 'Apple Music에서 불러오기' 버튼",
+      "tracks 전용 저장 서버 액션(빈 경우만 쓰기)",
+      "onAlbumPatch로 호출 화면 상태 갱신·캐시 무효화(미연결 화면 연결)"
+    ],
+    "out": [
+      "트랙이 있는 앨범 덮어쓰기(폼 전용 유지)",
+      "트랙 편집 UI",
+      "기존 앨범 일괄 채우기",
+      "DB 스키마·SQL (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Apple Music 주소가 있고 트랙이 없는 앨범의 상세 트랙리스트 탭에서 'Apple Music에서 불러오기'를 누르면 트랙이 바로 보이고, 모달을 닫았다 다시 열어도 남아 있다",
+    "불러온 직후 같은 화면에서 수정 폼을 열면 트랙리스트 탭에 트랙이 있고, 다른 칸만 고쳐 저장해도 트랙이 유지된다(앨범 메뉴·아티스트 상세·대시보드 등에서 확인)",
+    "주소가 없는 앨범은 '수정에서 불러오기'만 보이고, 조회 실패·0곡이면 안내 문구가 나오며 DB가 바뀌지 않는다",
+    "result에 8개 호출 화면의 onAlbumPatch 연결 여부가 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-052 앨범 상세 트랙리스트 탭, Lyrics 링크 아이콘화, 상세에서 바로 불러오기",
+  "status": "done",
+  "result": "fillAlbumTracksIfEmpty 서버 액션(빈 tracks만 갱신). 상세 빈 상태에 Apple Music 불러오기(주)+수정에서 불러오기(보조). API 조회로 트랙 받은 뒤 액션 저장·onAlbumPatch·invalidateCatalogLibraryCache. onAlbumPatch 전수: AlbumsLibrary·Dashboard·Diary·Stats·Artists·LyricsTrackList·GenreStats·GlobalAlbumDetailHost·HeadfiMatch·HeadfiLibrary 모두 기존 연결됨(추가 수정 없음). 검증: tsc/lint 통과. T-076~T-077 함께 커밋 대기.\n커밋 승인: 261120_2324 (feat): ALBUM-052 앨범 상세 트랙리스트 탭, Lyrics 링크 아이콘화, 상세에서 바로 불러오기 (T-076~T-077)"
+}
