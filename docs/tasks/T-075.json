@@ -1,0 +1,27 @@
+{
+  "id": "T-075",
+  "feature_id": "ALBUM-052",
+  "goal": "트랙이 50곡을 넘는 앨범(클래식 박스 세트 등)도 Apple Music에서 트랙이 빠짐없이 불러와진다.",
+  "context": "T-074 후속 보완, 아직 커밋 전이며 T-074와 함께 커밋한다. 원인(플래너 검토): src/app/api/apple-music-import/route.ts의 fetchLookupResults가 iTunes lookup에 limit 파라미터를 주지 않는다. iTunes lookup은 관련 엔티티(entity=song) 결과를 기본 50개로 제한하므로 50곡이 넘는 앨범은 뒤쪽 트랙이 잘린다. 기본안: entity=song 조회일 때 limit=200(lookup 최대값)을 붙인다. entity=album 조회 동작은 바꾸지 않는다. 200곡을 넘는 앨범은 드물므로 그 이상은 이번 범위가 아니며, 결과가 정확히 200개면 잘렸을 수 있다는 점만 result에 남긴다. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "entity=song lookup에 limit=200 추가"
+    ],
+    "out": [
+      "앨범 정보 조회 동작",
+      "트랙리스트 탭 UI",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "50곡이 넘는 앨범의 Apple Music 링크로 불러오면 전체 트랙이 채워진다",
+    "일반 앨범 불러오기와 앨범 정보 가져오기는 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-052 앨범 트랙리스트 탭(Apple Music 불러오기·편집)",
+  "status": "done",
+  "result": "fetchLookupResults에서 entity=song일 때 limit=200 추가. entity=album은 미변경. 참고: 결과가 정확히 200곡이면 iTunes 상한으로 잘렸을 수 있음(200+는 범위 외). 검증: tsc/lint 통과. T-074와 함께 커밋 대기.\n커밋 승인: 261120_2309 (feat): ALBUM-052 앨범 트랙리스트 탭(Apple Music 불러오기·편집) (T-074~T-075)"
+}

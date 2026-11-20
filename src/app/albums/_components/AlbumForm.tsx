@@ -46,6 +46,10 @@ import {
   type AlbumFormMode,
 } from '../utils';
 import type { AlbumComposerFormEntry } from '../types';
+import {
+  takePendingAlbumFormTab,
+  type AlbumFormTabId,
+} from '../albumFormTabIntent';
 import { ComposerComboSelect } from './ComposerComboSelect';
 import { AlbumTracksSection } from './AlbumTracksSection';
 
@@ -123,8 +127,6 @@ interface AlbumFormProps {
 const inputBaseClass = 'input-apple px-3 py-2 w-full h-[42px]';
 const readonlyClass = 'opacity-60 cursor-not-allowed';
 
-type AlbumFormTabId = 'basic' | 'tracks' | 'composers';
-
 type AlbumFormTabItem = {
   id: AlbumFormTabId;
   label: string;
@@ -171,7 +173,7 @@ export function AlbumForm({
   const appleMusicUrlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setActiveTab('basic');
+    setActiveTab(takePendingAlbumFormTab() ?? 'basic');
     setDeleteConfirmOpen(false);
     setClassicFormError(false);
     setComposerDupError(false);

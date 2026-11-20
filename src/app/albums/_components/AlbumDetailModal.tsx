@@ -8,13 +8,16 @@ import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
+import { setPendingAlbumFormTab } from '../albumFormTabIntent';
 import type { Album } from '../types';
+import { normalizeAlbumTracksFromDb } from '../utils';
 import { AlbumInfoHeroSection, AlbumInfoSection } from './AlbumInfoSection';
 import { AlbumIntroSection } from './AlbumIntroSection';
 import { AlbumRecommendedGearSection } from './AlbumRecommendedGearSection';
 import { AlbumListenHistorySection } from './AlbumListenHistorySection';
+import { AlbumDetailTracksSection } from './AlbumDetailTracksSection';
 
-type DetailTab = 'info' | 'gear' | 'listen';
+type DetailTab = 'info' | 'gear' | 'listen' | 'tracks';
 
 interface AlbumDetailModalProps {
   viewingItem: Album;
@@ -54,6 +57,7 @@ const TAB_ITEMS: { id: DetailTab; label: string }[] = [
   { id: 'info', label: '앨범 정보' },
   { id: 'gear', label: '추천 리시버' },
   { id: 'listen', label: '감상 기록' },
+  { id: 'tracks', label: '트랙리스트' },
 ];
 
 function tabButtonClass(active: boolean): string {
@@ -90,6 +94,7 @@ export function AlbumDetailModal({
   const [activeTab, setActiveTab] = useState<DetailTab>('info');
   const [listenHistoryCount, setListenHistoryCount] = useState(0);
   const [hasLyricsTracks, setHasLyricsTracks] = useState(false);
+  const tracksCount = normalizeAlbumTracksFromDb(viewingItem.tracks).length;
   const [localAiHeadphones, setLocalAiHeadphones] = useState(aiRecommendedHeadphones);
   const [localAiReason, setLocalAiReason] = useState<string | null>(
     viewingItem.ai_recommended_headphone_reason?.trim() || null,
@@ -275,20 +280,13 @@ export function AlbumDetailModal({
                         {listenHistoryCount}
                       </span>
                     ) : null}
+                    {tab.id === 'tracks' && tracksCount > 0 ? (
+                      <span className="badge-apple inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center px-1.5 text-[10px] font-semibold tabular-nums leading-none">
+                        {tracksCount}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
-                {hasLyricsTracks ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      router.push(`/lyrics/${viewingItem.id}`);
-                    }}
-                    className={tabButtonClass(false)}
-                  >
-                    Lyrics
-                  </button>
-                ) : null}
               </div>
               {isAuthenticated ? (
                 <div className="flex shrink-0 items-center gap-0.5 pb-3">
@@ -355,6 +353,26 @@ export function AlbumDetailModal({
                     variant="tab"
                     onHeadfiClick={onHeadfiClick}
                     onHistoryCountChange={setListenHistoryCount}
+                  />
+                </div>
+
+                <div className={activeTab === 'tracks' ? '' : 'hidden'} aria-hidden={activeTab !== 'tracks'}>
+                  <AlbumDetailTracksSection
+                    viewingItem={viewingItem}
+                    hasLyricsTracks={hasLyricsTracks}
+                    onOpenLyrics={() => {
+                      onClose();
+                      router.push(`/lyrics/${viewingItem.id}`);
+                    }}
+                    onEditForTracks={() => {
+                      setPendingAlbumFormTab('tracks');
+                      onEdit();
+                    }}
+                    onAlbumPatch={onAlbumPatch}
+                    onImported={() => {
+                      invalidateCatalogLibraryCache();
+                    }}
+                    isAuthenticated={isAuthenticated}
                   />
                 </div>
               </div>

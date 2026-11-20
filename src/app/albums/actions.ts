@@ -4,11 +4,12 @@ import { after } from 'next/server';
 import { extractDominantColorsFromCoverUrl } from '@/lib/albumCoverColors.server';
 import { runNewAlbumEnrichment } from '@/lib/albumEnrichment';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
-import type { AlbumFormData } from './types';
+import type { Album, AlbumFormData, AlbumTrack } from './types';
 import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
 import { parseYoutubePlaylistInput } from '@/lib/youtubePlaylist';
 import {
   isClassicGenre,
+  normalizeAlbumTracksFromDb,
   normalizeStagePlusUrl,
   sanitizeAlbumTagsForSave,
   sanitizeAlbumTracksForSave,
@@ -186,6 +187,57 @@ export async function saveAlbumAppleMusicUrl(albumId: number, url: string) {
     .eq('id', albumId)
     .is('apple_music_url', null);
   if (error) throw error;
+}
+
+export type FillAlbumTracksResult =
+  | { status: 'filled'; album: Album }
+  | { status: 'already_filled'; album: Album }
+  | { status: 'empty_tracks' }
+  | { status: 'unauthorized' }
+  | { status: 'not_found' };
+
+export async function fillAlbumTracksIfEmpty(
+  albumId: number,
+  tracksInput: AlbumTrack[] | unknown,
+): Promise<FillAlbumTracksResult> {
+  const user = await getCurrentUser();
+  if (!user) return { status: 'unauthorized' };
+
+  const tracks = sanitizeAlbumTracksForSave(
+    Array.isArray(tracksInput) ? (tracksInput as AlbumTrack[]) : [],
+  );
+  if (tracks.length === 0) return { status: 'empty_tracks' };
+
+  const supabase = await createClient();
+  const { data: existing, error: selectError } = await supabase
+    .from('album')
+    .select('*')
+    .eq('id', albumId)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  if (!existing) return { status: 'not_found' };
+
+  const currentTracks = normalizeAlbumTracksFromDb(
+    (existing as { tracks?: unknown }).tracks,
+  );
+  if (currentTracks.length > 0) {
+    return { status: 'already_filled', album: existing as Album };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from('album')
+    .update({ tracks })
+    .eq('id', albumId)
+    .select('*')
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (!updated) return { status: 'not_found' };
+
+  const savedTracks = normalizeAlbumTracksFromDb((updated as { tracks?: unknown }).tracks);
+  if (savedTracks.length === 0) {
+    return { status: 'already_filled', album: updated as Album };
+  }
+  return { status: 'filled', album: updated as Album };
 }
 
 export async function deleteAlbumFromDB(id: number) {
