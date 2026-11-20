@@ -1,0 +1,32 @@
+{
+  "id": "T-080",
+  "feature_id": "ALBUM-052",
+  "goal": "iTunes 조회로 트랙이 0곡이거나 앨범 곡 수보다 적게 오는 앨범도, Apple Music 앨범 페이지에서 보충해 전곡이 불러와진다.",
+  "context": "T-079 조사 결과 기반 보완. 원인: itunes lookup entity=song이 일부 앨범(예: HIStory Continues id 1894092998, SHISHAMO 好き100%… id 1657737193)에서 앨범 collection(trackCount 15/7)만 주고 곡 목록은 0건. 해당 music.apple.com 앨범 페이지 원본 HTML에는 <script type=\"application/ld+json\"> MusicAlbum.tracks(name, duration ISO8601 PT…)가 전곡 있고, serialized-server-data에 title·trackNumber·discNumber·duration(ms)가 있다. 대상: src/app/api/apple-music-import/route.ts(폼·상세 모달 불러오기가 공통으로 쓰는 경로), 파싱은 src/lib에 별도 함수로(예: appleMusicPageTracks.ts). 기본안: (1) iTunes 결과 곡 수가 0이거나 collection.trackCount보다 적을 때만 album 페이지(가져오기에 쓰인 Apple Music 앨범 URL)를 서버에서 1회 요청해 보충. 일반 앨범은 기존처럼 페이지를 요청하지 않는다. (2) 파싱 우선순위: serialized-server-data에서 disc·번호·곡명·길이(ms)를 얻을 수 있으면 사용, 안 되면 ld+json의 name·duration(ISO8601→ms) + 배열 순서로 번호, disc는 1. 결과는 기존 { disc, no, title, duration_ms } 형태·정렬 규칙. (3) 페이지 결과가 iTunes 결과보다 많을 때만 대체하고, 요청·파싱 실패(HTTP 오류, 구조 변경, 타임아웃 약 8초)는 조용히 기존 iTunes 결과를 사용한다(응답에 디버그용 source 필드 'itunes'|'apple_music_page' 정도는 넣어도 됨). (4) 서버 요청 시 일반 브라우저 수준의 헤더만 사용, 추가 재시도 없음. (5) 일괄 스크립트(scripts/backfill-album-tracks.mjs)는 이번에 수정하지 않는다. 0곡 앨범은 상세 모달 'Apple Music에서 불러오기'로 개별 처리한다. 확인용으로 위 두 앨범 URL로 API를 호출해 각각 15·7곡이 나오는지 result에 적는다(요청 수 최소화). 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "Apple Music 페이지 트랙 파싱 함수(serialized 우선, ld+json 대체)",
+      "가져오기 API에 조건부 보충(0곡 또는 trackCount 미달 시만)",
+      "실패 시 기존 결과 유지"
+    ],
+    "out": [
+      "일괄 스크립트 수정",
+      "트랙리스트 탭·상세 UI 변경",
+      "일반 앨범의 페이지 요청",
+      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "HIStory Continues·SHISHAMO 好き100%… 앨범을 상세 모달 'Apple Music에서 불러오기'나 수정 폼 트랙리스트 탭에서 불러오면 각각 15곡·7곡이 번호·곡명·재생 시간과 함께 채워진다",
+    "iTunes에서 전곡이 오는 일반 앨범은 이전과 같은 결과이고 Apple Music 페이지를 요청하지 않는다(코드로 확인)",
+    "페이지 요청·파싱이 실패해도 오류 없이 기존 iTunes 결과(또는 0곡 안내)로 동작한다",
+    "result에 두 앨범 확인 결과(곡 수·source)가 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-052 iTunes 트랙 누락 시 Apple Music 페이지에서 트랙 보충",
+  "status": "done",
+  "result": "추가: src/lib/appleMusicPageTracks.ts (serialized-server-data 우선 → ld+json 대체, needsAppleMusicPageTrackFallback, fetch 8초·브라우저 헤더·실패 시 []). 수정: src/app/api/apple-music-import/route.ts — iTunes 곡수가 0이거나 collection.trackCount 미달일 때만 페이지 1회 보충, 페이지 곡수가 더 많을 때만 대체, 응답 source itunes|apple_music_page.\n\n확인(동일 로직으로 iTunes+페이지 경로 검증):\n- HIStory Continues(1894092998): itunes 0 → page 15곡, source=apple_music_page (1.Scream 277842ms … 15.Smile)\n- SHISHAMO 好き100%…(1657737193): itunes 0 → page 7곡, source=apple_music_page (1.Suki Suki! … 7.恋する)\n- 일반 앨범 Melodrama(1428764777): jp/us iTunes 11/11 → needFallback=false, 페이지 요청 안 함(코드: needsAppleMusicPageTrackFallback 가드).\n\n일괄 스크립트·UI·DB 미변경. 검증: tsc 통과, lint 통과. git: appleMusicPageTracks.ts(신규), apple-music-import/route.ts, TASK.json(+docs/tasks/T-079.json 보관). auto_commit=false → 커밋 대기.\nJW 확인: Metallica St. Anger(일본 스토어 0곡 앨범) 불러오기 정상.\n커밋 승인: 261121_0057 (feat): ALBUM-052 iTunes 트랙 누락 시 Apple Music 페이지에서 트랙 보충"
+}

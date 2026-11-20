@@ -13,9 +13,14 @@ import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
 import { useAlbumMutations } from '@/app/albums/_hooks/useAlbumMutations';
 import { countryOptions } from '@/app/albums/constants';
-import type { Album, AlbumFormData, SelectedAlbum } from '@/app/albums/types';
-import { albumToFormData } from '@/app/albums/utils';
-import { deleteAlbumTracks, replaceAlbumTracks, commitAlbumTrackListDraft } from '../actions';
+import type { Album, AlbumFormData, AlbumTrack, SelectedAlbum } from '@/app/albums/types';
+import { albumToFormData, normalizeAlbumTracksFromDb } from '@/app/albums/utils';
+import {
+  deleteAlbumTracks,
+  replaceAlbumTracks,
+  commitAlbumTrackListDraft,
+  insertLyricsTracksFromAlbumIfEmpty,
+} from '../actions';
 import type { TrackWithTranslation } from '../types';
 
 type AlbumMeta = {
@@ -26,6 +31,7 @@ type AlbumMeta = {
   cover_image_url: string | null;
   release_date: string | null;
   genre1: string | null;
+  tracks: AlbumTrack[];
 };
 
 type TrackEditDraft = {
@@ -34,6 +40,20 @@ type TrackEditDraft = {
   track_number: string;
   track_title: string;
   hasTranslation: boolean;
+};
+
+type AlbumTrackTitleChangePreview = {
+  key: string;
+  track_number: number;
+  from: string;
+  to: string;
+  hasTranslation: boolean;
+  excluded: boolean;
+};
+
+type AlbumTrackMergePreview = {
+  titleChanges: AlbumTrackTitleChangePreview[];
+  additions: { track_number: number; track_title: string }[];
 };
 
 const initialAlbumFormData: AlbumFormData = {
@@ -88,7 +108,27 @@ function albumToMeta(album: Album): AlbumMeta {
     cover_image_url: album.cover_image_url,
     release_date: album.release_date,
     genre1: album.genre1,
+    tracks: normalizeAlbumTracksFromDb(album.tracks),
   };
+}
+
+function flattenAlbumTracksForLyrics(
+  tracks: AlbumTrack[],
+): { track_number: number; track_title: string }[] {
+  return [...tracks]
+    .sort((a, b) => a.disc - b.disc || a.no - b.no || a.title.localeCompare(b.title, 'ko'))
+    .map((track, index) => ({
+      track_number: index + 1,
+      track_title: track.title.trim(),
+    }))
+    .filter((track) => track.track_title.length > 0);
+}
+
+function newDraftKey(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `new-${crypto.randomUUID()}`;
+  }
+  return `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function AlbumTrackListContent({ albumId }: { albumId: number }) {
@@ -98,8 +138,13 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
   const [tracks, setTracks] = useState<TrackWithTranslation[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
+  const [importingAlbumTracks, setImportingAlbumTracks] = useState(false);
   const [manualText, setManualText] = useState('');
   const [savingManual, setSavingManual] = useState(false);
+  const [albumTrackDraftNotice, setAlbumTrackDraftNotice] = useState<string | null>(null);
+  const [albumTrackMergePreview, setAlbumTrackMergePreview] = useState<AlbumTrackMergePreview | null>(
+    null,
+  );
   const [viewingAlbum, setViewingAlbum] = useState<Album | null>(null);
   const [detailOpening, setDetailOpening] = useState(false);
   const [albumFormItem, setAlbumFormItem] = useState<SelectedAlbum | null>(null);
@@ -131,7 +176,7 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
         await Promise.all([
           client
             .from('album')
-            .select('id, album_name, artist, cover_image_url, country, release_date, genre1')
+            .select('id, album_name, artist, cover_image_url, country, release_date, genre1, tracks')
             .eq('id', albumId)
             .maybeSingle(),
           client
@@ -147,7 +192,11 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
         router.push('/lyrics');
         return [] as TrackWithTranslation[];
       }
-      setAlbum(albumRow as AlbumMeta);
+      const row = albumRow as Omit<AlbumMeta, 'tracks'> & { tracks?: unknown };
+      setAlbum({
+        ...row,
+        tracks: normalizeAlbumTracksFromDb(row.tracks),
+      });
 
       const list = (trackRows ?? []) as TrackWithTranslation[];
       const ids = list.map((t) => t.id);
@@ -338,6 +387,37 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
     return tracksOut.filter((t) => t.track_title);
   };
 
+  const handleImportFromAlbumTracks = async () => {
+    if (isAuthenticated === false) {
+      toast.error('로그인이 필요합니다.');
+      return;
+    }
+    const flattened = flattenAlbumTracksForLyrics(album?.tracks ?? []);
+    if (flattened.length === 0) {
+      toast.error('앨범 상세에서 트랙리스트를 먼저 불러와 주세요.');
+      return;
+    }
+    setImportingAlbumTracks(true);
+    try {
+      const result = await insertLyricsTracksFromAlbumIfEmpty(albumId, flattened);
+      if (result.status === 'already_has_tracks') {
+        toast.error('이미 Lyrics 트랙이 있어 가져오지 않았습니다.');
+        await load();
+        return;
+      }
+      if (result.status === 'empty') {
+        toast.error('앨범 상세에서 트랙리스트를 먼저 불러와 주세요.');
+        return;
+      }
+      toast.success(`${result.count}곡을 앨범 트랙리스트에서 가져왔습니다.`);
+      await load();
+    } catch (e) {
+      toast.error(getClientErrorMessage(e));
+    } finally {
+      setImportingAlbumTracks(false);
+    }
+  };
+
   const handleAiFetch = async () => {
     if (isAuthenticated === false) {
       toast.error('로그인이 필요합니다.');
@@ -411,6 +491,8 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
       return;
     }
     setEditError(null);
+    setAlbumTrackDraftNotice(null);
+    setAlbumTrackMergePreview(null);
     setDeleteTrackKey(null);
     setNewTrackNumber(String((tracks.reduce((max, t) => Math.max(max, t.track_number), 0) || 0) + 1));
     setNewTrackTitle('');
@@ -429,8 +511,105 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
   const exitEditMode = () => {
     setEditMode(false);
     setEditError(null);
+    setAlbumTrackDraftNotice(null);
+    setAlbumTrackMergePreview(null);
     setDeleteTrackKey(null);
     setNewTrackTitle('');
+  };
+
+  const openAlbumTrackMergePreview = () => {
+    const flattened = flattenAlbumTracksForLyrics(album?.tracks ?? []);
+    if (flattened.length === 0) {
+      setAlbumTrackMergePreview(null);
+      setAlbumTrackDraftNotice('앨범 상세에서 트랙리스트를 먼저 불러와 주세요.');
+      return;
+    }
+
+    const byNumber = new Map<number, TrackEditDraft>();
+    for (const draft of editDrafts) {
+      const num = Number(draft.track_number);
+      if (Number.isFinite(num) && Number.isInteger(num) && num > 0 && !byNumber.has(num)) {
+        byNumber.set(num, draft);
+      }
+    }
+
+    const titleChanges: AlbumTrackTitleChangePreview[] = [];
+    const additions: { track_number: number; track_title: string }[] = [];
+    for (const albumTrack of flattened) {
+      const existing = byNumber.get(albumTrack.track_number);
+      if (existing) {
+        if (existing.track_title.trim() !== albumTrack.track_title) {
+          titleChanges.push({
+            key: existing.key,
+            track_number: albumTrack.track_number,
+            from: existing.track_title,
+            to: albumTrack.track_title,
+            hasTranslation: existing.hasTranslation,
+            excluded: false,
+          });
+        }
+        continue;
+      }
+      additions.push({
+        track_number: albumTrack.track_number,
+        track_title: albumTrack.track_title,
+      });
+    }
+
+    setAlbumTrackDraftNotice(null);
+    setEditError(null);
+    if (titleChanges.length === 0 && additions.length === 0) {
+      setAlbumTrackMergePreview(null);
+      setAlbumTrackDraftNotice('변경된 항목이 없습니다.');
+      return;
+    }
+    setAlbumTrackMergePreview({ titleChanges, additions });
+  };
+
+  const applyAlbumTrackMergePreview = () => {
+    if (!albumTrackMergePreview) return;
+
+    const titleByKey = new Map(
+      albumTrackMergePreview.titleChanges
+        .filter((row) => !row.excluded)
+        .map((row) => [row.key, row.to] as const),
+    );
+    const existingIdsBefore = editDrafts.filter((d) => d.id).map((d) => d.id as string);
+
+    const next: TrackEditDraft[] = editDrafts.map((draft) => {
+      const nextTitle = titleByKey.get(draft.key);
+      return nextTitle != null ? { ...draft, track_title: nextTitle } : { ...draft };
+    });
+
+    for (const addition of albumTrackMergePreview.additions) {
+      next.push({
+        key: newDraftKey(),
+        id: null,
+        track_number: String(addition.track_number),
+        track_title: addition.track_title,
+        hasTranslation: false,
+      });
+    }
+
+    const existingIdsAfter = next.filter((d) => d.id).map((d) => d.id as string);
+    if (
+      existingIdsBefore.length !== existingIdsAfter.length ||
+      existingIdsBefore.some((id) => !existingIdsAfter.includes(id))
+    ) {
+      setEditError('앨범 트랙 병합이 기존 트랙을 제거하려 해 중단했습니다.');
+      return;
+    }
+
+    const appliedTitleCount = titleByKey.size;
+    const addedCount = albumTrackMergePreview.additions.length;
+    setEditDrafts(next.sort((a, b) => Number(a.track_number) - Number(b.track_number)));
+    setAlbumTrackMergePreview(null);
+    setDeleteTrackKey(null);
+    setEditError(null);
+    const parts: string[] = [];
+    if (appliedTitleCount > 0) parts.push(`제목 ${appliedTitleCount}개 변경`);
+    if (addedCount > 0) parts.push(`${addedCount}곡 추가`);
+    setAlbumTrackDraftNotice(parts.length > 0 ? parts.join(', ') : '변경된 항목이 없습니다.');
   };
 
   const validateDrafts = (drafts: TrackEditDraft[]) => {
@@ -646,14 +825,46 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
             style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
           >
             <p className="mb-3 text-sm font-semibold">트랙리스트가 없습니다</p>
+            {(() => {
+              const albumTrackCount = album?.tracks.length ?? 0;
+              const canImportAlbumTracks = albumTrackCount > 0;
+              return (
+                <div className="mb-4 space-y-2">
+                  <button
+                    type="button"
+                    disabled={
+                      importingAlbumTracks ||
+                      !canImportAlbumTracks ||
+                      isAuthenticated === false ||
+                      aiLoading
+                    }
+                    onClick={() => void handleImportFromAlbumTracks()}
+                    className="btn-apple inline-flex h-[42px] items-center gap-2 px-4 text-sm font-semibold disabled:opacity-40"
+                  >
+                    {importingAlbumTracks ? <Loader2 className="size-4 animate-spin" /> : null}
+                    앨범 트랙리스트에서 가져오기
+                  </button>
+                  {!canImportAlbumTracks ? (
+                    <p className="text-xs opacity-65">
+                      앨범 상세에서 트랙리스트를 먼저 불러와 주세요
+                    </p>
+                  ) : (
+                    <p className="text-xs opacity-65">
+                      앨범에 저장된 {albumTrackCount}곡을 Lyrics 트랙으로 채웁니다(디스크는 이어지는
+                      번호).
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
             <p className="mb-4 text-xs opacity-65">
               AI로 곡 제목·순번만 조회합니다. 가사 원문은 가져오지 않습니다.
             </p>
             <button
               type="button"
-              disabled={aiLoading || isAuthenticated === false}
+              disabled={aiLoading || importingAlbumTracks || isAuthenticated === false}
               onClick={() => void handleAiFetch()}
-              className="btn-apple inline-flex h-[42px] items-center gap-2 px-4 text-sm font-semibold disabled:opacity-40"
+              className="btn-apple btn-apple-secondary inline-flex h-[42px] items-center gap-2 px-4 text-sm font-semibold disabled:opacity-40"
             >
               {aiLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
               AI로 트랙리스트 불러오기
@@ -689,6 +900,18 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm disabled:opacity-40"
+                onClick={openAlbumTrackMergePreview}
+                disabled={
+                  savingEdits ||
+                  albumTrackMergePreview != null ||
+                  (album?.tracks.length ?? 0) === 0
+                }
+              >
+                앨범 트랙 불러오기
+              </button>
+              <button
+                type="button"
                 className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
                 onClick={exitEditMode}
                 disabled={savingEdits}
@@ -699,16 +922,125 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
                 type="button"
                 className="btn-apple h-[34px] px-3 text-sm font-semibold"
                 onClick={() => void handleSaveEdits()}
-                disabled={savingEdits}
+                disabled={savingEdits || albumTrackMergePreview != null}
               >
                 {savingEdits ? '저장 중...' : '변경 저장'}
               </button>
             </div>
           </div>
+          {(album?.tracks.length ?? 0) === 0 ? (
+            <p className="text-xs opacity-65">앨범 상세에서 트랙리스트를 먼저 불러와 주세요</p>
+          ) : null}
           <p className="text-xs opacity-65">
             추가·수정·삭제는 임시 반영됩니다. 저장을 눌러야 서버에 적용되며, 제목·번호만 바꾸면 가사는 유지되고
             트랙 삭제는 저장 시 해당 가사도 함께 삭제됩니다.
           </p>
+          {albumTrackDraftNotice ? (
+            <p className="rounded-lg px-3 py-2 text-sm" style={{ background: 'var(--badge-bg)' }}>
+              {albumTrackDraftNotice}
+            </p>
+          ) : null}
+          {albumTrackMergePreview ? (
+            <div
+              className="space-y-3 rounded-2xl border p-4"
+              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+            >
+              <p className="text-sm font-semibold">앨범 트랙 미리보기</p>
+              <p className="text-xs opacity-65">
+                적용 전에 제목 변경·추가만 확인합니다. 기존 Lyrics 트랙은 삭제되지 않습니다.
+              </p>
+              {albumTrackMergePreview.titleChanges.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold opacity-75">제목 변경</p>
+                  <ul className="space-y-2">
+                    {albumTrackMergePreview.titleChanges.map((row) => (
+                      <li
+                        key={row.key}
+                        className="rounded-lg px-3 py-2 text-sm"
+                        style={{
+                          background: row.hasTranslation
+                            ? 'rgba(10,132,255,0.12)'
+                            : 'var(--badge-bg)',
+                          border: row.hasTranslation
+                            ? '1px solid rgba(10,132,255,0.35)'
+                            : '1px solid var(--border)',
+                          opacity: row.excluded ? 0.55 : 1,
+                        }}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs opacity-65">#{row.track_number}</p>
+                            <p className="break-words">
+                              <span className="opacity-70">{row.from}</span>
+                              <span className="mx-1 opacity-45">→</span>
+                              <span className="font-semibold">{row.to}</span>
+                            </p>
+                            {row.hasTranslation ? (
+                              <p className="mt-1 text-[11px] font-semibold" style={{ color: '#0a84ff' }}>
+                                가사 있는 트랙 — 번호가 어긋나면 다른 곡 제목에 붙을 수 있습니다
+                              </p>
+                            ) : null}
+                          </div>
+                          <label className="flex shrink-0 items-center gap-1.5 text-xs">
+                            <input
+                              type="checkbox"
+                              checked={!row.excluded}
+                              onChange={(e) =>
+                                setAlbumTrackMergePreview((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        titleChanges: prev.titleChanges.map((item) =>
+                                          item.key === row.key
+                                            ? { ...item, excluded: !e.target.checked }
+                                            : item,
+                                        ),
+                                      }
+                                    : prev,
+                                )
+                              }
+                            />
+                            적용
+                          </label>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {albumTrackMergePreview.additions.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold opacity-75">추가될 곡</p>
+                  <ul className="space-y-1 text-sm">
+                    {albumTrackMergePreview.additions.map((row) => (
+                      <li key={`add-${row.track_number}-${row.track_title}`}>
+                        <span className="tabular-nums opacity-55">#{row.track_number}</span>{' '}
+                        {row.track_title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="btn-apple btn-apple-secondary h-[34px] px-3 text-sm"
+                  onClick={() => setAlbumTrackMergePreview(null)}
+                  disabled={savingEdits}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className="btn-apple h-[34px] px-3 text-sm font-semibold"
+                  onClick={applyAlbumTrackMergePreview}
+                  disabled={savingEdits}
+                >
+                  적용
+                </button>
+              </div>
+            </div>
+          ) : null}
           {editError ? (
             <p className="rounded-lg px-3 py-2 text-sm" style={{ background: 'rgba(255,59,48,0.12)', color: '#ff3b30' }}>
               {editError}

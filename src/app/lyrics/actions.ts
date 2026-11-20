@@ -59,6 +59,54 @@ export async function replaceAlbumTracks(
   return data;
 }
 
+export type InsertLyricsTracksFromAlbumResult =
+  | { status: 'inserted'; count: number }
+  | { status: 'already_has_tracks'; count: number }
+  | { status: 'empty' };
+
+export async function insertLyricsTracksFromAlbumIfEmpty(
+  albumId: number,
+  tracks: { track_number: number; track_title: string }[],
+): Promise<InsertLyricsTracksFromAlbumResult> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('로그인이 필요합니다.');
+  if (!Number.isFinite(albumId)) throw new Error('앨범 ID가 올바르지 않습니다.');
+  const cleaned = tracks
+    .map((t) => ({
+      track_number: Number(t.track_number),
+      track_title: String(t.track_title || '').trim(),
+    }))
+    .filter((t) => t.track_title && Number.isFinite(t.track_number) && t.track_number > 0);
+  if (cleaned.length === 0) return { status: 'empty' };
+
+  const numbers = cleaned.map((t) => t.track_number);
+  if (new Set(numbers).size !== numbers.length) {
+    throw new Error('트랙 번호가 중복됩니다.');
+  }
+
+  const supabase = await createClient();
+  const { count, error: countError } = await supabase
+    .from('lyrics_translation_tracks')
+    .select('id', { count: 'exact', head: true })
+    .eq('album_id', albumId)
+    .eq('user_id', user.id);
+  if (countError) throw new Error(toSupabaseErrorMessage(countError));
+  if ((count ?? 0) > 0) {
+    return { status: 'already_has_tracks', count: count ?? 0 };
+  }
+
+  const { error } = await supabase.from('lyrics_translation_tracks').insert(
+    cleaned.map((t) => ({
+      user_id: user.id,
+      album_id: albumId,
+      track_number: t.track_number,
+      track_title: t.track_title,
+    })),
+  );
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return { status: 'inserted', count: cleaned.length };
+}
+
 export async function saveLyricsTranslation(input: {
   trackId: string;
   youtubeUrl: string;
