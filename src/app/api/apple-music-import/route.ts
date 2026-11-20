@@ -10,6 +10,10 @@ import {
   upscaleAppleArtworkUrl,
 } from '@/lib/appleMusic';
 import {
+  fetchAppleMusicPageTracks,
+  needsAppleMusicPageTrackFallback,
+} from '@/lib/appleMusicPageTracks';
+import {
   parseItunesAlbumTracks,
   type AppleMusicAlbumTrack,
 } from '@/lib/appleMusicTracks';
@@ -26,6 +30,7 @@ type ItunesLookupAlbum = {
   collectionViewUrl?: unknown;
   artworkUrl100?: unknown;
   releaseDate?: unknown;
+  trackCount?: unknown;
 };
 
 type ImportOk = {
@@ -36,6 +41,7 @@ type ImportOk = {
   albumType: 'Album' | 'EP' | 'Single';
   appleMusicUrl: string;
   tracks: AppleMusicAlbumTrack[];
+  source: 'itunes' | 'apple_music_page';
 };
 
 function isAllowedArtworkHost(hostname: string): boolean {
@@ -148,6 +154,18 @@ async function fetchLookupTracks(
   return parseItunesAlbumTracks(results);
 }
 
+function collectionTrackCount(album: ItunesLookupAlbum): number | null {
+  const value = album.trackCount;
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -204,6 +222,7 @@ export async function POST(req: NextRequest) {
     const coverImageUrl = artworkUrl ? await resolveCoverImageUrl(artworkUrl) : null;
 
     let tracks: AppleMusicAlbumTrack[] = [];
+    let source: ImportOk['source'] = 'itunes';
     try {
       const trackCountries = albumCountry
         ? [
@@ -219,6 +238,15 @@ export async function POST(req: NextRequest) {
       tracks = [];
     }
 
+    const expectedTrackCount = collectionTrackCount(album);
+    if (needsAppleMusicPageTrackFallback(tracks.length, expectedTrackCount)) {
+      const pageTracks = await fetchAppleMusicPageTracks(appleMusicUrl);
+      if (pageTracks.length > tracks.length) {
+        tracks = pageTracks;
+        source = 'apple_music_page';
+      }
+    }
+
     const payload: ImportOk = {
       artist: artistName,
       albumName: stripAppleCatalogSuffix(collectionName),
@@ -229,6 +257,7 @@ export async function POST(req: NextRequest) {
       albumType: detectAppleMusicAlbumType(collectionName),
       appleMusicUrl,
       tracks,
+      source,
     };
     return NextResponse.json(payload);
   } catch {

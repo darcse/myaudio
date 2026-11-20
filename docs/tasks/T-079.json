@@ -1,0 +1,29 @@
+{
+  "id": "T-079",
+  "goal": "Apple Music에는 전곡이 있는데 iTunes 조회로 트랙이 0곡이거나 일부만 불러와지는 원인을 확인하고, Apple Music 앨범 페이지에서 전체 트랙을 읽어 보조 수단으로 쓸 수 있는지 판단 근거를 받는다.",
+  "context": "조사만 한다. 앱 코드·스크립트·DB는 수정하지 않는다. 배경: 트랙 일괄 채우기(T-078) 후 일부 앨범이 한국 스토어 주소로도 커버·발매일은 갱신되는데 트랙은 0곡이거나 1곡만 들어온다(JW 확인). 플래너 확인: 아래 두 앨범의 music.apple.com 페이지는 한국 스토어에서 정상 노출되며 HIStory Continues는 15곡·1시간 17분, SHISHAMO 앨범은 7곡·약 28분으로 표시된다. 가설: 현재 사용하는 iTunes lookup API(itunes.apple.com/lookup, entity=song)는 iTunes Store 곡 단위 판매 목록 기준이라, Apple Music 스트리밍 전용이거나 곡 단위 판매가 막힌 트랙은 빠진다. 조사 대상: (A) https://music.apple.com/kr/album/history-continues/1894092998 (B) https://music.apple.com/kr/album/%E5%A5%BD%E3%81%8D100-%E3%81%AE%E7%89%87%E6%80%9D%E3%81%84%E3%82%92%E3%81%97%E3%81%A6%E3%81%84%E3%82%8B%E3%81%82%E3%81%AA%E3%81%9F%E3%81%B8/1657737193 (C) 보고서에서 1곡만 들어온 앨범 중 2개: album id 10(THIS IS JAPANESE GIRL), 802(愛MUST BE) — DB의 apple_music_url 사용. 확인할 것: (1) 각 앨범 id로 lookup을 country=kr·jp·us, entity=album / entity=song(limit=200)으로 호출해 결과 수·wrapperType·collectionName을 표로 정리(원본 응답 전체를 출력하지 말고 필요한 필드만 요약). (2) 각 album 페이지의 원본 HTML(서버 응답)에 전체 트랙 목록 데이터가 들어 있는지(예: script type=application/ld+json의 MusicAlbum.tracks, 또는 serialized 데이터)와 트랙 수·곡명·길이·디스크 정보가 있는지 확인. (3) (2)가 된다면 보조 수단(iTunes 결과가 0곡이거나 페이지의 곡 수보다 적을 때만 페이지에서 보충) 구현 시 예상 위험(페이지 구조 변경, 요청 차단, 이용 약관)과 필요한 범위를 의견으로 제시. 결과는 result에 표와 결론 3~5줄로. 토큰 절약: HTML 전체를 출력하거나 읽지 말고 필요한 부분만 추출해 확인한다. 요청은 앨범당 몇 회로 제한하고 사이에 1초 이상 쉰다.",
+  "scope": {
+    "in": [
+      "iTunes lookup 응답 비교(국가·entity별 요약)",
+      "Apple Music 앨범 페이지 원본 HTML의 트랙 데이터 존재 여부 확인",
+      "보조 수단 가능성·위험 의견"
+    ],
+    "out": [
+      "앱 코드·스크립트 수정 (절대 하지 말 것)",
+      "DB 변경",
+      "대량 요청·전체 앨범 재조사",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "result에 4개 앨범의 국가·entity별 lookup 결과 요약표가 있다",
+    "result에 각 앨범 페이지 원본에 전체 트랙 데이터가 있는지와 어떤 형태(필드)인지 적혀 있다",
+    "result에 원인 결론과 보조 수단 도입 의견(위험 포함)이 있다",
+    "코드·DB 변경이 없다(git diff에 TASK.json만)"
+  ],
+  "auto_commit": true,
+  "commit_message": "(docs): T-079 Apple Music 트랙 누락 원인 조사 결과",
+  "status": "done",
+  "result": "## iTunes lookup 요약 (entity=album|song, country=kr|jp|us, song limit=200)\n\n### A HIStory Continues (1894092998)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr/jp/us × album | 1 | collection | HIStory Continues | 15 | 0 |\n| kr/jp/us × song | 1 | collection만 | HIStory Continues | 15 | 0 |\n→ 앨범 메타는 있으나 entity=song으로 track(곡) 0건(전 국가).\n\n### B 好き100%の片思いをしているあなたへ (1657737193)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr/jp/us × album | 1 | collection | 好き100%… | 7 | 0 |\n| kr/jp/us × song | 1 | collection만 | 好き100%… | 7 | 0 |\n→ A와 동일 패턴(전곡 누락).\n\n### C10 THIS IS JAPANESE GIRL (DB id=10, appleId=1745288911)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr album/song | 1 | collection | … - Single | 1 | 0 |\n| jp/us album | 1 | collection | … - Single | 1 | 0 |\n| jp/us song | 2 | collection+track | … - Single | 1 | 1 |\n→ URL·컬렉션명이 Single. 1곡은 누락이 아니라 싱글 상품.\n\n### C802 愛MUST BE (DB id=802, appleId=6810500452)\n| country/entity | resultCount | wrapperType | collectionName | trackCount | song수 |\n|---|---|---|---|---|---|\n| kr album/song | 1 | collection | … - Single | 1 | 0 |\n| jp/us album | 1 | collection | … - Single | 1 | 0 |\n| jp/us song | 2 | collection+track | … - Single | 1 | 1 |\n→ C10과 동일(싱글 URL).\n\n## 페이지 HTML 트랙 데이터\n공통: HTTP 200. `application/ld+json` MusicAlbum.tracks(MusicRecording[]) + `serialized-server-data` 임베드.\n| 앨범 | ld+json 곡수 | 필드 | serialized | 비고 |\n|---|---|---|---|---|\n| A | 15 | name, duration(ISO8601 PT…), url | title, trackNumber, discNumber, duration(ms) 15건 | 전곡 확보 가능 |\n| B | 7 | 동일 | 동일 7건 | 전곡 확보 가능 |\n| C10 | 1 | 동일 | 1건 | 페이지도 Single 1곡 |\n| C802 | 1 | 동일 | 1건 | 페이지도 Single 1곡 |\nld+json에는 disc/trackNumber 없음(배열 순서). disc·번호는 serialized 쪽이 있음.\n\n## 결론\n1. 가설 확인(A/B): iTunes lookup은 앨범 trackCount는 알리지만 entity=song 곡 목록이 비는 경우가 있음(스트리밍/판매 단위 불일치로 보임). 커버·발매일만 되고 트랙 0인 원인.\n2. C10/C802의 DB 1곡은 API 결함이 아니라 apple_music_url이 싱글 페이지를 가리킴.\n3. 보조 수단: iTunes song수=0이거나 collection.trackCount보다 적을 때만 페이지 파싱 가능. 우선 ld+json(name+duration), disc/번호 필요 시 serialized-server-data.\n4. 위험: HTML/스크립트 구조 변경, 차단·약관, 공식 API 아님. 범위는 fallback 전용·요청 간격 유지·파싱 실패 시 기존 동작 유지가 안전.\n5. 권장: 싱글 URL 오지정은 URL 교정 이슈로 분리; 0곡 앨범만 페이지 fallback 검토.\n\n검증: 앱/스크립트/DB 미변경. git: TASK.json(+docs/tasks/T-078.json 보관)."
+}
