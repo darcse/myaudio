@@ -21,7 +21,11 @@ import {
   isGenre2OptionForGenre1,
 } from '../constants';
 import type { Album, AlbumFormData, AlbumTrack, SelectedAlbum } from '../types';
-import { parseAppleMusicAlbumInput } from '@/lib/appleMusic';
+import {
+  appleMusicImportStorefrontForCountry,
+  parseAppleMusicAlbumInput,
+  type AppleMusicImportStorefront,
+} from '@/lib/appleMusic';
 import { normalizeArtistNameForCompare } from '@/app/artists/utils';
 import {
   ensureCatalogLibrary,
@@ -292,6 +296,28 @@ export function AlbumForm({
     };
   }, []);
 
+  const fetchAppleMusicImport = async (
+    url: string,
+    storefront: AppleMusicImportStorefront,
+  ): Promise<AppleMusicImportResponse | null> => {
+    const res = await fetch('/api/apple-music-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, storefront }),
+    });
+    const data = (await res.json().catch(() => null)) as AppleMusicImportResponse | null;
+    if (!res.ok || !data || data.error) {
+      setAppleMusicImportError(
+        data?.error?.trim() ||
+          (res.status === 404
+            ? '앨범 정보를 찾지 못했습니다.'
+            : '앨범 정보를 가져오지 못했습니다.'),
+      );
+      return null;
+    }
+    return data;
+  };
+
   const handleAppleMusicImport = async () => {
     if (appleMusicImporting) return;
     setAppleMusicImportError(null);
@@ -306,21 +332,11 @@ export function AlbumForm({
     }
     setAppleMusicImporting(true);
     try {
-      const res = await fetch('/api/apple-music-import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: formData.apple_music_url }),
-      });
-      const data = (await res.json().catch(() => null)) as AppleMusicImportResponse | null;
-      if (!res.ok || !data || data.error) {
-        setAppleMusicImportError(
-          data?.error?.trim() ||
-            (res.status === 404
-              ? '앨범 정보를 찾지 못했습니다.'
-              : '앨범 정보를 가져오지 못했습니다.'),
-        );
-        return;
-      }
+      const url = formData.apple_music_url ?? '';
+      const initialStorefront = appleMusicImportStorefrontForCountry(formData.country);
+      const data = await fetchAppleMusicImport(url, initialStorefront);
+      if (!data) return;
+
       if (isEdit) {
         setFormData((prev) => ({
           ...prev,
@@ -330,29 +346,58 @@ export function AlbumForm({
         }));
       } else {
         const importedArtist = data.artist?.trim() ?? '';
-        const importedTracks = normalizeAlbumTracksFromDb(data.tracks);
+        const existingArtist = formData.artist.trim();
+        const nextArtist = existingArtist || importedArtist;
+        const defaults =
+          !isClassicMode && nextArtist
+            ? artistDefaultsFromLibrary(artistDefaultsLibrary, nextArtist)
+            : { artist_type: '', country: '' };
+        const nextCountry = formData.country.trim()
+          ? formData.country.trim()
+          : defaults.country || '';
+
+        let albumData = data;
+        if (nextCountry === '일본' && initialStorefront !== 'jp') {
+          try {
+            const jpRes = await fetch('/api/apple-music-import', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url, storefront: 'jp' }),
+            });
+            const jpData = (await jpRes.json().catch(() => null)) as AppleMusicImportResponse | null;
+            if (jpRes.ok && jpData && !jpData.error) {
+              const jpTracks = normalizeAlbumTracksFromDb(jpData.tracks);
+              albumData = {
+                ...data,
+                albumName: jpData.albumName?.trim() || data.albumName,
+                tracks: jpTracks.length > 0 ? jpTracks : data.tracks,
+                releaseDate: jpData.releaseDate?.trim() || data.releaseDate,
+                coverImageUrl: jpData.coverImageUrl?.trim() || data.coverImageUrl,
+                appleMusicUrl: jpData.appleMusicUrl?.trim() || data.appleMusicUrl,
+              };
+            }
+          } catch {
+          }
+        }
+
+        const importedTracks = normalizeAlbumTracksFromDb(albumData.tracks);
         setFormData((prev) => {
           const shared = {
             ...prev,
-            album_name: data.albumName?.trim() || prev.album_name,
-            release_date: data.releaseDate?.trim() || prev.release_date,
-            cover_image_url: data.coverImageUrl?.trim() || prev.cover_image_url,
-            apple_music_url: data.appleMusicUrl?.trim() || prev.apple_music_url,
+            album_name: albumData.albumName?.trim() || prev.album_name,
+            release_date: albumData.releaseDate?.trim() || prev.release_date,
+            cover_image_url: albumData.coverImageUrl?.trim() || prev.cover_image_url,
+            apple_music_url: albumData.appleMusicUrl?.trim() || prev.apple_music_url,
             tracks:
               prev.tracks.length === 0 && importedTracks.length > 0
                 ? importedTracks
                 : prev.tracks,
           };
           if (isClassicMode) return shared;
-          const existingArtist = prev.artist.trim();
-          const nextArtist = existingArtist || importedArtist;
-          const defaults = nextArtist
-            ? artistDefaultsFromLibrary(artistDefaultsLibrary, nextArtist)
-            : { artist_type: '', country: '' };
           return {
             ...shared,
             artist: nextArtist,
-            album_type: data.albumType?.trim() || prev.album_type,
+            album_type: albumData.albumType?.trim() || prev.album_type,
             artist_type: prev.artist_type.trim()
               ? prev.artist_type
               : defaults.artist_type || prev.artist_type,
@@ -935,6 +980,7 @@ export function AlbumForm({
           <AlbumTracksSection
             tracks={formData.tracks}
             appleMusicUrl={formData.apple_music_url ?? ''}
+            country={formData.country}
             onChange={(tracks) => setFormData((prev) => ({ ...prev, tracks }))}
           />
         </div>

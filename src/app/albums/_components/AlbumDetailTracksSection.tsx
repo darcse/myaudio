@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { FileText } from 'lucide-react';
+import { appleMusicImportStorefrontForCountry } from '@/lib/appleMusic';
 import { fillAlbumTracksIfEmpty } from '../actions';
 import {
   matchAlbumTracksToLyricsTrackIds,
@@ -58,7 +59,10 @@ export function AlbumDetailTracksSection({
       const res = await fetch('/api/apple-music-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: appleMusicUrl }),
+        body: JSON.stringify({
+          url: appleMusicUrl,
+          storefront: appleMusicImportStorefrontForCountry(viewingItem.country),
+        }),
       });
       const data = (await res.json().catch(() => null)) as ImportResponse | null;
       if (!res.ok || !data || data.error) {

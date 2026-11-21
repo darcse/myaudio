@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  appleMusicAlbumPageUrl,
   appleMusicReleaseDateYmd,
   detectAppleMusicAlbumType,
   extractAppleMusicAlbumRef,
-  lookupCountriesForAppleStorefront,
+  lookupCountriesForImportStorefront,
   parseAppleMusicAlbumInput,
+  parseAppleMusicImportStorefront,
   stripAppleCatalogSuffix,
   toKrAppleAlbumUrl,
   upscaleAppleArtworkUrl,
@@ -173,8 +175,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = (await req.json().catch(() => ({}))) as { url?: unknown };
+    const body = (await req.json().catch(() => ({}))) as {
+      url?: unknown;
+      storefront?: unknown;
+    };
     const rawUrl = typeof body.url === 'string' ? body.url : '';
+    const requestedStorefront = parseAppleMusicImportStorefront(body.storefront);
     const parsed = parseAppleMusicAlbumInput(rawUrl);
     if (parsed.status === 'empty') {
       return NextResponse.json({ error: 'Apple Music 주소를 입력해 주세요.' }, { status: 400 });
@@ -191,9 +197,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const lookupCountries = lookupCountriesForImportStorefront(
+      requestedStorefront,
+      ref.storefront,
+    );
+
     let album: ItunesLookupAlbum | null = null;
     let albumCountry = '';
-    for (const country of lookupCountriesForAppleStorefront(ref.storefront)) {
+    for (const country of lookupCountries) {
       album = await fetchLookupAlbum(ref.albumId, country);
       if (album) {
         albumCountry = country;
@@ -225,11 +236,8 @@ export async function POST(req: NextRequest) {
     let source: ImportOk['source'] = 'itunes';
     try {
       const trackCountries = albumCountry
-        ? [
-            albumCountry,
-            ...lookupCountriesForAppleStorefront(ref.storefront).filter((c) => c !== albumCountry),
-          ]
-        : lookupCountriesForAppleStorefront(ref.storefront);
+        ? [albumCountry, ...lookupCountries.filter((c) => c !== albumCountry)]
+        : lookupCountries;
       for (const country of trackCountries) {
         tracks = await fetchLookupTracks(ref.albumId, country);
         if (tracks.length > 0) break;
@@ -240,7 +248,11 @@ export async function POST(req: NextRequest) {
 
     const expectedTrackCount = collectionTrackCount(album);
     if (needsAppleMusicPageTrackFallback(tracks.length, expectedTrackCount)) {
-      const pageTracks = await fetchAppleMusicPageTracks(appleMusicUrl);
+      const pageUrl =
+        requestedStorefront === 'jp'
+          ? appleMusicAlbumPageUrl(ref.albumId, 'jp')
+          : appleMusicUrl;
+      const pageTracks = await fetchAppleMusicPageTracks(pageUrl);
       if (pageTracks.length > tracks.length) {
         tracks = pageTracks;
         source = 'apple_music_page';

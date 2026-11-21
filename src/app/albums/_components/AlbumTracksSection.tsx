@@ -1,7 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import {
+  appleMusicImportStorefrontForCountry,
+  type AppleMusicImportStorefront,
+} from '@/lib/appleMusic';
 import type { AlbumTrack } from '../types';
 import {
   emptyAlbumTrack,
@@ -12,6 +16,7 @@ import {
 type AlbumTracksSectionProps = {
   tracks: AlbumTrack[];
   appleMusicUrl: string;
+  country?: string;
   onChange: (tracks: AlbumTrack[]) => void;
 };
 
@@ -23,11 +28,19 @@ type ImportResponse = {
 export function AlbumTracksSection({
   tracks,
   appleMusicUrl,
+  country = '',
   onChange,
 }: AlbumTracksSectionProps) {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false);
+  const [storefront, setStorefront] = useState<AppleMusicImportStorefront>(() =>
+    appleMusicImportStorefrontForCountry(country),
+  );
+
+  useEffect(() => {
+    setStorefront(appleMusicImportStorefrontForCountry(country));
+  }, [country]);
 
   const showDiscHeaders = useMemo(() => {
     const discs = new Set(tracks.map((track) => (track.disc > 0 ? track.disc : 1)));
@@ -77,7 +90,7 @@ export function AlbumTracksSection({
       const res = await fetch('/api/apple-music-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, storefront }),
       });
       const data = (await res.json().catch(() => null)) as ImportResponse | null;
       if (!res.ok || !data || data.error) {
@@ -124,6 +137,37 @@ export function AlbumTracksSection({
         >
           {importing ? '불러오는 중…' : 'Apple Music에서 불러오기'}
         </button>
+        <div
+          className="inline-flex h-[36px] overflow-hidden rounded-lg"
+          style={{ border: '1px solid var(--border)' }}
+          role="group"
+          aria-label="Apple Music 스토어"
+        >
+          {(
+            [
+              { id: 'kr', label: '한국' },
+              { id: 'jp', label: '일본' },
+            ] as const
+          ).map((option) => {
+            const active = storefront === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                className="px-2.5 text-xs font-medium transition-opacity disabled:opacity-40"
+                style={{
+                  background: active ? 'var(--badge-bg)' : 'transparent',
+                  opacity: active ? 1 : 0.65,
+                }}
+                aria-pressed={active}
+                disabled={importing}
+                onClick={() => setStorefront(option.id)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {overwriteConfirmOpen ? (

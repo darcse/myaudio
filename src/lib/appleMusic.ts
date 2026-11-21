@@ -168,3 +168,35 @@ export function lookupCountriesForAppleStorefront(storefront: string | null): st
   if (!preferred) return [...ordered];
   return [preferred, ...ordered.filter((code) => code !== preferred)];
 }
+
+export type AppleMusicImportStorefront = 'kr' | 'jp';
+
+export function parseAppleMusicImportStorefront(
+  value: unknown,
+): AppleMusicImportStorefront | null {
+  if (value === 'kr' || value === 'jp') return value;
+  return null;
+}
+
+export function lookupCountriesForImportStorefront(
+  storefront: AppleMusicImportStorefront | null | undefined,
+  urlStorefront: string | null,
+): string[] {
+  if (storefront === 'jp') return lookupCountriesForAppleStorefront('jp');
+  if (storefront === 'kr') return lookupCountriesForAppleStorefront('kr');
+  return lookupCountriesForAppleStorefront(urlStorefront);
+}
+
+export function appleMusicAlbumPageUrl(
+  albumId: string,
+  storefront: AppleMusicImportStorefront | null | undefined,
+): string {
+  const code = storefront === 'jp' ? 'jp' : 'kr';
+  return `https://music.apple.com/${code}/album/${albumId}`;
+}
+
+export function appleMusicImportStorefrontForCountry(
+  country: string | null | undefined,
+): AppleMusicImportStorefront {
+  return country?.trim() === '일본' ? 'jp' : 'kr';
+}

@@ -1,0 +1,29 @@
+{
+  "id": "T-086",
+  "goal": "Pop & Rock 앨범 폼·목록 필터·아티스트 필터의 장르2 선택지가 2차 개편 목록으로 바뀌어, DB에 이관된 값이 '(기존 값)'이 아니라 정상 선택지로 보인다.",
+  "context": "DB는 JW가 2026-11-21 장르2 2차 개편 SQL로 이미 이관했다(확인 쿼리 결과 새 목록 밖 값 0건, 백업 테이블 album_backup_genre2_261121). 대상: src/app/albums/constants.ts의 GENRE2_OPTIONS_BY_GENRE1(이 상수를 앨범 폼·Pop & Rock 목록 하위 장르 필터·아티스트 장르2 필터가 공유). 새 목록(표기·순서 그대로): Rock: Alternative | Shoegaze / Dream Pop | Pop Rock | Punk / Emo | Hard Rock | Prog / Art Rock | Psychedelic; J-Rock: Alternative | Shoegaze / Dream Pop | Pop Rock | Punk / Emo | Hard Rock | Prog / Art Rock | Psychedelic; Metal: Thrash Metal | Melodic Death | Power Metal | Heavy Metal | Metalcore | Industrial | Black Metal | Blackgaze | Gothic Metal; J-Idol: Idol Rock | Loud Rock | Idol Pop | Shoegaze / Dream Pop | Synth Pop | Gothic Pop; K-Pop: Synth Pop | Dance Pop | Pop Rock | Indie Pop | Ballad | Playlist; J-Pop: Pop Rock | Adult Pop | Dance Pop | Indie Pop | City Pop | Anisong | Jazz Pop; Pop: Indie Pop | Synth Pop | Dance Pop | R&B | Pop Rock | Adult Pop | Compilation | Chanson; Electronic: Electro | Big Beat | Trip Hop | House | Ambient; Jazz: Anime Jazz | Nu Jazz | Swing | Fusion; OST: Game OST | Anime OST | Movie OST; Crossover: Orchestral | Classical | Traditional | Playlist; World: Folk | Traditional; 기타: Playlist | Acoustic. Classic 형식 목록(CLASSIC_FORM_OPTIONS)은 변경하지 않는다. 장르2를 문자열로 하드코딩한 다른 곳(예: 이전 표기 'Alternative / Indie' 등)이 있으면 위치를 result에 보고하고, 표시·필터가 깨지는 경우만 최소 수정한다. 실행한 SQL은 레포 루트 'Claude outputs/genre2-migration-261121.sql'에 있으면 내용 수정 없이 scripts/sql/ALBUM-053-genre2-migration-261121.sql로 옮겨 기록한다(파일이 없으면 result에 보고만). 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "GENRE2_OPTIONS_BY_GENRE1 2차 개편 목록으로 교체",
+      "이전 표기 하드코딩 점검(필요 시 최소 수정)",
+      "실행 SQL을 scripts/sql로 기록"
+    ],
+    "out": [
+      "Classic 형식 목록",
+      "DB 데이터·SQL 실행 (절대 하지 말 것)",
+      "폼·필터 UI 구조",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock 앨범 수정 폼에서 이관된 앨범의 장르2가 '(기존 값)' 없이 새 선택지로 선택돼 있다(예: J-Rock Alternative, Metal Melodic Death, J-Pop City Pop)",
+    "Pop & Rock 목록 하위 장르 필터와 아티스트 장르2 필터에 새 목록이 보인다",
+    "Classic 형식 선택지는 이전과 같다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(chore): 장르2 2차 개편 목록 반영, 실행 SQL 기록",
+  "status": "done",
+  "result": "GENRE2_OPTIONS_BY_GENRE1을 2차 개편 목록·순서로 교체. CLASSIC_FORM_OPTIONS 미변경. 이전 표기 하드코딩은 constants.ts 외 없음(AlbumForm의 '(기존 값)'은 옵션 밖일 때만 뜨는 동적 UI). SQL: Claude outputs/genre2-migration-261121.sql → scripts/sql/ALBUM-053-genre2-migration-261121.sql(내용 동일 복사). tsc·lint 통과."
+}
