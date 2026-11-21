@@ -4,7 +4,7 @@
 
 myaudio는 개인이 보유하고 감상한 **음악 앨범(Pop & Rock / Classic), 아티스트·작곡가(Artists), 가사 번역 노트(Lyrics), RecordShelf(CD/LP/Cassette 실물 음반), 헤드파이 기기(Head-fi), 가사·음원 플레이어(Works), 청취 통계 및 아카이브(Insights)**를 한곳에서 체계적으로 등록, 검색, 분석, 회고하는 프리미엄 개인 오디오 라이브러리 웹 애플리케이션입니다. 
 
-본 애플리케이션은 **Apple Music(iTunes Lookup/Search API)**을 연동하여 앨범 메타데이터와 커버를 가져오고, **Gemini AI / OpenAI GPT / Anthropic Claude** 다중 AI 프로바이더 모델을 깊이 있게 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다. 또한 **유튜브 뮤직 앨범 재생목록을 앱 안의 전역 플레이어로 바로 재생**하고, **애플뮤직·유튜브 뮤직·Stage+ 앱으로 바로 연결**해 추천받은 앨범을 곧바로 들을 수 있습니다.
+본 애플리케이션은 **Apple Music(iTunes Lookup/Search API)**을 연동하여 앨범 메타데이터와 커버를 가져오고, **Gemini AI / OpenAI GPT / Anthropic Claude** 다중 AI 프로바이더 모델을 깊이 있게 활용하여 도메인별 AI 해석, 추천 및 시각화(산점도, 매칭 스코어링 등) 기능을 제공합니다. 또한 **유튜브 뮤직 앨범 재생목록을 앱 안의 전역 플레이어로 바로 재생**하고, **애플뮤직·유튜브 뮤직·Stage+ 앱으로 바로 연결**하거나 **Apple 단축어로 내 보관함 앨범을 바로 재생**해 추천받은 앨범을 곧바로 들을 수 있습니다.
 
 ---
 
@@ -91,7 +91,7 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 
 | 테이블명 | 용도 | 설명 |
 | :--- | :--- | :--- |
-| `album` | 앨범 메타데이터 정보 | 제목, 아티스트(연주자), 아티스트 구분(`artist_type`: 솔로/아이돌/밴드/걸스 밴드/그룹/연주자/지휘자/음악감독/기타), 발매일, 장르(`genre1`, `genre2` — Classic일 때 장르2는 형식), 국가(연주자 국적), 오디오 태그, 실물 음반 보유 여부(`owns_cd`, `owns_lp`, `owns_cassette`), 앨범 타입(정규/EP/싱글/라이브/컴필레이션/베스트·스페셜/OST/리메이크/리믹스), AI 소개문, 커버 URL, 무드(`mood_name`), 수동 무드 재분류 플래그(`mood_manually_set`), **Classic 전용 필드**(`classic_instrument` 대표 악기, `composers` jsonb 최대 6명 및 대표 작곡가 레거시 컬럼 `composer` / `composer_country` / `composer_era` / `composer_wiki_url`), **외부·재생 연결**(`title_song_url` Pop은 유튜브 URL / Classic은 Stage+ URL, 유튜브 뮤직 재생목록 ID `youtube_playlist_id`, 트랙 목록 캐시 `youtube_tracks` jsonb, 애플뮤직 앨범 주소 `apple_music_url`) 등 |
+| `album` | 앨범 메타데이터 정보 | 제목, 아티스트(연주자), 아티스트 구분(`artist_type`: 솔로/아이돌/밴드/걸스 밴드/그룹/연주자/지휘자/음악감독/기타), 발매일, 장르(`genre1`, `genre2` — Classic일 때 장르2는 형식), 국가(연주자 국적), 오디오 태그, 실물 음반 보유 여부(`owns_cd`, `owns_lp`, `owns_cassette`), 앨범 타입(정규/EP/싱글/라이브/컴필레이션/베스트·스페셜/OST/리메이크/리믹스), AI 소개문, 커버 URL, 무드(`mood_name`), 수동 무드 재분류 플래그(`mood_manually_set`), **Classic 전용 필드**(`classic_instrument` 대표 악기, `composers` jsonb 최대 6명 및 대표 작곡가 레거시 컬럼 `composer` / `composer_country` / `composer_era` / `composer_wiki_url`), **트랙리스트**(`tracks` jsonb — `{ disc, no, title, duration_ms }` 배열), **외부·재생 연결**(`title_song_url` Pop은 유튜브 URL / Classic은 Stage+ URL, 유튜브 뮤직 재생목록 ID `youtube_playlist_id`, 트랙 목록 캐시 `youtube_tracks` jsonb, 애플뮤직 앨범 주소 `apple_music_url`) 등 |
 | `album_listen_history` | 앨범 청취 이력 | 청취 일자, 소감(리뷰), 감상 시 날씨/온도, 매체(`media`: Apple Music / Spotify / YouTube Music / Stage+ / CD / LP / Cassette / FLAC / 기타), 소스 기기(`source_id`), 앰프 1·2(`dac_amp_id`, `dac_amp2_id`), 리시버(`headphone_id`)를 누적 기록. 구성: Media + Source / Amp 1 + Amp 2 + Receiver |
 | `album_mood_groups` | 무드보드 그룹 캐시 | AI가 분류한 앨범들의 무드 그룹(9가지 대표 무드) 분류 데이터를 캐싱 |
 | `album_moods` | 사용자 지정 무드 이름 | 사용자가 앨범 무드 관리를 위해 커스텀 정의한 무드 키-벨류 정보 |
@@ -143,11 +143,12 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 *   **앨범 등록/수정 폼 (`AlbumForm`)**:
     *   `+` 버튼 클릭 시 검색 단계 없이 폼이 바로 열린다(MusicBrainz 검색 제거).
     *   폼 모드(`pop` / `classic`)가 메뉴별로 분리되며 장르 전환은 불가하다(Classic 모드는 장르 `Classic` 고정, Pop 모드는 `Classic` 선택 불가).
-    *   **Apple Music 가져오기 (`/api/apple-music-import`)**: 새 등록 시 폼 최상단에 애플뮤직 주소 입력 칸(자동 포커스)과 `앨범 정보 가져오기` 버튼이 배치되어 앨범명·발매일·커버·Apple Music URL(Pop 모드는 아티스트·앨범 타입·기존 라이브러리 기반 아티스트 구분/국적 기본값 포함)을 자동으로 채운다. 수정 폼에서는 기존 위치에서 `커버·발매일 가져오기`로 커버·발매일·Apple Music URL만 갱신한다.
+    *   **Apple Music 가져오기 (`/api/apple-music-import`)**: 새 등록 시 폼 최상단에 애플뮤직 주소 입력 칸(자동 포커스)과 `앨범 정보 가져오기` 버튼이 배치되어 앨범명·발매일·커버·트랙리스트·Apple Music URL(Pop 모드는 아티스트·앨범 타입·기존 라이브러리 기반 아티스트 구분/국적 기본값 포함)을 자동으로 채운다. 수정 폼에서는 기존 위치에서 `커버·발매일 가져오기`로 커버·발매일·Apple Music URL만 갱신한다. 국가가 `'일본'`인 앨범은 자동 감지가 아니라 `country` 값 기준으로 일본 스토어(`jp`)에서 앨범명·트랙을 불러오며(일본 스토어에 없으면 한국 결과로 대체), `apple_music_url` 저장값은 `kr` 주소를 유지한다.
+    *   **트랙리스트 탭 (`ALBUM-052`)**: 등록/수정 폼의 `트랙리스트` 탭(트랙이 있으면 `트랙리스트 (N)`)에서 한국/일본 스토어를 선택해 Apple Music 트랙을 불러오고, 곡명 수정·트랙 추가/삭제·위아래 순서 이동을 지원한다. 이미 트랙이 있으면 인라인 덮어쓰기 확인 후에만 교체하며, iTunes Lookup 곡 수가 앨범 트랙 수보다 부족하거나 0곡이면 Apple Music 웹 페이지에서 보충한다.
     *   폼 순서: (신규 시 최상단 애플뮤직 주소) → 앨범명(전체 폭) → 아티스트·아티스트 구분·국가·앨범 타입·연도·발매일·커버·물리 매체 → (수정 시 애플뮤직 주소) + 유튜브 뮤직 재생목록 → 타이틀곡 URL(Pop은 유튜브 / Classic은 Stage+ URL) + Wikipedia URL → 장르1 + 장르2(Classic은 형식 필수 + 대표 악기) → (Classic 전용) 작곡가 목록(최대 6명) → 앨범 소개·추천 리시버. 모바일에서는 세로로 쌓는다.
 *   **3탭 앨범 상세 모달**:
-    *   **상단 버튼**: Pop은 `TV`(타이틀곡 유튜브 영상 임베드 토글), Classic은 `title_song_url`을 외부 링크 버튼(`Stage+` / `YouTube` / `링크`)으로 새 탭 오픈. 이어서 `애플뮤직에서 열기` → `▶`(유튜브 뮤직 앨범 전체 재생). 각 버튼은 해당 데이터가 있을 때만 표시된다.
-    *   **앨범 정보**: 메타데이터, Wikipedia 요약, AI 생성 소개문 및 태그, 무드보드 바로가기 연동(Classic은 무드 UI 미표시). Classic 앨범은 작곡가 1명일 때 이름 링크 + `국기 국적 · 시대`, 2명 이상일 때 3열 원형 프로필 그리드(`artists` 테이블 이미지 연동)를 표시한다. 아티스트명·작곡가명을 클릭하면 해당 스코프의 아티스트/작곡가 뷰로 이동한다.
+    *   **상단 버튼**: Pop은 `TV`(타이틀곡 유튜브 영상 임베드 토글), Classic은 `title_song_url`을 외부 링크 버튼(`Stage+` / `YouTube` / `링크`)으로 새 탭 오픈. 이어서 `애플뮤직에서 열기` → `▶`(유튜브 뮤직 앨범 전체 재생) → `보관함 재생`. 각 버튼은 해당 데이터가 있을 때만 표시된다(보관함 재생은 앨범명이 비어 있지 않으면 항상 표시).
+    *   **앨범 정보**: 메타데이터, Wikipedia 요약, AI 생성 소개문 및 태그, 무드보드 바로가기 연동(Classic은 무드 UI 미표시), 접힌 `트랙리스트 (N)` 섹션(펼치면 목록 표시, 여러 디스크는 Disc별 묶음, 트랙이 없으면 미표시하며 Apple Music 주소가 있는 로그인 사용자는 빈 트랙 불러오기 가능). Classic 앨범은 작곡가 1명일 때 이름 링크 + `국기 국적 · 시대`, 2명 이상일 때 3열 원형 프로필 그리드(`artists` 테이블 이미지 연동)를 표시한다. 아티스트명·작곡가명을 클릭하면 해당 스코프의 아티스트/작곡가 뷰로 이동한다.
     *   **추천 리시버**: 수동 추천 기기 및 AI 추천 리시버(헤드폰+이어폰 확장, 추천 사유 및 새로고침 지원) 노출.
     *   **청취 이력**: 청취 일자, 소감, 날씨/온도, 감상 환경(**Media + Source / Amp 1 + Amp 2 + Receiver**) 기록 및 누적 타임라인.
         *   **Media**: `Apple Music`, `Spotify`, `YouTube Music`, `Stage+`, `CD`, `LP`, `Cassette`, `FLAC/MP3`, `기타` (필수). 저장값은 `FLAC` 그대로이고 화면 표시명만 `FLAC/MP3`.
@@ -161,7 +162,7 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 *   **음감 다이어리 (`/albums/diary`, `ALBUM-032`)**: 날짜별로 그룹핑된 청취 일지 타임라인 제공. **리스트 뷰**와 **캘린더 카드 뷰** 토글 지원, 청취 이력 인라인 수정 및 삭제 지원. 기기 표기는 브랜드 없이 모델명만 노출.
 *   **공용 리시버 콤보박스 (`ALBUM-027`)**: 검색, 최근 사용 기기, 전체보기 지원 콤보박스 UI 적용.
 
-### 4.3. 앨범 전체 재생 & 외부 앱 연결 (`ALBUM-043`, `ALBUM-044`, `ALBUM-045`)
+### 4.3. 앨범 전체 재생 & 외부 앱 연결 (`ALBUM-043`, `ALBUM-044`, `ALBUM-045`, `ALBUM-053`)
 추천받은 앨범을 다른 앱에서 다시 찾지 않고 바로 듣기 위한 기능입니다.
 
 *   **유튜브 뮤직 앨범 전체 재생 (전역 플레이어)**:
@@ -176,6 +177,10 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
     *   주소가 있는 앨범만 애플 로고 버튼이 보이며, 누르면 애플뮤직 앱/웹에서 해당 앨범이 열린다.
     *   한국 앨범은 영문 표기로 등록된 경우가 많아 못 찾을 수 있다. 이럴 때는 폼에 주소를 직접 넣으며, 직접 넣은 주소는 자동 찾기가 덮어쓰지 않는다.
     *   애플뮤직 임베드 재생(로그인해도 30초 미리듣기만 재생)과 스포티파이 연결은 제외했다.
+*   **보관함 재생 (Apple 단축어, `ALBUM-053`)**:
+    *   상세 모달 상단 버튼 줄 끝의 `보관함 재생`을 누르면 `shortcuts://run-shortcut?name=PlayAlbum&input=text&text={encodeURIComponent(앨범명)}`을 열어 Apple 단축어 `PlayAlbum`(상수는 `AlbumInfoSection.tsx`의 `APPLE_MUSIC_LIBRARY_PLAY_SHORTCUT_NAME`)을 실행하고, CD 리핑 업로드본을 포함한 내 Apple Music 보관함의 해당 앨범을 재생한다. Pop & Rock·Classic 공통이다.
+    *   단축어 구성(기기마다 직접 생성 필요): `음악 찾기`(앨범 **포함** `[단축어 입력]`) → `음악 재생`. "일치"로 두면 `"공중무용 - EP"`처럼 접미사가 붙은 경우 찾지 못한다. 결과가 없으면 알림을 띄우고 중단하는 단계를 권장한다.
+    *   주의: 보관함 앨범명이 myaudio 앨범명을 포함해야 찾는다. Mac·iPhone 브라우저(배포본)에서 동작을 확인했으며, Tauri dev 런처 웹뷰에서는 동작하지 않는다.
 
 ### 4.4. RecordShelf (실물 음반 라이브러리, `/recordshelf`)
 *   **CD / LP / 카세트 테이프(Cassette Tape) 실물 음반 컬렉션 단독 관리**: 앨범 폼에서 `CD 보유`, `LP 보유`, `Cassette 보유`(`owns_cassette`)로 체크된 실물 음반들만 별도로 모아보는 전용 라이브러리 메뉴.
@@ -195,6 +200,8 @@ myaudio는 Supabase PostgreSQL 인스턴스를 공유하며 다음 테이블 및
 *   **3단 가사 뷰 & 유튜브 연동**: 상단 원문 제목 + 번역 제목 병기, 유튜브 영상 임베드 플레이어, 하단 원문-발음-번역 순차 가사 렌더링.
 *   **Lyrics 앨범 안전 제거 (`LYRICS-005`)**: 원본 앨범(`album`) 데이터는 안전하게 보존하면서 가사/트랙리스트 데이터만 깔끔하게 분리·제거.
 *   **트랙리스트 인라인 편집 (`LYRICS-006`)**: 트랙명, 순서 번호 수정 및 draft 로컬 반영 후 일괄 저장, 삭제된 트랙의 가사만 선택적 정리.
+*   **앨범 트랙리스트에서 불러오기 (`LYRICS-007`)**: `album.tracks`에 저장된 트랙을 불러와 번호 순서대로(여러 디스크는 Disc 순서대로 1번부터 이어서) Lyrics 트랙을 채우거나, 편집 모드에서 같은 번호의 트랙명만 초안에 맞추고 없는 곡은 추가(기존 트랙의 가사·번역 유지).
+*   **앨범 상세 트랙리스트 가사 바로가기 (`LYRICS-008`)**: 앨범 상세 모달 트랙리스트에서 곡명이 일치하는 가사 등록 곡 옆에 가사 아이콘을 표시하고, 클릭 시 `/lyrics/{albumId}/{trackId}`로 바로 이동.
 
 ### 4.7. 헤드파이 라이브러리 & 조합/세팅/판매 (Head-fi)
 *   **기기 등록/수정 모달**: 상단에 브랜드, 모델명, 이미지, 카테고리 선택을 두고, 하단은 탭(**기본 정보 / 분석 / 액세서리**)으로 구성. 분석 탭은 헤드폰·이어폰 계열에서만 노출. 데스크톱은 좌우 2패널(약 3:7, 좌측 기본 정보·우측 탭 영역)이고 모바일은 단일 컬럼. 하단 저장 버튼 고정, 모달 오픈 중 배경 스크롤 잠금, 저장 후 스크롤 위치 유지. 카테고리별 유동 스펙 분기(이어폰 단자, 앰프 Vrms Single/BAL, 구동방식/Chipset/Rk 등)는 기존과 동일.
@@ -267,7 +274,7 @@ myaudio는 AI 연동 시 **다중 AI 프로바이더 (Gemini / OpenAI / Anthropi
 
 ### 5.2. 외부 재생·메타데이터 연동 API Route (AI 아님, 키 불필요)
 
-1.  **`/api/apple-music-import`**: `music.apple.com` 앨범 URL을 받아 iTunes Lookup API로 아티스트·앨범명·발매일·앨범 타입·고해상도 커버(`mzstatic.com` 1000/600px 도달 확인)를 가져온다. (로그인 필요)
+1.  **`/api/apple-music-import`**: `music.apple.com` 앨범 URL과 선택 필드 `storefront` (`'kr' | 'jp'`)를 받아 iTunes Lookup API로 아티스트·앨범명·발매일·앨범 타입·고해상도 커버(`mzstatic.com` 1000/600px 도달 확인)와 `tracks` 배열을 가져온다. iTunes 곡 수가 부족하거나 0곡이면 `music.apple.com/{kr|jp}/album/{id}` 페이지에서 트랙을 보충한다. `appleMusicUrl` 반환값은 `kr` 주소를 유지한다. (로그인 필요)
 2.  **`/api/apple-music-album`**: iTunes Search API로 애플뮤직 앨범 주소 찾기. US → JP 순 조회(국가당 2.5초), 접미사 제거·정규화 후 앨범 ≥ 0.72 / 아티스트 ≥ 0.50 일치 시에만 결과 반환. 저장 주소는 `music.apple.com/kr/album/…` 형태.
 3.  **`/api/youtube-track-titles`**: 유튜브 재생목록의 곡 제목 조회. 유튜브 oEmbed를 서버에서 호출(동시 4개, 요청당 ID 200개 상한, 형식 검사)하고, 한국 앨범(`album.country = '한국'`)은 제목에 한글·가나·한자가 없을 때 유튜브 뮤직 카탈로그(비공식 내부 API, 타임아웃 2초)를 추가 조회해 한글 원제를 받는다. 실패 시 oEmbed 제목으로 대체하고 `[youtube-track-titles] music_fallback` 로그를 남긴다.
 
@@ -334,3 +341,10 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
     ```bash
     npm run lint
     ```
+
+### 7.3. 운영 스크립트
+
+`.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`를 사용합니다.
+
+*   **기존 앨범 트랙리스트 일괄 채우기 (`scripts/backfill-album-tracks.mjs`)**: `apple_music_url`이 있고 `tracks`가 비어 있는 앨범을 대상으로 iTunes Lookup API에서 트랙을 조회합니다. 기본 실행은 DB 쓰기 없이 `docs/reports/album-tracks-backfill-preview.json` 미리보기만 생성하고, `--apply` 시 `tracks`가 비어 있는 앨범에만 저장합니다. (`--limit N`, `--id N`, `--help`)
+*   **일본 앨범 트랙리스트 원어 일괄 교체 (`scripts/rename-jp-album-tracks.mjs`)**: `country = '일본'`이고 `tracks`가 1곡 이상인 앨범을 대상으로 합니다. 기본 미리보기 실행은 `jp` 스토어(부족 시 Apple Music 일본 페이지 보충)에서 트랙을 조회해 `docs/reports/jp-track-rename-preview.json`에 저장하고, `--apply`는 Apple에 요청하지 않고 미리보기 파일만 읽어 `status=ready`이고 저장 직전 DB 트랙 수·`disc`·`no`가 일치하는 앨범의 곡명(`title`)만 교체하며 `docs/reports/jp-track-rename-apply.json`을 남깁니다(`album_name`은 변경하지 않음). (`--limit N`, `--id N`, `--help`)
