@@ -32,6 +32,17 @@ export function lookupCountriesForAppleStorefront(storefront) {
   return [preferred, ...ordered.filter((code) => code !== preferred)];
 }
 
+export function lookupCountriesForImportStorefront(storefront, urlStorefront) {
+  if (storefront === 'jp') return lookupCountriesForAppleStorefront('jp');
+  if (storefront === 'kr') return lookupCountriesForAppleStorefront('kr');
+  return lookupCountriesForAppleStorefront(urlStorefront ?? null);
+}
+
+export function appleMusicAlbumPageUrl(albumId, storefront) {
+  const code = storefront === 'jp' ? 'jp' : 'kr';
+  return `https://music.apple.com/${code}/album/${albumId}`;
+}
+
 function asPositiveInt(value, fallback) {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
     return Math.floor(value);

@@ -1,32 +1,33 @@
 {
-  "id": "T-087",
-  "goal": "국가가 '일본'인 앨범은 Apple Music에서 트랙(새 등록 시 앨범명 포함)을 일본 스토어 원어 표기로 불러오고, 트랙리스트 탭에서 한국/일본 스토어를 골라 다시 불러올 수 있다. 다른 국가 앨범은 지금처럼 한국 스토어 표기를 쓴다.",
-  "context": "배경: 한국 스토어는 일본 앨범 곡명을 영문·로마자로 주고, 일본 스토어는 원어로 준다. 단, 일본 스토어는 서양·클래식 음반 제목·곡명도 일본어로 현지화하므로 자동 감지(가나·한자 여부)로 판단하지 않고 앨범의 country 값('일본')으로만 판단한다(JW 결정). 대상: src/app/api/apple-music-import/route.ts(요청 body에 선택 필드 storefront?: 'kr'|'jp' 추가), 호출부 3곳 — AlbumForm.tsx(기본 정보 탭 가져오기), AlbumTracksSection.tsx(트랙리스트 탭 불러오기), AlbumDetailTracksSection.tsx(상세 모달 빈 트랙 불러오기). 기본안: (1) API: storefront가 'jp'면 앨범·트랙 lookup 국가 순서를 jp 우선으로 하고, Apple Music 페이지 보충(T-080)도 music.apple.com/jp/album/{id} 페이지를 읽는다. 응답의 albumName·tracks는 그 스토어 기준. 'kr' 또는 미지정이면 지금과 동일. appleMusicUrl 저장값은 지금처럼 kr 주소 유지. (2) 상세 모달 불러오기: viewingItem.country === '일본'이면 jp, 아니면 kr. (3) 트랙리스트 탭: 'Apple Music에서 불러오기' 옆에 스토어 선택(한국/일본, 작은 세그먼트나 select). 기본값은 formData.country === '일본'이면 일본, 아니면 한국. 선택한 스토어로 불러오며 기존 덮어쓰기 확인 그대로. (4) 새 등록 기본 정보 탭 가져오기: 가져오기 시점에 formData.country가 '일본'이면 jp로 요청. 가져오기 결과로 아티스트 기존 값(국가)이 채워져 country가 '일본'이 되면, 트랙이 아직 kr 결과 그대로일 때 jp로 한 번 더 요청해 앨범명·트랙을 일본 스토어 값으로 교체한다(사용자가 이미 고친 앨범명·트랙은 덮지 않음 — 가져오기 직후 값과 같을 때만). 수정 모드의 기본 정보 탭 가져오기는 지금처럼 커버·발매일만 바꾸고 앨범명·트랙은 바꾸지 않는다. (5) 일본 스토어에 앨범이 없으면 kr 결과로 대체하고 조용히 동작. 기존 앨범 일괄 변경은 다음 작업이며, 기존 앨범명은 바꾸지 않는다. window.confirm/alert/prompt 사용 금지. 전체 파일 재작성 금지, 최소 수정.",
+  "id": "T-088",
+  "goal": "국가가 '일본'인 기존 앨범의 트랙리스트 곡명을 일본 스토어 원어 표기로 일괄 교체할 수 있는 스크립트가 준비되고, 미리보기에서 받은 데이터를 파일로 저장해 실제 저장은 그 파일만 읽어 처리한다.",
+  "context": "T-087(가져오기 API storefront=jp) 후속 데이터 작업. 이번 TASK는 스크립트 작성과 --limit 5 미리보기·--limit 5 적용 테스트까지만 하고, 전체 실행은 JW가 터미널에서 직접 한다(토큰 절약 규칙). 기존 scripts/backfill-album-tracks.mjs·scripts/lib/appleMusicTracks.mjs의 .env.local 로딩·Supabase(SUPABASE_SERVICE_ROLE_KEY)·iTunes lookup·재시도·요청 간격 로직을 재사용한다(새 파일 scripts/rename-jp-album-tracks.mjs 권장, 공용 로직은 scripts/lib로). 대상: album.country = '일본'이고 tracks가 1곡 이상인 앨범, apple_music_url에서 albumId를 얻을 수 있는 것. 동작: (1) 미리보기(기본, DB 쓰기 없음): 각 앨범을 country=jp 우선(실패 시 다른 국가 순서는 가져오기 API와 동일)으로 lookup entity=song(limit=200)해 트랙을 받고, iTunes 곡 수가 0이거나 collection.trackCount보다 적으면 music.apple.com/jp/album/{id} 페이지 보충(T-080·src/lib/appleMusicPageTracks.ts와 같은 파싱 규칙, 스크립트용 구현이 필요하면 최소 복제). 결과를 docs/reports/jp-track-rename-preview.json에 저장: 앨범별 id·artist·album_name·status·현재 트랙 수·일본 트랙 수·바뀔 곡 수·jpTracks 전체(disc,no,title,duration_ms)·일본 스토어 앨범명(collectionName)과 현재 앨범명이 다르면 그 값. status: ready(트랙 수 동일하고 바뀔 곡 1곡 이상) / no_change / count_mismatch / not_found / failed. 콘솔은 진행률 한 줄 갱신 또는 50장마다 한 줄 + 마지막 요약만 출력(앨범별 상세는 파일에만). (2) --apply: Apple에 요청하지 않고 위 파일만 읽어 status=ready인 앨범만 처리. 저장 직전 DB의 현재 tracks를 다시 읽어 트랙 수와 각 행의 disc·no가 파일 작성 시점과 같을 때만, 각 트랙의 title만 일본 트랙 title로 바꾼 배열로 tracks 컬럼만 업데이트(disc·no·duration_ms는 기존 값 유지, 다른 컬럼 불변). 조건이 안 맞으면 건너뛰고 기록. 결과를 docs/reports/jp-track-rename-apply.json에 저장. (3) 앨범명(album_name)은 절대 바꾸지 않는다(보고서에만 기록). Lyrics 테이블은 읽지도 쓰지도 않는다. (4) 옵션: --limit N, --id N, --help. (5) 요청 간격 1.5초 이상(지난번보다 느리게), 429/5xx 백오프 재시도 최대 3회. 서비스 키는 출력·커밋하지 않는다. 테스트: --limit 5 미리보기 → 보고서 확인 → --apply --limit 5로 5장만 적용 후 result에 요약과 JW 전체 실행 명령을 적는다.",
   "scope": {
     "in": [
-      "가져오기 API storefront 옵션(jp 우선 조회·jp 페이지 보충)",
-      "상세 모달 불러오기의 country 기반 스토어",
-      "트랙리스트 탭 스토어 선택",
-      "새 등록 시 country 일본이면 jp 기준 앨범명·트랙"
+      "일본 앨범 곡명 교체 스크립트(미리보기→파일 저장, --apply는 파일만 읽기)",
+      "미리보기·적용 보고서",
+      "--limit 5 테스트(미리보기·적용)"
     ],
     "out": [
-      "기존 앨범 앨범명·트랙 일괄 변경",
-      "수정 모드 기본 정보 탭 가져오기 동작",
-      "apple_music_url 저장 형식",
-      "DB·SQL·스키마 (절대 건드리지 말 것)",
+      "전체 실행 (JW가 직접)",
+      "album_name·artist 등 tracks 외 컬럼 변경 (절대 하지 말 것)",
+      "Lyrics 테이블 접근",
+      "트랙 수가 다른 앨범의 tracks 변경",
+      "앱 코드 변경",
+      "DB 스키마·SQL",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "국가가 일본인 기존 앨범의 트랙리스트 탭에서 스토어 기본값이 '일본'이고, 불러오면 곡명이 원어(일본어)로 채워진다. '한국'으로 바꿔 불러오면 지금처럼 한국 스토어 표기가 된다",
-    "국가가 일본이 아닌 앨범(예: María Dueñas)은 기본값 '한국'이고 곡명이 원제(영문 등)로 유지된다",
-    "이미 등록된 일본 아티스트의 새 앨범을 Apple Music 링크로 등록하면 앨범명·트랙이 일본 스토어 표기로 들어간다",
-    "상세 모달 빈 트랙 불러오기가 국가 일본이면 일본어 곡명으로 채워지고, 수정 모드 기본 정보 탭 가져오기는 커버·발매일만 바꾼다",
+    "미리보기가 DB를 바꾸지 않고 jp 트랙 전체 데이터를 포함한 docs/reports/jp-track-rename-preview.json을 남기며, 콘솔 출력은 진행률·요약 위주다",
+    "--apply는 Apple에 요청하지 않고 파일만 읽어, 저장 직전 트랙 수·disc·no가 같은 앨범의 곡명만 바꾼다(코드로 확인)",
+    "--limit 5 테스트 후 해당 앨범들의 트랙리스트 곡명이 일본어로 바뀌고 재생 시간·번호·앨범명은 그대로다",
+    "result에 테스트 요약(status별 수)과 JW 전체 실행 명령(미리보기·적용)이 있다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 일본 앨범 Apple Music 트랙·앨범명을 일본 스토어 원어로 불러오기",
+  "commit_message": "(chore): 일본 앨범 트랙리스트 곡명 원어 일괄 교체 스크립트",
   "status": "done",
-  "result": "API: body.storefront kr|jp → lookupCountriesForImportStorefront, jp면 페이지 보충도 /jp/album/{id}. appleMusicUrl은 kr 유지.\n호출부: AlbumTracksSection 한국/일본 세그먼트(country===일본 → 기본 jp). AlbumDetailTracksSection country 기반 storefront. AlbumForm 새등록: country 일본이면 jp 요청, 아티스트 기본값으로 일본이 되면 jp 재요청(실패 시 kr 유지·무오류). 수정 모드는 커버·발매일만.\n검증: tsc·lint 통과. auto_commit=false → 커밋 대기.\n커밋 승인: 261121_1021 (feat): 일본 앨범 Apple Music 트랙·앨범명을 일본 스토어 원어로 불러오기"
+  "result": "추가: scripts/rename-jp-album-tracks.mjs, scripts/lib/appleMusicPageTracks.mjs, lookupCountriesForImportStorefront/appleMusicAlbumPageUrl을 appleMusicTracks.mjs에 확장.\n\n--limit 5 미리보기: ready 5 (id 7,10,11,12,17). --apply --limit 5: updated=5, skipped=0. 예) id=7 album_name=Points 유지, 곡명 'しづかの海' 등 일본어, duration_ms·disc·no 유지.\n\nJW 전체 실행:\n  node scripts/rename-jp-album-tracks.mjs\n  node scripts/rename-jp-album-tracks.mjs --apply\n(미리보기는 Apple 요청·1.5s+ 간격 — 시간이 김. 적용은 파일만 읽음)\n\n검증: tsc·lint 통과. auto_commit=false → 커밋 대기.\n\n전체 실행 결과: 미리보기 ready 210 / no_change 133 / count_mismatch 8(보너스 트랙 등으로 곡 수 불일치, 건너뜀). --apply updated=210, skipped=0, 곡명 2,066개 교체.\n\n커밋 승인: 261121_1052 (chore): 일본 앨범 트랙리스트 곡명 원어 일괄 교체 스크립트"
 }

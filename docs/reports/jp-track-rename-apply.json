@@ -1,0 +1,1272 @@
+{
+  "generatedAt": "2026-11-21T01:51:10.890Z",
+  "mode": "apply",
+  "limit": null,
+  "id": null,
+  "previewGeneratedAt": "2026-11-21T01:46:16.381Z",
+  "candidateCount": 210,
+  "updated": 210,
+  "skipped": 0,
+  "results": [
+    {
+      "id": 21,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "hades (the nine stages of change at the deceased remains)"
+    },
+    {
+      "id": 25,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "RAGNARøCK"
+    },
+    {
+      "id": 27,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "POWERS"
+    },
+    {
+      "id": 28,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "結い"
+    },
+    {
+      "id": 29,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "(not) NUCLEAR LOVE (or affection)"
+    },
+    {
+      "id": 30,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "AQ"
+    },
+    {
+      "id": 32,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "赤い月"
+    },
+    {
+      "id": 42,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "Here I Stand"
+    },
+    {
+      "id": 46,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "Aimer Hall Tour 2022 “Walpurgisnacht” Live at TOKYO GARDEN THEATER"
+    },
+    {
+      "id": 47,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "daydream"
+    },
+    {
+      "id": 50,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "Valkyrie"
+    },
+    {
+      "id": 57,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "WORLD DOMINATION"
+    },
+    {
+      "id": 71,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "デパナツ 〜drive!drive!!drive!!!〜"
+    },
+    {
+      "id": 74,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "he(r)art"
+    },
+    {
+      "id": 84,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "ALIVE"
+    },
+    {
+      "id": 91,
+      "status": "updated",
+      "changedTitleCount": 33,
+      "album_name": "MACROSS FRONTIER VOCAL COLLECTION"
+    },
+    {
+      "id": 92,
+      "status": "updated",
+      "changedTitleCount": 15,
+      "album_name": "劇場版 マクロスF サヨナラノツバサ"
+    },
+    {
+      "id": 115,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Nature Reserve"
+    },
+    {
+      "id": 116,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "Botanical"
+    },
+    {
+      "id": 117,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "SAD COMMUNICATION"
+    },
+    {
+      "id": 127,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Pink"
+    },
+    {
+      "id": 128,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "White"
+    },
+    {
+      "id": 135,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Dreams Never End"
+    },
+    {
+      "id": 136,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "SQUARE ENIX JAZZ -FINAL FANTASY VII-"
+    },
+    {
+      "id": 143,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "No Joke"
+    },
+    {
+      "id": 144,
+      "status": "updated",
+      "changedTitleCount": 17,
+      "album_name": "PvP"
+    },
+    {
+      "id": 145,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "わたしのノクターン"
+    },
+    {
+      "id": 148,
+      "status": "updated",
+      "changedTitleCount": 14,
+      "album_name": "てん 、"
+    },
+    {
+      "id": 149,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "新世界交響楽"
+    },
+    {
+      "id": 156,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "「 」"
+    },
+    {
+      "id": 162,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "28/29"
+    },
+    {
+      "id": 168,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "RUBY POP"
+    },
+    {
+      "id": 177,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "Gotcha にっぽん!"
+    },
+    {
+      "id": 179,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "コトノグラフ (PM)"
+    },
+    {
+      "id": 182,
+      "status": "updated",
+      "changedTitleCount": 172,
+      "album_name": "FINAL FANTASY VII REBIRTH Original Soundtrack (Preview Version)"
+    },
+    {
+      "id": 185,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "HOT TOPIC"
+    },
+    {
+      "id": 191,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "ヒント"
+    },
+    {
+      "id": 193,
+      "status": "updated",
+      "changedTitleCount": 3,
+      "album_name": "HYPER NATURAL"
+    },
+    {
+      "id": 197,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "tngkr"
+    },
+    {
+      "id": 205,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "Exhale"
+    },
+    {
+      "id": 206,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "Majestic Baby"
+    },
+    {
+      "id": 208,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "Test for Texture of Text"
+    },
+    {
+      "id": 217,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Don't Laugh it off"
+    },
+    {
+      "id": 218,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "マリアンヌの十戒"
+    },
+    {
+      "id": 225,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "ネビュラロマンス 後篇"
+    },
+    {
+      "id": 232,
+      "status": "updated",
+      "changedTitleCount": 15,
+      "album_name": "RAGNARØCK2"
+    },
+    {
+      "id": 241,
+      "status": "updated",
+      "changedTitleCount": 15,
+      "album_name": "六姫無双"
+    },
+    {
+      "id": 242,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "Amethyst"
+    },
+    {
+      "id": 247,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "pointillism"
+    },
+    {
+      "id": 248,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Fluorite code"
+    },
+    {
+      "id": 249,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "901号室のおばけ"
+    },
+    {
+      "id": 252,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "ネビュラロマンス 前篇"
+    },
+    {
+      "id": 255,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "KICKS"
+    },
+    {
+      "id": 262,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "MEME"
+    },
+    {
+      "id": 263,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "gloaming point"
+    },
+    {
+      "id": 264,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "wind surfing school"
+    },
+    {
+      "id": 265,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "deep into_"
+    },
+    {
+      "id": 269,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "生命力"
+    },
+    {
+      "id": 270,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "変身"
+    },
+    {
+      "id": 280,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Bebop at the Savoy"
+    },
+    {
+      "id": 290,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "たかがパンクロック!"
+    },
+    {
+      "id": 292,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "LACE UP"
+    },
+    {
+      "id": 298,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "渦になる"
+    },
+    {
+      "id": 299,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "Amini 2nd"
+    },
+    {
+      "id": 300,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "Echoes"
+    },
+    {
+      "id": 301,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "部屋とガラクタと私"
+    },
+    {
+      "id": 303,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "CLOUD NINE"
+    },
+    {
+      "id": 304,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "mnemeoid"
+    },
+    {
+      "id": 306,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "euphoria"
+    },
+    {
+      "id": 307,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "YELLOW SUN -THE BEST-"
+    },
+    {
+      "id": 308,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "すっぴん"
+    },
+    {
+      "id": 311,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "Love is Over!"
+    },
+    {
+      "id": 314,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "芽吹くとき"
+    },
+    {
+      "id": 317,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "Gate of Hell"
+    },
+    {
+      "id": 320,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "好き100%の片思いをしているあなたへ"
+    },
+    {
+      "id": 327,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Still, You Dance"
+    },
+    {
+      "id": 328,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "yawn"
+    },
+    {
+      "id": 338,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "Persona"
+    },
+    {
+      "id": 339,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "Clover"
+    },
+    {
+      "id": 340,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "Memento"
+    },
+    {
+      "id": 362,
+      "status": "updated",
+      "changedTitleCount": 21,
+      "album_name": "放課後ティ-タイム II"
+    },
+    {
+      "id": 363,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "Pale in Fire"
+    },
+    {
+      "id": 371,
+      "status": "updated",
+      "changedTitleCount": 3,
+      "album_name": "find the light"
+    },
+    {
+      "id": 391,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "セカイ系症候群末期患者へ"
+    },
+    {
+      "id": 393,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "FAKE METAL JACKET"
+    },
+    {
+      "id": 395,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "BedHead"
+    },
+    {
+      "id": 397,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "REBURN"
+    },
+    {
+      "id": 398,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "New Young City"
+    },
+    {
+      "id": 399,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "Ethernity"
+    },
+    {
+      "id": 408,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "Launcher"
+    },
+    {
+      "id": 409,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "LEO-NiNE"
+    },
+    {
+      "id": 417,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "SQUARE ENIX JAZZ -FINAL FANTASY-"
+    },
+    {
+      "id": 418,
+      "status": "updated",
+      "changedTitleCount": 79,
+      "album_name": "FINAL FANTASY XIII-2 OST"
+    },
+    {
+      "id": 427,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "last aurorally"
+    },
+    {
+      "id": 439,
+      "status": "updated",
+      "changedTitleCount": 14,
+      "album_name": "NIPPONNO ONNAWO UTAU BEST2"
+    },
+    {
+      "id": 448,
+      "status": "updated",
+      "changedTitleCount": 27,
+      "album_name": "透明な色"
+    },
+    {
+      "id": 451,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "Reflect"
+    },
+    {
+      "id": 452,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "yura"
+    },
+    {
+      "id": 458,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "ゴーストライター"
+    },
+    {
+      "id": 460,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Green"
+    },
+    {
+      "id": 461,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Camellia"
+    },
+    {
+      "id": 464,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "VIEW"
+    },
+    {
+      "id": 465,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "forest at the head of a river"
+    },
+    {
+      "id": 470,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "universe"
+    },
+    {
+      "id": 474,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "TOKYO BLACK HOLE"
+    },
+    {
+      "id": 475,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "クソカワPARTY"
+    },
+    {
+      "id": 476,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "Kintsugi"
+    },
+    {
+      "id": 477,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "PERSONA #1"
+    },
+    {
+      "id": 480,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "月夜の雨"
+    },
+    {
+      "id": 494,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "フェイクワールドワンダーランド"
+    },
+    {
+      "id": 495,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "青春ファンタジア"
+    },
+    {
+      "id": 500,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "ユモレスキ"
+    },
+    {
+      "id": 506,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "thirdShoes."
+    },
+    {
+      "id": 507,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Lighthouse"
+    },
+    {
+      "id": 509,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "なんかいい日になる気がする"
+    },
+    {
+      "id": 511,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "おはこ"
+    },
+    {
+      "id": 512,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "与えられた場所で咲く"
+    },
+    {
+      "id": 513,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "under this cherry tree"
+    },
+    {
+      "id": 520,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "LOVE TO DIE"
+    },
+    {
+      "id": 529,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "BEST★SCANDAL"
+    },
+    {
+      "id": 535,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "洗脳"
+    },
+    {
+      "id": 536,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "トカレフ"
+    },
+    {
+      "id": 539,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "SQUARE ENIX JAZZ -Final Fantasy VII- at Billboard Live TOKYO"
+    },
+    {
+      "id": 541,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "juvenile"
+    },
+    {
+      "id": 544,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "FINAL FANTASY VII REMAKE Orchestral Arrangement Album"
+    },
+    {
+      "id": 553,
+      "status": "updated",
+      "changedTitleCount": 15,
+      "album_name": "スポットライト"
+    },
+    {
+      "id": 554,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "Nietzsche"
+    },
+    {
+      "id": 556,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "印象派は君に問いかける"
+    },
+    {
+      "id": 557,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "スプートニク"
+    },
+    {
+      "id": 558,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "Through The Lonely Nights"
+    },
+    {
+      "id": 559,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "S.E.A"
+    },
+    {
+      "id": 561,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "ULTRA FUTURE"
+    },
+    {
+      "id": 562,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "私の夢を見ていてね"
+    },
+    {
+      "id": 563,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "ZENITH"
+    },
+    {
+      "id": 565,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "CLARITY"
+    },
+    {
+      "id": 567,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "WONDERLAND"
+    },
+    {
+      "id": 586,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "amity"
+    },
+    {
+      "id": 587,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "may't"
+    },
+    {
+      "id": 589,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "cradle"
+    },
+    {
+      "id": 598,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Q.E.D.bi"
+    },
+    {
+      "id": 604,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "Synchronicity"
+    },
+    {
+      "id": 605,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "airattic"
+    },
+    {
+      "id": 616,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "TЯATƧИOM"
+    },
+    {
+      "id": 617,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "She's Rain"
+    },
+    {
+      "id": 622,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "曲集"
+    },
+    {
+      "id": 628,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "Symphonic Suite Yamato"
+    },
+    {
+      "id": 630,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "絶対少女"
+    },
+    {
+      "id": 635,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "our hope"
+    },
+    {
+      "id": 636,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "12 hugs (like butterflies)"
+    },
+    {
+      "id": 638,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "Unseen World"
+    },
+    {
+      "id": 639,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "BABY! PINK! MUSIC!"
+    },
+    {
+      "id": 640,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "開花宣言"
+    },
+    {
+      "id": 641,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "来世は偉人!"
+    },
+    {
+      "id": 643,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "AN ALIEN'S PORTRAIT"
+    },
+    {
+      "id": 646,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "私は幸せ"
+    },
+    {
+      "id": 647,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "スーパー登山部"
+    },
+    {
+      "id": 649,
+      "status": "updated",
+      "changedTitleCount": 30,
+      "album_name": "SCANDAL"
+    },
+    {
+      "id": 652,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Paper Moon Club"
+    },
+    {
+      "id": 653,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "おやすみホログラム"
+    },
+    {
+      "id": 654,
+      "status": "updated",
+      "changedTitleCount": 3,
+      "album_name": "『この社会オワってんな』"
+    },
+    {
+      "id": 655,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "天国も地獄もない場所へ"
+    },
+    {
+      "id": 658,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "出町柳アイロニー"
+    },
+    {
+      "id": 662,
+      "status": "updated",
+      "changedTitleCount": 14,
+      "album_name": "狂言"
+    },
+    {
+      "id": 666,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "マリアンヌの密会"
+    },
+    {
+      "id": 677,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "坂道のアポロン"
+    },
+    {
+      "id": 679,
+      "status": "updated",
+      "changedTitleCount": 61,
+      "album_name": "FINAL FANTASY VI Original Soundtrack"
+    },
+    {
+      "id": 680,
+      "status": "updated",
+      "changedTitleCount": 12,
+      "album_name": "COVER 70's"
+    },
+    {
+      "id": 681,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "BRA★BRA FINAL FANTASY BRASS de BRAVO 3"
+    },
+    {
+      "id": 682,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "BRA★BRA FINAL FANTASY VII BRASS de BRAVO"
+    },
+    {
+      "id": 684,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "Piano Collections FINAL FANTASY VII"
+    },
+    {
+      "id": 686,
+      "status": "updated",
+      "changedTitleCount": 14,
+      "album_name": "FINAL FANTASY X - Piano Collections (Original Soundtrack)"
+    },
+    {
+      "id": 687,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "Piano Collection - Final Fantasy XIII"
+    },
+    {
+      "id": 688,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "心の隙間を埋めるのは"
+    },
+    {
+      "id": 689,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "My Beloved Farewell"
+    },
+    {
+      "id": 696,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "BRA★BRA FINAL FANTASY BRASS de BRAVO"
+    },
+    {
+      "id": 699,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "Hell like Heaven"
+    },
+    {
+      "id": 701,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "Fokas, Lite & Four Shooting Riddles"
+    },
+    {
+      "id": 703,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "TRIANGLE"
+    },
+    {
+      "id": 704,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "幽かにそう纏う"
+    },
+    {
+      "id": 705,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "制服甘露倶楽部"
+    },
+    {
+      "id": 708,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "Landscape"
+    },
+    {
+      "id": 710,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "Shaman's Daughter"
+    },
+    {
+      "id": 711,
+      "status": "updated",
+      "changedTitleCount": 4,
+      "album_name": "LADY"
+    },
+    {
+      "id": 712,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "はじまる"
+    },
+    {
+      "id": 714,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "Noisy Night Fever"
+    },
+    {
+      "id": 716,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "乙女改革"
+    },
+    {
+      "id": 717,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "幽泳プログラム"
+    },
+    {
+      "id": 718,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "Blue Peter"
+    },
+    {
+      "id": 719,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "生きたい"
+    },
+    {
+      "id": 723,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "SPOOL"
+    },
+    {
+      "id": 725,
+      "status": "updated",
+      "changedTitleCount": 14,
+      "album_name": "FINAL FANTASY X Original Soundtrack"
+    },
+    {
+      "id": 771,
+      "status": "updated",
+      "changedTitleCount": 9,
+      "album_name": "W.W"
+    },
+    {
+      "id": 784,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "柴田淳 Billboard Live 2013"
+    },
+    {
+      "id": 786,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "KARMA"
+    },
+    {
+      "id": 791,
+      "status": "updated",
+      "changedTitleCount": 8,
+      "album_name": "百華典"
+    },
+    {
+      "id": 795,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "PATCHWORK LIFE"
+    },
+    {
+      "id": 802,
+      "status": "updated",
+      "changedTitleCount": 7,
+      "album_name": "愛MUST BE"
+    },
+    {
+      "id": 803,
+      "status": "updated",
+      "changedTitleCount": 16,
+      "album_name": "それぞれの椅子"
+    },
+    {
+      "id": 804,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "Start over!"
+    },
+    {
+      "id": 805,
+      "status": "updated",
+      "changedTitleCount": 2,
+      "album_name": "Lonesome rabbit/What's \"KAZOKU\"?"
+    },
+    {
+      "id": 807,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "最後に熱い日々を狂わしき想いで"
+    },
+    {
+      "id": 808,
+      "status": "updated",
+      "changedTitleCount": 10,
+      "album_name": "桜の木の下"
+    },
+    {
+      "id": 809,
+      "status": "updated",
+      "changedTitleCount": 13,
+      "album_name": "秋 そばにいるよ"
+    },
+    {
+      "id": 815,
+      "status": "updated",
+      "changedTitleCount": 11,
+      "album_name": "BRA★BRA FINAL FANTASY BRASS de BRAVO 2"
+    },
+    {
+      "id": 818,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "PICORINPIN"
+    },
+    {
+      "id": 821,
+      "status": "updated",
+      "changedTitleCount": 5,
+      "album_name": "DELIRIUM POETRY"
+    },
+    {
+      "id": 822,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "FORWARD"
+    },
+    {
+      "id": 823,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "START"
+    },
+    {
+      "id": 894,
+      "status": "updated",
+      "changedTitleCount": 1,
+      "album_name": "MuRdeRize"
+    },
+    {
+      "id": 901,
+      "status": "updated",
+      "changedTitleCount": 6,
+      "album_name": "まばたき"
+    }
+  ]
+}
