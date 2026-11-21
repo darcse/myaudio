@@ -1,0 +1,27 @@
+{
+  "id": "T-085",
+  "feature_id": "LYRICS-008",
+  "goal": "앨범 상세 트랙리스트의 트랙 행 사이에 얇은 구분선이 생겨 목록이 정돈되어 보인다.",
+  "context": "T-084 후속 스타일 수정, 아직 커밋 전이며 T-082~T-084와 함께 LYRICS-008로 커밋한다. 대상: src/app/albums/_components/AlbumDetailTracksSection.tsx. 현재 트랙 행 사이에 간격만 있어 엉성해 보인다(JW 피드백). 변경: 곡 행 사이에 얇은 가로 구분선(border-b, var(--border) 계열, 각 목록·디스크 묶음의 마지막 행 제외)을 넣고, 구분선 기준으로 행 세로 여백을 살짝 조정한다. Disc 소제목이 있을 때 소제목과 첫 행이 어색하지 않게. 다크·라이트 테마 모두 보이게 CSS 변수 사용. 번호·곡명·아이콘·재생 시간 정렬과 클릭 동작은 그대로. 전체 파일 재작성 금지, 최소 수정.",
+  "scope": {
+    "in": [
+      "트랙 행 사이 구분선·세로 여백 조정"
+    ],
+    "out": [
+      "아이콘·매칭·조회 로직",
+      "다른 화면",
+      "DB",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "트랙 행 사이에 얇은 구분선이 있고 마지막 행 아래에는 없다",
+    "여러 디스크 앨범에서 Disc 소제목과 행 구분이 자연스럽다",
+    "다크·라이트 테마 모두 구분선이 보이며 아이콘·시간 정렬과 동작은 이전과 같다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): LYRICS-008 앨범 상세 트랙리스트 곡별 가사 바로가기",
+  "status": "done",
+  "result": "AlbumDetailTracksSection TrackRow: py-2.5 + borderBottom var(--border)(마지막 행 제외). Disc 소제목 pt/pb 조정. tsc·lint 통과. T-082~085 함께 커밋 대기.\n커밋 승인: 261121_0145 (feat): LYRICS-008 앨범 상세 트랙리스트 곡별 가사 바로가기 (T-082~T-085)"
+}
