@@ -4,7 +4,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { ExternalLink, Music, Play, Tv, UserCircle } from 'lucide-react';
+import { ExternalLink, Library, Music, Play, Tv, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAlbumAppleMusicUrl } from '@/app/albums/actions';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
@@ -33,6 +33,12 @@ type AlbumInfoSectionProps = {
   onAlbumPatch?: (album: Album) => void;
   onClose?: () => void;
 };
+
+const APPLE_MUSIC_LIBRARY_PLAY_SHORTCUT_NAME = 'PlayAlbum';
+
+function appleMusicLibraryPlayShortcutHref(albumName: string): string {
+  return `shortcuts://run-shortcut?name=${APPLE_MUSIC_LIBRARY_PLAY_SHORTCUT_NAME}&input=text&text=${encodeURIComponent(albumName)}`;
+}
 
 function ComposerAvatarLink({
   name,
@@ -90,6 +96,10 @@ export function AlbumInfoHeroSection({
     : null;
   const heroBtnClass =
     'relative flex size-7 flex-shrink-0 items-center justify-center rounded-full transition-colors after:absolute after:inset-[-6px] after:content-[\'\']';
+  const libraryPlayAlbumName = viewingItem.album_name.trim();
+  const libraryPlayHref = libraryPlayAlbumName
+    ? appleMusicLibraryPlayShortcutHref(libraryPlayAlbumName)
+    : null;
   const viewingItemRef = useRef(viewingItem);
   viewingItemRef.current = viewingItem;
 
@@ -285,6 +295,17 @@ export function AlbumInfoHeroSection({
                   >
                     <Play className="relative size-3 ml-px fill-current text-white" strokeWidth={2} />
                   </button>
+                ) : null}
+                {libraryPlayHref ? (
+                  <a
+                    href={libraryPlayHref}
+                    className={heroBtnClass}
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                    title="보관함 재생"
+                    aria-label="보관함 재생"
+                  >
+                    <Library className="relative size-3 text-white" strokeWidth={1.75} />
+                  </a>
                 ) : null}
             </div>
           </div>
