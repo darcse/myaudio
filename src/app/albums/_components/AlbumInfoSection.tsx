@@ -685,10 +685,12 @@ export function AlbumInfoSection({
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
         </div>
         {composerEntries.length >= 1 ? (
-          <div className="min-w-0">
-            <p className="mb-2">
-              <strong>작곡가</strong>
-            </p>
+          <div
+            className="min-w-0 rounded-xl p-3"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+            role="group"
+            aria-label="작곡가"
+          >
             <div className="grid grid-cols-3 gap-3">
               {composerEntries.map((entry, index) => {
                 const name = entry.name.trim();
