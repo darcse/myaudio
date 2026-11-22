@@ -372,7 +372,7 @@ export function AlbumInfoSection({
     const names = composerNamesKey
       ? [...new Set(composerNamesKey.split('\u0001').filter(Boolean))]
       : [];
-    if (names.length < 2) {
+    if (names.length < 1) {
       setComposerProfiles({});
       return;
     }
@@ -684,31 +684,7 @@ export function AlbumInfoSection({
           <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
           <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
         </div>
-        {composerEntries.length === 1 ? (
-          <div className="min-w-0">
-            <p className="min-w-0">
-              <strong>작곡가:</strong>{' '}
-              <Link
-                href={`/classic/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
-                onClick={onClose}
-                className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
-              >
-                {composerEntries[0].name.trim()}
-              </Link>
-            </p>
-            {(() => {
-              const country = composerEntries[0].country.trim();
-              const era = composerEntries[0].era.trim();
-              const countryLabel = country
-                ? `${countryOptions.find((c) => c.name === country)?.flag ?? ''} ${country}`.trim()
-                : '';
-              const meta = [countryLabel, era].filter(Boolean).join(' · ');
-              return meta ? (
-                <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
-              ) : null;
-            })()}
-          </div>
-        ) : composerEntries.length > 1 ? (
+        {composerEntries.length >= 1 ? (
           <div className="min-w-0">
             <p className="mb-2">
               <strong>작곡가</strong>
