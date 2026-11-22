@@ -18,16 +18,11 @@ const MOOD_KEYWORD_SLOTS: { keys: string[]; slot: number }[] = [
 ];
 
 const vibeBadgeStyle: CSSProperties = {
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
   border: '1px solid rgba(255,255,255,0.2)',
   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
   color: '#ffffff',
-  display: 'flex',
-  alignItems: 'center',
   width: 'fit-content',
   maxWidth: '100%',
-  lineHeight: 1.25,
 };
 
 export function getMoodVibeEmoji(moodName: string): string {
@@ -65,20 +60,22 @@ export function MoodMiniCard({
     opacity: placeholder ? 0.85 : 1,
   };
   const inner = (
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold leading-none">
-      <span className="shrink-0 text-[11px] leading-none text-[#fbbf24]" aria-hidden>
+    <div className="flex items-center gap-1.5">
+      <span className="shrink-0 text-[#fbbf24]" aria-hidden>
         {emoji}
       </span>
-      <span className="break-words text-left leading-none">{label}</span>
+      <span className="break-words text-left">{label}</span>
     </div>
   );
+  const badgeClassName =
+    'inline-flex h-6 max-w-full items-center rounded-full px-2.5 text-[11px] font-semibold leading-none';
   if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="text-left cursor-pointer transition-[filter,opacity] duration-200 hover:brightness-110 active:opacity-90 disabled:cursor-wait disabled:opacity-60"
+        className={`${badgeClassName} cursor-pointer text-left transition-[filter,opacity] duration-200 hover:brightness-110 active:opacity-90 disabled:cursor-wait disabled:opacity-60`}
         style={badgeSurface}
         aria-haspopup="listbox"
         aria-label={placeholder ? '무드 선택' : `무드 변경: ${label}`}
@@ -87,5 +84,9 @@ export function MoodMiniCard({
       </button>
     );
   }
-  return <div style={badgeSurface}>{inner}</div>;
+  return (
+    <div className={badgeClassName} style={badgeSurface}>
+      {inner}
+    </div>
+  );
 }

@@ -657,7 +657,7 @@ export function AlbumInfoSection({
           ) : null}
           {detailGenre2 ? (
             <span
-              className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-semibold leading-none"
               style={{
                 background: 'var(--foreground)',
                 color: 'var(--background)',
@@ -669,7 +669,7 @@ export function AlbumInfoSection({
           {detailTags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+              className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-medium leading-none"
               style={{
                 background: 'var(--badge-bg)',
                 color: 'var(--foreground)',

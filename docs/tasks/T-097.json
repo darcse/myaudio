@@ -1,0 +1,27 @@
+{
+  "id": "T-097",
+  "goal": "Pop & Rock·Classic 앨범 상세에서 발매일·앨범 타입 줄이 라벨 없이 'EP | 2020-01-01'(앨범 타입 | 발매일) 형태로 보인다.",
+  "context": "대상: src/app/albums/_components/AlbumInfoSection.tsx 약 682~685행(<p><strong>발매일:</strong> …</p><p><strong>앨범 타입:</strong> …</p>, Pop·Classic 공통). 변경: 라벨(발매일:, 앨범 타입:)을 없애고 앨범 타입 → 구분자 '|' → 발매일 순서로 한 줄에 표시. 구분자는 양옆 여백을 두고 흐리게(opacity 낮춤) 처리, 장식용이므로 aria-hidden. 값이 하나만 있으면 그 값만(구분자 없이), 둘 다 없으면 줄 자체를 숨긴다(현재 '-' 표시는 제거). 글자 크기·색은 기존 줄과 동일. 작곡가 카드(mt-2)와의 간격은 그대로. 최소 수정.",
+  "scope": {
+    "in": [
+      "발매일·앨범 타입 표시 형식 변경(Pop·Classic 공통)",
+      "값 누락 시 표시 규칙"
+    ],
+    "out": [
+      "무드·장르2·태그 줄",
+      "작곡가 카드",
+      "날짜 형식 자체 변환(YYYY-MM-DD 그대로)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock·Classic 앨범 상세에 'EP | 2020-01-01'처럼 앨범 타입 | 발매일이 라벨 없이 보인다",
+    "앨범 타입이나 발매일 중 하나만 있으면 그 값만 구분자 없이 보이고, 둘 다 없으면 줄이 없다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(style): 앨범 상세 앨범 타입 | 발매일 표시로 변경",
+  "status": "done",
+  "result": "AlbumInfoSection: 라벨 제거, '앨범타입 | 발매일' 한 줄(구분자 mx-1.5 opacity-40 aria-hidden). 한쪽만 있으면 값만, 둘 다 없으면 줄 숨김('-' 제거).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, TASK.json (+ docs/tasks/T-096.json 보관)."
+}
