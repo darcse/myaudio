@@ -1,31 +1,30 @@
 {
-  "id": "T-090",
-  "goal": "장르1에 Playlist가 생기고(장르2는 Playlist 하나), K-Pop·Crossover·기타 아래의 장르2 Playlist 선택지는 사라진다.",
-  "context": "대상: src/app/albums/constants.ts. (1) genreOptions에 'Playlist'를 'Crossover' 다음, '기타' 앞에 추가. (2) GENRE2_OPTIONS_BY_GENRE1에 Playlist: ['Playlist'] 추가(위치는 Crossover 다음 권장). (3) 'K-Pop', 'Crossover', '기타' 배열에서 'Playlist' 항목 제거(다른 항목 순서는 유지). 기존 album 데이터 중 genre2='Playlist'인 앨범은 JW가 수동으로 바꾸므로 데이터는 건드리지 않는다. 확인할 것: 장르1이 K-Pop/Crossover/기타이고 genre2가 'Playlist'인 기존 앨범의 수정 폼을 열었을 때 장르2 값이 어떻게 보이는지, 다른 항목을 고치고 저장하면 genre2가 지워지거나 바뀌는지 코드로 확인해 result에 적는다(동작 변경은 하지 말고 보고만). genreOptions를 쓰는 다른 화면(앨범 목록 필터, 아티스트 필터, Lyrics 목록 필터)에 Playlist가 자연스럽게 나오는지 확인. 'Playlist' 문자열을 장르 외 의미(YouTube 재생목록 등)로 쓰는 코드는 무관하니 건드리지 않는다. 최소 수정, 전체 파일 재작성 금지.",
+  "id": "T-091",
+  "goal": "Pop & Rock 앨범 폼에서 장르1을 Playlist로 고르면 장르2가 자동으로 Playlist로 선택되고 읽기 전용(변경 불가)이 된다.",
+  "context": "대상: src/app/albums/_components/AlbumForm.tsx Pop 모드의 장르1 select onChange(약 810행, genre2OptionsForGenre1(nextGenre1)로 keep 판단 후 genre2를 ''로 비우는 부분)과 장르2 select(약 836행, disabled 조건이 있는 곳). 기본안: 규칙을 'Playlist'로 하드코딩하지 말고 '장르1의 장르2 옵션이 정확히 1개면 그 값을 자동 선택하고 장르2 select를 비활성'으로 일반화한다(현재 해당 장르1은 Playlist뿐). 적용 시점: (1) 장르1 변경 시 자동 선택, (2) 기존 앨범 수정 폼을 열었을 때 장르1=Playlist인데 genre2가 비었거나 다른 값이면 화면에서 Playlist로 맞춰 보이고 저장 시 그 값으로 저장(사용자가 저장하기 전에는 DB를 바꾸지 않음). 비활성 상태가 읽기 전용임을 알 수 있게 기존 disabled 스타일을 따른다. 장르1을 다시 다른 값으로 바꾸면 지금처럼 동작(새 옵션에 없으면 genre2 비움). 더 나은 방법이 있으면 result에 근거와 함께 적는다. Classic 모드 폼은 건드리지 않는다. 최소 수정, 전체 파일 재작성 금지. window.confirm/alert/prompt 금지.",
   "scope": {
     "in": [
-      "constants.ts의 genreOptions에 Playlist 추가",
-      "GENRE2_OPTIONS_BY_GENRE1에 Playlist: ['Playlist'] 추가",
-      "K-Pop·Crossover·기타의 장르2 Playlist 제거",
-      "기존 genre2=Playlist 앨범의 폼 동작 확인(보고만)"
+      "AlbumForm Pop 모드 장르1 변경 시 단일 옵션 자동 선택",
+      "단일 옵션일 때 장르2 select 비활성",
+      "수정 폼 진입 시 장르1=Playlist 앨범의 장르2 표시 보정"
     ],
     "out": [
-      "album 데이터 변경·일괄 이관 (절대 하지 말 것)",
-      "DB 스키마·SQL",
-      "폼·필터 로직 변경",
-      "YouTube 재생목록 등 장르 외 Playlist 관련 코드",
+      "constants.ts 장르 목록 변경",
+      "Classic 모드 폼",
+      "앨범 목록·아티스트·Lyrics 필터",
+      "album 데이터 일괄 변경·DB 스키마·SQL (절대 하지 말 것)",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 등록 폼 장르1 목록에 Playlist가 Crossover 다음·기타 앞에 있고, 고르면 장르2에 Playlist 하나만 나온다",
-    "K-Pop·Crossover·기타의 장르2 목록에 Playlist가 없다",
-    "기존 genre2=Playlist 앨범의 수정 폼 표시·저장 동작이 result에 적혀 있다",
+    "새 앨범 폼에서 장르1을 Playlist로 고르면 장르2가 Playlist로 채워지고 바꿀 수 없다",
+    "장르1을 Playlist에서 다른 장르로 바꾸면 장르2가 다시 선택 가능해지고 값은 기존 규칙대로 비워진다",
+    "장르1=Playlist인 기존 앨범 수정 폼에서 장르2가 Playlist로 보이고, 저장하면 genre2='Playlist'로 저장된다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": true,
-  "commit_message": "(chore): 장르1 Playlist 추가, K-Pop·Crossover·기타 장르2 Playlist 제거",
+  "commit_message": "(feat): 장르2 옵션이 하나인 장르1 선택 시 장르2 자동 선택·읽기 전용",
   "status": "done",
-  "result": "constants.ts: genreOptions에 Playlist를 Crossover 다음·기타 앞에 추가. GENRE2_OPTIONS_BY_GENRE1에 Playlist:['Playlist'] 추가(Crossover 다음). K-Pop·Crossover·기타에서 장르2 Playlist 제거(기타는 Acoustic만 남음).\n\n기존 genre2=Playlist 폼 동작(코드 확인, 변경 없음): AlbumForm 하위 장르 select는 isGenre2OptionForGenre1이 false면 'Playlist (기존 값)' 옵션을 추가해 표시·선택 유지. 장르1/장르2를 건드리지 않고 다른 필드만 수정 후 저장하면 genre2는 'Playlist' 그대로 저장됨. 장르1을 바꾸면 새 장르1 옵션에 Playlist가 있을 때만 유지(지금은 장르1=Playlist만), 아니면 genre2가 ''. 장르2를 다른 옵션으로 고르면 그 값으로 바뀜.\n\n필터: AlbumList·LyricsTranslateLibraryContent는 genreOptions 직접 사용 → Playlist 노출. Artists는 useArtistFilters의 동적 목록(카탈로그 기반)이라 데이터가 있으면 노출.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: TASK.json, constants.ts (+ docs/tasks/T-089.json 보관)."
+  "result": "AlbumForm Pop 모드: 장르1 변경 시 genre2 옵션이 정확히 1개면 그 값을 자동 선택, 아니면 기존 keep/비움 규칙 유지. 옵션 1개일 때 장르2 select disabled. Pop 모드 useEffect로 수정 폼 진입 시 genre2가 단일 옵션과 다르면 화면 state만 맞춤(저장 전 DB 미변경). Playlist 문자열 하드코딩 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumForm.tsx, TASK.json (+ docs/tasks/T-090.json 보관)."
 }

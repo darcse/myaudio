@@ -237,6 +237,8 @@ export function AlbumForm({
     classicFormError || playlistError || stagePlusError || appleMusicError;
   const composersTabHasError = composerDupError;
   const popGenreOptions = genreOptions.filter((genre) => genre !== 'Classic');
+  const popGenre2Options = genre2OptionsForGenre1(formData.genre1);
+  const isSinglePopGenre2Option = popGenre2Options?.length === 1;
   const artistTypeOptions = artistTypeOptionsForCatalog(isClassicMode ? 'classic' : 'popular');
 
   useEffect(() => {
@@ -418,6 +420,20 @@ export function AlbumForm({
     if (formData.genre1 === 'Classic') return;
     setFormData((prev) => ({ ...prev, genre1: 'Classic' }));
   }, [formData.genre1, isClassicMode, setFormData]);
+
+  useEffect(() => {
+    if (isClassicMode) return;
+    const options = genre2OptionsForGenre1(formData.genre1);
+    if (!options || options.length !== 1) return;
+    const only = options[0];
+    if (formData.genre2.trim() === only) return;
+    setFormData((prev) => {
+      const nextOptions = genre2OptionsForGenre1(prev.genre1);
+      if (!nextOptions || nextOptions.length !== 1) return prev;
+      if (prev.genre2.trim() === nextOptions[0]) return prev;
+      return { ...prev, genre2: nextOptions[0] };
+    });
+  }, [formData.genre1, formData.genre2, isClassicMode, setFormData]);
 
   const releaseDateReadOnly =
     !isEdit && !('isManual' in selectedItem)
@@ -811,11 +827,16 @@ export function AlbumForm({
                       setFormData((prev) => {
                         const options = genre2OptionsForGenre1(nextGenre1);
                         const current = prev.genre2.trim();
-                        const keep = !!options && !!current && options.includes(current);
+                        const nextGenre2 =
+                          options?.length === 1
+                            ? options[0]
+                            : options && current && options.includes(current)
+                              ? current
+                              : '';
                         return {
                           ...prev,
                           genre1: nextGenre1,
-                          genre2: keep ? current : '',
+                          genre2: nextGenre2,
                         };
                       });
                       setClassicFormError(false);
@@ -836,7 +857,9 @@ export function AlbumForm({
                     value={formData.genre2}
                     onChange={(e) => setFormData({ ...formData, genre2: e.target.value })}
                     disabled={
-                      !formData.genre1.trim() || genre2OptionsForGenre1(formData.genre1) == null
+                      !formData.genre1.trim() ||
+                      popGenre2Options == null ||
+                      isSinglePopGenre2Option
                     }
                   >
                     <option value="">선택</option>
@@ -846,7 +869,7 @@ export function AlbumForm({
                         {formData.genre2} (기존 값)
                       </option>
                     ) : null}
-                    {(genre2OptionsForGenre1(formData.genre1) ?? []).map((option) => (
+                    {(popGenre2Options ?? []).map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>
