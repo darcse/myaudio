@@ -1,31 +1,29 @@
 {
-  "id": "T-092",
-  "goal": "Pop & Rock 앨범 상세의 앨범 정보 상단이 3줄로 정리된다. 1줄: 무드 카드(장르2 필과 같은 높이로 축소)와 장르2 필, 2줄: 발매일과 앨범 타입, 3줄: 태그 필(있을 때만).",
-  "context": "대상: src/app/albums/_components/AlbumInfoSection.tsx의 AlbumInfoSection 상단 블록(약 565~735행: 왼쪽 MoodMiniCard + 오른쪽 발매일·앨범 타입 열, 그 아래 장르2·태그 필 줄)과 src/app/albums/_components/albumDetailMoodMiniCard.tsx(MoodMiniCard, 이 화면에서만 사용). 현재: 무드 카드가 크고 발매일·앨범 타입과 좌우로 배치되어 있음. 변경: (1) MoodMiniCard 높이를 장르2 필(rounded-full px-2.5 py-1 text-[11px])과 같은 높이로 줄인다. 그라데이션·이모지·무드명·클릭 동작(무드 선택 피커 / 무드보드 이동)은 유지하고, 이모지·글자 크기와 모서리는 필 높이에 맞춰 조정(에이전트 판단). 무드 피커 팝오버 위치가 작아진 카드 기준으로 어긋나지 않게 확인. (2) 1줄: 무드 카드 → 장르2 필 순서로 가로 배치(flex-wrap, gap은 기존 필 간격과 동일). 무드·장르2 둘 다 없으면 줄 자체를 숨김. (3) 2줄: 발매일 · 앨범 타입을 한 줄에 가로 배치(좁은 화면에서는 줄바꿈 허용). 라벨 표기(발매일:, 앨범 타입:)는 유지. (4) 3줄: 태그 필(#tag)만, 태그가 있을 때만 표시. 장르2 필은 태그 줄에서 빠지고 1줄로 이동. Classic 앨범(showMoodUi=false)은 무드·장르2·태그가 원래 안 나오므로, 발매일·앨범 타입·작곡가 표시가 지금과 같은 정보를 보여주는지만 확인하고 Classic 전용 표시(작곡가 1명/여러 명, 시대)는 그대로 둔다. 최소 수정, 전체 파일 재작성 금지.",
+  "id": "T-093",
+  "goal": "Pop & Rock 앨범 상세 정보 상단이 2줄이 된다. 1줄: 무드 카드 → 장르2 필 → 태그 필, 2줄: 발매일 · 앨범 타입.",
+  "context": "T-092 후속. 대상: src/app/albums/_components/AlbumInfoSection.tsx 상단 블록. 현재 3줄째에 있는 태그 필(#tag)들을 1줄(무드 카드·장르2 필이 있는 flex-wrap 줄)의 장르2 필 뒤로 옮기고 3줄 블록은 제거한다. 1줄 표시 조건에 태그 유무를 포함한다(무드·장르2·태그 중 하나라도 있으면 표시). 필 스타일·간격(gap-1.5)·순서(무드 → 장르2 → 태그)는 그대로, 넘치면 줄바꿈. 2줄(발매일·앨범 타입·Classic 작곡가) 위치는 1줄 아래로 유지. 들여쓰기만 바뀌는 대량 diff가 생기지 않게 최소 수정.",
   "scope": {
     "in": [
-      "AlbumInfoSection 상단 블록 배치 변경(3줄)",
-      "MoodMiniCard 크기 축소",
-      "무드 피커 팝오버 위치 확인"
+      "태그 필을 1줄 장르2 필 뒤로 이동",
+      "3줄 태그 블록 제거",
+      "1줄 표시 조건에 태그 포함"
     ],
     "out": [
-      "무드 선택·저장 로직, 무드보드 이동 동작 변경",
-      "Classic 작곡가 표시 로직",
-      "상단 히어로 버튼 줄, 트랙리스트·Wikipedia·소개문 등 아래 영역",
+      "MoodMiniCard 크기·무드 피커 로직",
+      "발매일·앨범 타입·Classic 작곡가 표시",
       "DB 스키마·SQL",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock 앨범 상세에서 1줄에 무드 카드와 장르2 필이 같은 높이로 나란히 보인다",
-    "2줄에 발매일과 앨범 타입이 한 줄로 보이고, 3줄에 태그 필이 태그가 있을 때만 보인다",
-    "무드 카드 클릭 시 무드 선택 피커(로그인)나 무드보드 이동이 기존처럼 동작하고 피커 위치가 카드 아래에 맞는다",
-    "Classic 앨범 상세의 발매일·앨범 타입·작곡가 표시 내용이 이전과 같다",
+    "1줄에 무드 카드, 장르2 필, 태그 필이 이 순서로 나란히 보이고 많으면 줄바꿈된다",
+    "무드·장르2 없이 태그만 있는 앨범도 1줄에 태그가 보인다",
+    "태그 전용 3번째 줄이 더 이상 없다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": true,
-  "commit_message": "(style): 앨범 상세 정보 상단 무드·장르2/발매일·타입/태그 3줄 배치",
+  "commit_message": "(style): 앨범 상세 태그 필을 무드·장르2 줄로 이동",
   "status": "done",
-  "result": "AlbumInfoSection 상단을 3줄로 재배치: (1) 무드+장르2 flex-wrap gap-1.5(둘 다 없으면 숨김), (2) 발매일·앨범 타입 가로(flex-wrap)+작곡가/시대는 기존 로직 유지, (3) 태그 필만(있을 때). MoodMiniCard를 장르2 필과 맞추어 py/px·text-[11px]·rounded-full로 축소. 피커는 triggerRef getBoundingClientRect 기반이라 축소 후에도 카드 아래 정렬(최소 폭 256 유지).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, albumDetailMoodMiniCard.tsx, TASK.json (+ docs/tasks/T-091.json 보관)."
+  "result": "AlbumInfoSection: 태그 필을 1줄(무드→장르2 뒤)로 이동, 3줄 태그 블록 제거. showMoodGenreRow에 detailTags 포함.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, TASK.json (+ docs/tasks/T-092.json 보관)."
 }

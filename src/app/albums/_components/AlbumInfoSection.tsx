@@ -560,7 +560,8 @@ export function AlbumInfoSection({
     ? []
     : (viewingItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
   const showMoodChip = showMoodUi && (!!currentMood || canEditMood);
-  const showMoodGenreRow = showMoodChip || detailGenre2.length > 0;
+  const showMoodGenreRow =
+    showMoodChip || detailGenre2.length > 0 || detailTags.length > 0;
 
   return (
     <>
@@ -663,6 +664,19 @@ export function AlbumInfoSection({
               {detailGenre2}
             </span>
           ) : null}
+          {detailTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+              style={{
+                background: 'var(--badge-bg)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              #{tag}
+            </span>
+          ))}
         </div>
       ) : null}
       <div className="flex flex-col gap-y-2 min-w-0 text-sm opacity-90">
@@ -717,23 +731,6 @@ export function AlbumInfoSection({
           <p><strong>시대:</strong> {legacyComposerEra}</p>
         ) : null}
       </div>
-      {detailTags.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {detailTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-              style={{
-                background: 'var(--badge-bg)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
       </div>
 
       {wikiLoading ? (
