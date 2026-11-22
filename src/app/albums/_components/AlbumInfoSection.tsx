@@ -686,7 +686,7 @@ export function AlbumInfoSection({
         </div>
         {composerEntries.length >= 1 ? (
           <div
-            className="min-w-0 rounded-xl p-3"
+            className="mt-2 min-w-0 rounded-xl p-3"
             style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
             role="group"
             aria-label="작곡가"

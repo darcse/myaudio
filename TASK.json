@@ -1,30 +1,25 @@
 {
-  "id": "T-095",
-  "goal": "Classic 앨범 상세의 작곡가 영역에서 '작곡가' 제목이 사라지고, 썸네일 그리드가 테두리 있는 카드 안에 담겨 보인다.",
-  "context": "T-094 후속. 대상: src/app/albums/_components/AlbumInfoSection.tsx의 composerEntries.length >= 1 분기(<p className=\"mb-2\"><strong>작곡가</strong></p> + grid-cols-3 ComposerAvatarLink). 변경: (1) '작곡가' 제목 <p> 제거. 대신 그리드 래퍼에 aria-label='작곡가'를 달아 의미는 남긴다. (2) 그리드를 카드로 감싼다: 테두리 1px var(--border), 둥근 모서리, 안쪽 여백. 배경·모서리 반경·여백 값은 이 모달의 기존 카드/박스 스타일(var(--card-bg), var(--badge-bg) 등 실제 쓰이는 값)과 어울리게 에이전트가 판단하고 result에 적는다. 그리드 열 수·썸네일 크기는 그대로. 레거시 composer_era '시대:' 분기와 Pop & Rock 화면은 건드리지 않는다. 최소 수정, 전체 파일 재작성 금지.",
+  "id": "T-096",
+  "goal": "Classic 앨범 상세에서 작곡가 카드와 위의 발매일·앨범 타입 줄 사이 간격이 조금 넓어진다.",
+  "context": "T-095 후속. 대상: src/app/albums/_components/AlbumInfoSection.tsx 약 682행 'flex flex-col gap-y-2 min-w-0 text-sm opacity-90' 안의 작곡가 카드(rounded-xl p-3, role=group aria-label=작곡가). 현재 발매일·앨범 타입 줄과 카드 사이는 gap-y-2(8px)뿐이라 빡빡함. 기본안: 작곡가 카드에만 위쪽 여백(mt-2 정도, 총 16px 내외)을 추가. 부모 gap 값은 바꾸지 않는다(레거시 '시대:' 줄 간격에 영향). 최소 수정.",
   "scope": {
     "in": [
-      "작곡가 제목 제거(aria-label로 대체)",
-      "작곡가 그리드를 테두리 카드로 감싸기"
+      "작곡가 카드 위쪽 여백 추가"
     ],
     "out": [
-      "ComposerAvatarLink 내부 디자인·썸네일 크기·열 수",
-      "프로필 조회 로직",
-      "레거시 composer_era 분기",
+      "부모 컨테이너 gap 변경",
+      "카드 내부 스타일·그리드",
       "Pop & Rock 상세",
-      "DB 스키마·SQL",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Classic 앨범 상세에 '작곡가' 글자가 보이지 않고, 작곡가 썸네일·이름이 테두리 있는 카드 안에 보인다",
-    "작곡가 1명·여러 명 모두 같은 카드 형태로 보이고 클릭 시 작곡가 뷰로 이동한다",
-    "라이트·다크 테마에서 카드 테두리가 보인다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "Classic 앨범 상세에서 발매일·앨범 타입 줄과 작곡가 카드 사이 간격이 이전보다 넓다",
+    "작곡가가 없는 Classic 앨범과 Pop & Rock 앨범의 간격은 이전과 같다"
   ],
   "auto_commit": true,
-  "commit_message": "(style): Classic 앨범 상세 작곡가 영역 카드화, 제목 제거",
+  "commit_message": "(style): Classic 앨범 상세 작곡가 카드 위 간격 확대",
   "status": "done",
-  "result": "AlbumInfoSection: '작곡가' 제목 제거. 그리드 래퍼에 role=group aria-label=작곡가. 카드 스타일: rounded-xl p-3, background var(--card-bg), border 1px var(--border) (무드 피커·위키 썸네일과 동일 토큰).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, TASK.json (+ docs/tasks/T-094.json 보관)."
+  "result": "작곡가 카드에 mt-2 추가(부모 gap-y-2 유지 → 약 16px). 레거시 시대·Pop 간격 영향 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, TASK.json (+ docs/tasks/T-095.json 보관)."
 }
