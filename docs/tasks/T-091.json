@@ -1,0 +1,30 @@
+{
+  "id": "T-091",
+  "goal": "Pop & Rock 앨범 폼에서 장르1을 Playlist로 고르면 장르2가 자동으로 Playlist로 선택되고 읽기 전용(변경 불가)이 된다.",
+  "context": "대상: src/app/albums/_components/AlbumForm.tsx Pop 모드의 장르1 select onChange(약 810행, genre2OptionsForGenre1(nextGenre1)로 keep 판단 후 genre2를 ''로 비우는 부분)과 장르2 select(약 836행, disabled 조건이 있는 곳). 기본안: 규칙을 'Playlist'로 하드코딩하지 말고 '장르1의 장르2 옵션이 정확히 1개면 그 값을 자동 선택하고 장르2 select를 비활성'으로 일반화한다(현재 해당 장르1은 Playlist뿐). 적용 시점: (1) 장르1 변경 시 자동 선택, (2) 기존 앨범 수정 폼을 열었을 때 장르1=Playlist인데 genre2가 비었거나 다른 값이면 화면에서 Playlist로 맞춰 보이고 저장 시 그 값으로 저장(사용자가 저장하기 전에는 DB를 바꾸지 않음). 비활성 상태가 읽기 전용임을 알 수 있게 기존 disabled 스타일을 따른다. 장르1을 다시 다른 값으로 바꾸면 지금처럼 동작(새 옵션에 없으면 genre2 비움). 더 나은 방법이 있으면 result에 근거와 함께 적는다. Classic 모드 폼은 건드리지 않는다. 최소 수정, 전체 파일 재작성 금지. window.confirm/alert/prompt 금지.",
+  "scope": {
+    "in": [
+      "AlbumForm Pop 모드 장르1 변경 시 단일 옵션 자동 선택",
+      "단일 옵션일 때 장르2 select 비활성",
+      "수정 폼 진입 시 장르1=Playlist 앨범의 장르2 표시 보정"
+    ],
+    "out": [
+      "constants.ts 장르 목록 변경",
+      "Classic 모드 폼",
+      "앨범 목록·아티스트·Lyrics 필터",
+      "album 데이터 일괄 변경·DB 스키마·SQL (절대 하지 말 것)",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "새 앨범 폼에서 장르1을 Playlist로 고르면 장르2가 Playlist로 채워지고 바꿀 수 없다",
+    "장르1을 Playlist에서 다른 장르로 바꾸면 장르2가 다시 선택 가능해지고 값은 기존 규칙대로 비워진다",
+    "장르1=Playlist인 기존 앨범 수정 폼에서 장르2가 Playlist로 보이고, 저장하면 genre2='Playlist'로 저장된다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(feat): 장르2 옵션이 하나인 장르1 선택 시 장르2 자동 선택·읽기 전용",
+  "status": "done",
+  "result": "AlbumForm Pop 모드: 장르1 변경 시 genre2 옵션이 정확히 1개면 그 값을 자동 선택, 아니면 기존 keep/비움 규칙 유지. 옵션 1개일 때 장르2 select disabled. Pop 모드 useEffect로 수정 폼 진입 시 genre2가 단일 옵션과 다르면 화면 state만 맞춤(저장 전 DB 미변경). Playlist 문자열 하드코딩 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumForm.tsx, TASK.json (+ docs/tasks/T-090.json 보관)."
+}

@@ -559,150 +559,99 @@ export function AlbumInfoSection({
   const detailTags = !showMoodUi
     ? []
     : (viewingItem.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
-  const showGenreTagRow = detailGenre2.length > 0 || detailTags.length > 0;
+  const showMoodChip = showMoodUi && (!!currentMood || canEditMood);
+  const showMoodGenreRow = showMoodChip || detailGenre2.length > 0;
 
   return (
     <>
       <div className="flex flex-col gap-3">
-      <div className="flex flex-row gap-4 items-start text-sm">
-        {showMoodUi && (currentMood || canEditMood) ? (
-          <div className="relative shrink-0 w-fit max-w-full min-w-0" ref={triggerRef}>
-            <MoodMiniCard
-              moodName={currentMood || '무드 선택'}
-              placeholder={!currentMood}
-              disabled={savingMood}
-              onClick={
-                canEditMood
-                  ? () => void openMoodPicker()
-                  : currentMood && onNavigateToMood
-                    ? () => onNavigateToMood(currentMood)
-                    : undefined
-              }
-            />
-            {pickerOpen && pickerPos
-              ? createPortal(
-                  <div
-                    ref={panelRef}
-                    className="fixed z-[80] overflow-hidden rounded-xl shadow-lg"
-                    style={{
-                      top: pickerPos.top,
-                      left: pickerPos.left,
-                      width: pickerPos.width,
-                      background: 'var(--card-bg)',
-                      border: '1px solid var(--border)',
-                    }}
-                    role="listbox"
-                    aria-label="무드 선택"
-                  >
-                    {moodsLoading ? (
-                      <p className="px-3 py-3 text-xs opacity-60">무드 목록 불러오는 중…</p>
-                    ) : (
-                      <ul className="max-h-[min(55vh,22rem)] overflow-y-auto py-1">
-                        {moodOptions.map((name, index) => {
-                          const selected = name === currentMood;
-                          return (
-                            <li key={`${index}-${name}`}>
-                              <button
-                                type="button"
-                                role="option"
-                                aria-selected={selected}
-                                disabled={savingMood}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-opacity hover:opacity-100 disabled:opacity-50"
-                                style={{
-                                  opacity: selected ? 1 : 0.85,
-                                  background: selected
-                                    ? 'color-mix(in srgb, var(--foreground) 8%, var(--card-bg))'
-                                    : undefined,
-                                }}
-                                onClick={() => void selectMood(name)}
-                              >
-                                <span
-                                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[11px]"
-                                  style={{ background: getMoodVibeGradient(name), color: '#fff' }}
-                                  aria-hidden
+      {showMoodGenreRow ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {showMoodChip ? (
+            <div className="relative shrink-0 w-fit max-w-full min-w-0" ref={triggerRef}>
+              <MoodMiniCard
+                moodName={currentMood || '무드 선택'}
+                placeholder={!currentMood}
+                disabled={savingMood}
+                onClick={
+                  canEditMood
+                    ? () => void openMoodPicker()
+                    : currentMood && onNavigateToMood
+                      ? () => onNavigateToMood(currentMood)
+                      : undefined
+                }
+              />
+              {pickerOpen && pickerPos
+                ? createPortal(
+                    <div
+                      ref={panelRef}
+                      className="fixed z-[80] overflow-hidden rounded-xl shadow-lg"
+                      style={{
+                        top: pickerPos.top,
+                        left: pickerPos.left,
+                        width: pickerPos.width,
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--border)',
+                      }}
+                      role="listbox"
+                      aria-label="무드 선택"
+                    >
+                      {moodsLoading ? (
+                        <p className="px-3 py-3 text-xs opacity-60">무드 목록 불러오는 중…</p>
+                      ) : (
+                        <ul className="max-h-[min(55vh,22rem)] overflow-y-auto py-1">
+                          {moodOptions.map((name, index) => {
+                            const selected = name === currentMood;
+                            return (
+                              <li key={`${index}-${name}`}>
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={selected}
+                                  disabled={savingMood}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-opacity hover:opacity-100 disabled:opacity-50"
+                                  style={{
+                                    opacity: selected ? 1 : 0.85,
+                                    background: selected
+                                      ? 'color-mix(in srgb, var(--foreground) 8%, var(--card-bg))'
+                                      : undefined,
+                                  }}
+                                  onClick={() => void selectMood(name)}
                                 >
-                                  {getMoodVibeEmoji(name)}
-                                </span>
-                                <span className="min-w-0 flex-1 break-words leading-snug">{name}</span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                    {currentMood && onNavigateToMood ? (
-                      <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border)' }}>
-                        <button
-                          type="button"
-                          className="text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
-                          onClick={() => {
-                            setPickerOpen(false);
-                            onNavigateToMood(currentMood);
-                          }}
-                        >
-                          무드보드에서 보기
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>,
-                  document.body,
-                )
-              : null}
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-y-2 min-w-0 flex-1 opacity-90">
-          <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
-          <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
-          {composerEntries.length === 1 ? (
-            <div className="min-w-0">
-              <p className="min-w-0">
-                <strong>작곡가:</strong>{' '}
-                <Link
-                  href={`/classic/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
-                  onClick={onClose}
-                  className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
-                >
-                  {composerEntries[0].name.trim()}
-                </Link>
-              </p>
-              {(() => {
-                const country = composerEntries[0].country.trim();
-                const era = composerEntries[0].era.trim();
-                const countryLabel = country
-                  ? `${countryOptions.find((c) => c.name === country)?.flag ?? ''} ${country}`.trim()
-                  : '';
-                const meta = [countryLabel, era].filter(Boolean).join(' · ');
-                return meta ? (
-                  <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
-                ) : null;
-              })()}
+                                  <span
+                                    className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[11px]"
+                                    style={{ background: getMoodVibeGradient(name), color: '#fff' }}
+                                    aria-hidden
+                                  >
+                                    {getMoodVibeEmoji(name)}
+                                  </span>
+                                  <span className="min-w-0 flex-1 break-words leading-snug">{name}</span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                      {currentMood && onNavigateToMood ? (
+                        <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border)' }}>
+                          <button
+                            type="button"
+                            className="text-xs font-medium opacity-70 transition-opacity hover:opacity-100"
+                            onClick={() => {
+                              setPickerOpen(false);
+                              onNavigateToMood(currentMood);
+                            }}
+                          >
+                            무드보드에서 보기
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>,
+                    document.body,
+                  )
+                : null}
             </div>
-          ) : composerEntries.length > 1 ? (
-            <div className="min-w-0">
-              <p className="mb-2">
-                <strong>작곡가</strong>
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {composerEntries.map((entry, index) => {
-                  const name = entry.name.trim();
-                  return (
-                    <ComposerAvatarLink
-                      key={`${index}-${name}`}
-                      name={name}
-                      imageUrl={composerProfiles[normalizeComposerNameKey(name)] ?? null}
-                      onNavigate={onClose}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ) : isClassicGenre(viewingItem.genre1) && legacyComposerEra ? (
-            <p><strong>시대:</strong> {legacyComposerEra}</p>
           ) : null}
-        </div>
-      </div>
-      {showGenreTagRow ? (
-        <div className="flex flex-wrap gap-1.5">
           {detailGenre2 ? (
             <span
               className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
@@ -714,6 +663,62 @@ export function AlbumInfoSection({
               {detailGenre2}
             </span>
           ) : null}
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-y-2 min-w-0 text-sm opacity-90">
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
+          <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
+        </div>
+        {composerEntries.length === 1 ? (
+          <div className="min-w-0">
+            <p className="min-w-0">
+              <strong>작곡가:</strong>{' '}
+              <Link
+                href={`/classic/artists?role=composer&artist=${encodeURIComponent(composerEntries[0].name.trim())}`}
+                onClick={onClose}
+                className="break-words underline-offset-2 transition-opacity hover:underline hover:opacity-80"
+              >
+                {composerEntries[0].name.trim()}
+              </Link>
+            </p>
+            {(() => {
+              const country = composerEntries[0].country.trim();
+              const era = composerEntries[0].era.trim();
+              const countryLabel = country
+                ? `${countryOptions.find((c) => c.name === country)?.flag ?? ''} ${country}`.trim()
+                : '';
+              const meta = [countryLabel, era].filter(Boolean).join(' · ');
+              return meta ? (
+                <p className="mt-0.5 break-words text-xs opacity-55">{meta}</p>
+              ) : null;
+            })()}
+          </div>
+        ) : composerEntries.length > 1 ? (
+          <div className="min-w-0">
+            <p className="mb-2">
+              <strong>작곡가</strong>
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {composerEntries.map((entry, index) => {
+                const name = entry.name.trim();
+                return (
+                  <ComposerAvatarLink
+                    key={`${index}-${name}`}
+                    name={name}
+                    imageUrl={composerProfiles[normalizeComposerNameKey(name)] ?? null}
+                    onNavigate={onClose}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ) : isClassicGenre(viewingItem.genre1) && legacyComposerEra ? (
+          <p><strong>시대:</strong> {legacyComposerEra}</p>
+        ) : null}
+      </div>
+      {detailTags.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
           {detailTags.map((tag) => (
             <span
               key={tag}

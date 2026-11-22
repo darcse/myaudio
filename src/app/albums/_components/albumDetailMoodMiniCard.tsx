@@ -18,15 +18,16 @@ const MOOD_KEYWORD_SLOTS: { keys: string[]; slot: number }[] = [
 ];
 
 const vibeBadgeStyle: CSSProperties = {
-  padding: '0.875rem 1.25rem',
-  borderRadius: '0.75rem',
+  padding: '0.25rem 0.625rem',
+  borderRadius: '9999px',
   border: '1px solid rgba(255,255,255,0.2)',
-  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
   color: '#ffffff',
   display: 'flex',
   alignItems: 'center',
   width: 'fit-content',
   maxWidth: '100%',
+  lineHeight: 1.25,
 };
 
 export function getMoodVibeEmoji(moodName: string): string {
@@ -64,11 +65,11 @@ export function MoodMiniCard({
     opacity: placeholder ? 0.85 : 1,
   };
   const inner = (
-    <div className="flex items-center gap-[0.6rem] font-medium text-[0.85rem]">
-      <span className="shrink-0 leading-none text-base text-[#fbbf24]" aria-hidden>
+    <div className="flex items-center gap-1.5 text-[11px] font-semibold leading-none">
+      <span className="shrink-0 text-[11px] leading-none text-[#fbbf24]" aria-hidden>
         {emoji}
       </span>
-      <span className="break-words text-left">{label}</span>
+      <span className="break-words text-left leading-none">{label}</span>
     </div>
   );
   if (onClick) {
