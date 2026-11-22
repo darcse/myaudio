@@ -555,6 +555,8 @@ export function AlbumInfoSection({
   };
 
   const legacyComposerEra = viewingItem.composer_era?.trim() ?? '';
+  const detailAlbumType = viewingItem.album_type?.trim() ?? '';
+  const detailReleaseDate = viewingItem.release_date?.trim() ?? '';
   const detailGenre2 = !showMoodUi ? '' : (viewingItem.genre2?.trim() ?? '');
   const detailTags = !showMoodUi
     ? []
@@ -680,10 +682,17 @@ export function AlbumInfoSection({
         </div>
       ) : null}
       <div className="flex flex-col gap-y-2 min-w-0 text-sm opacity-90">
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <p><strong>발매일:</strong> {viewingItem.release_date || '-'}</p>
-          <p><strong>앨범 타입:</strong> {viewingItem.album_type || '-'}</p>
-        </div>
+        {detailAlbumType || detailReleaseDate ? (
+          <p>
+            {detailAlbumType ? <span>{detailAlbumType}</span> : null}
+            {detailAlbumType && detailReleaseDate ? (
+              <span className="mx-1.5 opacity-40" aria-hidden>
+                |
+              </span>
+            ) : null}
+            {detailReleaseDate ? <span>{detailReleaseDate}</span> : null}
+          </p>
+        ) : null}
         {composerEntries.length >= 1 ? (
           <div
             className="mt-2 min-w-0 rounded-xl p-3"

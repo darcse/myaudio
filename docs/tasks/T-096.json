@@ -1,0 +1,25 @@
+{
+  "id": "T-096",
+  "goal": "Classic 앨범 상세에서 작곡가 카드와 위의 발매일·앨범 타입 줄 사이 간격이 조금 넓어진다.",
+  "context": "T-095 후속. 대상: src/app/albums/_components/AlbumInfoSection.tsx 약 682행 'flex flex-col gap-y-2 min-w-0 text-sm opacity-90' 안의 작곡가 카드(rounded-xl p-3, role=group aria-label=작곡가). 현재 발매일·앨범 타입 줄과 카드 사이는 gap-y-2(8px)뿐이라 빡빡함. 기본안: 작곡가 카드에만 위쪽 여백(mt-2 정도, 총 16px 내외)을 추가. 부모 gap 값은 바꾸지 않는다(레거시 '시대:' 줄 간격에 영향). 최소 수정.",
+  "scope": {
+    "in": [
+      "작곡가 카드 위쪽 여백 추가"
+    ],
+    "out": [
+      "부모 컨테이너 gap 변경",
+      "카드 내부 스타일·그리드",
+      "Pop & Rock 상세",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Classic 앨범 상세에서 발매일·앨범 타입 줄과 작곡가 카드 사이 간격이 이전보다 넓다",
+    "작곡가가 없는 Classic 앨범과 Pop & Rock 앨범의 간격은 이전과 같다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(style): Classic 앨범 상세 작곡가 카드 위 간격 확대",
+  "status": "done",
+  "result": "작곡가 카드에 mt-2 추가(부모 gap-y-2 유지 → 약 16px). 레거시 시대·Pop 간격 영향 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumInfoSection.tsx, TASK.json (+ docs/tasks/T-095.json 보관)."
+}
