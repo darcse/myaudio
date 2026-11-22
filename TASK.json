@@ -1,30 +1,31 @@
 {
-  "id": "T-089",
-  "feature_id": "ALBUM-053",
-  "goal": "앨범 상세 상단 버튼 줄 맨 끝에 '보관함 재생' 버튼이 생겨, 누르면 Apple 단축어(PlayAlbum)가 앨범명으로 실행되어 내 Apple Music 보관함(CD 리핑 업로드본 포함)의 해당 앨범이 재생된다.",
-  "context": "대상: src/app/albums/_components/AlbumInfoSection.tsx의 AlbumInfoHeroSection 버튼 줄(타이틀곡·애플뮤직에서 열기·앨범 전체 재생 순). 이 줄의 마지막(앨범 전체 재생 뒤)에 버튼 하나 추가. Pop & Rock·Classic 공통으로 모든 앨범에 항상 표시(앨범명이 비어 있으면 숨김). 링크: shortcuts://run-shortcut?name=PlayAlbum&input=text&text={encodeURIComponent(album_name.trim())}. 단축어 이름 'PlayAlbum'은 상수로 한 곳에 둔다. 앨범명만 넘기고 아티스트·- EP 같은 접미사 가공은 하지 않는다(단축어가 '포함' 조건으로 검색함, JW가 한글 NFC·NFD 모두 동작 확인). 스타일은 기존 heroBtnClass와 같은 원형 버튼, 아이콘은 lucide 중 보관함/라이브러리 의미(예: Library, ListMusic)에서 판단, title·aria-label '보관함 재생'. 구현은 <a href>(target 없이) 기본안, 더 나은 방법이 있으면 result에 근거와 함께 적는다. 보관함에 없는 앨범이면 단축어 쪽에서 처리하므로 앱은 별도 처리하지 않는다. 최소 수정, 전체 파일 재작성 금지. window.confirm/alert/prompt 금지.",
+  "id": "T-090",
+  "goal": "장르1에 Playlist가 생기고(장르2는 Playlist 하나), K-Pop·Crossover·기타 아래의 장르2 Playlist 선택지는 사라진다.",
+  "context": "대상: src/app/albums/constants.ts. (1) genreOptions에 'Playlist'를 'Crossover' 다음, '기타' 앞에 추가. (2) GENRE2_OPTIONS_BY_GENRE1에 Playlist: ['Playlist'] 추가(위치는 Crossover 다음 권장). (3) 'K-Pop', 'Crossover', '기타' 배열에서 'Playlist' 항목 제거(다른 항목 순서는 유지). 기존 album 데이터 중 genre2='Playlist'인 앨범은 JW가 수동으로 바꾸므로 데이터는 건드리지 않는다. 확인할 것: 장르1이 K-Pop/Crossover/기타이고 genre2가 'Playlist'인 기존 앨범의 수정 폼을 열었을 때 장르2 값이 어떻게 보이는지, 다른 항목을 고치고 저장하면 genre2가 지워지거나 바뀌는지 코드로 확인해 result에 적는다(동작 변경은 하지 말고 보고만). genreOptions를 쓰는 다른 화면(앨범 목록 필터, 아티스트 필터, Lyrics 목록 필터)에 Playlist가 자연스럽게 나오는지 확인. 'Playlist' 문자열을 장르 외 의미(YouTube 재생목록 등)로 쓰는 코드는 무관하니 건드리지 않는다. 최소 수정, 전체 파일 재작성 금지.",
   "scope": {
     "in": [
-      "AlbumInfoHeroSection 버튼 줄 끝에 보관함 재생 버튼 추가",
-      "단축어 이름 상수와 URL 생성(encodeURIComponent)"
+      "constants.ts의 genreOptions에 Playlist 추가",
+      "GENRE2_OPTIONS_BY_GENRE1에 Playlist: ['Playlist'] 추가",
+      "K-Pop·Crossover·기타의 장르2 Playlist 제거",
+      "기존 genre2=Playlist 앨범의 폼 동작 확인(보고만)"
     ],
     "out": [
-      "기존 버튼(타이틀곡·애플뮤직·앨범 전체 재생) 동작·순서 변경",
-      "DB 스키마·SQL, album 데이터 변경",
-      "앨범명 가공(접미사 제거, NFC/NFD 변환 등)",
-      "Lyrics·Works 메뉴, mybooks 관련 파일",
-      "feature_list (passes 포함)",
+      "album 데이터 변경·일괄 이관 (절대 하지 말 것)",
+      "DB 스키마·SQL",
+      "폼·필터 로직 변경",
+      "YouTube 재생목록 등 장르 외 Playlist 관련 코드",
+      "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "Pop & Rock과 Classic 앨범 상세 모두 상단 버튼 줄 맨 끝에 '보관함 재생' 버튼이 보이고 기존 버튼과 같은 모양이다",
-    "버튼 href가 shortcuts://run-shortcut?name=PlayAlbum&input=text&text= 뒤에 encodeURIComponent로 인코딩된 앨범명을 붙인 값이다(한글·공백·&·/ 포함 앨범으로 확인)",
-    "단축어 이름이 상수 한 곳에만 있다",
+    "Pop & Rock 등록 폼 장르1 목록에 Playlist가 Crossover 다음·기타 앞에 있고, 고르면 장르2에 Playlist 하나만 나온다",
+    "K-Pop·Crossover·기타의 장르2 목록에 Playlist가 없다",
+    "기존 genre2=Playlist 앨범의 수정 폼 표시·저장 동작이 result에 적혀 있다",
     "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
-  "auto_commit": false,
-  "commit_message": "(feat): ALBUM-053 앨범 상세 보관함 재생(단축어) 버튼",
+  "auto_commit": true,
+  "commit_message": "(chore): 장르1 Playlist 추가, K-Pop·Crossover·기타 장르2 Playlist 제거",
   "status": "done",
-  "result": "AlbumInfoHeroSection: 앨범명 있으면 맨 끝 <a href=shortcuts://…> 보관함 재생(Library 아이콘, heroBtnClass). 상수 APPLE_MUSIC_LIBRARY_PLAY_SHORTCUT_NAME='PlayAlbum' + appleMusicLibraryPlayShortcutHref(encodeURIComponent). target 없음 — macOS/iOS에서 커스텀 스킴은 같은 창 네비가 단축어 실행에 맞음.\n검증: tsc·lint 통과. auto_commit=false → 커밋 대기.\n\n커밋 승인: 261121_1210 (feat): ALBUM-053 앨범 상세 보관함 재생(단축어) 버튼"
+  "result": "constants.ts: genreOptions에 Playlist를 Crossover 다음·기타 앞에 추가. GENRE2_OPTIONS_BY_GENRE1에 Playlist:['Playlist'] 추가(Crossover 다음). K-Pop·Crossover·기타에서 장르2 Playlist 제거(기타는 Acoustic만 남음).\n\n기존 genre2=Playlist 폼 동작(코드 확인, 변경 없음): AlbumForm 하위 장르 select는 isGenre2OptionForGenre1이 false면 'Playlist (기존 값)' 옵션을 추가해 표시·선택 유지. 장르1/장르2를 건드리지 않고 다른 필드만 수정 후 저장하면 genre2는 'Playlist' 그대로 저장됨. 장르1을 바꾸면 새 장르1 옵션에 Playlist가 있을 때만 유지(지금은 장르1=Playlist만), 아니면 genre2가 ''. 장르2를 다른 옵션으로 고르면 그 값으로 바뀜.\n\n필터: AlbumList·LyricsTranslateLibraryContent는 genreOptions 직접 사용 → Playlist 노출. Artists는 useArtistFilters의 동적 목록(카탈로그 기반)이라 데이터가 있으면 노출.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: TASK.json, constants.ts (+ docs/tasks/T-089.json 보관)."
 }

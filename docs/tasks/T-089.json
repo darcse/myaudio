@@ -1,0 +1,30 @@
+{
+  "id": "T-089",
+  "feature_id": "ALBUM-053",
+  "goal": "앨범 상세 상단 버튼 줄 맨 끝에 '보관함 재생' 버튼이 생겨, 누르면 Apple 단축어(PlayAlbum)가 앨범명으로 실행되어 내 Apple Music 보관함(CD 리핑 업로드본 포함)의 해당 앨범이 재생된다.",
+  "context": "대상: src/app/albums/_components/AlbumInfoSection.tsx의 AlbumInfoHeroSection 버튼 줄(타이틀곡·애플뮤직에서 열기·앨범 전체 재생 순). 이 줄의 마지막(앨범 전체 재생 뒤)에 버튼 하나 추가. Pop & Rock·Classic 공통으로 모든 앨범에 항상 표시(앨범명이 비어 있으면 숨김). 링크: shortcuts://run-shortcut?name=PlayAlbum&input=text&text={encodeURIComponent(album_name.trim())}. 단축어 이름 'PlayAlbum'은 상수로 한 곳에 둔다. 앨범명만 넘기고 아티스트·- EP 같은 접미사 가공은 하지 않는다(단축어가 '포함' 조건으로 검색함, JW가 한글 NFC·NFD 모두 동작 확인). 스타일은 기존 heroBtnClass와 같은 원형 버튼, 아이콘은 lucide 중 보관함/라이브러리 의미(예: Library, ListMusic)에서 판단, title·aria-label '보관함 재생'. 구현은 <a href>(target 없이) 기본안, 더 나은 방법이 있으면 result에 근거와 함께 적는다. 보관함에 없는 앨범이면 단축어 쪽에서 처리하므로 앱은 별도 처리하지 않는다. 최소 수정, 전체 파일 재작성 금지. window.confirm/alert/prompt 금지.",
+  "scope": {
+    "in": [
+      "AlbumInfoHeroSection 버튼 줄 끝에 보관함 재생 버튼 추가",
+      "단축어 이름 상수와 URL 생성(encodeURIComponent)"
+    ],
+    "out": [
+      "기존 버튼(타이틀곡·애플뮤직·앨범 전체 재생) 동작·순서 변경",
+      "DB 스키마·SQL, album 데이터 변경",
+      "앨범명 가공(접미사 제거, NFC/NFD 변환 등)",
+      "Lyrics·Works 메뉴, mybooks 관련 파일",
+      "feature_list (passes 포함)",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "Pop & Rock과 Classic 앨범 상세 모두 상단 버튼 줄 맨 끝에 '보관함 재생' 버튼이 보이고 기존 버튼과 같은 모양이다",
+    "버튼 href가 shortcuts://run-shortcut?name=PlayAlbum&input=text&text= 뒤에 encodeURIComponent로 인코딩된 앨범명을 붙인 값이다(한글·공백·&·/ 포함 앨범으로 확인)",
+    "단축어 이름이 상수 한 곳에만 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): ALBUM-053 앨범 상세 보관함 재생(단축어) 버튼",
+  "status": "done",
+  "result": "AlbumInfoHeroSection: 앨범명 있으면 맨 끝 <a href=shortcuts://…> 보관함 재생(Library 아이콘, heroBtnClass). 상수 APPLE_MUSIC_LIBRARY_PLAY_SHORTCUT_NAME='PlayAlbum' + appleMusicLibraryPlayShortcutHref(encodeURIComponent). target 없음 — macOS/iOS에서 커스텀 스킴은 같은 창 네비가 단축어 실행에 맞음.\n검증: tsc·lint 통과. auto_commit=false → 커밋 대기.\n\n커밋 승인: 261121_1210 (feat): ALBUM-053 앨범 상세 보관함 재생(단축어) 버튼"
+}

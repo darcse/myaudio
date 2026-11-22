@@ -258,7 +258,7 @@ export const countryOptions: CountryOption[] = [
 
 export const genreOptions = [
   'Rock', 'Metal', 'Electronic', 'Pop', 'K-Pop', 'J-Pop', 'J-Idol', 'J-Rock',
-  'OST', 'Jazz', 'World', 'Classic', 'Crossover', '기타',
+  'OST', 'Jazz', 'World', 'Classic', 'Crossover', 'Playlist', '기타',
 ] as const;
 
 export const GENRE2_OPTIONS_BY_GENRE1 = {
@@ -305,7 +305,6 @@ export const GENRE2_OPTIONS_BY_GENRE1 = {
     'Pop Rock',
     'Indie Pop',
     'Ballad',
-    'Playlist',
   ],
   'J-Pop': [
     'Pop Rock',
@@ -329,9 +328,10 @@ export const GENRE2_OPTIONS_BY_GENRE1 = {
   Electronic: ['Electro', 'Big Beat', 'Trip Hop', 'House', 'Ambient'],
   Jazz: ['Anime Jazz', 'Nu Jazz', 'Swing', 'Fusion'],
   OST: ['Game OST', 'Anime OST', 'Movie OST'],
-  Crossover: ['Orchestral', 'Classical', 'Traditional', 'Playlist'],
+  Crossover: ['Orchestral', 'Classical', 'Traditional'],
+  Playlist: ['Playlist'],
   World: ['Folk', 'Traditional'],
-  기타: ['Playlist', 'Acoustic'],
+  기타: ['Acoustic'],
 } as const;
 
 export type Genre1WithGenre2Options = keyof typeof GENRE2_OPTIONS_BY_GENRE1;
