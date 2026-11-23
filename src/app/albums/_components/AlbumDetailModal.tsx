@@ -8,6 +8,7 @@ import { Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { setPendingAlbumFormTab } from '../albumFormTabIntent';
 import type { Album } from '../types';
 import {
@@ -106,30 +107,7 @@ export function AlbumDetailModal({
   );
   const [aiRecommendLoading, setAiRecommendLoading] = useState(false);
 
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    const { body, documentElement } = document;
-    const prev = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      htmlOverflow: documentElement.style.overflow,
-    };
-    body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.width = '100%';
-    documentElement.style.overflow = 'hidden';
-    return () => {
-      body.style.overflow = prev.overflow;
-      body.style.position = prev.position;
-      body.style.top = prev.top;
-      body.style.width = prev.width;
-      documentElement.style.overflow = prev.htmlOverflow;
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
+  useLockBodyScroll();
 
   useEffect(() => {
     setActiveTab('info');
@@ -296,7 +274,7 @@ export function AlbumDetailModal({
   }, [isAuthenticated, onAlbumPatch, viewingItem]);
 
   const modalTree = (
-    <div className="modal-overlay-apple fixed inset-0 z-50 box-border flex flex-col overflow-hidden p-4">
+    <div className="modal-overlay-apple fixed inset-0 z-[60] box-border flex flex-col overflow-hidden p-4">
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div
           className="modal-panel-apple relative flex min-h-0 w-full max-w-lg flex-col overflow-hidden rounded-[var(--radius-lg)]"

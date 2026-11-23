@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 import { DeletingLabel, SavingLabel } from '@/components/AsyncMutationUi';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import {
   albumCountryUsageCounts,
   CountryComboSelect,
@@ -194,30 +196,7 @@ export function AlbumForm({
         : '',
     );
   }, [selectedItem]);
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    const { body, documentElement } = document;
-    const prev = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
-      htmlOverflow: documentElement.style.overflow,
-    };
-    body.style.overflow = 'hidden';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.width = '100%';
-    documentElement.style.overflow = 'hidden';
-    return () => {
-      body.style.overflow = prev.overflow;
-      body.style.position = prev.position;
-      body.style.top = prev.top;
-      body.style.width = prev.width;
-      documentElement.style.overflow = prev.htmlOverflow;
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
+  useLockBodyScroll();
 
   const isEdit = 'id' in selectedItem && typeof selectedItem.id === 'number';
   const resolvedMode: AlbumFormMode =
@@ -512,8 +491,8 @@ export function AlbumForm({
     </div>
   );
 
-  return (
-    <div className="modal-overlay-apple fixed inset-0 flex items-center justify-center p-4 z-50">
+  const formTree = (
+    <div className="modal-overlay-apple fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div className="modal-panel-apple max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8 relative">
         <div className="flex justify-between items-center mb-4 pb-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="section-title text-xl">{isEdit ? '✏️ 앨범 정보 수정' : '➕ 신규 앨범 등록'}</h2>
@@ -1305,4 +1284,7 @@ export function AlbumForm({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(formTree, document.body);
 }
