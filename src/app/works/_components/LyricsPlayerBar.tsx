@@ -189,7 +189,7 @@ export function LyricsPlayerBar({
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[60] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
+      className="fixed bottom-0 left-0 right-0 z-[65] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">

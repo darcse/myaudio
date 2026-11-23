@@ -631,7 +631,7 @@ export function GlobalAlbumPlayer() {
             ? 'pointer-events-none fixed bottom-0 left-0 z-0 size-12 overflow-hidden opacity-0'
             : expanded
               ? 'fixed inset-0 z-[81] flex items-center justify-center p-4'
-              : 'fixed bottom-0 left-0 right-0 z-[60] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]'
+              : 'fixed bottom-0 left-0 right-0 z-[65] border-t shadow-[0_-4px_24px_rgba(0,0,0,0.08)]'
         }
         style={
           !current || expanded

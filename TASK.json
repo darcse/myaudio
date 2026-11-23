@@ -1,30 +1,27 @@
 {
-  "id": "T-099",
-  "goal": "아이폰에서 아티스트 상세(모바일 전체 화면) 안의 앨범을 누르면 앨범 모달이 상세 화면 위에 바로 열리고, 모달을 닫거나 다른 화면(메인 등)으로 이동한 뒤에도 스크롤이 잠기지 않는다.",
-  "context": "JW 제보(아이폰): (1) /artists 모바일에서 아티스트 상세 화면의 앨범을 누르면 앨범 모달이 상세가 아니라 뒤의 목록 화면에서 열려, 상세를 닫아야 모달이 보인다. (2) 그 흐름 후 메인 화면으로 이동하면 스크롤이 안 움직인다(버튼 클릭은 됨). 플래너 사전 확인: src/app/artists/_components/ArtistsLibraryContent.tsx의 모바일 상세 오버레이(mobileOverlayOpen, 약 1094행)는 createPortal(document.body)로 'fixed inset-0 z-50'에 그려지고, 같은 파일 약 1150행의 AlbumDetailModal은 portal 없이 페이지 트리 안에 렌더되며 AlbumDetailModal.tsx 루트도 'fixed inset-0 z-50'이라 DOM 순서상 오버레이가 모달을 덮는 것으로 보인다. AlbumDetailModal.tsx(약 110~130행)는 열릴 때 body overflow/position=fixed·html overflow를 잠그고 이전 값을 저장해 복원한다. 다른 잠금 코드: ArtistTopControlBar.tsx(약 134행), ArtistDetailModal.tsx(약 87행), AlbumForm.tsx(약 200행), works/LyricsDetailModal.tsx(약 57행). 할 일: (1) 원인 확인 후 앨범 모달이 아티스트 상세 오버레이 위에 보이게 수정. 기본안: AlbumDetailModal을 portal로 body에 렌더하거나 z-index를 오버레이보다 높게(데스크톱·다른 화면의 기존 레이어 순서와 충돌 없는 쪽을 판단, 근거를 result에). AlbumDetailModal 위에 뜨는 AlbumForm 등 하위 레이어 순서도 깨지지 않게 확인. (2) 스크롤 잠금: 위 잠금 코드들이 겹칠 때(예: 아티스트 오버레이 열린 상태 → 앨범 모달 열기 → 닫기 → 오버레이 닫기 → 라우트 이동) body/html 스타일이 원래대로 복원되는지 코드로 추적하고, 잠금이 남는 경로를 result에 적은 뒤 고친다. 기본안: 잠금/해제를 공용 훅 하나(참조 카운트 방식)로 모으는 것이 범위가 크면, 이번에는 문제 경로만 고치고 공용화는 result에 제안으로 남긴다. 모바일 아티스트 오버레이 자체가 스크롤을 잠그는지도 확인. 최소 수정, 전체 파일 재작성 금지. window.confirm/alert/prompt 금지.",
+  "id": "T-100",
+  "goal": "앨범 모달이 열려 있어도 하단 앨범 플레이어 바(접힌 상태)와 가사 플레이어 바가 모달 위에 보인다.",
+  "context": "T-099 후속. T-099에서 앨범 모달을 z-[60], 앨범 수정 폼을 z-[70]으로 올리면서, 같은 z-[60]인 하단 플레이어 바가 모달(body portal, DOM상 뒤)에 가려지게 됨. JW 결정: 플레이어 바가 모달 위. 대상: src/components/GlobalAlbumPlayer.tsx 약 634행 접힌 상태 클래스 'fixed bottom-0 left-0 right-0 z-[60]', src/app/works/_components/LyricsPlayerBar.tsx 약 192행 'fixed bottom-0 left-0 right-0 z-[60]'. 기본안: 두 바를 z-[65]로 올린다(앨범 모달 60 < 플레이어 바 65 < 앨범 수정 폼 70·LyricsFavoritePlaylistDrawer 70/71·BackToTop 70 < 펼친 플레이어 80/81). 펼친 플레이어(z-[80]/[81])와 GlobalAlbumPlayer의 숨김 상태(z-0)는 그대로. 다른 z 값과 충돌이 보이면 result에 적는다. 최소 수정.",
   "scope": {
     "in": [
-      "아티스트 모바일 상세 위에 앨범 모달이 보이도록 레이어 수정",
-      "앨범 모달·아티스트 오버레이 관련 스크롤 잠금 복원 문제 수정",
-      "다른 잠금 코드와의 겹침 경로 조사·보고"
+      "GlobalAlbumPlayer 접힌 바 z-index 조정",
+      "LyricsPlayerBar z-index 조정"
     ],
     "out": [
-      "아티스트·앨범 화면 디자인·레이아웃 변경",
-      "인사이트 화면(다음 TASK)",
-      "DB 스키마·SQL, 데이터 변경",
+      "앨범 모달·수정 폼·아티스트 오버레이 z-index",
+      "펼친 플레이어·드로어 z-index",
+      "스크롤 잠금 로직",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "모바일 폭에서 아티스트 상세 화면의 앨범을 누르면 앨범 모달이 상세 화면 위에 보이고, 닫으면 상세 화면으로 돌아온다",
-    "위 흐름 후 상세를 닫고 메인 화면으로 이동해도 스크롤이 정상 동작한다(body/html 스타일 복원을 코드로 확인)",
-    "데스크톱 /artists, /albums, /classic에서 앨범 모달과 그 위 앨범 수정 폼의 레이어 순서·스크롤 잠금이 이전과 같다",
-    "result에 원인, 잠금이 남던 경로, 선택한 수정 방법과 근거가 적혀 있다",
-    "npx tsc --noEmit과 npm run lint가 통과한다"
+    "앨범 재생 중 앨범 모달을 열면 하단 플레이어 바가 모달 위에 보이고 조작된다",
+    "가사 플레이어 바도 앨범 모달 위에 보인다",
+    "앨범 수정 폼, 가사 즐겨찾기 드로어, 펼친 플레이어는 플레이어 바보다 위에 보인다"
   ],
-  "auto_commit": false,
-  "commit_message": "(fix): 모바일 아티스트 상세에서 앨범 모달 레이어·스크롤 잠금 복원 수정",
+  "auto_commit": true,
+  "commit_message": "(fix): 하단 플레이어 바를 앨범 모달 위로",
   "status": "done",
-  "result": "원인(레이어): 모바일 아티스트 상세는 body portal + z-50. AlbumDetailModal도 body portal(이미 있음)이지만 동일 z-50이라 iOS에서 오버레이가 모달을 가릴 수 있음. AlbumForm은 portal 없이 z-50이라 오버레이/모달 위에 안 뜰 수 있음.\n\n원인(스크롤): ArtistsLibraryContent는 useLockBodyScroll(refcount). AlbumDetailModal·AlbumForm은 각자 body position:fixed + overflow 저장/복원. 잠금이 남는 경로: 오버레이 잠금 중 앨범 모달이 열리면 prev.overflow='hidden'을 저장 → 오버레이가 먼저 해제되어 overflow가 ''로 복원된 뒤 모달이 닫히면 오래된 'hidden'을 되돌려 body/html overflow가 잠긴 채로 남음(메인 이동 시 스크롤 불가). 모바일 오버레이 자체는 useLockBodyScroll(mobileOverlayOpen)으로 잠금.\n\n수정: AlbumDetailModal z-[60] + useLockBodyScroll(). AlbumForm body portal + z-[70] + useLockBodyScroll(). 레이어: 오버레이(50) < 앨범상세(60) < 앨범폼(70).\n\n다른 잠금(보고만): ArtistTopControlBar·ArtistDetailModal·LyricsDetailModal은 여전히 단독 overflow='hidden'/prev 복원 → 공용 useLockBodyScroll으로 모으면 중첩 안전(이번 범위 밖 제안).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: AlbumDetailModal.tsx, AlbumForm.tsx, TASK.json (+ docs/tasks/T-098.json 보관).\nauto_commit=false → 커밋·푸시 안 함.\n\n커밋 승인: 261123_2139 (fix): 모바일 아티스트 상세에서 앨범 모달 레이어·스크롤 잠금 복원 수정"
+  "result": "GlobalAlbumPlayer 접힌 바·LyricsPlayerBar z-[60]→z-[65]. 스택: 앨범모달 60 < 플레이어바 65 < 수정폼/드로어/BackToTop 70–71 < 펼친 플레이어 80/81. 추가 충돌 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: GlobalAlbumPlayer.tsx, LyricsPlayerBar.tsx, TASK.json (+ docs/tasks/T-099.json 보관)."
 }
