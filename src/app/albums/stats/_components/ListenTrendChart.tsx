@@ -24,7 +24,7 @@ export function ListenTrendChart({ data, unit }: ListenTrendChartProps) {
 
   return (
     <div
-      className="flex h-44 items-end justify-between gap-1 sm:gap-1.5"
+      className="flex h-44 min-w-0 w-full items-end justify-between gap-1 sm:gap-1.5"
       role="img"
       aria-label="청취 추이 바 차트"
     >
@@ -34,11 +34,11 @@ export function ListenTrendChart({ data, unit }: ListenTrendChartProps) {
         return (
           <div
             key={item.key}
-            className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+            className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1 overflow-hidden"
             aria-label={`${axisLabel} ${item.count}회`}
             title={`${axisLabel} ${item.count}회`}
           >
-            <span className="h-4 shrink-0 text-[10px] font-medium tabular-nums leading-4 opacity-70">
+            <span className="h-4 w-full truncate text-center text-[10px] font-medium tabular-nums leading-4 opacity-70">
               {formatCountLabel(item.count)}
             </span>
             <div className="flex h-28 w-full items-end justify-center sm:h-32">
@@ -51,7 +51,10 @@ export function ListenTrendChart({ data, unit }: ListenTrendChartProps) {
                 }}
               />
             </div>
-            <span className="shrink-0 text-[11px] leading-none" style={{ color: 'var(--muted)' }}>
+            <span
+              className="w-full truncate text-center text-[11px] leading-none"
+              style={{ color: 'var(--muted)' }}
+            >
               {axisLabel}
             </span>
           </div>

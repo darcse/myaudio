@@ -117,7 +117,7 @@ export function TopGearListenSection({
 
   return (
     <section
-      className="flex min-h-[20rem] flex-col rounded-xl border"
+      className="flex min-h-[20rem] min-w-0 flex-col rounded-xl border"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
@@ -129,7 +129,7 @@ export function TopGearListenSection({
           <span className="truncate">{title}</span>
         </div>
         {categoryFilter != null && onCategoryFilterChange ? (
-          <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-1.5">
             {GEAR_CATEGORY_FILTER_OPTIONS.map((option) => (
               <button
                 key={option}

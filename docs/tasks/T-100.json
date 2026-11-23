@@ -1,0 +1,27 @@
+{
+  "id": "T-100",
+  "goal": "앨범 모달이 열려 있어도 하단 앨범 플레이어 바(접힌 상태)와 가사 플레이어 바가 모달 위에 보인다.",
+  "context": "T-099 후속. T-099에서 앨범 모달을 z-[60], 앨범 수정 폼을 z-[70]으로 올리면서, 같은 z-[60]인 하단 플레이어 바가 모달(body portal, DOM상 뒤)에 가려지게 됨. JW 결정: 플레이어 바가 모달 위. 대상: src/components/GlobalAlbumPlayer.tsx 약 634행 접힌 상태 클래스 'fixed bottom-0 left-0 right-0 z-[60]', src/app/works/_components/LyricsPlayerBar.tsx 약 192행 'fixed bottom-0 left-0 right-0 z-[60]'. 기본안: 두 바를 z-[65]로 올린다(앨범 모달 60 < 플레이어 바 65 < 앨범 수정 폼 70·LyricsFavoritePlaylistDrawer 70/71·BackToTop 70 < 펼친 플레이어 80/81). 펼친 플레이어(z-[80]/[81])와 GlobalAlbumPlayer의 숨김 상태(z-0)는 그대로. 다른 z 값과 충돌이 보이면 result에 적는다. 최소 수정.",
+  "scope": {
+    "in": [
+      "GlobalAlbumPlayer 접힌 바 z-index 조정",
+      "LyricsPlayerBar z-index 조정"
+    ],
+    "out": [
+      "앨범 모달·수정 폼·아티스트 오버레이 z-index",
+      "펼친 플레이어·드로어 z-index",
+      "스크롤 잠금 로직",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "앨범 재생 중 앨범 모달을 열면 하단 플레이어 바가 모달 위에 보이고 조작된다",
+    "가사 플레이어 바도 앨범 모달 위에 보인다",
+    "앨범 수정 폼, 가사 즐겨찾기 드로어, 펼친 플레이어는 플레이어 바보다 위에 보인다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(fix): 하단 플레이어 바를 앨범 모달 위로",
+  "status": "done",
+  "result": "GlobalAlbumPlayer 접힌 바·LyricsPlayerBar z-[60]→z-[65]. 스택: 앨범모달 60 < 플레이어바 65 < 수정폼/드로어/BackToTop 70–71 < 펼친 플레이어 80/81. 추가 충돌 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: GlobalAlbumPlayer.tsx, LyricsPlayerBar.tsx, TASK.json (+ docs/tasks/T-099.json 보관)."
+}

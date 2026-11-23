@@ -129,17 +129,17 @@ function RankingPanel({
 }) {
   return (
     <section
-      className="flex min-h-[20rem] flex-col rounded-xl border"
+      className="flex min-h-[20rem] min-w-0 flex-col rounded-xl border"
       style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
     >
       <div
-        className="flex items-center gap-2 border-b px-4 py-3 text-sm font-semibold"
+        className="flex min-w-0 items-center gap-2 border-b px-4 py-3 text-sm font-semibold"
         style={{ borderColor: 'var(--border)' }}
       >
         {icon}
-        {title}
+        <span className="min-w-0 truncate">{title}</span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">{children}</div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-2">{children}</div>
     </section>
   );
 }
@@ -157,7 +157,7 @@ function AlbumRankRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
+      className="flex min-w-0 w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
     >
       <RankBadge rank={rank} />
       <div
@@ -197,7 +197,7 @@ function ArtistRankRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
+      className="flex min-w-0 w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-opacity hover:opacity-90"
     >
       <RankBadge rank={rank} />
       <div
@@ -772,8 +772,8 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
     <div
       className={
         embedded
-          ? 'relative'
-          : 'relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6'
+          ? 'relative min-w-0'
+          : 'relative mx-auto min-h-screen min-w-0 max-w-6xl px-4 py-8 sm:px-6'
       }
       style={{ color: 'var(--foreground)' }}
     >
@@ -929,7 +929,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
                   <p className="mt-2 text-sm opacity-60">다른 연도나 월을 선택해 보세요.</p>
                 </div>
               ) : (
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid min-w-0 gap-6 lg:grid-cols-2">
                   <RankingPanel
                     title={`최다 청취 앨범 TOP ${rankingLimit}`}
                     icon={<Disc className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}

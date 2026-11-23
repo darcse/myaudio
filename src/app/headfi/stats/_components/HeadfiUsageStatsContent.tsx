@@ -240,8 +240,8 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     <div
       className={
         embedded
-          ? 'relative'
-          : 'relative mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6'
+          ? 'relative min-w-0'
+          : 'relative mx-auto min-h-screen min-w-0 max-w-6xl px-4 py-8 sm:px-6'
       }
       style={{ color: 'var(--foreground)' }}
     >
@@ -313,7 +313,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-6 lg:grid-cols-2">
             <TopGearListenSection
               title={`최다 사용 리시버 TOP ${rankingLimit}`}
               icon={<Headphones className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}

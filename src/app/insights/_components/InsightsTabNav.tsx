@@ -36,7 +36,7 @@ export function InsightsTabNav({ activeTab }: InsightsTabNavProps) {
         <BarChart3 className="size-7 shrink-0 opacity-80" strokeWidth={1.5} aria-hidden />
         Insights
       </h1>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
           return (

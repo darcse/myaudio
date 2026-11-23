@@ -32,7 +32,7 @@ export default async function InsightsPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
+    <div className="mx-auto min-h-screen min-w-0 w-full max-w-6xl px-4 py-8 sm:px-6" style={{ color: 'var(--foreground)' }}>
       <InsightsTabNav activeTab={tab} />
 
       {tab === 'ranking' ? (

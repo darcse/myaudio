@@ -251,9 +251,9 @@ function GenreDetailPanel({
 
   return (
     <div className={isSheet ? 'flex flex-col' : 'flex h-full min-h-0 flex-col'}>
-      <div className="shrink-0">
-        <h3 className="text-lg font-semibold leading-tight">{item.label}</h3>
-        <p className="mt-1 text-sm opacity-70 tabular-nums">
+      <div className="min-w-0 shrink-0">
+        <h3 className="min-w-0 break-words text-lg font-semibold leading-tight">{item.label}</h3>
+        <p className="mt-1 break-words text-sm opacity-70 tabular-nums">
           앨범 {item.albumCount}장 · 청취 {item.listenCount}회
         </p>
       </div>
@@ -682,7 +682,7 @@ export function GenreStatsContent() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div

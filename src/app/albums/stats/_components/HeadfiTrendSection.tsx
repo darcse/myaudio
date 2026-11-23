@@ -237,7 +237,7 @@ export function HeadfiTrendSection() {
           ) : (
             <select
               id="headfi-trend-year"
-              className="select-apple h-[38px] px-3 py-2 text-sm"
+              className="select-apple h-[38px] min-w-0 max-w-full px-3 py-2 text-sm"
               value={selectedYear}
               onChange={(e) => selectYear(Number(e.target.value))}
               aria-label="헤드파이 추이 연도"
@@ -262,13 +262,13 @@ export function HeadfiTrendSection() {
         ) : null}
 
         {!monthsLoading && !yearsLoading && !monthsError && months.length > 0 ? (
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 min-[1440px]:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5 min-[1440px]:grid-cols-6">
             {months.map((row) => (
               <button
                 key={row.month}
                 type="button"
                 onClick={() => openMonth(row.month)}
-                className="group flex cursor-pointer flex-col rounded-xl p-4 text-left transition-all duration-300"
+                className="group flex min-w-0 cursor-pointer flex-col rounded-xl p-3 text-left transition-all duration-300 sm:p-4"
                 style={{
                   background: 'var(--card-bg)',
                   border: '1px solid var(--border)',
@@ -296,10 +296,10 @@ export function HeadfiTrendSection() {
                 <h3 className="mb-1 truncate text-sm font-bold leading-tight">
                   {selectedYear}년 {row.month}월
                 </h3>
-                <p className="text-xs tabular-nums opacity-85">
+                <p className="truncate text-xs tabular-nums opacity-85">
                   지출 {formatOverlayWon(row.spendTotal)}
                 </p>
-                <p className="mt-0.5 text-xs tabular-nums" style={{ color: 'var(--muted)' }}>
+                <p className="mt-0.5 truncate text-xs tabular-nums" style={{ color: 'var(--muted)' }}>
                   판매 {formatOverlayWon(row.salesTotal)}
                 </p>
               </button>

@@ -1,27 +1,31 @@
 {
-  "id": "T-100",
-  "goal": "앨범 모달이 열려 있어도 하단 앨범 플레이어 바(접힌 상태)와 가사 플레이어 바가 모달 위에 보인다.",
-  "context": "T-099 후속. T-099에서 앨범 모달을 z-[60], 앨범 수정 폼을 z-[70]으로 올리면서, 같은 z-[60]인 하단 플레이어 바가 모달(body portal, DOM상 뒤)에 가려지게 됨. JW 결정: 플레이어 바가 모달 위. 대상: src/components/GlobalAlbumPlayer.tsx 약 634행 접힌 상태 클래스 'fixed bottom-0 left-0 right-0 z-[60]', src/app/works/_components/LyricsPlayerBar.tsx 약 192행 'fixed bottom-0 left-0 right-0 z-[60]'. 기본안: 두 바를 z-[65]로 올린다(앨범 모달 60 < 플레이어 바 65 < 앨범 수정 폼 70·LyricsFavoritePlaylistDrawer 70/71·BackToTop 70 < 펼친 플레이어 80/81). 펼친 플레이어(z-[80]/[81])와 GlobalAlbumPlayer의 숨김 상태(z-0)는 그대로. 다른 z 값과 충돌이 보이면 result에 적는다. 최소 수정.",
+  "id": "T-101",
+  "goal": "아이폰 폭(약 375~430px)에서 인사이트(/insights)의 모든 탭(랭킹·트렌드·사용·장르)이 화면 밖으로 넘치지 않아 가로 스크롤이 생기지 않는다.",
+  "context": "JW 제보(아이폰): 인사이트 앨범 랭킹 등에서 카드가 화면보다 넓어져 가로 스크롤이 생김. 대상: src/app/insights/page.tsx(탭별 렌더), src/app/albums/stats/_components/AlbumStatsContent.tsx(ranking·trend 탭, 랭킹 영역 약 790~920행), src/app/headfi/stats/_components/HeadfiUsageStatsContent.tsx(usage), src/app/insights/_components/GenreStatsContent.tsx(genre), InsightsTabNav.tsx. 할 일: (1) 375px 폭 기준으로 넘침을 일으키는 요소를 탭별로 찾아 result에 목록화(원인 유형 예: 긴 앨범명·아티스트명 줄바꿈 없음(truncate/break-words·min-w-0 누락), 고정 width/min-width, flex 자식 shrink 불가, 그리드 열 고정, 차트 고정 너비, 표). (2) 각 원인을 최소 수정으로 고친다. 긴 텍스트는 말줄임(한 줄) 또는 줄바꿈 중 카드 성격에 맞게 판단. 차트·표처럼 본래 넓어야 하는 요소는 페이지 전체가 아니라 그 요소 안에서만 가로 스크롤되게 한다. (3) 페이지 전체에 overflow-x:hidden을 걸어 덮는 방식은 쓰지 않는다(원인 은폐). 데스크톱 레이아웃은 바뀌지 않아야 한다. 최소 수정, 전체 파일 재작성 금지.",
   "scope": {
     "in": [
-      "GlobalAlbumPlayer 접힌 바 z-index 조정",
-      "LyricsPlayerBar z-index 조정"
+      "인사이트 4개 탭의 모바일 가로 넘침 원인 조사·목록화",
+      "원인별 최소 수정"
     ],
     "out": [
-      "앨범 모달·수정 폼·아티스트 오버레이 z-index",
-      "펼친 플레이어·드로어 z-index",
-      "스크롤 잠금 로직",
+      "통계 계산 로직·데이터 조회",
+      "데스크톱 레이아웃 변경",
+      "페이지 전체 overflow-x 숨김으로 덮기",
+      "인사이트 외 화면",
+      "DB 스키마·SQL",
       "feature_list",
       "auto_commit 기준 밖의 git 조작"
     ]
   },
   "done": [
-    "앨범 재생 중 앨범 모달을 열면 하단 플레이어 바가 모달 위에 보이고 조작된다",
-    "가사 플레이어 바도 앨범 모달 위에 보인다",
-    "앨범 수정 폼, 가사 즐겨찾기 드로어, 펼친 플레이어는 플레이어 바보다 위에 보인다"
+    "브라우저 375px 폭에서 /insights의 랭킹·트렌드·사용·장르 탭 모두 페이지 가로 스크롤이 없다",
+    "긴 앨범명·아티스트명이 있는 랭킹 카드가 화면 폭 안에 들어온다",
+    "1280px 이상 데스크톱 레이아웃이 이전과 같다",
+    "result에 탭별 넘침 원인과 수정 내용 목록이 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
   ],
   "auto_commit": true,
-  "commit_message": "(fix): 하단 플레이어 바를 앨범 모달 위로",
+  "commit_message": "(fix): 인사이트 모바일 가로 넘침 수정",
   "status": "done",
-  "result": "GlobalAlbumPlayer 접힌 바·LyricsPlayerBar z-[60]→z-[65]. 스택: 앨범모달 60 < 플레이어바 65 < 수정폼/드로어/BackToTop 70–71 < 펼친 플레이어 80/81. 추가 충돌 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: GlobalAlbumPlayer.tsx, LyricsPlayerBar.tsx, TASK.json (+ docs/tasks/T-099.json 보관)."
+  "result": "탭별 원인·수정(페이지 overflow-x:hidden 미사용, min-w-0/truncate/break-words·모바일 gap만):\n\n[ranking]\n- RankingPanel/그리드/행 버튼에 min-w-0 부족 → 패널·grid·Album/ArtistRankRow에 min-w-0, 제목 truncate\n- WeeklyHot 앨범명 line-clamp만·공백없는 영문 단어 → break-words + min-w-0\n- embedded 루트 min-w-0\n\n[trend]\n- ListenTrendChart 주간 라벨·횟수 shrink-0로 열 min-content 확장 → w-full truncate + 열 overflow-hidden\n- HeadfiTrend 월 카드 grid 자식 min-w-0 없음·긴 금액 → min-w-0, 금액 truncate, 모바일 gap-3/p-3\n- MonthlyHeadfiActivity 요약·기기 카드 동일(min-w-0·금액 truncate·모바일 gap)\n\n[usage]\n- TopGear 카테고리 flex-nowrap → flex-wrap, 섹션·그리드 min-w-0\n\n[genre]\n- 상세 h3 장르명 break/min-w-0 없음 → break-words, 루트 min-w-0\n\n[nav/page]\n- 탭 래퍼·페이지 루트 min-w-0(w-full) 보강\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: 위 파일들 + TASK.json (+ docs/tasks/T-100.json 보관)."
 }

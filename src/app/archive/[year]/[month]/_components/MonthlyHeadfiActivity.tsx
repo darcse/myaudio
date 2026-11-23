@@ -58,7 +58,8 @@ type Props = {
   data: MonthlyHeadfiActivityData;
 };
 
-const mediaGridClass = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6';
+const mediaGridClass =
+  'grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 xl:grid-cols-5';
 
 function formatWon(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
@@ -89,13 +90,17 @@ export function MonthlyHeadfiActivity({ data }: Props) {
         className="grid grid-cols-2 gap-3 rounded-xl border p-4 sm:gap-4 sm:p-5"
         style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
       >
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold opacity-70">지출액</p>
-          <p className="mt-1 text-lg font-bold tabular-nums sm:text-xl">{formatWon(data.spendTotal)}</p>
+          <p className="mt-1 truncate text-lg font-bold tabular-nums sm:text-xl">
+            {formatWon(data.spendTotal)}
+          </p>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold opacity-70">판매액</p>
-          <p className="mt-1 text-lg font-bold tabular-nums sm:text-xl">{formatWon(data.salesTotal)}</p>
+          <p className="mt-1 truncate text-lg font-bold tabular-nums sm:text-xl">
+            {formatWon(data.salesTotal)}
+          </p>
         </div>
       </section>
 
@@ -112,7 +117,7 @@ export function MonthlyHeadfiActivity({ data }: Props) {
                     key={h.id}
                     type="button"
                     onClick={() => void openHeadfiById(h.id)}
-                    className="group flex cursor-pointer flex-col rounded-xl p-4 text-left transition-all duration-300"
+                    className="group flex min-w-0 cursor-pointer flex-col rounded-xl p-3 text-left transition-all duration-300 sm:p-4"
                     style={{
                       background: 'var(--card-bg)',
                       border: '1px solid var(--border)',
@@ -135,15 +140,19 @@ export function MonthlyHeadfiActivity({ data }: Props) {
                         </div>
                       )}
                     </div>
-                    <span className="badge-apple mb-2 inline-flex w-fit px-2 py-0.5 text-[11px] font-semibold">
+                    <span className="badge-apple mb-2 inline-flex max-w-full truncate px-2 py-0.5 text-[11px] font-semibold">
                       {h.category ?? '—'}
                     </span>
                     <h3 className="mb-0.5 truncate text-sm font-bold leading-tight">{h.model || '—'}</h3>
                     <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>
                       {h.brand || '—'}
                     </p>
-                    <p className="mt-2 text-xs font-medium tabular-nums opacity-85">{formatWon(h.price)}</p>
-                    <p className="mt-0.5 text-[11px] tabular-nums opacity-60">구매일 {formatDate(h.purchase_date)}</p>
+                    <p className="mt-2 truncate text-xs font-medium tabular-nums opacity-85">
+                      {formatWon(h.price)}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-60">
+                      구매일 {formatDate(h.purchase_date)}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -178,7 +187,7 @@ export function MonthlyHeadfiActivity({ data }: Props) {
                       if (h.headfiId != null) void openHeadfiById(h.headfiId);
                     }}
                     disabled={h.headfiId == null}
-                    className="group flex flex-col rounded-xl p-4 text-left transition-all duration-300 disabled:cursor-default"
+                    className="group flex min-w-0 flex-col rounded-xl p-3 text-left transition-all duration-300 disabled:cursor-default sm:p-4"
                     style={{
                       background: 'var(--card-bg)',
                       border: '1px solid var(--border)',
@@ -201,15 +210,19 @@ export function MonthlyHeadfiActivity({ data }: Props) {
                         </div>
                       )}
                     </div>
-                    <span className="badge-apple mb-2 inline-flex w-fit px-2 py-0.5 text-[11px] font-semibold">
+                    <span className="badge-apple mb-2 inline-flex max-w-full truncate px-2 py-0.5 text-[11px] font-semibold">
                       {h.category ?? '—'}
                     </span>
                     <h3 className="mb-0.5 truncate text-sm font-bold leading-tight">{h.model || '—'}</h3>
                     <p className="truncate text-xs" style={{ color: 'var(--muted)' }}>
                       {h.brand || '—'}
                     </p>
-                    <p className="mt-2 text-xs font-medium tabular-nums opacity-85">{formatWon(h.salePrice)}</p>
-                    <p className="mt-0.5 text-[11px] tabular-nums opacity-60">판매일 {formatDate(h.saleDate)}</p>
+                    <p className="mt-2 truncate text-xs font-medium tabular-nums opacity-85">
+                      {formatWon(h.salePrice)}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] tabular-nums opacity-60">
+                      판매일 {formatDate(h.saleDate)}
+                    </p>
                   </button>
                 ))}
               </div>

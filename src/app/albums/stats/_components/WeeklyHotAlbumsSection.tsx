@@ -89,8 +89,8 @@ function WeeklyHotAlbumCard({
       >
         {rank}
       </span>
-      <div className="relative z-[1] flex h-full flex-col justify-end p-3 text-white">
-        <p className="line-clamp-2 text-sm font-bold drop-shadow-sm">{item.albumName}</p>
+      <div className="relative z-[1] flex h-full min-w-0 flex-col justify-end p-3 text-white">
+        <p className="line-clamp-2 break-words text-sm font-bold drop-shadow-sm">{item.albumName}</p>
         <p className="mt-0.5 truncate text-xs text-white/80 drop-shadow-sm">{item.artist || '—'}</p>
         <p className="mt-0.5 text-sm font-bold tabular-nums drop-shadow-sm">{item.listenCount}회</p>
       </div>
