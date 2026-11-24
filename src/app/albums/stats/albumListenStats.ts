@@ -9,7 +9,6 @@ import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import {
   LISTEN_HISTORY_MEDIA_OPTIONS,
   LISTEN_HISTORY_RECEIVER_CATEGORIES,
-  LISTEN_HISTORY_SOURCE_CATEGORIES,
 } from '@/lib/listenHistoryGear';
 
 export const LISTEN_RANKING_LIMIT = 10;
@@ -209,20 +208,6 @@ export function buildDacAmpListenRankings(
     historyRows,
     (row) => [row.dac_amp_id, row.dac_amp2_id],
     isDacAmpOnlyCategory,
-    limit,
-  );
-}
-
-export function buildSourceListenRankings(
-  gearById: Map<number, GearSummary>,
-  historyRows: GearListenHistoryRow[],
-  limit = GEAR_LISTEN_RANKING_LIMIT,
-): GearListenRankItem[] {
-  return buildListenRankingsFromSlots(
-    gearById,
-    historyRows,
-    (row) => [row.source_id],
-    (category) => (LISTEN_HISTORY_SOURCE_CATEGORIES as readonly string[]).includes(category),
     limit,
   );
 }

@@ -5,7 +5,6 @@ import {
   buildHeadphoneListeningContextSections,
   candidateLine,
   compressCandidateRow,
-  pickCandidates,
   isWiredHeadphoneEarphoneCategory,
 } from '@/lib/headfiMatchScore';
 import type { Headfi } from '@/app/headfi/types';
@@ -123,12 +122,13 @@ export async function POST(req: NextRequest) {
     }
 
     const force = body.force === true;
-    const cacheOnly = body.cacheOnly === true;
     const targetGearId =
       typeof body.targetGearId === 'number'
         ? body.targetGearId
         : parseInt(String(body.targetGearId ?? ''), 10);
-    const singleTarget = Number.isFinite(targetGearId);
+    if (!Number.isFinite(targetGearId)) {
+      return NextResponse.json({ error: 'targetGearId required' }, { status: 400 });
+    }
 
     const { data: comboRow, error: comboError } = await supabase
       .from('headfi_combos')
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
       }))
       .filter((row) => gearById.has(row.target_gear_id));
 
-    if (!force && singleTarget) {
+    if (!force) {
       const cached = cachedScores.find((s) => s.target_gear_id === targetGearId);
       if (cached) {
         const results = buildRankedResults([cached], gearById);
@@ -234,50 +234,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!force && !singleTarget && cachedScores.length > 0) {
-      const results = buildRankedResults(cachedScores, gearById);
-      if (results.length > 0) {
-        return NextResponse.json({ results });
-      }
-    }
-
-    if (cacheOnly) {
-      return NextResponse.json({ results: [] });
-    }
-
     if (force) {
-      if (singleTarget) {
-        const { error: deleteError } = await supabase
-          .from('headfi_match_cache')
-          .delete()
-          .eq('combo_id', comboId)
-          .eq('target_gear_id', targetGearId);
-        if (deleteError) {
-          return NextResponse.json({ error: deleteError.message }, { status: 500 });
-        }
-      } else {
-        const { error: deleteError } = await supabase
-          .from('headfi_match_cache')
-          .delete()
-          .eq('combo_id', comboId);
-        if (deleteError) {
-          return NextResponse.json({ error: deleteError.message }, { status: 500 });
-        }
+      const { error: deleteError } = await supabase
+        .from('headfi_match_cache')
+        .delete()
+        .eq('combo_id', comboId)
+        .eq('target_gear_id', targetGearId);
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
     }
 
-    let candidates;
-    if (singleTarget) {
-      const targetRow = pool.find((item) => item.id === targetGearId);
-      if (!targetRow) {
-        return NextResponse.json({ error: '대상 헤드폰/이어폰을 찾을 수 없습니다.' }, { status: 404 });
-      }
-      candidates = [targetRow];
-    } else {
-      candidates = pickCandidates(pool, 20);
+    const targetRow = pool.find((item) => item.id === targetGearId);
+    if (!targetRow) {
+      return NextResponse.json({ error: '대상 헤드폰/이어폰을 찾을 수 없습니다.' }, { status: 404 });
     }
 
-    const candidateHeadfiRows = candidates as Headfi[];
+    const candidateHeadfiRows = [targetRow] as Headfi[];
     const candidateLines = candidateHeadfiRows.map((item) => candidateLine(compressCandidateRow(item)));
     const candidateIds = candidateHeadfiRows.map((c) => c.id);
     const candidateContext = buildHeadphoneListeningContextSections(candidateHeadfiRows);

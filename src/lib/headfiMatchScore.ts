@@ -3,7 +3,6 @@ import { formatVrms, formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec'
 import { formatComboConnectionSuffix } from '@/app/headfi/headfiComboUtils';
 import { formatFrInterpretationForPrompt } from '@/lib/headfiAlbumMatch';
 import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
-import { shuffleArray } from '@/lib/utils';
 
 export { parseFrInterpretationSummary } from '@/lib/headfiAlbumMatch';
 
@@ -142,10 +141,6 @@ export function compressCandidateRow(item: Headfi): CompressedCandidate {
 
 export function candidateLine(row: CompressedCandidate): string {
   return `${row.id}|${row.name}|${row.connector}|${row.rkOrImpedance}|${row.db1}|${row.vrms32}|${row.vrms300}|${row.low}|${row.mid}|${row.high}|${row.musicality}|${row.trait_warmth}|${row.trait_brightness}|${row.trait_vocal_position}|${row.trait_bass_decay}`;
-}
-
-export function pickCandidates(items: Headfi[], limit = 20): Headfi[] {
-  return shuffleArray(items).slice(0, limit);
 }
 
 export function buildHeadphoneListeningContextForPrompt(item: Headfi): string | null {

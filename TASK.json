@@ -1,30 +1,32 @@
 {
-  "id": "T-117",
-  "goal": "코드는 그대로 두고, 리팩토링 후보 목록(효과·위험도·예상 규모·검증 방법 포함)이 보고서로 나와 JW가 어떤 정리를 할지 고를 수 있다.",
-  "context": "조사 전용 작업이다. 코드 수정 금지. 실행 에이전트: Claude Code(규칙은 AGENTS.md·CLAUDE.md 동일 적용).\n\n배경: 2026-11-24~25에 헤드파이 조합 개편(T-102~T-116, 파일 44개 이상, 약 2,300줄 추가)을 짧은 주기로 덧붙이며 진행해 중복·분기 누적이 의심된다. 로드맵: 프로젝트 문서 claude/headfi-combo-roadmap.md(레포 밖) — 요약은 docs/tasks/T-102~T-116.json 참고.\n\n우선 조사 대상(플래너가 본 후보, 이것만으로 제한하지 말 것):\n1) src/lib/headfiMatchScore.ts(약 480줄): 조합 경로 규칙 블록(buildDualChainRoleBlock, buildSourceInclusivePathRoleBlock, buildSourceDeviceSoloPathRoleBlock, buildComboBaseForPrompt 등)이 소스 유무·블루투스/아날로그·기기1 Source 여부로 거의 같은 문장 블록이 여러 벌. 정리 시 프롬프트 문자열이 한 글자라도 바뀌면 채점 결과가 달라지므로 '조합 유형별 정리 전후 문자열 동일성 비교' 방법을 반드시 제안.\n2) src/app/headfi/_components/HeadfiComboManageSection.tsx(약 614줄): 추가 폼·목록·연결 수정·매칭 체크가 한 파일.\n3) 감상 기록 폼 중복: src/app/albums/_components/AlbumListenHistorySection.tsx(약 859줄)와 src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 1,000줄)의 기기 select·조합 채움·해제 로직.\n4) 죽은/미사용 코드: buildSourceListenRankings(호출처 없음), /api/headfi-match-score의 '후보 20개 채점' 분기(호출처 없음 추정), 그 외 발견분.\n5) src/app/headfi/headfiComboUtils.ts(약 255줄)와 src/lib/listenHistoryCombo.ts 등 조합 관련 유틸의 책임 분산·중복.\n6) 그 외 레포 전체에서 눈에 띄는 큰 중복·과도한 파일(상위 몇 개만, 우선순위 표시).\n\n산출물:\n- docs/reports/refactor-survey-261125.md 에 보고서 작성. 항목마다: 위치(파일·대략 행), 문제 요약, 제안 정리 방식(한두 문장), 효과, 위험도(상/중/하)와 이유, 예상 규모(작/중/대), 동작 동일성 검증 방법, 선행 조건. 마지막에 추천 진행 순서(작업 단위로 쪼갠 T 후보 목록).\n- 테스트 인프라가 없다면 최소한의 검증 장치(예: 프롬프트 스냅샷 비교 스크립트) 제안 포함. 설치·작성은 하지 말 것.\n- result에는 보고서 경로와 상위 5개 요약만.",
+  "id": "T-118",
+  "goal": "쓰이지 않는 코드가 정리된다: 사용 통계의 소스 랭킹 함수가 없어지고, 매칭 채점 API는 실제로 쓰는 '헤드폰 1개 × 조합 1개 채점'과 '기기 캐시 삭제'만 남는다. 매칭맵·기기 저장 동작은 그대로다.",
+  "context": "근거: docs/reports/refactor-survey-261125.md(T-117) R3·R4. 실행 에이전트: Claude Code.\n\nJW 결정: '조합 하나로 후보 헤드폰 20개 일괄 채점' 기능은 앞으로도 쓰지 않음 → 삭제.\n\n대상(보고서 기준, 행 번호는 착수 시 재확인):\n1) src/app/albums/stats/albumListenStats.ts buildSourceListenRankings — 호출처 0건, 삭제. 이 함수만 쓰던 보조 코드가 있으면 함께 정리.\n2) src/app/api/headfi-match-score/route.ts — 비-singleTarget(배치) 경로 제거: 배치 캐시 반환 분기, force 배치 캐시 삭제 분기, pickCandidates(pool, 20) else 분기, cacheOnly 처리. targetGearId 없는 채점 요청은 400. clearCacheForGearId 요청 경로(useHeadfiDacAmpMapLazyAnalysis)는 유지.\n3) src/lib/headfiMatchScore.ts pickCandidates — 2) 이후 호출처가 없으면 삭제(shuffleArray 등 연쇄 미사용 import도 정리, 다른 곳에서 쓰면 유지).\n4) 호출부(MatchMapTab 등)가 보내는 body 필드 중 라우트가 더 이상 읽지 않는 것이 있으면 result에 보고만(호출부 수정은 불필요하면 하지 않음).\n\n원칙: 남는 경로의 동작·응답 형식·프롬프트 문자열은 변경 금지.",
   "scope": {
     "in": [
-      "읽기 전용 코드 조사",
-      "docs/reports/refactor-survey-261125.md 보고서 작성"
+      "buildSourceListenRankings 삭제",
+      "match-score 라우트 배치·cacheOnly 경로 삭제, targetGearId 필수",
+      "pickCandidates 및 연쇄 미사용 코드 삭제"
     ],
     "out": [
-      "src 등 코드 파일 수정 절대 금지(보고서 파일 1개만 생성)",
-      "패키지 설치·설정 파일 변경 금지",
-      "DB 조회·변경 금지",
-      "테스트·스크립트 작성 금지(제안만)",
-      "feature_list·규칙 문서 수정 금지",
+      "단일 타겟 채점·force 재채점·clearCacheForGearId 동작 변경 절대 금지",
+      "AI 프롬프트 문자열·응답 JSON 변경 금지",
+      "headfi_match_cache 데이터 변경 금지",
+      "DB 스키마 변경 금지",
+      "보고서의 다른 후보(R1·R2·R5·R6) 착수 금지",
+      "전체 파일 재작성 금지, 최소 수정",
       "result에 '커밋 승인' 줄 작성 금지",
-      "auto_commit 기준 밖의 git 조작 금지"
+      "git 쓰기 금지(auto_commit=false)"
     ]
   },
   "done": [
-    "docs/reports/refactor-survey-261125.md에 위 1)~6) 관점의 후보가 표준 항목(위치·문제·방식·효과·위험도·규모·검증·선행조건)으로 정리돼 있다",
-    "headfiMatchScore 정리 항목에 프롬프트 문자열 동일성 검증 방법이 구체적으로 있다",
-    "추천 진행 순서가 작업 단위(T 후보)로 제시돼 있다",
-    "src 등 코드 파일 변경이 없다(git diff에 보고서·TASK.json만)"
+    "grep 결과 buildSourceListenRankings·pickCandidates·cacheOnly가 src에 남아 있지 않다(다른 용도로 쓰이는 경우 result에 근거)",
+    "route.ts에 배치 채점 경로가 없고 targetGearId 없는 채점 요청은 400을 돌려준다",
+    "매칭맵 셀 채점·재채점·행 일괄 채점과 기기 저장 시 캐시 삭제 호출 경로가 코드상 그대로다(result에 확인 근거)",
+    "npx tsc --noEmit 과 npm run lint 통과"
   ],
-  "auto_commit": true,
-  "commit_message": "(docs): 리팩토링 후보 조사 보고서",
+  "auto_commit": false,
+  "commit_message": "(refactor): 미사용 소스 랭킹·매칭 일괄 채점 경로 제거",
   "status": "done",
-  "result": "보고서: docs/reports/refactor-survey-261125.md (R1~R6 표준 항목 정리 완료). 코드 변경 없음 — git diff는 보고서 신규 파일 + TASK.json만.\n\n상위 5개:\n1) [R1·위험상] headfiMatchScore.ts 조합 경로 규칙 블록(buildDualChainRoleBlock/buildSourceInclusivePathRoleBlock 등)이 소스유무·BT·기기1Source 조합마다 거의 같은 문장을 여러 벌 하드코딩. 정리 시 buildComboBaseForPrompt 전수 조합 스냅샷(JSON 덤프) before/after diff 완전일치 검증 필수.\n2) [R2·규모대] 청취 기록 폼이 AlbumListenHistorySection(859)·AlbumDiaryContent(1011)에 상태·핸들러(applySelectedCombo·clearComboSelection·parseOptionalId·ensureGearOption·저장 payload) 통째 복제. 공용 훅 useListenHistoryEntryForm 추출 제안.\n3) [R4·위험하] 죽은 코드: buildSourceListenRankings(albumListenStats.ts:216) 호출처 0건 → 단독 즉시 삭제 가능.\n4) [R3·위험중] /api/headfi-match-score 배치(후보20 pickCandidates)·cacheOnly 분기 도달 불가(호출부 전부 targetGearId 단일). 단일 타겟 전제로 축소 제안.\n5) [R6·규모대] 1000줄+ 초대형 컴포넌트(AlbumForm 1290, AlbumTrackListContent 1259, ArtistsLibraryContent 1206 등). 전용 T 아닌 개별 작업 편승 권고.\n\n검증 인프라: 프롬프트 스냅샷 스크립트 제안만(미작성). 추천 순서: T-a(R4삭제)→T-b(스냅샷)→T-c(R3)→T-d(R2)→T-e(R1). R5/R6 보류.\n\ngit diff --stat: docs/reports/refactor-survey-261125.md 신규 + TASK.json. src 변경 없음."
+  "result": "변경 요약:\n1) albumListenStats.ts: buildSourceListenRankings 삭제 + 이 함수만 쓰던 LISTEN_HISTORY_SOURCE_CATEGORIES import 제거. GearListenHistoryRow.source_id 필드는 행 타입(조회 컬럼)이라 유지.\n2) headfi-match-score/route.ts: cacheOnly·singleTarget 변수, 배치 캐시 반환 분기, force 시 combo 전체 캐시 삭제 분기, pickCandidates(pool, 20) 분기 삭제. comboId 검사 직후 targetGearId가 유한수가 아니면 400 {error:'targetGearId required'}. 단일 타겟 캐시 반환·force 단일 삭제·대상 없음 404·프롬프트 조립·insert·응답 형식은 그대로(조건식에서 singleTarget만 제거). clearCacheForGearId 분기 무변경.\n3) headfiMatchScore.ts: pickCandidates 삭제 + shuffleArray import 제거. shuffleArray 자체는 headfiAlbumMatch.ts에서 쓰므로 utils.ts에 유지.\n4) 호출부 body: MatchMapTab.analyzeCell은 {comboId, targetGearId, force}만 보냄 → 라우트가 모두 읽음, 미사용 필드 없음. 호출부 수정 없음.\n\n호출 경로 확인 근거:\n- 셀 채점: MatchMapTab.tsx:687 analyzeCell(combo, hp)\n- 재채점: MatchMapTab.tsx:405 analyzeCell(combo, hp, true)\n- 행 일괄 채점: MatchMapTab.tsx:352 analyzeCell(combo, hp, options.force, true) — 헤드폰마다 targetGearId 단일 요청\n- 기기 저장 캐시 삭제: useHeadfiDacAmpMapLazyAnalysis.ts:8 triggerHeadfiMatchCacheClear → {clearCacheForGearId}\n\n검증: grep buildSourceListenRankings|pickCandidates|cacheOnly|singleTarget → src에 0건. npx tsc --noEmit 통과, npm run lint 통과. 브라우저 동작 확인은 안 함(수동 확인 필요).\n\ngit diff --stat: albumListenStats.ts -15, route.ts +16/-41, headfiMatchScore.ts -5, TASK.json. 커밋 안 함(auto_commit=false).\n\n커밋 승인: 261125_0100 (refactor): 미사용 소스 랭킹·매칭 일괄 채점 경로 제거"
 }
