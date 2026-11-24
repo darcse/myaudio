@@ -10,6 +10,7 @@ import {
 } from '@/lib/headfiMatchScore';
 import type { Headfi } from '@/app/headfi/types';
 import type { HeadfiCombo } from '@/app/headfi/types';
+import { isUsbCMatchExcluded } from '@/app/headfi/utils';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 type CacheScoreRow = {
@@ -196,7 +197,8 @@ export async function POST(req: NextRequest) {
 
     const pool = (allGear ?? []).filter((item) => {
       if (gearIds.includes(item.id)) return false;
-      return isWiredHeadphoneEarphoneCategory(item.category);
+      if (!isWiredHeadphoneEarphoneCategory(item.category)) return false;
+      return !isUsbCMatchExcluded(item as Headfi);
     });
 
     if (pool.length === 0) {

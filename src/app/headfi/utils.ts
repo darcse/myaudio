@@ -6,6 +6,7 @@ export const HEADFI_CONNECTOR_OPTIONS = [
   '6.35mm',
   'XLR4',
   '2.5mm 밸런스',
+  'USB-C',
 ] as const;
 
 export type HeadfiConnector = (typeof HEADFI_CONNECTOR_OPTIONS)[number];
@@ -14,6 +15,10 @@ export function normalizeHeadfiConnector(value: string | null | undefined): stri
   const trimmed = value?.trim() ?? '';
   if (!trimmed) return null;
   return (HEADFI_CONNECTOR_OPTIONS as readonly string[]).includes(trimmed) ? trimmed : null;
+}
+
+export function isUsbCMatchExcluded(item: Pick<Headfi, 'connector'>): boolean {
+  return item.connector?.trim() === 'USB-C';
 }
 
 export const emptyHeadfiFormData: HeadfiFormData = {

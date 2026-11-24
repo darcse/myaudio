@@ -13,6 +13,7 @@ import {
   isReleasedHeadfiCombo,
   isSpeakerCombo,
 } from '@/app/headfi/headfiComboUtils';
+import { isUsbCMatchExcluded } from '@/app/headfi/utils';
 import {
   computeMatchScoreDisplay,
   formatMatchScoreTotalLine,
@@ -428,7 +429,9 @@ export function MatchMapTab({
 
   const { allHpRows } = useMemo(() => {
     const owned = library.filter((item) => item.status2 === '보유중');
-    const hps = owned.filter((item) => isWiredHeadphoneEarphoneCategory(item.category));
+    const hps = owned.filter(
+      (item) => isWiredHeadphoneEarphoneCategory(item.category) && !isUsbCMatchExcluded(item),
+    );
     return { allHpRows: hps };
   }, [library]);
 
