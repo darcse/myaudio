@@ -36,6 +36,9 @@ let cache: CacheState = {
   generation: 0,
 };
 
+const CATALOG_REVALIDATE_TTL_MS = 60_000;
+let lastFetchedAt = 0;
+
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -81,6 +84,7 @@ export function invalidateCatalogLibraryCache() {
 }
 
 export function writeCatalogLibraryCache(data: CatalogLibraryData) {
+  lastFetchedAt = Date.now();
   cache = {
     data,
     stale: false,
@@ -114,6 +118,7 @@ async function fetchCatalogLibraryData(userId: string | null): Promise<CatalogLi
   if (albumRes.error) {
     throw new Error(albumRes.error.message || '앨범 목록을 불러오지 못했습니다.');
   }
+  lastFetchedAt = Date.now();
 
   return {
     albums: albumRes.data,
@@ -175,6 +180,14 @@ export async function ensureCatalogLibrary(options?: {
 export function revalidateCatalogLibrary(userId?: string | null): Promise<CatalogLibraryData> {
   const uid = userId ?? cache.data?.userId ?? null;
   if (cache.inflight) return cache.inflight;
+  if (
+    cache.data &&
+    !cache.stale &&
+    cache.data.userId === uid &&
+    Date.now() - lastFetchedAt < CATALOG_REVALIDATE_TTL_MS
+  ) {
+    return Promise.resolve(cache.data);
+  }
 
   const generation = cache.generation;
   const request = fetchCatalogLibraryData(uid)
