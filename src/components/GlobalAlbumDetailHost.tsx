@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import { albumToFormData } from '@/app/albums/utils';
 import { useAlbumPlayer } from '@/contexts/AlbumPlayerContext';
 import { useAuthState } from '@/hooks/useAuthState';
 import { createClient } from '@/lib/supabase/client';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 const AlbumDetailModal = dynamic(() =>
   import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
@@ -175,14 +176,7 @@ export function GlobalAlbumDetailHost() {
     setEditing(true);
   };
 
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleImageUpload = createAlbumCoverUploadHandler(setFormData);
 
   const handleSave = async () => {
     if (!album) return;

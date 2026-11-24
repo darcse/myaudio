@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Mic2 } from 'lucide-react';
@@ -59,6 +59,7 @@ import {
   resolveCatalogCacheUserId,
   type CatalogLibraryData,
 } from '@/lib/catalogLibraryCache';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 const LG_UP_MQ = '(min-width: 1024px)';
 
@@ -828,14 +829,7 @@ export function ArtistsLibraryContent({
     );
   };
 
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleAlbumSave = async () => {
     if (isAuthenticated !== true) {

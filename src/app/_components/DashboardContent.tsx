@@ -36,6 +36,7 @@ import { buildListenHistoryIndex } from '@/app/artists/utils';
 import type { ListenHistoryEntry } from '@/app/artists/types';
 import { DashboardMonthlyListenCarousel } from './DashboardMonthlyListenCarousel';
 import { DashboardThisWeekPanel } from './DashboardThisWeekPanel';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 const AlbumDetailModal = dynamic(
   () => import('@/app/albums/_components/AlbumDetailModal').then((m) => ({ default: m.AlbumDetailModal })),
@@ -475,14 +476,7 @@ export function DashboardContent({
     setHeadfiFormData(headfiToFormData(item));
   }, [viewingHeadfi, isAuthenticated]);
 
-  const handleAlbumImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleHeadfiImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

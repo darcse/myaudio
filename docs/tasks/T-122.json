@@ -1,0 +1,33 @@
+{
+  "id": "T-122",
+  "goal": "메인(/)과 앨범 관련 화면이 더 빨리 뜬다: 앨범 조회가 필요한 칸만 가져오고 캐시를 불필요하게 재검증하지 않으며, 요청마다 Supabase 로그인 서버에 묻는 횟수가 줄어든다. 표시 내용·로그인 보호는 그대로다.",
+  "context": "실행 에이전트: Claude Code. 근거: T-121 result '범위 밖 제안' 1·2·5번, 플래너 측정(01:35 KST, 메인 2회+인사이트 1회): album 평균 1.9초/최대 5.4초, auth/v1/user 13건, 메인 dev 7.1초·4.0초. DB Nano.\n\nA) 앨범 조회 경량화\n- album select('*') 전체 조회를 화면별로 실제 쓰는 컬럼만 select하도록 축소(앨범 목록·카탈로그 캐시·인사이트·다이어리·대시보드 등, 전수 확인). 컬럼 누락으로 표시가 깨지지 않게 각 화면이 쓰는 필드를 타입/사용처로 확인. 공용 컬럼 상수가 적절하면 한 곳에 정의.\n- src/lib/catalogLibraryCache.ts: 캐시가 신선해도 진입마다 재검증하는 동작에 짧은 TTL(기본안 60초) 동안 재검증 생략. 데이터 변경(등록·수정·삭제) 시 기존 무효화 흐름이 있다면 그대로 동작해야 함(없으면 TTL만, 변경 직후 반영 지연 가능성 result에 명시).\n\nB) 로그인 확인 횟수 축소\n- 미들웨어(src/proxy.ts 또는 src/middleware.ts — 실제 사용 파일 확인)가 모든 요청에서 supabase.auth.getUser()로 Auth 서버를 호출한다.\n- 기본안: 프로젝트 JWT 서명 방식이 비대칭 키면 auth.getClaims()로 로컬 검증 전환. 대칭(레거시) 키라 getClaims가 서버 호출로 폴백한다면, 대신 matcher에서 /api 경로를 제외(단, 모든 /api 라우트가 자체적으로 사용자 확인을 하는지 전수 확인 후에만, 근거 표를 result에). 둘 다 어렵다면 변경하지 말고 보고.\n- 보호 페이지 리다이렉트, 로그인 세션 갱신(쿠키 setAll) 동작 유지. 보안 약화 금지.\n\nC) 지시와 다르게 판단한 부분은 result 앞부분에 이유와 함께. 수정 전·후 화면별 예상 요청 수 변화도 표로.",
+  "scope": {
+    "in": [
+      "album select * 축소",
+      "catalogLibraryCache 재검증 TTL",
+      "미들웨어 auth 확인 경량화(조건부)"
+    ],
+    "out": [
+      "화면 표시 내용·집계 결과 변경 절대 금지",
+      "로그인 보호(비로그인 리다이렉트)·API 인증 약화 절대 금지",
+      "album_listen_history·album 1,000건 초과 대응(fetchAllRows) 되돌리기 금지",
+      "DB 스키마·인덱스·RLS·데이터·Auth 설정 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "git 쓰기 금지(auto_commit=false). 커밋 여부를 묻지 말고 대기"
+    ]
+  },
+  "done": [
+    "album select('*') 전체 조회가 필요한 컬럼 select로 바뀌었고 위치 목록이 result에 있다",
+    "카탈로그 캐시가 TTL 안에서는 재검증 요청을 보내지 않는다",
+    "미들웨어가 요청마다 Auth 서버를 호출하지 않도록 바뀌었거나, 못 바꾼 이유가 result에 있다(/api 제외 시 라우트별 인증 확인 표 포함)",
+    "비로그인 상태로 보호 페이지 접근 시 /login 리다이렉트가 유지된다(코드 근거)",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(perf): 앨범 조회 경량화·캐시 TTL·미들웨어 인증 확인 축소",
+  "status": "done",
+  "result": "[지시와 다르게 판단한 부분 (JW 확인 완료)]\n- A의 album select('*') 축소는 하지 않았다(JW가 '목록 축소 보류' 선택).\n  · 이유 1: album 전체 조회 8.4MB 중 6.4MB가 앨범 9개의 cover_image_url에 base64(data: URL, 최대 1.3MB)로 저장된 커버다. 나머지 844개 커버 URL은 모두 합쳐 61KB. 목록에도 커버가 표시되므로 칸 축소로는 이 6.4MB를 뺄 수 없다.\n  · 이유 2: 나머지 무거운 칸(album_intro 653KB, tracks 754KB, ai_recommended_headphone_reason 241KB, audio_tags 186KB)을 빼면 약 20%가 줄지만, 모든 목록 화면(AlbumsLibraryContent:249·366, AlbumStatsContent:594, GenreStatsContent:476, AlbumDiaryContent:312, DashboardContent:895~901 아티스트 모달)이 목록 객체를 그대로 상세 모달과 수정 폼(albumToFormData)에 넘긴다. 칸을 빼면 상세가 비거나, 수정 저장 때 소개글·트랙이 빈 값으로 덮일 수 있다.\n  · 단건(eq id)·head count·서버 API(headfi-album-match는 상세용 전체 앨범을 응답으로 돌려줌) select *도 상세에 쓰이므로 유지.\n- 대신 다음 TASK 제안: base64 커버 9개를 Supabase Storage로 옮기고 URL로 바꾸기(데이터 변경, JW 승인 필요). 앨범 전체 조회가 약 8.4MB에서 약 2MB로 줄어든다(약 75% 감소). 새 커버가 다시 data URL로 저장되는 경로가 있는지(앨범 폼 이미지 붙여넣기 등)도 같이 확인.\n\n[변경]\n1) src/lib/catalogLibraryCache.ts: 재검증 TTL 60초(CATALOG_REVALIDATE_TTL_MS).\n   - 마지막 실제 조회(fetchCatalogLibraryData 성공 또는 writeCatalogLibraryCache) 후 60초 안에는 revalidateCatalogLibrary가 요청 없이 캐시를 돌려준다.\n   - 다음 경우에는 TTL을 무시하고 바로 조회한다: stale(등록·수정·삭제 후 invalidateCatalogLibraryCache 호출, 레포 안 43곳), 사용자 변경, 캐시 비어 있음. 따라서 앱 안에서 한 변경은 지금처럼 바로 반영된다.\n   - 지연 가능성: 다른 기기나 탭에서 바꾼 내용은 최대 60초 늦게 보일 수 있다.\n2) src/proxy.ts(src/middleware.ts가 다시 내보내는 실제 미들웨어): supabase.auth.getUser() → supabase.auth.getClaims(), user = data?.claims ?? null.\n   - 프로젝트 JWKS(/auth/v1/.well-known/jwks.json)에 ES256 키가 있음을 확인 → access token을 JWKS 공개키로 로컬 검증하므로 요청마다 Auth 서버(/auth/v1/user)를 부르지 않는다. JWKS는 auth-js가 메모리에 캐시한다.\n   - 토큰이 HS256(레거시)이면 auth-js가 자동으로 getUser로 폴백(GoTrueClient getClaims 구현 확인)하므로 보안 약화는 없다. 이 경우 효과도 없다 → 재측정에서 auth/v1/user 건수로 확인.\n   - 세션 갱신: getClaims가 내부에서 getSession을 쓰므로 만료 토큰 갱신 시 cookies.setAll이 지금처럼 호출된다.\n   - 참고: 로그아웃 후 다른 기기의 토큰은 만료(최대 1시간) 전까지 미들웨어 통과가 가능하다(Supabase 권장 방식의 특성). 데이터 접근은 RLS와 각 API의 getCurrentUser(getUser)가 계속 막는다.\n   - /api matcher 제외는 하지 않았다(getClaims로 충분).\n\n[로그인 보호 유지 근거] src/proxy.ts: claims가 없으면(비로그인·서명 검증 실패) user=null → isProtectedPath(/albums·/classic/albums·/headfi·/works·/lyrics·/archive·/insights)이면 /login으로 리다이렉트. 로그인 상태에서 /login 접근 시 / 리다이렉트도 그대로. API 라우트·서버 컴포넌트의 getCurrentUser(getUser)는 바꾸지 않았다.\n\n[예상 요청 수 변화]\n| 항목 | 전 | 후 |\n|---|---|---|\n| 미들웨어 통과 요청 1건당 Auth 서버 호출(로그인 상태) | 1(/auth/v1/user) | 0(토큰 만료 갱신 때만 /token 1). JWKS 조회는 인스턴스당 가끔 |\n| 메인 2회 + 인사이트 1회(페이지·RSC·API 포함) | auth/v1/user 약 13 | 서버 컴포넌트·API의 getCurrentUser 분만 남음 |\n| 앨범 목록·아티스트 목록 재진입(60초 안, 변경 없음) | 4(album, 감상 기록 2페이지, artists) | 0 |\n| 앨범 목록 첫 진입·변경 직후 | 4 | 4 |\n| 앨범 전송량 | 8.4MB/회 | 변화 없음(base64 커버 이관 TASK에서 해결) |\n\n[검증] npx tsc --noEmit 통과, npm run lint 통과. 화면·로그인 동작은 직접 확인하지 않았다.\nJW 확인 권장: (1) 로그아웃 상태로 /albums 접근 → /login (2) 로그인 상태에서 1시간 넘게 둔 뒤 이동 → 세션 유지 (3) 앨범 수정 직후 목록에 바로 반영 (4) 재측정에서 auth/v1/user 건수.\n\ngit diff --stat: src/lib/catalogLibraryCache.ts, src/proxy.ts, TASK.json. 커밋 안 함(auto_commit=false).\n\n커밋 승인: 261125_0147 (perf): 카탈로그 캐시 재검증 TTL·미들웨어 getClaims 전환"
+}

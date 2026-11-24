@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { BookOpen, CalendarDays, LayoutList, Music, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -44,6 +44,7 @@ import {
 } from '@/lib/listenHistoryGear';
 import { ListenHistoryComboSelect } from '@/app/albums/_components/ListenHistoryComboSelect';
 import { mapGearOptions, useListenHistoryGearForm } from '@/app/albums/_hooks/useListenHistoryGearForm';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 type DiaryViewMode = 'calendar' | 'list';
 
@@ -436,14 +437,7 @@ export function AlbumDiaryContent() {
     );
   };
 
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleAlbumSave = async () => {
     if (!albumFormItem) return;

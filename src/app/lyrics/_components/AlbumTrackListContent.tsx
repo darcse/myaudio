@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
@@ -22,6 +22,7 @@ import {
   insertLyricsTracksFromAlbumIfEmpty,
 } from '../actions';
 import type { TrackWithTranslation } from '../types';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 type AlbumMeta = {
   id: number;
@@ -317,14 +318,7 @@ export function AlbumTrackListContent({ albumId }: { albumId: number }) {
     );
   };
 
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleAlbumSave = async () => {
     if (!albumFormItem) return;

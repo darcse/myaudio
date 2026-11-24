@@ -51,6 +51,7 @@ import { WeeklyHotAlbumsSection } from './WeeklyHotAlbumsSection';
 import { ListenTrendSection } from './ListenTrendSection';
 import { HeadfiTrendSection, isHeadfiTrendDetailOpen } from './HeadfiTrendSection';
 import { useSearchParams } from 'next/navigation';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 type HistoryRow = GearListenHistoryRow;
 
@@ -633,14 +634,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
     );
   };
 
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleAlbumSave = async () => {
     if (!albumFormItem) return;

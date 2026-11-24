@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Disc, Trophy, UserCircle, X } from 'lucide-react';
@@ -35,6 +35,7 @@ import {
   type ListenPeriodFilter,
   type ListenPeriodMonth,
 } from '@/app/albums/stats/albumListenStats';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 type HistoryRow = { album_id: number | null; listened_at: string | null };
 type GenreField = 'genre1' | 'genre2';
@@ -515,14 +516,7 @@ export function GenreStatsContent() {
     );
   };
 
-  const handleAlbumImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setAlbumFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
+  const handleAlbumImageUpload = createAlbumCoverUploadHandler(setAlbumFormData);
 
   const handleAlbumSave = async () => {
     if (!albumFormItem) return;

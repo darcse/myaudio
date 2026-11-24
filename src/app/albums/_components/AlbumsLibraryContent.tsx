@@ -39,6 +39,7 @@ import {
   revalidateCatalogLibrary,
   resolveCatalogCacheUserId,
 } from '@/lib/catalogLibraryCache';
+import { createAlbumCoverUploadHandler } from '@/app/albums/albumCoverUpload';
 
 const initialFormData: AlbumFormData = {
   artist: '',
@@ -462,15 +463,7 @@ export function AlbumsLibraryContent({
     );
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () =>
-        setFormData((prev) => ({ ...prev, cover_image_url: reader.result as string }));
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleImageUpload = createAlbumCoverUploadHandler(setFormData);
 
   const handleSave = async () => {
     if (!selectedItem) return;

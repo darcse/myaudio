@@ -88,6 +88,37 @@ function mapAlbumData(data: AlbumFormData) {
   };
 }
 
+const ALBUM_COVER_BUCKET = 'lyrics-covers';
+const ALBUM_COVER_IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+const MAX_ALBUM_COVER_BYTES = 5 * 1024 * 1024;
+
+function assertAlbumCoverNotDataUrl(coverUrl: string | null | undefined) {
+  if (coverUrl?.trim().startsWith('data:')) {
+    throw new Error('커버 이미지 업로드가 완료되지 않았습니다. 커버 파일을 다시 선택해 주세요.');
+  }
+}
+
+export async function uploadAlbumCoverImage(file: File) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  if (file.size > MAX_ALBUM_COVER_BYTES) {
+    throw new Error('커버 이미지는 5MB 이하만 업로드할 수 있습니다.');
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  if (!ALBUM_COVER_IMAGE_EXT.has(ext)) {
+    throw new Error('커버 이미지는 png, jpg, jpeg, webp, gif만 업로드할 수 있습니다.');
+  }
+  const supabase = await createClient();
+  const path = `${user.id}/album-cover/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await supabase.storage.from(ALBUM_COVER_BUCKET).upload(path, file, {
+    contentType: file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+    upsert: false,
+  });
+  if (error) throw new Error(error.message || '커버 이미지를 올리지 못했습니다.');
+  const { data: pub } = supabase.storage.from(ALBUM_COVER_BUCKET).getPublicUrl(data.path);
+  return pub.publicUrl;
+}
+
 async function resolveDominantColors(coverUrl: string | null | undefined): Promise<string[] | null> {
   const trimmed = coverUrl?.trim();
   if (!trimmed) return null;
@@ -102,6 +133,7 @@ async function resolveDominantColors(coverUrl: string | null | undefined): Promi
 export async function saveAlbumToDB(data: AlbumFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
+  assertAlbumCoverNotDataUrl(data.cover_image_url);
   const supabase = await createClient();
   const dominant_colors = await resolveDominantColors(data.cover_image_url);
   const { data: result, error } = await supabase
@@ -134,6 +166,7 @@ export async function saveAlbumToDB(data: AlbumFormData) {
 export async function updateAlbumInDB(id: number, data: AlbumFormData) {
   const user = await getCurrentUser();
   if (!user) throw new Error('Unauthorized');
+  assertAlbumCoverNotDataUrl(data.cover_image_url);
   const supabase = await createClient();
   const dominant_colors = await resolveDominantColors(data.cover_image_url);
   const mapped = mapAlbumData(data);
