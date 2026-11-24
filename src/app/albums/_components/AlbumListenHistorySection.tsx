@@ -10,20 +10,14 @@ import { listenContextError, listenContextLog, listenContextWarn } from '@/lib/l
 import { formatListenContextMeta } from '@/lib/listenContextDisplay';
 import { ReceiverComboSelect } from '@/components/ReceiverComboSelect';
 import {
-  LISTEN_HISTORY_AMP_CATEGORIES,
-  LISTEN_HISTORY_DEFAULT_MEDIA,
   LISTEN_HISTORY_MEDIA_OPTIONS,
-  LISTEN_HISTORY_RECEIVER_CATEGORIES,
-  LISTEN_HISTORY_SOURCE_CATEGORIES,
   formatListenHistoryMediaLabel,
   formatListenHistoryOptionLabel,
   listenHistoryMediaDisplay,
   listenHistoryMediaForForm,
-  type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
-import { comboHasSpeaker, fillListenHistoryFromCombo } from '@/lib/listenHistoryCombo';
 import { ListenHistoryComboSelect } from './ListenHistoryComboSelect';
-import { useListenHistoryComboOptions } from '../_hooks/useListenHistoryComboOptions';
+import { useListenHistoryGearForm } from '../_hooks/useListenHistoryGearForm';
 
 type GearSummary = {
   id: number;
@@ -70,8 +64,6 @@ function sortListenHistoryRows(rows: ListenHistoryRow[]): ListenHistoryRow[] {
   });
 }
 
-type GearOption = { id: number; brand: string; model: string };
-
 type AlbumListenHistorySectionProps = {
   albumId: number;
   isAuthenticated: boolean | null;
@@ -91,15 +83,6 @@ export function AlbumListenHistorySection({
   const [listenLoading, setListenLoading] = useState(false);
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
-  const [selectedMedia, setSelectedMedia] = useState<ListenHistoryMedia>(LISTEN_HISTORY_DEFAULT_MEDIA);
-  const [selectedComboId, setSelectedComboId] = useState('');
-  const [selectedSourceId, setSelectedSourceId] = useState('');
-  const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
-  const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
-  const [selectedHeadphoneId, setSelectedHeadphoneId] = useState('');
-  const [sourceOptions, setSourceOptions] = useState<GearOption[]>([]);
-  const [dacAmpOptions, setDacAmpOptions] = useState<GearOption[]>([]);
-  const [headphoneOptions, setHeadphoneOptions] = useState<GearOption[]>([]);
   const [receiverError, setReceiverError] = useState<string | null>(null);
   const [listenSaving, setListenSaving] = useState(false);
   const [listenOpen, setListenOpen] = useState(false);
@@ -108,34 +91,35 @@ export function AlbumListenHistorySection({
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const editFormRef = useRef<HTMLLIElement>(null);
   const {
-    comboById,
-    gearById: comboGearById,
-    selectableOptions: comboOptions,
+    selectedMedia,
+    setSelectedMedia,
+    selectedComboId,
+    selectedSourceId,
+    selectedDacAmpId,
+    selectedDacAmp2Id,
+    selectedHeadphoneId,
+    sourceOptions,
+    dacAmpOptions,
+    headphoneOptions,
+    comboOptions,
     getComboLabel,
-  } = useListenHistoryComboOptions(isAuthenticated);
+    resetGearFields,
+    loadGearFields,
+    applySelectedCombo,
+    changeSource,
+    changeDacAmp,
+    changeDacAmp2,
+    changeHeadphone,
+    buildGearPayload,
+  } = useListenHistoryGearForm(isAuthenticated);
 
   const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
     setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
     setListenImpression('');
-    setSelectedMedia(LISTEN_HISTORY_DEFAULT_MEDIA);
-    setSelectedComboId('');
-    setSelectedSourceId('');
-    setSelectedDacAmpId('');
-    setSelectedDacAmp2Id('');
-    setSelectedHeadphoneId('');
+    resetGearFields();
     setReceiverError(null);
     setEditingId(null);
-  }, []);
-
-  const ensureGearOption = useCallback((gear: GearSummary | null | undefined, setter: (updater: (prev: GearOption[]) => GearOption[]) => void) => {
-    if (!gear) return;
-    setter((prev) => {
-      if (prev.some((g) => g.id === gear.id)) return prev;
-      return [...prev, { id: gear.id, brand: gear.brand, model: gear.model }].sort(
-        (a, b) => a.brand.localeCompare(b.brand, 'ko') || a.model.localeCompare(b.model, 'ko'),
-      );
-    });
-  }, []);
+  }, [resetGearFields]);
 
   const loadListenHistory = useCallback(async () => {
     const supabase = createClient();
@@ -222,61 +206,11 @@ export function AlbumListenHistorySection({
   }, [listenHistory.length, onHistoryCountChange]);
 
   useEffect(() => {
-    if (isAuthenticated !== true) {
-      setSourceOptions([]);
-      setDacAmpOptions([]);
-      setHeadphoneOptions([]);
-      return;
-    }
-    const supabase = createClient();
-    const mapOptions = (rows: { id: number; brand: string | null; model: string | null }[] | null): GearOption[] =>
-      (rows ?? []).map((r) => ({
-        id: r.id,
-        brand: r.brand || '',
-        model: r.model || '',
-      }));
-    void Promise.all([
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_SOURCE_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_AMP_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_RECEIVER_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-    ]).then(([sourceRes, ampRes, hpRes]) => {
-      setSourceOptions(mapOptions(sourceRes.data));
-      setDacAmpOptions(mapOptions(ampRes.data));
-      setHeadphoneOptions(mapOptions(hpRes.data));
-    });
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     resetFormFields();
     setListenOpen(false);
     setFormOpen(false);
     setPendingDeleteId(null);
   }, [albumId, resetFormFields]);
-
-  const parseOptionalId = (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return null;
-    const n = parseInt(trimmed, 10);
-    return Number.isNaN(n) ? null : n;
-  };
 
   const enrichListenHistoryWeather = useCallback(async (rowId: number, contextPromise: Promise<ListenWeatherContext>) => {
     listenContextLog('weather enrich start', { rowId });
@@ -308,8 +242,8 @@ export function AlbumListenHistorySection({
       toast.error('청취일을 선택해 주세요.');
       return;
     }
-    const headphoneId = parseOptionalId(selectedHeadphoneId);
-    if (editingId == null && headphoneId == null) {
+    const gearPayload = buildGearPayload();
+    if (editingId == null && gearPayload.headphone_id == null) {
       setReceiverError('Receiver를 선택해 주세요.');
       return;
     }
@@ -326,12 +260,7 @@ export function AlbumListenHistorySection({
       const payload = {
         listened_at: d,
         impression: listenImpression.trim() || null,
-        media: selectedMedia,
-        source_id: parseOptionalId(selectedSourceId),
-        dac_amp_id: parseOptionalId(selectedDacAmpId),
-        dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
-        headphone_id: headphoneId,
-        combo_id: selectedComboId.trim() || null,
+        ...gearPayload,
       };
       const contextSnapshot =
         editingId == null
@@ -375,48 +304,22 @@ export function AlbumListenHistorySection({
     }
   };
 
-  const applySelectedCombo = (comboId: string) => {
-    setSelectedComboId(comboId);
-    if (!comboId) return;
-    const combo = comboById.get(comboId);
-    if (!combo) return;
-    const fill = fillListenHistoryFromCombo(combo, comboGearById);
-    setSelectedSourceId(fill.sourceId);
-    setSelectedDacAmpId(fill.dacAmpId);
-    setSelectedDacAmp2Id(fill.dacAmp2Id);
-    if (fill.headphoneId != null) setSelectedHeadphoneId(fill.headphoneId);
-    const sourceGear = fill.sourceId ? comboGearById.get(Number(fill.sourceId)) : null;
-    const amp1Gear = fill.dacAmpId ? comboGearById.get(Number(fill.dacAmpId)) : null;
-    const amp2Gear = fill.dacAmp2Id ? comboGearById.get(Number(fill.dacAmp2Id)) : null;
-    const receiverGear =
-      fill.headphoneId != null && fill.headphoneId
-        ? comboGearById.get(Number(fill.headphoneId))
-        : null;
-    ensureGearOption(sourceGear ?? null, setSourceOptions);
-    ensureGearOption(amp1Gear ?? null, setDacAmpOptions);
-    ensureGearOption(amp2Gear ?? null, setDacAmpOptions);
-    ensureGearOption(receiverGear ?? null, setHeadphoneOptions);
-    if (fill.headphoneId) setReceiverError(null);
-  };
-
-  const clearComboSelection = () => {
-    if (selectedComboId) setSelectedComboId('');
-  };
-
   const startEditListenHistory = (row: ListenHistoryRow) => {
-    ensureGearOption(row.source, setSourceOptions);
-    ensureGearOption(row.dac_amp, setDacAmpOptions);
-    ensureGearOption(row.dac_amp2, setDacAmpOptions);
-    ensureGearOption(row.headphone, setHeadphoneOptions);
+    loadGearFields({
+      media: row.media,
+      comboId: row.combo_id,
+      sourceId: row.source_id,
+      dacAmpId: row.dac_amp_id,
+      dacAmp2Id: row.dac_amp2_id,
+      headphoneId: row.headphone_id,
+      source: row.source,
+      dacAmp: row.dac_amp,
+      dacAmp2: row.dac_amp2,
+      headphone: row.headphone,
+    });
     setEditingId(row.id);
     setListenDate(row.listened_at?.slice(0, 10) ?? '');
     setListenImpression(row.impression ?? '');
-    setSelectedMedia(listenHistoryMediaForForm(row.media));
-    setSelectedComboId(row.combo_id?.trim() || '');
-    setSelectedSourceId(row.source_id != null ? String(row.source_id) : '');
-    setSelectedDacAmpId(row.dac_amp_id != null ? String(row.dac_amp_id) : '');
-    setSelectedDacAmp2Id(row.dac_amp2_id != null ? String(row.dac_amp2_id) : '');
-    setSelectedHeadphoneId(row.headphone_id != null ? String(row.headphone_id) : '');
     setReceiverError(null);
     setFormOpen(false);
     if (variant === 'accordion') setListenOpen(true);
@@ -528,7 +431,9 @@ export function AlbumListenHistorySection({
         options={comboOptions}
         orphanLabel={getComboLabel(selectedComboId)}
         disabled={listenSaving}
-        onChange={applySelectedCombo}
+        onChange={(comboId) => {
+          if (applySelectedCombo(comboId)) setReceiverError(null);
+        }}
       />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="min-w-0">
@@ -552,10 +457,7 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedSourceId}
-            onChange={(e) => {
-              setSelectedSourceId(e.target.value);
-              clearComboSelection();
-            }}
+            onChange={(e) => changeSource(e.target.value)}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -573,10 +475,7 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmpId}
-            onChange={(e) => {
-              setSelectedDacAmpId(e.target.value);
-              clearComboSelection();
-            }}
+            onChange={(e) => changeDacAmp(e.target.value)}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -592,10 +491,7 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmp2Id}
-            onChange={(e) => {
-              setSelectedDacAmp2Id(e.target.value);
-              clearComboSelection();
-            }}
+            onChange={(e) => changeDacAmp2(e.target.value)}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -612,10 +508,8 @@ export function AlbumListenHistorySection({
             className="min-w-0 w-full"
             value={selectedHeadphoneId}
             onChange={(value) => {
-              setSelectedHeadphoneId(value);
+              changeHeadphone(value);
               if (value) setReceiverError(null);
-              const combo = selectedComboId ? comboById.get(selectedComboId) : undefined;
-              if (combo && comboHasSpeaker(combo, comboGearById)) clearComboSelection();
             }}
             options={headphoneOptions}
             disabled={listenSaving}
