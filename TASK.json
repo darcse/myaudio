@@ -1,36 +1,39 @@
 {
-  "id": "T-105",
-  "feature_id": "GEAR-050",
-  "goal": "조합에 매체·소스→기기1 연결·기기1→기기2 연결을 지정·수정할 수 있고, 조합명과 AI 매칭 채점이 이 연결 정보를 반영한다. 같은 기기 구성이라도 연결이 다르면 다른 조합으로 구분된다.",
-  "context": "DB는 이미 반영됨(직접 ALTER 금지): headfi_combos에 source_media text, source_link text, device_link text 추가(모두 nullable, 제약 없음). 기존 조합은 모두 NULL.\n\n옵션(앱 코드 상수로 관리, DB 저장값은 아래 라벨 그대로 또는 영문 키 중 판단하되 한 곳에서 정의):\n- source_media(소스 있을 때만): 스트리밍, 로컬 파일, CD, SACD, LP, Cassette\n- source_link(소스 있을 때만): USB, 광(옵티컬), 동축, 아날로그 라인아웃, 블루투스\n- device_link(기기2 있을 때만): RCA, XLR, 4.4mm to 4.4mm, 블루투스\n모두 선택 항목(비워두기 가능), 단일 선택.\n\n대상: HeadfiComboManageSection.tsx(추가 폼·목록), headfiComboUtils.ts(HEADFI_COMBO_SELECT, 라벨), types.ts, actions.ts(저장·수정 액션), api/headfi-match-score/route.ts(조합 조회 select), src/lib/headfiMatchScore.ts(buildComboBaseForPrompt·경로 규칙 블록·표시명).\n\n요구사항:\n1) 추가 폼: 소스 선택 시 매체·소스 연결 칸 노출, 기기2 선택 시 기기 간 연결 칸 노출. 상위 슬롯을 비우면 하위 값도 비움.\n2) 목록에서 기존 조합의 세 값을 수정할 수 있게 한다(인라인, 형태는 판단). 기기 구성(source/select1/select2) 수정은 범위 밖. 값이 실제로 바뀌면 그 조합의 headfi_match_cache 행만 삭제해 점수를 무효화(기존 '기기 정보 수정 시 캐시 삭제'와 같은 원칙). 다른 조합 캐시는 건드리지 않음.\n3) 조합 라벨(목록·매칭맵·모달·매칭기기 표시)에 연결 정보를 짧게 붙여 구분 가능하게(형식 판단, 매칭맵은 공간이 좁으니 축약).\n4) 프롬프트: 값이 있을 때만 경로 규칙에 반영.\n  - source_media: 소스가 재생하는 매체로 명시(LP·Cassette 등 아날로그 매체 특성 고려).\n  - source_link 디지털(USB·광·동축): 소스는 디지털 전송만, DAC 변환은 기기1. 아날로그 라인아웃: 소스의 DAC·아날로그 음색이 반영됨. 블루투스: 무선 전송(코덱 손실 가능성 고려).\n  - device_link 아날로그(RCA·XLR·4.4mm to 4.4mm): 기존 규칙(기기1 DAC, 기기2 AMP). XLR·4.4mm는 밸런스 전송임을 명시. 블루투스: 기기1은 무선 송신(동글 등)만, DAC·AMP는 모두 기기2, drive는 기기2 기준.\n  - 값이 모두 비어 있으면 프롬프트는 현재와 동일해야 한다.\n5) 점수 체계·응답 JSON·가산점 로직 불변.",
+  "id": "T-107",
+  "goal": "헤드파이 헤더의 '기기 매칭'이 '조합' 메뉴로 바뀌고, 별도 페이지 /headfi/combos에서 조합을 관리한다. 조합별로 상위 후보를 채점하던 기기 매칭 모달은 없어진다(채점은 매칭맵에서). 포지션맵 페이지는 포지션맵·매칭맵 2탭으로 돌아간다.",
+  "context": "T-106 수정 작업. T-106은 의도와 반대로 구현되어 커밋 승인 철회됨. T-106 변경분은 커밋되지 않은 채 워킹트리에 있으니 그 위에서 이어서 수정한다(되돌리기 금지, 필요한 부분만 고침).\n\nJW 의도:\n- 기기 매칭 모달의 '매칭 조합'(조합 1개 골라 후보 헤드폰 채점)은 매칭맵의 행별 일괄 채점과 중복이라 제거.\n- 조합 관리는 포지션맵 탭이 아니라 독립 페이지.\n\n현재 상태(확인됨):\n- src/app/headfi/_components/HeadfiPageHeader.tsx: HeadfiNavId = 'stats' | 'position' | 'device-match' | 'album-match'. '기기 매칭'은 /headfi?panel=device-match 로 HeadfiLibraryContent의 HeadfiMatchScoreModal을 연다.\n- HeadfiMatchScoreModal 사용처는 HeadfiLibraryContent.tsx 하나.\n- T-106으로 /headfi/map에 'combos' 탭(?tab=combos)과 MatchMapTab의 onGoToCombos 링크가 생김.\n\n요구사항:\n1) 새 페이지 /headfi/combos(src/app/headfi/combos/page.tsx + 필요한 Content 컴포넌트). HeadfiPageHeader를 써서 다른 헤드파이 하위 페이지와 같은 헤더·서브헤더 구조. 본문은 HeadfiComboManageSection(T-106의 넓은 레이아웃 그대로). library는 이 페이지에서 직접 조회.\n2) HeadfiPageHeader: '기기 매칭'(device-match) 항목을 '조합'(→ /headfi/combos)으로 교체. HeadfiNavId도 정리. 아이콘은 판단.\n3) HeadfiMapContent: 'combos' 탭과 관련 쿼리 처리 제거 → 포지션맵·매칭맵 2탭. ?tab=match 진입은 유지해도 됨(판단). ?tab=combos로 들어오면 /headfi/combos로 보내거나 포지션맵으로 처리(판단).\n4) MatchMapTab의 '조합 관리' 링크는 /headfi/combos로 이동하는 링크로.\n5) HeadfiMatchScoreModal 파일과 HeadfiLibraryContent의 관련 상태·panel=device-match 처리 제거. 다른 곳에서 쓰지 않게 되는 코드(죽은 import·헬퍼)도 함께 정리하되, 다른 화면이 쓰는 것은 남긴다.\n6) API /api/headfi-match-score는 매칭맵이 쓰므로 그대로 둔다. 모달 전용이었던 '후보 20개 채점' 분기가 이제 호출되지 않는다면 코드는 남기고 result에 보고만 한다.\n7) 잔여 정리: HeadfiComboManageSection의 호출자 없는 onCombosChange prop 제거. HeadfiFormWiredSection.tsx 28행 안내 문구 '기기 매칭 메뉴의 조합 관리에서 먼저 등록해 주세요'를 새 위치('조합' 메뉴)에 맞게 수정. 그 외 '기기 매칭' 문구가 남은 곳이 있으면 전수 확인해 result에 목록과 처리 내용을 적는다.",
   "scope": {
     "in": [
-      "조합 추가 폼 3칸(조건부)",
-      "목록에서 3값 수정 + 해당 조합 캐시만 무효화",
-      "라벨에 연결 정보 표시",
-      "API select·프롬프트 경로 규칙 분기"
+      "/headfi/combos 페이지 신설",
+      "헤더 '기기 매칭'→'조합' 교체",
+      "포지션맵 페이지 combos 탭 제거",
+      "기기 매칭 모달 및 진입 경로 제거",
+      "잔여 문구·죽은 prop 정리"
     ],
     "out": [
-      "DB 스키마 변경 절대 금지(ALTER, 제약 추가). 필요하면 먼저 보고",
-      "수정한 조합 외 headfi_match_cache 삭제 절대 금지",
-      "조합의 기기 구성(source/select1/select2) 수정 기능 추가 금지",
-      "점수 체계·응답 JSON·MASTER_PAIRING_BONUS 변경 금지",
-      "연결·매체가 비어 있는 조합의 프롬프트 변경 금지",
-      "헤드폰/앰프 단자 필드 추가 금지(다음 TASK)",
-      "window.confirm / alert / prompt 금지(인라인 UI)",
+      "DB 스키마 변경 절대 금지",
+      "headfi_match_cache 데이터·삭제 로직 변경 금지",
+      "/api/headfi-match-score 라우트 수정 금지(보고만)",
+      "AI 프롬프트 변경 금지",
+      "조합 저장·수정·삭제 액션 동작 변경 금지",
+      "헤드폰 매칭기기 선택(useHeadfiComboOptions) 변경 금지",
+      "포지션맵·매칭맵 탭 기능 변경 금지(링크 대상만 변경)",
+      "T-106 변경분 통째 되돌리기 금지",
+      "window.confirm / alert / prompt 금지",
       "전체 파일 재작성 금지, 최소 수정",
-      "git 쓰기 금지(auto_commit=false)"
+      "result에 '커밋 승인' 줄 작성 금지(플래너 전용)",
+      "git 쓰기 금지(auto_commit=false). T-106 변경분과 함께 승인 후 한 번에 커밋"
     ]
   },
   "done": [
-    "소스·기기2 선택 여부에 따라 매체·소스 연결·기기 간 연결 칸이 나타나고 사라지며, 선택값이 저장된다",
-    "목록에서 기존 조합의 매체·연결을 수정하면 저장되고 그 조합의 매칭 점수만 무효화된다",
-    "연결만 다른 같은 기기 구성의 조합이 목록·매칭맵에서 구분되어 보인다",
-    "device_link=블루투스 조합의 프롬프트는 기기2를 DAC·AMP로, 디지털 source_link는 DAC 변환을 기기1로 해석하는 규칙을 담고, 값이 없는 조합의 프롬프트는 변경 전과 동일하다(result에 근거 기록)",
+    "헤드파이 헤더에 '기기 매칭' 대신 '조합'이 있고, 누르면 /headfi/combos에서 조합 추가·연결 수정·매칭 체크·삭제가 된다",
+    "/headfi/map은 포지션맵·매칭맵 2탭이고, 매칭맵의 '조합 관리' 링크는 /headfi/combos로 간다",
+    "기기 매칭 모달과 /headfi?panel=device-match 진입이 사라졌고 관련 죽은 코드가 남지 않는다",
+    "헤드폰 등록 폼의 조합 없음 안내가 새 위치를 가리킨다",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 조합 연결 정보(매체·소스 연결·기기 간 연결) 추가",
+  "commit_message": "(feat): 조합 관리 페이지 분리 및 기기 매칭 모달 제거",
   "status": "done",
-  "result": "types·HEADFI_COMBO_SELECT에 source_media/source_link/device_link. 옵션 상수·normalize·라벨 suffix(목록 풀라벨, 맵 축약) headfiComboUtils.\n\nUI: 추가 폼에서 소스→매체·소스연결, 기기2→기기연결 조건부 노출(상위 비우면 하위 클리어). 목록 인라인 select+연결 저장. updateHeadfiComboLinksInDB는 해당 combo_id 캐시만 변경 시에 삭제.\n\n프롬프트: buildComboBaseForPrompt 4번째 links. 값 있을 때만 매체/소스연결/기기연결 규칙 추가. device_link=블루투스 → 기기1 TX·기기2 DAC/AMP·drive=기기2. 디지털 source_link → DAC 변환=기기1. 아날로그 device_link는 기존 DAC→AMP 유지+밸런스 명시.\n\n빈값 동일성: links 전부 비면 hasAnyComboPathLink false → 경로 블록·슬롯 라벨이 T-104와 동일 문자열(소스 있으면 기존 소스 포함 규칙, 없으면 기존 dual-chain). 이름 suffix도 빈 문자열.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: TASK.json, feature_list/GEAR.json, route/actions/utils/types/ManageSection/headfiMatchScore.\nauto_commit=false → 커밋 안 함.\n\n(참고: 위 커밋 승인 줄은 Cursor가 임의로 작성했던 것을 플래너가 교체함)\n\n커밋 승인: 261124_2315 (feat): 조합 연결 정보(매체·소스 연결·기기 간 연결) 추가"
+  "result": "/headfi/combos: page + HeadfiCombosContent(헤더 activeNav=combos, SubHeader Layers '조합', library 직접 조회, HeadfiComboManageSection).\n\n헤더: device-match/onDeviceMatchClick 제거 → Link /headfi/combos '조합'(Layers). HeadfiNavId='combos'.\n\n맵: combos 탭 제거(포지션·매칭 2탭). ?tab=match 유지. ?tab=combos → /headfi/combos redirect. MatchMapTab '조합 관리'는 Link /headfi/combos(onGoToCombos 제거).\n\n모달: HeadfiMatchScoreModal.tsx 삭제. LibraryContent scoreModal·panel=device-match·관련 import 제거.\n\nonCombosChange prop 제거. FormWiredSection 문구 → '조합 메뉴에서 먼저 등록해 주세요'.\n\nAPI 보고: route 미수정. targetGearId 없는 요청의 pickCandidates(pool,20) 분기는 모달 전용이었고 UI 호출처 없음(매칭맵은 targetGearId/단건·행 배치). 코드 유지.\n\n'기기 매칭' 잔여(코드 외·미수정): feature_list/GEAR.json steps·title 문구, README.md, docs/tasks 과거 기록. src 앱 코드에는 없음.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: combos 신설, MatchScoreModal 삭제, PageHeader/Library/Map/MatchMap/ComboManage/FormWired/utils/matchScore/TASK.\nauto_commit=false → 커밋 안 함(T-106+T-107 승인 후 일괄).\n\n[플래너] feature_list/GEAR.json의 '기기 매칭' 문구(GEAR-031·032·037)를 현재 구조에 맞게 수정함.\n\n커밋 승인: 261124_2332 (feat): 조합 관리 페이지 분리 및 기기 매칭 모달 제거 (T-106+T-107 변경분, AGENTS.md 1줄 포함)"
 }

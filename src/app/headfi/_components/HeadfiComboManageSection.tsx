@@ -16,7 +16,6 @@ import {
   COMBO_DEVICE_LINK_OPTIONS,
   COMBO_SOURCE_LINK_OPTIONS,
   COMBO_SOURCE_MEDIA_OPTIONS,
-  formatComboLabel,
   formatGearShortLabel,
   HEADFI_COMBO_SELECT,
   isComboDeviceCategory,
@@ -30,7 +29,6 @@ import type { Headfi, HeadfiCombo } from '../types';
 type HeadfiComboManageSectionProps = {
   library: Headfi[];
   isAuthenticated: boolean | null;
-  onCombosChange?: (combos: HeadfiCombo[]) => void;
   hideHeading?: boolean;
 };
 
@@ -54,18 +52,22 @@ function ComboOptionSelect({
   options,
   onChange,
   disabled,
+  compact,
 }: {
   label: string;
   value: string;
   options: readonly string[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold opacity-80">{label}</label>
+    <div className="min-w-0">
+      <label className={`mb-1 block font-semibold opacity-80 ${compact ? 'text-[11px]' : 'text-xs'}`}>
+        {label}
+      </label>
       <select
-        className="select-apple h-[42px] w-full px-3 py-2"
+        className={`select-apple w-full px-3 py-2 ${compact ? 'h-[36px] text-xs' : 'h-[42px]'}`}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
@@ -81,10 +83,38 @@ function ComboOptionSelect({
   );
 }
 
+function ComboChainLabel({
+  combo,
+  gearById,
+}: {
+  combo: HeadfiCombo;
+  gearById: Map<number, Headfi>;
+}) {
+  const source = combo.source_id != null ? gearById.get(combo.source_id) : undefined;
+  const device1 = combo.select1_id != null ? gearById.get(combo.select1_id) : undefined;
+  const device2 = combo.select2_id != null ? gearById.get(combo.select2_id) : undefined;
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm">
+      {source ? (
+        <>
+          <span className="min-w-0 max-w-full truncate font-medium">{formatGearShortLabel(source)}</span>
+          <span className="shrink-0 opacity-40">→</span>
+        </>
+      ) : null}
+      <span className="min-w-0 max-w-full truncate font-medium">{formatGearShortLabel(device1)}</span>
+      {device2 ? (
+        <>
+          <span className="shrink-0 opacity-40">→</span>
+          <span className="min-w-0 max-w-full truncate font-medium">{formatGearShortLabel(device2)}</span>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function HeadfiComboManageSection({
   library,
   isAuthenticated,
-  onCombosChange,
   hideHeading = false,
 }: HeadfiComboManageSectionProps) {
   const [combos, setCombos] = useState<HeadfiCombo[]>([]);
@@ -149,11 +179,10 @@ export function HeadfiComboManageSection({
       setLinkDrafts(
         Object.fromEntries(next.map((combo) => [combo.id, comboLinkDraftFromCombo(combo)])),
       );
-      onCombosChange?.(next);
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, onCombosChange]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     void loadCombos();
@@ -219,7 +248,6 @@ export function HeadfiComboManageSection({
       const updated = (await updateHeadfiComboMatchingInDB(combo.id, nextMatching)) as HeadfiCombo;
       const next = combos.map((item) => (item.id === combo.id ? { ...item, ...updated } : item));
       setCombos(next);
-      onCombosChange?.(next);
       notifyHeadfiCombosChanged();
     } catch (error) {
       toast.error(getClientErrorMessage(error) || '매칭 설정을 저장하지 못했습니다.');
@@ -243,7 +271,6 @@ export function HeadfiComboManageSection({
         ...prev,
         [combo.id]: comboLinkDraftFromCombo({ ...combo, ...updated }),
       }));
-      onCombosChange?.(next);
       notifyHeadfiCombosChanged();
       toast.success('연결 정보를 저장했습니다.');
     } catch (error) {
@@ -264,7 +291,6 @@ export function HeadfiComboManageSection({
         delete copy[comboId];
         return copy;
       });
-      onCombosChange?.(next);
       setDeleteConfirmId(null);
       toast.success('조합을 삭제했습니다.');
       notifyHeadfiCombosChanged();
@@ -293,7 +319,10 @@ export function HeadfiComboManageSection({
           보유중인 DAC/AMP/DAP/기타 기기가 없습니다. 먼저 기기를 등록해 주세요.
         </p>
       ) : (
-        <div className="mb-4 space-y-3">
+        <div
+          className="mb-4 space-y-3 rounded-xl p-3 sm:p-4"
+          style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+        >
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-80">소스 (선택)</label>
@@ -389,35 +418,41 @@ export function HeadfiComboManageSection({
       ) : combos.length === 0 ? (
         <p className="text-sm opacity-60">등록된 조합이 없습니다.</p>
       ) : (
-        <ul className="space-y-2">
-          {combos.map((combo) => {
-            const isConfirming = deleteConfirmId === combo.id;
-            const isDeleting = deletingId === combo.id;
-            const isMatchingBusy = matchingId === combo.id;
-            const isSavingLinks = savingLinksId === combo.id;
-            const released = isReleasedHeadfiCombo(combo, gearById);
-            const matching = combo.is_matching !== false;
-            const draft = linkDrafts[combo.id] ?? comboLinkDraftFromCombo(combo);
-            const baseline = comboLinkDraftFromCombo(combo);
-            const linksDirty =
-              draft.source_media !== baseline.source_media ||
-              draft.source_link !== baseline.source_link ||
-              draft.device_link !== baseline.device_link;
-            const canEditLinks = combo.source_id != null || combo.select2_id != null;
-            return (
-              <li
-                key={combo.id}
-                className="flex flex-wrap items-start justify-between gap-3 rounded-xl px-3 py-2.5"
-                style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
-              >
-                <div className="min-w-0 flex-1 space-y-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span className="min-w-0 truncate text-sm font-medium">
-                      {formatComboLabel(combo, gearById)}
-                    </span>
+        <div className="space-y-2">
+          <div
+            className="hidden gap-3 px-3 text-[11px] font-semibold opacity-50 md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_7.5rem_auto]"
+          >
+            <span>구성</span>
+            <span>연결</span>
+            <span>매칭</span>
+            <span className="text-right">관리</span>
+          </div>
+          <ul className="space-y-2">
+            {combos.map((combo) => {
+              const isConfirming = deleteConfirmId === combo.id;
+              const isDeleting = deletingId === combo.id;
+              const isMatchingBusy = matchingId === combo.id;
+              const isSavingLinks = savingLinksId === combo.id;
+              const released = isReleasedHeadfiCombo(combo, gearById);
+              const matching = combo.is_matching !== false;
+              const draft = linkDrafts[combo.id] ?? comboLinkDraftFromCombo(combo);
+              const baseline = comboLinkDraftFromCombo(combo);
+              const linksDirty =
+                draft.source_media !== baseline.source_media ||
+                draft.source_link !== baseline.source_link ||
+                draft.device_link !== baseline.device_link;
+              const canEditLinks = combo.source_id != null || combo.select2_id != null;
+              return (
+                <li
+                  key={combo.id}
+                  className="rounded-xl px-3 py-3 md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_7.5rem_auto] md:items-start md:gap-3"
+                  style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
+                >
+                  <div className="min-w-0 space-y-1.5">
+                    <ComboChainLabel combo={combo} gearById={gearById} />
                     {released ? (
                       <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
                         style={{
                           background: 'color-mix(in srgb, var(--foreground) 12%, var(--card-bg))',
                           border: '1px solid var(--border)',
@@ -427,109 +462,123 @@ export function HeadfiComboManageSection({
                       </span>
                     ) : null}
                   </div>
-                  <label className="inline-flex items-center gap-1.5 text-xs opacity-75">
-                    <input
-                      type="checkbox"
-                      className="size-3.5 accent-[var(--foreground)]"
-                      checked={matching}
-                      disabled={isMatchingBusy || deletingId != null}
-                      onChange={(e) => void handleMatchingChange(combo, e.target.checked)}
-                    />
-                    매칭 조합
-                  </label>
-                  {canEditLinks ? (
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      {combo.source_id != null ? (
-                        <>
-                          <ComboOptionSelect
-                            label="매체"
-                            value={draft.source_media}
-                            options={COMBO_SOURCE_MEDIA_OPTIONS}
-                            disabled={isSavingLinks || deletingId != null}
-                            onChange={(value) =>
-                              setLinkDrafts((prev) => ({
-                                ...prev,
-                                [combo.id]: { ...draft, source_media: value },
-                              }))
-                            }
-                          />
-                          <ComboOptionSelect
-                            label="소스 연결"
-                            value={draft.source_link}
-                            options={COMBO_SOURCE_LINK_OPTIONS}
-                            disabled={isSavingLinks || deletingId != null}
-                            onChange={(value) =>
-                              setLinkDrafts((prev) => ({
-                                ...prev,
-                                [combo.id]: { ...draft, source_link: value },
-                              }))
-                            }
-                          />
-                        </>
-                      ) : null}
-                      {combo.select2_id != null ? (
-                        <ComboOptionSelect
-                          label="기기 간 연결"
-                          value={draft.device_link}
-                          options={COMBO_DEVICE_LINK_OPTIONS}
-                          disabled={isSavingLinks || deletingId != null}
-                          onChange={(value) =>
-                            setLinkDrafts((prev) => ({
-                              ...prev,
-                              [combo.id]: { ...draft, device_link: value },
-                            }))
-                          }
-                        />
-                      ) : null}
-                      {linksDirty ? (
-                        <div className="flex items-end sm:col-span-3">
+
+                  <div className="mt-3 min-w-0 space-y-2 md:mt-0">
+                    {canEditLinks ? (
+                      <>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
+                          {combo.source_id != null ? (
+                            <>
+                              <ComboOptionSelect
+                                label="매체"
+                                value={draft.source_media}
+                                options={COMBO_SOURCE_MEDIA_OPTIONS}
+                                disabled={isSavingLinks || deletingId != null}
+                                compact
+                                onChange={(value) =>
+                                  setLinkDrafts((prev) => ({
+                                    ...prev,
+                                    [combo.id]: { ...draft, source_media: value },
+                                  }))
+                                }
+                              />
+                              <ComboOptionSelect
+                                label="소스 연결"
+                                value={draft.source_link}
+                                options={COMBO_SOURCE_LINK_OPTIONS}
+                                disabled={isSavingLinks || deletingId != null}
+                                compact
+                                onChange={(value) =>
+                                  setLinkDrafts((prev) => ({
+                                    ...prev,
+                                    [combo.id]: { ...draft, source_link: value },
+                                  }))
+                                }
+                              />
+                            </>
+                          ) : null}
+                          {combo.select2_id != null ? (
+                            <ComboOptionSelect
+                              label="기기 간 연결"
+                              value={draft.device_link}
+                              options={COMBO_DEVICE_LINK_OPTIONS}
+                              disabled={isSavingLinks || deletingId != null}
+                              compact
+                              onChange={(value) =>
+                                setLinkDrafts((prev) => ({
+                                  ...prev,
+                                  [combo.id]: { ...draft, device_link: value },
+                                }))
+                              }
+                            />
+                          ) : null}
+                        </div>
+                        {linksDirty ? (
                           <button
                             type="button"
-                            className="btn-apple btn-apple-secondary h-[36px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                            className="btn-apple btn-apple-secondary h-[32px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={isSavingLinks || deletingId != null}
                             onClick={() => void handleSaveLinks(combo)}
                           >
                             {isSavingLinks ? '저장 중…' : '연결 저장'}
                           </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                {isConfirming ? (
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      type="button"
-                      className="rounded-lg px-2 py-1 text-xs font-medium opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
-                      disabled={isDeleting}
-                      onClick={() => setDeleteConfirmId(null)}
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-apple btn-apple-danger rounded-lg px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={isDeleting}
-                      onClick={() => void handleDelete(combo.id)}
-                    >
-                      {isDeleting ? '삭제 중…' : '삭제'}
-                    </button>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="text-xs opacity-50">연결 정보 없음</p>
+                    )}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
-                    aria-label="조합 삭제"
-                    disabled={deletingId != null}
-                    onClick={() => setDeleteConfirmId(combo.id)}
-                  >
-                    <Trash2 className="size-4" strokeWidth={1.75} />
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+
+                  <div className="mt-3 md:mt-1">
+                    <label className="inline-flex items-center gap-1.5 text-xs opacity-75">
+                      <input
+                        type="checkbox"
+                        className="size-3.5 accent-[var(--foreground)]"
+                        checked={matching}
+                        disabled={isMatchingBusy || deletingId != null}
+                        onChange={(e) => void handleMatchingChange(combo, e.target.checked)}
+                      />
+                      매칭 조합
+                    </label>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-1.5 md:mt-0">
+                    {isConfirming ? (
+                      <>
+                        <button
+                          type="button"
+                          className="rounded-lg px-2 py-1 text-xs font-medium opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
+                          disabled={isDeleting}
+                          onClick={() => setDeleteConfirmId(null)}
+                        >
+                          취소
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-apple btn-apple-danger rounded-lg px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isDeleting}
+                          onClick={() => void handleDelete(combo.id)}
+                        >
+                          {isDeleting ? '삭제 중…' : '삭제'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
+                        aria-label="조합 삭제"
+                        disabled={deletingId != null}
+                        onClick={() => setDeleteConfirmId(combo.id)}
+                      >
+                        <Trash2 className="size-4" strokeWidth={1.75} />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </section>
   );

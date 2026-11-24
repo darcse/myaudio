@@ -127,6 +127,7 @@ YYMMDD_HHMM (type): 설명
 - `goal`·`context`·`scope`·`done`은 수정하지 않는다. 갱신하는 필드는 `status`와 `result`뿐이다. 착수 시 `in_progress`, 완료 시 `done`, 막히면 `blocked`와 이유를 기록한다.
 - `result`에는 변경 요약, 건너뛴 항목과 이유, 검증 결과(`npx tsc --noEmit`, `npm run lint`, 필요 시 `npm run build:check`), `git diff --stat` 요약을 적는다. `npm run build`는 쓰지 않는다.
 - 커밋·푸시는 TASK.json의 `auto_commit`을 따른다. `true`면 done 검증(tsc·lint 포함)을 모두 통과하고 status·result를 최종 기록한 뒤 `git add src docs feature_list scripts TASK.json`(이번 작업에서 바뀐 루트 규칙 문서가 있으면 함께) → `YYMMDD_HHMM ` + `commit_message`로 commit(시각은 커밋 시점) → push 하고, 커밋 해시는 채팅으로만 보고한다. 커밋 후 TASK.json을 다시 수정하거나 해시 기록용 커밋을 만들지 않는다. `false`이거나 필드가 없으면 커밋하지 않고, `result`에 플래너의 `커밋 승인: <메시지>`가 생긴 뒤 JW가 "커밋해"라고 할 때만 같은 방식으로 커밋·푸시한다. 검증 실패·blocked면 어떤 경우에도 커밋하지 않는다. `.claude/`는 포함하지 않는다.
+- `커밋 승인: ...` 줄은 플래너만 쓴다. 에이전트는 `result`에 이 줄을 직접 쓰지 않는다.
 - `scope.out`에 해당하는 수정이 필요해 보이면 변경하지 말고 `result`에 보고한다.
 - 토큰을 많이 쓸 것으로 예상되는 작업(장시간 스크립트 실행, 대량 출력 읽기, 대규모 전수 조사 등)은 시작 전에 JW에게 경고하고 대안(소량 테스트 후 JW가 터미널에서 직접 실행, 콘솔 출력 최소화·상세는 파일 기록 등)을 함께 제시한 뒤 진행 여부를 확인한다.
 - `done` 항목을 모두 만족하지 못하면 `blocked`로 기록한다.

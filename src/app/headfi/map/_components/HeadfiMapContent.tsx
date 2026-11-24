@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
@@ -13,9 +14,16 @@ import { filterToggleStyle } from './positionMapUtils';
 
 type MapTab = 'position' | 'match';
 
+function parseMapTab(raw: string | null): MapTab {
+  if (raw === 'match') return 'match';
+  return 'position';
+}
+
 export function HeadfiMapContent() {
   const isAuthenticated = useAuthState();
-  const [activeTab, setActiveTab] = useState<MapTab>('position');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = parseMapTab(searchParams.get('tab'));
   const [library, setLibrary] = useState<Headfi[]>([]);
   const [combos, setCombos] = useState<HeadfiCombo[]>([]);
   const [matchCache, setMatchCache] = useState<
@@ -29,6 +37,22 @@ export function HeadfiMapContent() {
     }[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'combos') return;
+    router.replace('/headfi/combos');
+  }, [router, searchParams]);
+
+  const setActiveTab = useCallback(
+    (tab: MapTab) => {
+      const sp = new URLSearchParams(searchParams.toString());
+      if (tab === 'position') sp.delete('tab');
+      else sp.set('tab', tab);
+      const qs = sp.toString();
+      router.replace(qs ? `/headfi/map?${qs}` : '/headfi/map', { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   const fetchData = useCallback(async (options?: { background?: boolean }) => {
     if (!options?.background) setIsLoading(true);

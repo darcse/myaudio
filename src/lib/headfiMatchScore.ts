@@ -1,5 +1,6 @@
 import type { Headfi } from '@/app/headfi/types';
 import { formatVrms, formatDacAmpSpecsForPrompt } from '@/app/headfi/dacAmpSpec';
+import { formatComboConnectionSuffix } from '@/app/headfi/headfiComboUtils';
 import { formatFrInterpretationForPrompt } from '@/lib/headfiAlbumMatch';
 import { buildHeadfiSoundScoresPromptBlock } from '@/lib/headfiSoundScores';
 import { shuffleArray } from '@/lib/utils';
@@ -203,17 +204,6 @@ function hasAnyComboPathLink(links?: ComboPathLinks | null): boolean {
   );
 }
 
-function formatComboPathLinksSuffix(links?: ComboPathLinks | null): string {
-  if (!links) return '';
-  const parts = [
-    trimPathLink(links.source_media),
-    trimPathLink(links.source_link),
-    trimPathLink(links.device_link),
-  ].filter(Boolean);
-  if (parts.length === 0) return '';
-  return ` · ${parts.join(' · ')}`;
-}
-
 function buildSourceMediaRuleLine(media: string): string | null {
   if (!media) return null;
   const analogNote =
@@ -342,7 +332,7 @@ function buildComboDisplayName(
   links?: ComboPathLinks | null,
 ): string {
   const name1 = formatExactGearName(select1);
-  const suffix = formatComboPathLinksSuffix(links);
+  const suffix = formatComboConnectionSuffix(links ?? {});
   if (source) {
     const sourceLabel = `${formatExactGearName(source)} (${source.category})`;
     if (!select2) {

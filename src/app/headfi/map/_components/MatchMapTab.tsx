@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { Loader2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
@@ -161,7 +162,12 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: MatchMapTabProps) {
+export function MatchMapTab({
+  library,
+  combos,
+  matchCache,
+  isAuthenticated,
+}: MatchMapTabProps) {
   const [selected, setSelected] = useState<SelectedCell | null>(null);
   const [reanalyzeConfirm, setReanalyzeConfirm] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('전체');
@@ -443,9 +449,18 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
 
   if (combos.length === 0) {
     return (
-      <p className="py-12 text-center text-sm opacity-60">
-        등록된 조합이 없습니다. 헤드파이 → 기기 매칭에서 조합을 먼저 등록해 주세요.
-      </p>
+      <div className="space-y-3 py-12 text-center">
+        <p className="text-sm opacity-60">
+          매칭 조합이 없습니다. 조합 메뉴에서 조합을 등록하고 매칭 조합으로 체크해 주세요.
+        </p>
+        <Link
+          href="/headfi/combos"
+          className="inline-block text-sm font-semibold underline-offset-2 transition-opacity hover:opacity-80"
+          style={{ color: 'var(--foreground)' }}
+        >
+          조합 관리
+        </Link>
+      </div>
     );
   }
 
@@ -460,9 +475,17 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="min-w-0 text-sm opacity-70">
-          헤드폰·이어폰(행) × 조합(열) 궁합 점수 히트맵. 평가된 셀은 상세 확인·재분석, 미평가 셀은 클릭 시 분석합니다.
-        </p>
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-sm opacity-70">
+            헤드폰·이어폰(행) × 조합(열) 궁합 점수 히트맵. 평가된 셀은 상세 확인·재분석, 미평가 셀은 클릭 시 분석합니다.
+          </p>
+          <Link
+            href="/headfi/combos"
+            className="inline-block text-xs font-semibold opacity-70 underline-offset-2 transition-opacity hover:opacity-100"
+          >
+            조합 관리
+          </Link>
+        </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <span className="shrink-0 text-xs font-semibold opacity-60">카테고리</span>
           {CATEGORY_FILTER_OPTIONS.map((option) => (

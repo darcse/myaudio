@@ -25,7 +25,7 @@ function MatchingComboField({
   if (comboOptions.length === 0) {
     return (
       <p className="text-sm opacity-60">
-        등록된 조합이 없습니다. 기기 매칭 메뉴의 조합 관리에서 먼저 등록해 주세요.
+        등록된 조합이 없습니다. 조합 메뉴에서 먼저 등록해 주세요.
       </p>
     );
   }

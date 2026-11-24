@@ -46,7 +46,6 @@ function shortenConnectionLabel(value: string): string {
   if (value === '아날로그 라인아웃') return '라인';
   if (value === '4.4mm to 4.4mm') return '4.4';
   if (value === '로컬 파일') return '로컬';
-  if (value === '스트리밍') return '스트리밍';
   return value;
 }
 

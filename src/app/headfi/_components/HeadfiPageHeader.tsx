@@ -3,9 +3,9 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { BarChart2, ChevronLeft, Headphones, Map, Music, Shuffle } from 'lucide-react';
+import { BarChart2, ChevronLeft, Headphones, Layers, Map, Music } from 'lucide-react';
 
-export type HeadfiNavId = 'stats' | 'position' | 'device-match' | 'album-match';
+export type HeadfiNavId = 'stats' | 'position' | 'combos' | 'album-match';
 
 type HeadfiPageHeaderProps = {
   activeNav?: HeadfiNavId | null;
@@ -13,7 +13,6 @@ type HeadfiPageHeaderProps = {
   showRegister?: boolean;
   showDivider?: boolean;
   onStatsClick?: () => void;
-  onDeviceMatchClick?: () => void;
   onRegisterClick?: () => void;
 };
 
@@ -29,11 +28,9 @@ export function HeadfiPageHeader({
   showRegister = false,
   showDivider = false,
   onStatsClick,
-  onDeviceMatchClick,
   onRegisterClick,
 }: HeadfiPageHeaderProps) {
   const statsHref = '/headfi?panel=stats';
-  const deviceMatchHref = '/headfi?panel=device-match';
 
   return (
     <div
@@ -69,21 +66,10 @@ export function HeadfiPageHeader({
           <Map className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
           <span className="hidden sm:inline">포지션 맵</span>
         </Link>
-        {onDeviceMatchClick ? (
-          <button
-            type="button"
-            className={navButtonClass(activeNav === 'device-match')}
-            onClick={onDeviceMatchClick}
-          >
-            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">기기 매칭</span>
-          </button>
-        ) : (
-          <Link href={deviceMatchHref} className={navButtonClass(activeNav === 'device-match')}>
-            <Shuffle className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
-            <span className="hidden sm:inline">기기 매칭</span>
-          </Link>
-        )}
+        <Link href="/headfi/combos" className={navButtonClass(activeNav === 'combos')}>
+          <Layers className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
+          <span className="hidden sm:inline">조합</span>
+        </Link>
         <Link href="/headfi/match" className={navButtonClass(activeNav === 'album-match')}>
           <Music className="size-4 shrink-0 opacity-80" strokeWidth={1.5} />
           <span className="hidden sm:inline">앨범 매칭</span>

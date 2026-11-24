@@ -35,7 +35,6 @@ import type {
   SelectedHeadfi,
 } from '../types';
 import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from '../headfiComboUtils';
-import { HeadfiMatchScoreModal } from './HeadfiMatchScoreModal';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiAccessoryModal } from './HeadfiAccessoryModal';
 import { HeadfiSaleModal } from './HeadfiSaleModal';
@@ -78,7 +77,6 @@ export function HeadfiLibraryContent() {
   const [isSaving, setIsSaving] = useState(false);
   const createdGearIdRef = useRef<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [spendingModalOpen, setSpendingModalOpen] = useState(false);
   const [accessoryModalOpen, setAccessoryModalOpen] = useState(false);
   const [saleModalOpen, setSaleModalOpen] = useState(false);
@@ -284,7 +282,6 @@ export function HeadfiLibraryContent() {
 
   useEffect(() => {
     if (panelFromUrl === 'stats') setSpendingModalOpen(true);
-    if (panelFromUrl === 'device-match') setScoreModalOpen(true);
   }, [panelFromUrl]);
 
   useEffect(() => {
@@ -771,7 +768,6 @@ export function HeadfiLibraryContent() {
         isAuthenticated={isAuthenticated}
         showRegister
         onStatsClick={() => setSpendingModalOpen(true)}
-        onDeviceMatchClick={() => setScoreModalOpen(true)}
         onRegisterClick={handleManualRegister}
       />
 
@@ -870,13 +866,6 @@ export function HeadfiLibraryContent() {
           }}
         />
       )}
-
-      <HeadfiMatchScoreModal
-        open={scoreModalOpen}
-        onClose={() => setScoreModalOpen(false)}
-        library={library}
-        isAuthenticated={isAuthenticated}
-      />
 
       <HeadfiSpendingStatsModal
         open={spendingModalOpen}

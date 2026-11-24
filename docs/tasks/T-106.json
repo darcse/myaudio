@@ -1,0 +1,37 @@
+{
+  "id": "T-106",
+  "goal": "조합 관리가 포지션맵 페이지(/headfi/map)의 '조합' 탭으로 옮겨져 넓은 화면에서 조합을 추가·수정·매칭 체크·삭제할 수 있다. 매칭 점수 모달의 '조합 관리' 탭은 없어지고 조합 탭으로 가는 링크로 대체된다.",
+  "context": "배경: 조합에 소스·연결 정보·매칭 체크·방출 표시가 붙으면서 모달 안의 조합 관리가 너무 복잡해짐.\n\n현재 상태:\n- src/app/headfi/map/_components/HeadfiMapContent.tsx: MapTab = 'position' | 'match', 탭 상태는 useState(URL 반영 없음).\n- src/app/headfi/_components/HeadfiMatchScoreModal.tsx: ModalTab = 'match' | 'manage', 'manage' 탭에서 HeadfiComboManageSection(library, onCombosChange=setCombos) 렌더.\n- src/app/headfi/_components/HeadfiComboManageSection.tsx: 추가 폼(소스·기기1·기기2 + 매체·소스 연결·기기 간 연결 조건부) + 목록(인라인 연결 수정, 매칭 체크, 방출 배지, 인라인 삭제 확인).\n\n요구사항:\n1) HeadfiMapContent에 'combos' 탭 추가(라벨 '조합', 순서: 포지션맵 · 매칭맵 · 조합). HeadfiComboManageSection을 재사용해 렌더.\n2) ?tab=combos(및 position/match) 쿼리로 탭 직접 진입 가능하게. 탭 전환 시 URL도 갱신(히스토리 과도 누적 없게, replace 기본).\n3) 넓은 화면용 목록 레이아웃 개선: 조합 1행에 소스 → 기기1 → 기기2, 연결 정보, 매칭 체크, 방출, 수정·삭제가 한눈에 보이게. 데스크톱은 표/그리드, 모바일은 카드. 형태는 판단(기존 디자인 토큰·컴포넌트 재사용).\n4) 조합 탭에서 변경 시 매칭맵 탭 데이터가 갱신되어야 함(기존 notifyHeadfiCombosChanged 흐름 활용).\n5) 매칭맵 탭: 조합이 없거나 매칭 조합이 0개일 때, 그리고 헤더 근처에 '조합 관리' 진입 링크(같은 페이지 조합 탭 전환).\n6) HeadfiMatchScoreModal: 'manage' 탭과 관련 상태·렌더 제거, 그 자리에 /headfi/map?tab=combos 링크(모달 닫힘 처리). 모달의 매칭 탭 기능은 그대로. 모달이 조합 목록을 갱신받던 경로(onCombosChange)가 사라지므로 모달 열 때 조합을 새로 불러오는지 확인.\n7) 정리: headfiComboUtils.formatComboConnectionParts와 src/lib/headfiMatchScore.ts의 formatComboPathLinksSuffix 중복을 한쪽으로 통합(동작·문자열 결과 동일 유지). shortenConnectionLabel의 무의미한 '스트리밍'→'스트리밍' 분기 제거.",
+  "scope": {
+    "in": [
+      "/headfi/map에 조합 탭 추가 + 쿼리 탭 진입",
+      "조합 목록 넓은 화면 레이아웃",
+      "매칭맵 탭에 조합 관리 링크",
+      "매칭 점수 모달 관리 탭 제거→링크",
+      "연결 라벨 함수 중복 정리"
+    ],
+    "out": [
+      "DB 스키마 변경 절대 금지",
+      "headfi_match_cache 삭제 로직·조건 변경 금지",
+      "AI 프롬프트 문자열 결과 변경 금지(중복 정리 후에도 동일해야 함)",
+      "조합 저장·수정·삭제 액션의 동작 변경 금지",
+      "헤드폰 매칭기기 선택(useHeadfiComboOptions) 변경 금지",
+      "포지션맵 탭 기능 변경 금지",
+      "window.confirm / alert / prompt 금지(인라인 UI)",
+      "전체 파일 재작성 금지, 최소 수정(컴포넌트 이동·레이아웃 변경에 필요한 범위)",
+      "result에 '커밋 승인' 줄 작성 금지(플래너 전용)",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "/headfi/map에 포지션맵·매칭맵·조합 3탭이 있고, /headfi/map?tab=combos로 조합 탭이 바로 열린다",
+    "조합 탭에서 추가·연결 수정·매칭 체크·삭제가 동작하고, 매칭맵 탭으로 돌아가면 즉시 반영되어 있다",
+    "매칭 점수 모달에 조합 관리 탭이 없고, 링크를 누르면 모달이 닫히며 조합 탭으로 이동한다",
+    "모바일 폭(약 375~430px)에서 조합 목록이 가로로 넘치지 않는다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 조합 관리를 포지션맵 페이지 조합 탭으로 이동",
+  "status": "done",
+  "result": "HeadfiMapContent: MapTab에 combos 추가, useSearchParams+router.replace로 ?tab=position|match|combos 동기화(position은 tab 제거). 조합 탭에 HeadfiComboManageSection 렌더. 기존 HEADFI_COMBOS_CHANGED_EVENT로 매칭맵 데이터 백그라운드 갱신 유지.\n\nMatchMapTab: onGoToCombos. 매칭 조합 0개 빈 상태·헤더에 '조합 관리' 링크.\n\nHeadfiMatchScoreModal: manage 탭/상태 제거. /headfi/map?tab=combos Link(+onClose). 모달 open 시 refreshCombos로 조합 재조회 유지.\n\nHeadfiComboManageSection: md+ 4열 그리드(구성·연결·매칭·관리), 모바일 카드 스택. min-w-0/truncate로 가로 넘침 완화.\n\n중복 정리: formatComboPathLinksSuffix 제거→formatComboConnectionSuffix 사용(빈값 suffix ''). shortenConnectionLabel의 '스트리밍' 동일 분기 제거.\n\n참고(미변경): HeadfiFormWiredSection에 '기기 매칭 메뉴의 조합 관리' 문구 잔존 — scope 밖.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: MapContent/MatchMapTab/MatchScoreModal/ComboManageSection/headfiComboUtils/headfiMatchScore/TASK.json.\nauto_commit=false → 커밋 안 함.\n\n플래너 메모: 의도와 반대로 구현되어 커밋 보류. 후속 TASK에서 수정 후 함께 커밋\n\n[플래너] 커밋 승인 철회: JW 의도와 반대로 구현됨(조합 관리가 맵 탭으로 감). T-107에서 바로잡고 T-106 변경분과 함께 커밋."
+}
