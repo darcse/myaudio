@@ -1,0 +1,30 @@
+{
+  "id": "T-117",
+  "goal": "코드는 그대로 두고, 리팩토링 후보 목록(효과·위험도·예상 규모·검증 방법 포함)이 보고서로 나와 JW가 어떤 정리를 할지 고를 수 있다.",
+  "context": "조사 전용 작업이다. 코드 수정 금지. 실행 에이전트: Claude Code(규칙은 AGENTS.md·CLAUDE.md 동일 적용).\n\n배경: 2026-11-24~25에 헤드파이 조합 개편(T-102~T-116, 파일 44개 이상, 약 2,300줄 추가)을 짧은 주기로 덧붙이며 진행해 중복·분기 누적이 의심된다. 로드맵: 프로젝트 문서 claude/headfi-combo-roadmap.md(레포 밖) — 요약은 docs/tasks/T-102~T-116.json 참고.\n\n우선 조사 대상(플래너가 본 후보, 이것만으로 제한하지 말 것):\n1) src/lib/headfiMatchScore.ts(약 480줄): 조합 경로 규칙 블록(buildDualChainRoleBlock, buildSourceInclusivePathRoleBlock, buildSourceDeviceSoloPathRoleBlock, buildComboBaseForPrompt 등)이 소스 유무·블루투스/아날로그·기기1 Source 여부로 거의 같은 문장 블록이 여러 벌. 정리 시 프롬프트 문자열이 한 글자라도 바뀌면 채점 결과가 달라지므로 '조합 유형별 정리 전후 문자열 동일성 비교' 방법을 반드시 제안.\n2) src/app/headfi/_components/HeadfiComboManageSection.tsx(약 614줄): 추가 폼·목록·연결 수정·매칭 체크가 한 파일.\n3) 감상 기록 폼 중복: src/app/albums/_components/AlbumListenHistorySection.tsx(약 859줄)와 src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 1,000줄)의 기기 select·조합 채움·해제 로직.\n4) 죽은/미사용 코드: buildSourceListenRankings(호출처 없음), /api/headfi-match-score의 '후보 20개 채점' 분기(호출처 없음 추정), 그 외 발견분.\n5) src/app/headfi/headfiComboUtils.ts(약 255줄)와 src/lib/listenHistoryCombo.ts 등 조합 관련 유틸의 책임 분산·중복.\n6) 그 외 레포 전체에서 눈에 띄는 큰 중복·과도한 파일(상위 몇 개만, 우선순위 표시).\n\n산출물:\n- docs/reports/refactor-survey-261125.md 에 보고서 작성. 항목마다: 위치(파일·대략 행), 문제 요약, 제안 정리 방식(한두 문장), 효과, 위험도(상/중/하)와 이유, 예상 규모(작/중/대), 동작 동일성 검증 방법, 선행 조건. 마지막에 추천 진행 순서(작업 단위로 쪼갠 T 후보 목록).\n- 테스트 인프라가 없다면 최소한의 검증 장치(예: 프롬프트 스냅샷 비교 스크립트) 제안 포함. 설치·작성은 하지 말 것.\n- result에는 보고서 경로와 상위 5개 요약만.",
+  "scope": {
+    "in": [
+      "읽기 전용 코드 조사",
+      "docs/reports/refactor-survey-261125.md 보고서 작성"
+    ],
+    "out": [
+      "src 등 코드 파일 수정 절대 금지(보고서 파일 1개만 생성)",
+      "패키지 설치·설정 파일 변경 금지",
+      "DB 조회·변경 금지",
+      "테스트·스크립트 작성 금지(제안만)",
+      "feature_list·규칙 문서 수정 금지",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "auto_commit 기준 밖의 git 조작 금지"
+    ]
+  },
+  "done": [
+    "docs/reports/refactor-survey-261125.md에 위 1)~6) 관점의 후보가 표준 항목(위치·문제·방식·효과·위험도·규모·검증·선행조건)으로 정리돼 있다",
+    "headfiMatchScore 정리 항목에 프롬프트 문자열 동일성 검증 방법이 구체적으로 있다",
+    "추천 진행 순서가 작업 단위(T 후보)로 제시돼 있다",
+    "src 등 코드 파일 변경이 없다(git diff에 보고서·TASK.json만)"
+  ],
+  "auto_commit": true,
+  "commit_message": "(docs): 리팩토링 후보 조사 보고서",
+  "status": "done",
+  "result": "보고서: docs/reports/refactor-survey-261125.md (R1~R6 표준 항목 정리 완료). 코드 변경 없음 — git diff는 보고서 신규 파일 + TASK.json만.\n\n상위 5개:\n1) [R1·위험상] headfiMatchScore.ts 조합 경로 규칙 블록(buildDualChainRoleBlock/buildSourceInclusivePathRoleBlock 등)이 소스유무·BT·기기1Source 조합마다 거의 같은 문장을 여러 벌 하드코딩. 정리 시 buildComboBaseForPrompt 전수 조합 스냅샷(JSON 덤프) before/after diff 완전일치 검증 필수.\n2) [R2·규모대] 청취 기록 폼이 AlbumListenHistorySection(859)·AlbumDiaryContent(1011)에 상태·핸들러(applySelectedCombo·clearComboSelection·parseOptionalId·ensureGearOption·저장 payload) 통째 복제. 공용 훅 useListenHistoryEntryForm 추출 제안.\n3) [R4·위험하] 죽은 코드: buildSourceListenRankings(albumListenStats.ts:216) 호출처 0건 → 단독 즉시 삭제 가능.\n4) [R3·위험중] /api/headfi-match-score 배치(후보20 pickCandidates)·cacheOnly 분기 도달 불가(호출부 전부 targetGearId 단일). 단일 타겟 전제로 축소 제안.\n5) [R6·규모대] 1000줄+ 초대형 컴포넌트(AlbumForm 1290, AlbumTrackListContent 1259, ArtistsLibraryContent 1206 등). 전용 T 아닌 개별 작업 편승 권고.\n\n검증 인프라: 프롬프트 스냅샷 스크립트 제안만(미작성). 추천 순서: T-a(R4삭제)→T-b(스냅샷)→T-c(R3)→T-d(R2)→T-e(R1). R5/R6 보류.\n\ngit diff --stat: docs/reports/refactor-survey-261125.md 신규 + TASK.json. src 변경 없음."
+}
