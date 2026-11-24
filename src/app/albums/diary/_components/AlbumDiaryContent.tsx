@@ -46,6 +46,9 @@ import {
   listenHistoryMediaForForm,
   type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
+import { comboHasSpeaker, fillListenHistoryFromCombo } from '@/lib/listenHistoryCombo';
+import { ListenHistoryComboSelect } from '@/app/albums/_components/ListenHistoryComboSelect';
+import { useListenHistoryComboOptions } from '@/app/albums/_hooks/useListenHistoryComboOptions';
 
 type DiaryViewMode = 'calendar' | 'list';
 
@@ -137,6 +140,7 @@ export function AlbumDiaryContent() {
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<ListenHistoryMedia>(LISTEN_HISTORY_DEFAULT_MEDIA);
+  const [selectedComboId, setSelectedComboId] = useState('');
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
@@ -146,6 +150,12 @@ export function AlbumDiaryContent() {
   const [headphoneOptions, setHeadphoneOptions] = useState<GearOption[]>([]);
   const [listenSaving, setListenSaving] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const {
+    comboById,
+    gearById: comboGearById,
+    selectableOptions: comboOptions,
+    getComboLabel,
+  } = useListenHistoryComboOptions(isAuthenticated);
   const { isSaving, isDeleting, albumIntroLoading, saveAlbum, deleteAlbum, refreshAlbumIntro } =
     useAlbumMutations({ isAuthenticated });
 
@@ -159,7 +169,7 @@ export function AlbumDiaryContent() {
         client
           .from('album_listen_history')
           .select(
-            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id',
+            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id, combo_id',
           ),
         client.from('headfi').select('id, brand, model'),
       ]);
@@ -182,6 +192,7 @@ export function AlbumDiaryContent() {
             temperature: row.temperature ?? null,
             dac_amp2_id: row.dac_amp2_id ?? null,
             source_id: row.source_id ?? null,
+            combo_id: row.combo_id ?? null,
             media: row.media ?? null,
           })),
         );
@@ -365,10 +376,38 @@ export function AlbumDiaryContent() {
     setListenDate('');
     setListenImpression('');
     setSelectedMedia(LISTEN_HISTORY_DEFAULT_MEDIA);
+    setSelectedComboId('');
     setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
     setSelectedHeadphoneId('');
+  };
+
+  const applySelectedCombo = (comboId: string) => {
+    setSelectedComboId(comboId);
+    if (!comboId) return;
+    const combo = comboById.get(comboId);
+    if (!combo) return;
+    const fill = fillListenHistoryFromCombo(combo, comboGearById);
+    setSelectedSourceId(fill.sourceId);
+    setSelectedDacAmpId(fill.dacAmpId);
+    setSelectedDacAmp2Id(fill.dacAmp2Id);
+    if (fill.headphoneId != null) setSelectedHeadphoneId(fill.headphoneId);
+    const sourceGear = fill.sourceId ? comboGearById.get(Number(fill.sourceId)) : null;
+    const amp1Gear = fill.dacAmpId ? comboGearById.get(Number(fill.dacAmpId)) : null;
+    const amp2Gear = fill.dacAmp2Id ? comboGearById.get(Number(fill.dacAmp2Id)) : null;
+    const receiverGear =
+      fill.headphoneId != null && fill.headphoneId
+        ? comboGearById.get(Number(fill.headphoneId))
+        : null;
+    ensureGearOption(sourceGear ?? null, setSourceOptions);
+    ensureGearOption(amp1Gear ?? null, setDacAmpOptions);
+    ensureGearOption(amp2Gear ?? null, setDacAmpOptions);
+    ensureGearOption(receiverGear ?? null, setHeadphoneOptions);
+  };
+
+  const clearComboSelection = () => {
+    if (selectedComboId) setSelectedComboId('');
   };
 
   const startEditEntry = (entry: DiaryListenEntry) => {
@@ -380,6 +419,7 @@ export function AlbumDiaryContent() {
     setListenDate(entry.listenedAt);
     setListenImpression(entry.impression ?? '');
     setSelectedMedia(listenHistoryMediaForForm(entry.media));
+    setSelectedComboId(entry.comboId?.trim() || '');
     setSelectedSourceId(entry.sourceId != null ? String(entry.sourceId) : '');
     setSelectedDacAmpId(entry.dacAmpId != null ? String(entry.dacAmpId) : '');
     setSelectedDacAmp2Id(entry.dacAmp2Id != null ? String(entry.dacAmp2Id) : '');
@@ -405,6 +445,7 @@ export function AlbumDiaryContent() {
           dac_amp_id: parseOptionalId(selectedDacAmpId),
           dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
           headphone_id: parseOptionalId(selectedHeadphoneId),
+          combo_id: selectedComboId.trim() || null,
         })
         .eq('id', editingEntry.id);
       if (error) {
@@ -688,6 +729,13 @@ export function AlbumDiaryContent() {
                       aria-label="청취일"
                     />
                   </div>
+                  <ListenHistoryComboSelect
+                    value={selectedComboId}
+                    options={comboOptions}
+                    orphanLabel={getComboLabel(selectedComboId)}
+                    disabled={listenSaving}
+                    onChange={applySelectedCombo}
+                  />
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <div className="min-w-0">
                       <label className="mb-1 block text-[11px] font-semibold opacity-70">Media</label>
@@ -710,7 +758,10 @@ export function AlbumDiaryContent() {
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
                         value={selectedSourceId}
-                        onChange={(e) => setSelectedSourceId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedSourceId(e.target.value);
+                          clearComboSelection();
+                        }}
                         disabled={listenSaving}
                       >
                         <option value="">선택 안 함</option>
@@ -728,7 +779,10 @@ export function AlbumDiaryContent() {
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
                         value={selectedDacAmpId}
-                        onChange={(e) => setSelectedDacAmpId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedDacAmpId(e.target.value);
+                          clearComboSelection();
+                        }}
                         disabled={listenSaving}
                       >
                         <option value="">선택 안 함</option>
@@ -744,7 +798,10 @@ export function AlbumDiaryContent() {
                       <select
                         className="select-apple h-[42px] w-full px-3 py-2 text-sm"
                         value={selectedDacAmp2Id}
-                        onChange={(e) => setSelectedDacAmp2Id(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedDacAmp2Id(e.target.value);
+                          clearComboSelection();
+                        }}
                         disabled={listenSaving}
                       >
                         <option value="">선택 안 함</option>
@@ -760,7 +817,11 @@ export function AlbumDiaryContent() {
                       <ReceiverComboSelect
                         className="min-w-0 w-full"
                         value={selectedHeadphoneId}
-                        onChange={setSelectedHeadphoneId}
+                        onChange={(value) => {
+                          setSelectedHeadphoneId(value);
+                          const combo = selectedComboId ? comboById.get(selectedComboId) : undefined;
+                          if (combo && comboHasSpeaker(combo, comboGearById)) clearComboSelection();
+                        }}
                         options={headphoneOptions}
                         disabled={listenSaving}
                         placeholder="Receiver"

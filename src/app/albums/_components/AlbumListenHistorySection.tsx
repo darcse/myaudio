@@ -21,6 +21,9 @@ import {
   listenHistoryMediaForForm,
   type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
+import { comboHasSpeaker, fillListenHistoryFromCombo } from '@/lib/listenHistoryCombo';
+import { ListenHistoryComboSelect } from './ListenHistoryComboSelect';
+import { useListenHistoryComboOptions } from '../_hooks/useListenHistoryComboOptions';
 
 type GearSummary = {
   id: number;
@@ -41,6 +44,7 @@ type ListenHistoryRow = {
   dac_amp2_id: number | null;
   headphone_id: number | null;
   source_id: number | null;
+  combo_id: string | null;
   media: string | null;
   source?: GearSummary | null;
   dac_amp?: GearSummary | null;
@@ -88,6 +92,7 @@ export function AlbumListenHistorySection({
   const [listenDate, setListenDate] = useState('');
   const [listenImpression, setListenImpression] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<ListenHistoryMedia>(LISTEN_HISTORY_DEFAULT_MEDIA);
+  const [selectedComboId, setSelectedComboId] = useState('');
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [selectedDacAmpId, setSelectedDacAmpId] = useState('');
   const [selectedDacAmp2Id, setSelectedDacAmp2Id] = useState('');
@@ -102,11 +107,18 @@ export function AlbumListenHistorySection({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const editFormRef = useRef<HTMLLIElement>(null);
+  const {
+    comboById,
+    gearById: comboGearById,
+    selectableOptions: comboOptions,
+    getComboLabel,
+  } = useListenHistoryComboOptions(isAuthenticated);
 
   const resetFormFields = useCallback((options?: { forNew?: boolean }) => {
     setListenDate(options?.forNew ? todayLocalDateInputValue() : '');
     setListenImpression('');
     setSelectedMedia(LISTEN_HISTORY_DEFAULT_MEDIA);
+    setSelectedComboId('');
     setSelectedSourceId('');
     setSelectedDacAmpId('');
     setSelectedDacAmp2Id('');
@@ -130,7 +142,7 @@ export function AlbumListenHistorySection({
     const { data, error } = await supabase
       .from('album_listen_history')
       .select(
-        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id',
+        'id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id, combo_id',
       )
       .eq('album_id', albumId)
       .order('listened_at', { ascending: false })
@@ -145,6 +157,7 @@ export function AlbumListenHistorySection({
         ...row,
         dac_amp2_id: row.dac_amp2_id ?? null,
         source_id: row.source_id ?? null,
+        combo_id: row.combo_id ?? null,
         media: row.media ?? null,
       })),
     );
@@ -318,6 +331,7 @@ export function AlbumListenHistorySection({
         dac_amp_id: parseOptionalId(selectedDacAmpId),
         dac_amp2_id: parseOptionalId(selectedDacAmp2Id),
         headphone_id: headphoneId,
+        combo_id: selectedComboId.trim() || null,
       };
       const contextSnapshot =
         editingId == null
@@ -361,6 +375,34 @@ export function AlbumListenHistorySection({
     }
   };
 
+  const applySelectedCombo = (comboId: string) => {
+    setSelectedComboId(comboId);
+    if (!comboId) return;
+    const combo = comboById.get(comboId);
+    if (!combo) return;
+    const fill = fillListenHistoryFromCombo(combo, comboGearById);
+    setSelectedSourceId(fill.sourceId);
+    setSelectedDacAmpId(fill.dacAmpId);
+    setSelectedDacAmp2Id(fill.dacAmp2Id);
+    if (fill.headphoneId != null) setSelectedHeadphoneId(fill.headphoneId);
+    const sourceGear = fill.sourceId ? comboGearById.get(Number(fill.sourceId)) : null;
+    const amp1Gear = fill.dacAmpId ? comboGearById.get(Number(fill.dacAmpId)) : null;
+    const amp2Gear = fill.dacAmp2Id ? comboGearById.get(Number(fill.dacAmp2Id)) : null;
+    const receiverGear =
+      fill.headphoneId != null && fill.headphoneId
+        ? comboGearById.get(Number(fill.headphoneId))
+        : null;
+    ensureGearOption(sourceGear ?? null, setSourceOptions);
+    ensureGearOption(amp1Gear ?? null, setDacAmpOptions);
+    ensureGearOption(amp2Gear ?? null, setDacAmpOptions);
+    ensureGearOption(receiverGear ?? null, setHeadphoneOptions);
+    if (fill.headphoneId) setReceiverError(null);
+  };
+
+  const clearComboSelection = () => {
+    if (selectedComboId) setSelectedComboId('');
+  };
+
   const startEditListenHistory = (row: ListenHistoryRow) => {
     ensureGearOption(row.source, setSourceOptions);
     ensureGearOption(row.dac_amp, setDacAmpOptions);
@@ -370,6 +412,7 @@ export function AlbumListenHistorySection({
     setListenDate(row.listened_at?.slice(0, 10) ?? '');
     setListenImpression(row.impression ?? '');
     setSelectedMedia(listenHistoryMediaForForm(row.media));
+    setSelectedComboId(row.combo_id?.trim() || '');
     setSelectedSourceId(row.source_id != null ? String(row.source_id) : '');
     setSelectedDacAmpId(row.dac_amp_id != null ? String(row.dac_amp_id) : '');
     setSelectedDacAmp2Id(row.dac_amp2_id != null ? String(row.dac_amp2_id) : '');
@@ -480,6 +523,13 @@ export function AlbumListenHistorySection({
           style={{ borderColor: 'var(--border)', background: 'var(--card-bg)', color: 'var(--foreground)' }}
         />
       </div>
+      <ListenHistoryComboSelect
+        value={selectedComboId}
+        options={comboOptions}
+        orphanLabel={getComboLabel(selectedComboId)}
+        disabled={listenSaving}
+        onChange={applySelectedCombo}
+      />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="min-w-0">
           <label className="mb-1 block text-[11px] font-semibold opacity-70">Media</label>
@@ -502,7 +552,10 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedSourceId}
-            onChange={(e) => setSelectedSourceId(e.target.value)}
+            onChange={(e) => {
+              setSelectedSourceId(e.target.value);
+              clearComboSelection();
+            }}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -520,7 +573,10 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmpId}
-            onChange={(e) => setSelectedDacAmpId(e.target.value)}
+            onChange={(e) => {
+              setSelectedDacAmpId(e.target.value);
+              clearComboSelection();
+            }}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -536,7 +592,10 @@ export function AlbumListenHistorySection({
           <select
             className="select-apple h-[42px] w-full px-3 py-2 text-sm"
             value={selectedDacAmp2Id}
-            onChange={(e) => setSelectedDacAmp2Id(e.target.value)}
+            onChange={(e) => {
+              setSelectedDacAmp2Id(e.target.value);
+              clearComboSelection();
+            }}
             disabled={listenSaving}
           >
             <option value="">선택 안 함</option>
@@ -555,6 +614,8 @@ export function AlbumListenHistorySection({
             onChange={(value) => {
               setSelectedHeadphoneId(value);
               if (value) setReceiverError(null);
+              const combo = selectedComboId ? comboById.get(selectedComboId) : undefined;
+              if (combo && comboHasSpeaker(combo, comboGearById)) clearComboSelection();
             }}
             options={headphoneOptions}
             disabled={listenSaving}

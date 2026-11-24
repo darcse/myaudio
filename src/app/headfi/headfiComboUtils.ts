@@ -216,6 +216,13 @@ export function formatComboMapLabel(combo: HeadfiCombo, gearById: Map<number, He
   );
 }
 
+export function formatListenHistoryComboBaseLabel(
+  combo: HeadfiCombo,
+  gearById: Map<number, Headfi>,
+): string {
+  return formatComboWithOptionalSource(combo, gearById, formatGearMapLabel);
+}
+
 export function buildGearByIdMap(library: Headfi[]): Map<number, Headfi> {
   return new Map(library.map((item) => [item.id, item]));
 }

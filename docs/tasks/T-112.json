@@ -1,0 +1,37 @@
+{
+  "id": "T-112",
+  "feature_id": "GEAR-052",
+  "goal": "앨범 감상 기록을 입력·수정할 때 조합을 하나 고르면 기기 칸이 한 번에 채워지고, 어떤 조합으로 들었는지가 기록에 남는다. 기기를 직접 바꾸면 조합 기록은 자동으로 풀린다.",
+  "context": "DB는 이미 반영됨(직접 ALTER 금지): album_listen_history.combo_id uuid(FK headfi_combos.id, ON DELETE SET NULL). 기존 1056건은 모두 NULL.\n\n대상(확인됨):\n- src/app/albums/_components/AlbumListenHistorySection.tsx: 감상 기록 추가·수정(328행 update/insert). 기기 select: 소스(sourceOptions), DAC/AMP 1·2(dacAmpOptions), 리시버(headphoneOptions). ensureGearOption으로 목록에 없는 기기를 옵션에 추가하는 로직 있음.\n- src/app/albums/diary/_components/AlbumDiaryContent.tsx 약 400행: 다이어리에서 감상 기록 수정(source_id·dac_amp_id·dac_amp2_id·headphone_id·media update).\n- src/lib/listenHistoryGear.ts: LISTEN_HISTORY_SOURCE_CATEGORIES=['Source','DAP'], AMP=['DAC','AMP','DAC/AMP','기타'], RECEIVER=['헤드폰','이어폰','무선 헤드폰','무선 이어폰','스피커'].\n- 조합 데이터·라벨: src/app/headfi/headfiComboUtils.ts(HEADFI_COMBO_SELECT, formatComboLabel, isActiveHeadfiCombo, isReleasedHeadfiCombo), src/app/headfi/useHeadfiComboOptions.ts(현재 헤드폰 매칭기기 선택용).\n\n요구사항:\n1) 두 폼(앨범 상세 감상 기록, 다이어리 수정)에 '조합' select 추가(기기 칸들 위). 가능하면 공용 컴포넌트/훅 하나로.\n2) 조합 목록: 삭제 안 됨 + 방출 아님(isReleasedHeadfiCombo false). is_matching 무관. 라벨은 formatComboLabel(연결 정보 포함).\n3) 조합 선택 시 채움 규칙:\n   - combo.source_id → 소스 칸.\n   - combo.source_id가 없고 기기1이 Source 카테고리면 기기1 → 소스 칸.\n   - 스피커 카테고리 기기 → 리시버 칸.\n   - 나머지 기기1·기기2 → DAC/AMP 1·2 순서대로.\n   - 조합에 없는 칸은 비움. 리시버(헤드폰) 칸은 조합에 스피커가 없으면 건드리지 않음(사용자가 고른 헤드폰 유지).\n   - 채운 기기가 해당 select 옵션에 없으면(예: DAP·Source·스피커가 DAC/AMP 칸) ensureGearOption 등으로 표시되게.\n4) 조합으로 채운 뒤 소스·DAC/AMP 1·2·(스피커 조합이면 리시버) 중 하나라도 사용자가 직접 바꾸면 조합 선택 해제 → 저장 시 combo_id null. 스피커 없는 조합에서 리시버(헤드폰)만 바꾸는 건 해제하지 않음.\n5) 저장 시 combo_id 함께 insert/update. 기존 기록 수정 시 combo_id가 있으면 해당 조합을 선택 상태로 표시(삭제·방출된 조합이어도 그 기록에는 라벨 표시).\n6) media(감상 매체) 칸은 자동으로 채우지 않는다(조합 source_media와 값 체계가 다름).\n7) 통계 화면(인사이트·헤드파이 사용 통계·대시보드)은 이번 범위 밖.",
+  "scope": {
+    "in": [
+      "두 감상 기록 폼에 조합 select",
+      "조합→기기 칸 채움 규칙",
+      "직접 변경 시 조합 해제",
+      "combo_id 저장·표시"
+    ],
+    "out": [
+      "DB 스키마 변경 절대 금지",
+      "기존 감상 기록의 기기·매체 값 일괄 수정 절대 금지",
+      "media 자동 채움 금지",
+      "통계 화면 변경 금지(다음 TASK)",
+      "조합 관리 화면·매칭 로직 변경 금지",
+      "LISTEN_HISTORY_*_CATEGORIES 상수 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "앨범 상세 감상 기록 폼에서 조합을 고르면 규칙대로 기기 칸이 채워지고 저장 시 combo_id가 남는다",
+    "기기 칸을 직접 바꾸면 조합 선택이 풀리고 combo_id 없이 저장된다(스피커 없는 조합의 헤드폰 변경은 예외)",
+    "다이어리 감상 기록 수정에서도 동일하게 동작한다",
+    "combo_id 없는 기존 기록을 열고 저장해도 기기 값이 바뀌지 않는다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 감상 기록 조합 선택 및 combo_id 기록",
+  "status": "done",
+  "result": "공용: listenHistoryCombo.ts(fill·comboHasSpeaker), useListenHistoryComboOptions, ListenHistoryComboSelect.\n앨범 상세·다이어리 폼에 조합 select·채움·직접 변경 시 해제(스피커 조합만 리시버 변경도 해제)·combo_id 저장/복원(orphan 라벨). media 미채움. 통계·조합 관리 미변경.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\ngit diff --stat: TASK.json, AlbumListenHistorySection, AlbumDiaryContent, albumDiary + 신규 ListenHistoryComboSelect/useListenHistoryComboOptions/listenHistoryCombo.ts\n\n[플래너] 검토 OK. 커밋은 T-113과 함께."
+}

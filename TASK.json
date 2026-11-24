@@ -1,31 +1,30 @@
 {
-  "id": "T-111",
-  "goal": "헤드폰·이어폰 연결 단자에 USB-C를 고를 수 있고, USB-C 기기(폰 직결, 앰프 연결 불가)는 매칭맵 행과 매칭 채점 대상에서 빠진다.",
-  "context": "대상(확인됨):\n- src/app/headfi/utils.ts HEADFI_CONNECTOR_OPTIONS: 4.4mm 밸런스, 3.5mm, 6.35mm, XLR4, 2.5mm 밸런스.\n- src/app/headfi/map/_components/MatchMapTab.tsx 430~431행: 보유중 + isWiredHeadphoneEarphoneCategory로 행(hps) 구성.\n- src/app/api/headfi-match-score/route.ts 197행: pool = 유선 헤드폰·이어폰, 269행 단건 대상 조회.\n\n요구사항:\n1) HEADFI_CONNECTOR_OPTIONS 끝에 'USB-C' 추가(폼 select·저장 정규화는 상수 기반이라 자동 반영되는지 확인).\n2) 'USB-C 연결 = 매칭 제외' 판정 헬퍼 하나를 두고(위치 판단), MatchMapTab 행 목록과 API pool에서 제외. 단건 요청 대상이 USB-C면 기존 '대상 없음' 흐름(404) 또는 400으로 거부(판단).\n3) 프롬프트 문자열 변경 없음(USB-C 기기는 후보에 안 들어감).\n4) 라이브러리·상세·포지션맵 등 다른 화면 동작은 그대로.",
+  "id": "T-113",
+  "goal": "감상 기록의 조합 선택 목록이 '모델명 → 모델명 + 모델명' 형태로 짧게 보인다(예: Mac mini M6 → EH2 + ZEN CAN Studio).",
+  "context": "T-112 변경분은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 수정하며, 커밋은 T-112+T-113을 한 번에 한다.\n\n현재: src/app/albums/_hooks/useListenHistoryComboOptions.ts가 formatComboLabel(브랜드+모델+(카테고리) + 연결 정보 suffix)을 사용해 라벨이 길다. 예: 'Apple Mac mini M6 (Source) → SHANLING EH2 (DAC/AMP) + iFi ZEN CAN Studio (AMP) · 스트리밍 · USB · XLR'.\n\n요구사항:\n1) 감상 기록 조합 select 라벨만 짧은 형식으로: 각 기기는 model만(model이 비면 brand), 카테고리·연결·매체 정보 없음. 구성은 '소스 → 기기1 + 기기2', 소스 없으면 '기기1 + 기기2'. headfiComboUtils의 기존 formatGearMapLabel/formatComboWithOptionalSource 재사용을 우선 검토(연결 suffix 없는 변형).\n2) 짧은 라벨이 같은 조합이 2개 이상이면(연결·매체만 다른 경우) 그 조합들에만 축약 연결 정보를 덧붙여 구분(formatComboConnectionSuffix compact 재사용).\n3) 기록에 저장된 조합이 목록에 없을 때 표시하는 orphan 라벨도 같은 짧은 형식.\n4) 조합 관리 화면·매칭맵·헤드폰 매칭기기 표시 라벨은 변경 금지.",
   "scope": {
     "in": [
-      "연결 단자 옵션 USB-C 추가",
-      "매칭맵 행·API 후보에서 USB-C 제외"
+      "감상 기록 조합 select·orphan 라벨 짧은 형식",
+      "중복 라벨만 연결 정보로 구분"
     ],
     "out": [
+      "조합 관리·매칭맵·매칭기기 라벨 변경 금지(formatComboLabel 등 기존 함수 동작 변경 금지, 새 함수로 추가)",
+      "T-112 동작(채움·해제·저장 규칙) 변경 금지",
       "DB 스키마 변경 절대 금지",
-      "기존 headfi_match_cache 데이터 삭제 금지",
-      "AI 프롬프트 문구 변경 금지",
-      "isWiredHeadphoneEarphoneCategory 자체 변경 금지(다른 화면 사용)",
-      "매칭맵 외 화면 변경 금지",
       "window.confirm / alert / prompt 금지",
       "전체 파일 재작성 금지, 최소 수정",
       "result에 '커밋 승인' 줄 작성 금지",
-      "auto_commit 기준 밖의 git 조작 금지"
+      "git 쓰기 금지(auto_commit=false). T-112와 함께 승인 후 커밋"
     ]
   },
   "done": [
-    "헤드폰·이어폰 모달 연결 단자에 USB-C가 있고 저장된다",
-    "연결 단자가 USB-C인 기기는 매칭맵 행에 나오지 않고 채점 API 대상에서도 빠진다",
+    "감상 기록 조합 목록이 'Mac mini M6 → EH2 + ZEN CAN Studio'처럼 모델명만으로 보인다",
+    "짧은 라벨이 겹치는 조합만 축약 연결 정보가 붙어 구분된다",
+    "조합 관리·매칭맵 라벨은 그대로다",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
-  "auto_commit": true,
-  "commit_message": "(feat): 연결 단자 USB-C 추가 및 매칭 대상 제외",
+  "auto_commit": false,
+  "commit_message": "(feat): 감상 기록 조합 선택 및 combo_id 기록",
   "status": "done",
-  "result": "HEADFI_CONNECTOR_OPTIONS에 USB-C 추가 → 폼 select·normalizeHeadfiConnector 자동 반영.\nisUsbCMatchExcluded 헬퍼(utils). MatchMapTab 행·API pool에서 제외. 단건 USB-C는 pool 미포함 → 기존 404.\n프롬프트·isWiredHeadphoneEarphoneCategory·기타 화면 미변경.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=true → 커밋·푸시."
+  "result": "formatListenHistoryComboBaseLabel 추가(formatGearMapLabel + formatComboWithOptionalSource, suffix 없음). 기존 formatComboLabel/Map/Pairing 미변경.\nuseListenHistoryComboOptions: 목록은 base 라벨, 중복 base만 compact connection suffix. orphan(getComboLabel)도 base 형식.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함(T-112와 함께 승인 후).\n\ngit: headfiComboUtils.ts, useListenHistoryComboOptions.ts (+ T-112 미커밋 파일 유지)\n\n커밋 승인: 261125_0017 (feat): 감상 기록 조합 선택 및 combo_id 기록 (T-112+T-113 변경분)"
 }

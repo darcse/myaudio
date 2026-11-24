@@ -1,0 +1,31 @@
+{
+  "id": "T-111",
+  "goal": "헤드폰·이어폰 연결 단자에 USB-C를 고를 수 있고, USB-C 기기(폰 직결, 앰프 연결 불가)는 매칭맵 행과 매칭 채점 대상에서 빠진다.",
+  "context": "대상(확인됨):\n- src/app/headfi/utils.ts HEADFI_CONNECTOR_OPTIONS: 4.4mm 밸런스, 3.5mm, 6.35mm, XLR4, 2.5mm 밸런스.\n- src/app/headfi/map/_components/MatchMapTab.tsx 430~431행: 보유중 + isWiredHeadphoneEarphoneCategory로 행(hps) 구성.\n- src/app/api/headfi-match-score/route.ts 197행: pool = 유선 헤드폰·이어폰, 269행 단건 대상 조회.\n\n요구사항:\n1) HEADFI_CONNECTOR_OPTIONS 끝에 'USB-C' 추가(폼 select·저장 정규화는 상수 기반이라 자동 반영되는지 확인).\n2) 'USB-C 연결 = 매칭 제외' 판정 헬퍼 하나를 두고(위치 판단), MatchMapTab 행 목록과 API pool에서 제외. 단건 요청 대상이 USB-C면 기존 '대상 없음' 흐름(404) 또는 400으로 거부(판단).\n3) 프롬프트 문자열 변경 없음(USB-C 기기는 후보에 안 들어감).\n4) 라이브러리·상세·포지션맵 등 다른 화면 동작은 그대로.",
+  "scope": {
+    "in": [
+      "연결 단자 옵션 USB-C 추가",
+      "매칭맵 행·API 후보에서 USB-C 제외"
+    ],
+    "out": [
+      "DB 스키마 변경 절대 금지",
+      "기존 headfi_match_cache 데이터 삭제 금지",
+      "AI 프롬프트 문구 변경 금지",
+      "isWiredHeadphoneEarphoneCategory 자체 변경 금지(다른 화면 사용)",
+      "매칭맵 외 화면 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "auto_commit 기준 밖의 git 조작 금지"
+    ]
+  },
+  "done": [
+    "헤드폰·이어폰 모달 연결 단자에 USB-C가 있고 저장된다",
+    "연결 단자가 USB-C인 기기는 매칭맵 행에 나오지 않고 채점 API 대상에서도 빠진다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": true,
+  "commit_message": "(feat): 연결 단자 USB-C 추가 및 매칭 대상 제외",
+  "status": "done",
+  "result": "HEADFI_CONNECTOR_OPTIONS에 USB-C 추가 → 폼 select·normalizeHeadfiConnector 자동 반영.\nisUsbCMatchExcluded 헬퍼(utils). MatchMapTab 행·API pool에서 제외. 단건 USB-C는 pool 미포함 → 기존 404.\n프롬프트·isWiredHeadphoneEarphoneCategory·기타 화면 미변경.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=true → 커밋·푸시."
+}
