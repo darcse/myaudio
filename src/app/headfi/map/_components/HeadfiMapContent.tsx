@@ -45,6 +45,7 @@ export function HeadfiMapContent() {
         .from('headfi_combos')
         .select(HEADFI_COMBO_SELECT)
         .is('deleted_at', null)
+        .eq('is_matching', true)
         .order('created_at', { ascending: true });
 
       const activeCombos = (activeCombosData ?? []) as HeadfiCombo[];

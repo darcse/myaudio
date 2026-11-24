@@ -609,7 +609,14 @@ function mapHeadfiComboData(data: HeadfiComboFormData) {
   const select2Id = select2Raw ? parseIntOrNull(select2Raw) : null;
   if (select2Raw && select2Id == null) throw new Error('기기 2 선택값이 올바르지 않습니다.');
   if (select2Id != null && select2Id === select1Id) throw new Error('같은 기기는 조합할 수 없습니다.');
+  const sourceRaw = data.source_id.trim();
+  const sourceId = sourceRaw ? parseIntOrNull(sourceRaw) : null;
+  if (sourceRaw && sourceId == null) throw new Error('소스 선택값이 올바르지 않습니다.');
+  if (sourceId != null && (sourceId === select1Id || sourceId === select2Id)) {
+    throw new Error('소스는 기기 1·2와 다른 기기여야 합니다.');
+  }
   return {
+    source_id: sourceId,
     select1_id: select1Id,
     select2_id: select2Id,
   };
@@ -622,7 +629,22 @@ export async function saveHeadfiComboToDB(data: HeadfiComboFormData) {
   const { data: result, error } = await supabase
     .from('headfi_combos')
     .insert([mapHeadfiComboData(data)])
-    .select('id, select1_id, select2_id, created_at')
+    .select('id, source_id, select1_id, select2_id, is_matching, created_at')
+    .single();
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function updateHeadfiComboMatchingInDB(id: string, isMatching: boolean) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: result, error } = await supabase
+    .from('headfi_combos')
+    .update({ is_matching: isMatching })
+    .eq('id', id)
+    .is('deleted_at', null)
+    .select('id, source_id, select1_id, select2_id, is_matching, created_at, deleted_at')
     .single();
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return result;

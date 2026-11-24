@@ -39,7 +39,6 @@ export const HEADFI_SALE_CATEGORY_OPTIONS = [
 
 export const DAC_AMP_ONLY_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP'] as const;
 export const DAC_AMP_DAP_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP'] as const;
-export const COMBO_ELIGIBLE_CATEGORIES = ['DAC', 'AMP', 'DAC/AMP', 'DAP', 'Source'] as const;
 export const WIRED_HP_IEM_CATEGORIES = ['헤드폰', '이어폰'] as const;
 
 export function isDacAmpOnlyCategory(category: string | null | undefined): boolean {
@@ -48,16 +47,6 @@ export function isDacAmpOnlyCategory(category: string | null | undefined): boole
 
 export function isDacAmpDapCategory(category: string | null | undefined): boolean {
   return category === 'DAC' || category === 'AMP' || category === 'DAC/AMP' || category === 'DAP';
-}
-
-export function isComboEligibleCategory(category: string | null | undefined): boolean {
-  return (
-    category === 'DAC' ||
-    category === 'AMP' ||
-    category === 'DAC/AMP' ||
-    category === 'DAP' ||
-    category === 'Source'
-  );
 }
 
 export function isWiredHeadphoneEarphoneCategory(category: string | null | undefined): boolean {

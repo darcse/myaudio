@@ -1,0 +1,31 @@
+{
+  "id": "T-101",
+  "goal": "아이폰 폭(약 375~430px)에서 인사이트(/insights)의 모든 탭(랭킹·트렌드·사용·장르)이 화면 밖으로 넘치지 않아 가로 스크롤이 생기지 않는다.",
+  "context": "JW 제보(아이폰): 인사이트 앨범 랭킹 등에서 카드가 화면보다 넓어져 가로 스크롤이 생김. 대상: src/app/insights/page.tsx(탭별 렌더), src/app/albums/stats/_components/AlbumStatsContent.tsx(ranking·trend 탭, 랭킹 영역 약 790~920행), src/app/headfi/stats/_components/HeadfiUsageStatsContent.tsx(usage), src/app/insights/_components/GenreStatsContent.tsx(genre), InsightsTabNav.tsx. 할 일: (1) 375px 폭 기준으로 넘침을 일으키는 요소를 탭별로 찾아 result에 목록화(원인 유형 예: 긴 앨범명·아티스트명 줄바꿈 없음(truncate/break-words·min-w-0 누락), 고정 width/min-width, flex 자식 shrink 불가, 그리드 열 고정, 차트 고정 너비, 표). (2) 각 원인을 최소 수정으로 고친다. 긴 텍스트는 말줄임(한 줄) 또는 줄바꿈 중 카드 성격에 맞게 판단. 차트·표처럼 본래 넓어야 하는 요소는 페이지 전체가 아니라 그 요소 안에서만 가로 스크롤되게 한다. (3) 페이지 전체에 overflow-x:hidden을 걸어 덮는 방식은 쓰지 않는다(원인 은폐). 데스크톱 레이아웃은 바뀌지 않아야 한다. 최소 수정, 전체 파일 재작성 금지.",
+  "scope": {
+    "in": [
+      "인사이트 4개 탭의 모바일 가로 넘침 원인 조사·목록화",
+      "원인별 최소 수정"
+    ],
+    "out": [
+      "통계 계산 로직·데이터 조회",
+      "데스크톱 레이아웃 변경",
+      "페이지 전체 overflow-x 숨김으로 덮기",
+      "인사이트 외 화면",
+      "DB 스키마·SQL",
+      "feature_list",
+      "auto_commit 기준 밖의 git 조작"
+    ]
+  },
+  "done": [
+    "브라우저 375px 폭에서 /insights의 랭킹·트렌드·사용·장르 탭 모두 페이지 가로 스크롤이 없다",
+    "긴 앨범명·아티스트명이 있는 랭킹 카드가 화면 폭 안에 들어온다",
+    "1280px 이상 데스크톱 레이아웃이 이전과 같다",
+    "result에 탭별 넘침 원인과 수정 내용 목록이 있다",
+    "npx tsc --noEmit과 npm run lint가 통과한다"
+  ],
+  "auto_commit": true,
+  "commit_message": "(fix): 인사이트 모바일 가로 넘침 수정",
+  "status": "done",
+  "result": "탭별 원인·수정(페이지 overflow-x:hidden 미사용, min-w-0/truncate/break-words·모바일 gap만):\n\n[ranking]\n- RankingPanel/그리드/행 버튼에 min-w-0 부족 → 패널·grid·Album/ArtistRankRow에 min-w-0, 제목 truncate\n- WeeklyHot 앨범명 line-clamp만·공백없는 영문 단어 → break-words + min-w-0\n- embedded 루트 min-w-0\n\n[trend]\n- ListenTrendChart 주간 라벨·횟수 shrink-0로 열 min-content 확장 → w-full truncate + 열 overflow-hidden\n- HeadfiTrend 월 카드 grid 자식 min-w-0 없음·긴 금액 → min-w-0, 금액 truncate, 모바일 gap-3/p-3\n- MonthlyHeadfiActivity 요약·기기 카드 동일(min-w-0·금액 truncate·모바일 gap)\n\n[usage]\n- TopGear 카테고리 flex-nowrap → flex-wrap, 섹션·그리드 min-w-0\n\n[genre]\n- 상세 h3 장르명 break/min-w-0 없음 → break-words, 루트 min-w-0\n\n[nav/page]\n- 탭 래퍼·페이지 루트 min-w-0(w-full) 보강\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: 위 파일들 + TASK.json (+ docs/tasks/T-100.json 보관)."
+}

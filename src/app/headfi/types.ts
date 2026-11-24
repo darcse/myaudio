@@ -161,13 +161,16 @@ export interface HeadfiDeviceSettingFormData {
 
 export interface HeadfiCombo {
   id: string;
+  source_id?: number | null;
   select1_id: number | null;
   select2_id: number | null;
+  is_matching?: boolean;
   created_at?: string | null;
   deleted_at?: string | null;
 }
 
 export interface HeadfiComboFormData {
+  source_id: string;
   select1_id: string;
   select2_id: string;
 }

@@ -1,9 +1,49 @@
+import { HEADFI_STATUS2_OWNED } from './headfiStatus';
 import type { Headfi, HeadfiCombo } from './types';
 
-export const HEADFI_COMBO_SELECT = 'id, select1_id, select2_id, created_at, deleted_at';
+export const HEADFI_COMBO_SELECT =
+  'id, source_id, select1_id, select2_id, is_matching, created_at, deleted_at';
 
 export function isActiveHeadfiCombo(combo: Pick<HeadfiCombo, 'deleted_at'>): boolean {
   return combo.deleted_at == null;
+}
+
+export function isMatchingHeadfiCombo(
+  combo: Pick<HeadfiCombo, 'is_matching' | 'deleted_at'>,
+): boolean {
+  return isActiveHeadfiCombo(combo) && combo.is_matching !== false;
+}
+
+export function isComboSourceCategory(category: string | null | undefined): boolean {
+  return category === 'Source' || category === 'DAP';
+}
+
+export function isComboDeviceCategory(category: string | null | undefined): boolean {
+  return (
+    category === 'DAC' ||
+    category === 'DAC/AMP' ||
+    category === 'AMP' ||
+    category === 'DAP' ||
+    category === '기타'
+  );
+}
+
+export function isOwnedHeadfi(item: Pick<Headfi, 'status2'>): boolean {
+  return item.status2 === HEADFI_STATUS2_OWNED;
+}
+
+export function isReleasedHeadfiCombo(
+  combo: Pick<HeadfiCombo, 'source_id' | 'select1_id' | 'select2_id'>,
+  gearById: Map<number, Headfi>,
+): boolean {
+  const ids = [combo.source_id, combo.select1_id, combo.select2_id].filter(
+    (id): id is number => id != null,
+  );
+  if (ids.length === 0) return true;
+  return ids.some((id) => {
+    const gear = gearById.get(id);
+    return !gear || !isOwnedHeadfi(gear);
+  });
 }
 
 export const HEADFI_COMBOS_CHANGED_EVENT = 'headfi-combos-changed';
@@ -20,12 +60,32 @@ export function formatGearShortLabel(item: Headfi | undefined): string {
   return `${name} (${item.category})`;
 }
 
-export function formatComboLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
+function formatComboDevicesLabel(
+  combo: HeadfiCombo,
+  gearById: Map<number, Headfi>,
+  formatGear: (item: Headfi | undefined) => string,
+): string {
   const first = combo.select1_id != null ? gearById.get(combo.select1_id) : undefined;
   const second = combo.select2_id != null ? gearById.get(combo.select2_id) : undefined;
-  const firstLabel = formatGearShortLabel(first);
+  const firstLabel = formatGear(first);
   if (!second) return firstLabel;
-  return `${firstLabel} + ${formatGearShortLabel(second)}`;
+  return `${firstLabel} + ${formatGear(second)}`;
+}
+
+function formatComboWithOptionalSource(
+  combo: HeadfiCombo,
+  gearById: Map<number, Headfi>,
+  formatGear: (item: Headfi | undefined) => string,
+): string {
+  const devices = formatComboDevicesLabel(combo, gearById, formatGear);
+  const source =
+    combo.source_id != null ? gearById.get(combo.source_id) : undefined;
+  if (!source) return devices;
+  return `${formatGear(source)} → ${devices}`;
+}
+
+export function formatComboLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
+  return formatComboWithOptionalSource(combo, gearById, formatGearShortLabel);
 }
 
 function formatGearPairingDisplayLabel(item: Headfi | undefined): string {
@@ -34,11 +94,7 @@ function formatGearPairingDisplayLabel(item: Headfi | undefined): string {
 }
 
 export function formatComboPairingDisplayLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
-  const first = combo.select1_id != null ? gearById.get(combo.select1_id) : undefined;
-  const second = combo.select2_id != null ? gearById.get(combo.select2_id) : undefined;
-  const firstLabel = formatGearPairingDisplayLabel(first);
-  if (!second) return firstLabel;
-  return `${firstLabel} + ${formatGearPairingDisplayLabel(second)}`;
+  return formatComboWithOptionalSource(combo, gearById, formatGearPairingDisplayLabel);
 }
 
 export function resolvePairingComboLabel(
@@ -58,11 +114,7 @@ export function formatGearMapLabel(item: Headfi | undefined): string {
 }
 
 export function formatComboMapLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
-  const first = combo.select1_id != null ? gearById.get(combo.select1_id) : undefined;
-  const second = combo.select2_id != null ? gearById.get(combo.select2_id) : undefined;
-  const firstLabel = formatGearMapLabel(first);
-  if (!second) return firstLabel;
-  return `${firstLabel} + ${formatGearMapLabel(second)}`;
+  return formatComboWithOptionalSource(combo, gearById, formatGearMapLabel);
 }
 
 export function buildGearByIdMap(library: Headfi[]): Map<number, Headfi> {

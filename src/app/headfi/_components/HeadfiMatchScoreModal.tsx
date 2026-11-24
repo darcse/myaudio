@@ -7,7 +7,13 @@ import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { createClient } from '@/lib/supabase/client';
 import { HeadfiComboManageSection } from './HeadfiComboManageSection';
 import type { Headfi, HeadfiCombo } from '../types';
-import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT } from '../headfiComboUtils';
+import {
+  buildGearByIdMap,
+  formatComboLabel,
+  HEADFI_COMBO_SELECT,
+  isMatchingHeadfiCombo,
+  isReleasedHeadfiCombo,
+} from '../headfiComboUtils';
 
 type ScoreResult = {
   gear_id: number;
@@ -65,6 +71,17 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
   const [reanalyzeConfirm, setReanalyzeConfirm] = useState(false);
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
+  const matchingCombos = useMemo(
+    () => combos.filter((combo) => isMatchingHeadfiCombo(combo)),
+    [combos],
+  );
+  const selectedMatchingCombo = useMemo(
+    () => matchingCombos.find((combo) => combo.id === comboId) ?? null,
+    [comboId, matchingCombos],
+  );
+  const selectedComboReleased = selectedMatchingCombo
+    ? isReleasedHeadfiCombo(selectedMatchingCombo, gearById)
+    : false;
 
   useLockBodyScroll(open);
 
@@ -79,12 +96,12 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
   }, [open]);
 
   useEffect(() => {
-    if (comboId && !combos.some((combo) => combo.id === comboId)) {
+    if (comboId && !matchingCombos.some((combo) => combo.id === comboId)) {
       setComboId('');
       setResults([]);
       setExpandedId(null);
     }
-  }, [comboId, combos]);
+  }, [comboId, matchingCombos]);
 
   const refreshCombos = useCallback(async () => {
     if (isAuthenticated !== true) {
@@ -127,6 +144,10 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
   const handleAnalyze = async (force = false) => {
     const targetComboId = comboId.trim();
     if (!targetComboId || loading) return;
+    if (selectedComboReleased) {
+      toast.info('방출된 조합은 새 채점을 할 수 없습니다.');
+      return;
+    }
     setLoading(true);
     setResults([]);
     setExpandedId(null);
@@ -194,8 +215,8 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
         <div className={activeTab === 'match' ? undefined : 'hidden'} aria-hidden={activeTab !== 'match'}>
           <div className="mb-4">
             <label className="mb-1 block text-sm font-semibold opacity-90">매칭 조합</label>
-            {combos.length === 0 ? (
-              <p className="text-sm opacity-60">조합을 먼저 등록해 주세요.</p>
+            {matchingCombos.length === 0 ? (
+              <p className="text-sm opacity-60">매칭 조합으로 체크된 조합이 없습니다.</p>
             ) : (
               <select
                 className="select-apple h-[42px] w-full px-3 py-2"
@@ -208,11 +229,15 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
                 }}
               >
                 <option value="">선택하세요</option>
-                {combos.map((combo) => (
-                  <option key={combo.id} value={combo.id}>
-                    {formatComboLabel(combo, gearById)}
-                  </option>
-                ))}
+                {matchingCombos.map((combo) => {
+                  const released = isReleasedHeadfiCombo(combo, gearById);
+                  return (
+                    <option key={combo.id} value={combo.id} disabled={released}>
+                      {formatComboLabel(combo, gearById)}
+                      {released ? ' · 방출' : ''}
+                    </option>
+                  );
+                })}
               </select>
             )}
           </div>
@@ -225,7 +250,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
             <button
               type="button"
               className="btn-apple btn-apple-primary flex h-[42px] flex-1 items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!comboId || loading || combos.length === 0}
+              disabled={!comboId || loading || matchingCombos.length === 0 || selectedComboReleased}
               onClick={() => void handleAnalyze(false)}
             >
               {loading ? (
@@ -251,7 +276,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
                   <button
                     type="button"
                     className="btn-apple btn-apple-danger h-[42px] shrink-0 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!comboId || loading}
+                    disabled={!comboId || loading || selectedComboReleased}
                     onClick={() => void handleReanalyze()}
                   >
                     {loading ? (
@@ -268,7 +293,7 @@ export function HeadfiMatchScoreModal({ open, onClose, library, isAuthenticated 
                 <button
                   type="button"
                   className="btn-apple btn-apple-secondary h-[42px] shrink-0 px-4 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!comboId || loading}
+                  disabled={!comboId || loading || selectedComboReleased}
                   onClick={() => setReanalyzeConfirm(true)}
                 >
                   재분석

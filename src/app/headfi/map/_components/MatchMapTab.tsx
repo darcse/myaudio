@@ -6,7 +6,11 @@ import { Loader2, MoreHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
-import { buildGearByIdMap, formatComboMapLabel } from '@/app/headfi/headfiComboUtils';
+import {
+  buildGearByIdMap,
+  formatComboMapLabel,
+  isReleasedHeadfiCombo,
+} from '@/app/headfi/headfiComboUtils';
 import {
   computeMatchScoreDisplay,
   formatMatchScoreTotalLine,
@@ -172,6 +176,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
   cacheRef.current = cache;
   const rowMenuPanelRef = useRef<HTMLDivElement>(null);
   const rowMenuTriggerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
   useEffect(() => {
     setCache(matchCache);
@@ -293,13 +298,14 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
 
       const currentCache = cacheRef.current;
       const prevFailed = rowBatchByHpRef.current[hp.id]?.failedComboIds ?? [];
+      const scorableCombos = combos.filter((combo) => !isReleasedHeadfiCombo(combo, gearById));
       let targets: HeadfiCombo[];
       if (options.onlyFailed) {
-        targets = combos.filter((combo) => prevFailed.includes(combo.id));
+        targets = scorableCombos.filter((combo) => prevFailed.includes(combo.id));
       } else if (options.force) {
-        targets = [...combos];
+        targets = [...scorableCombos];
       } else {
-        targets = combos.filter((combo) => !findCacheEntry(currentCache, combo.id, hp.id));
+        targets = scorableCombos.filter((combo) => !findCacheEntry(currentCache, combo.id, hp.id));
       }
 
       if (targets.length === 0) {
@@ -359,14 +365,12 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
         toast.success('전체 매칭을 완료했습니다.');
       }
     },
-    [analyzeCell, combos, isAuthenticated],
+    [analyzeCell, combos, gearById, isAuthenticated],
   );
 
   const stopRowBatch = useCallback((hpId: number) => {
     abortBatchHpIdsRef.current.add(hpId);
   }, []);
-
-  const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
   const runReanalyze = useCallback(
     async (cell: SelectedCell) => {
@@ -382,6 +386,10 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
       }
       if (!hp) {
         toast.error('헤드폰·이어폰 정보를 찾을 수 없습니다.');
+        return;
+      }
+      if (isReleasedHeadfiCombo(combo, gearById)) {
+        toast.info('방출된 조합은 새 채점을 할 수 없습니다.');
         return;
       }
       const row = await analyzeCell(combo, hp, true);
@@ -500,16 +508,22 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
               />
               {combos.map((combo) => {
                 const label = formatComboMapLabel(combo, gearById);
+                const released = isReleasedHeadfiCombo(combo, gearById);
                 return (
                   <th
                     key={combo.id}
                     className="sticky top-0 z-20 overflow-hidden px-1 py-2 text-center font-medium leading-tight"
                     style={{ ...stickyHeaderCellStyle('bottom'), minWidth: COMBO_HEADER_MIN_WIDTH }}
-                    title={label}
+                    title={released ? `${label} · 방출` : label}
                   >
                     <span className="mx-auto block line-clamp-3 text-center text-[10px] break-words">
                       {label}
                     </span>
+                    {released ? (
+                      <span className="mt-0.5 inline-block text-[9px] font-semibold opacity-70">
+                        방출
+                      </span>
+                    ) : null}
                   </th>
                 );
               })}
@@ -590,6 +604,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                 </th>
                 {combos.map((combo) => {
                   const entry = findCacheEntry(cache, combo.id, hp.id);
+                  const released = isReleasedHeadfiCombo(combo, gearById);
                   const scoreDisplay = entry
                     ? computeMatchScoreDisplay(
                         entry.drive,
@@ -621,7 +636,7 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                     <td key={combo.id} className="overflow-hidden p-0.5 text-center align-middle">
                       <button
                         type="button"
-                        disabled={isLoading}
+                        disabled={isLoading || (released && !entry)}
                         onClick={() => {
                           if (entry) {
                             setSelected({
@@ -636,6 +651,10 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                             });
                             return;
                           }
+                          if (released) {
+                            toast.info('방출된 조합은 새 채점을 할 수 없습니다.');
+                            return;
+                          }
                           void analyzeCell(combo, hp);
                         }}
                         className="relative inline-flex h-10 w-10 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums transition-opacity hover:opacity-90 disabled:cursor-default"
@@ -646,9 +665,11 @@ export function MatchMapTab({ library, combos, matchCache, isAuthenticated }: Ma
                         title={
                           entry && scoreDisplay
                             ? `${formatMatchScoreTotalLine(scoreDisplay)} · 드라이브 ${entry.drive} · 시너지 ${entry.synergy} · 장르 ${entry.genre}`
-                            : isAuthenticated
-                              ? '클릭하여 궁합 분석'
-                              : '미평가'
+                            : released
+                              ? '방출 조합 · 새 채점 불가'
+                              : isAuthenticated
+                                ? '클릭하여 궁합 분석'
+                                : '미평가'
                         }
                       >
                         {isLoading ? (
