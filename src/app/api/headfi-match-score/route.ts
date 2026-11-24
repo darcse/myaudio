@@ -77,7 +77,7 @@ async function clearMatchCacheForGear(supabase: Awaited<ReturnType<typeof create
   const { data: combos, error: comboError } = await supabase
     .from('headfi_combos')
     .select('id')
-    .or(`select1_id.eq.${gearId},select2_id.eq.${gearId}`);
+    .or(`select1_id.eq.${gearId},select2_id.eq.${gearId},source_id.eq.${gearId}`);
   if (comboError) {
     return comboError;
   }
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     const { data: comboRow, error: comboError } = await supabase
       .from('headfi_combos')
-      .select('id, select1_id, select2_id, created_at')
+      .select('id, source_id, select1_id, select2_id, created_at')
       .eq('id', comboId)
       .single();
 
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '조합에 기기 1이 없습니다.' }, { status: 400 });
     }
 
-    const gearIds = [combo.select1_id, combo.select2_id].filter(
+    const gearIds = [combo.source_id, combo.select1_id, combo.select2_id].filter(
       (id): id is number => id != null && Number.isFinite(id),
     );
 
@@ -157,12 +157,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: comboGearError.message }, { status: 500 });
     }
 
+    const source =
+      combo.source_id != null
+        ? ((comboGearRows ?? []).find((row) => row.id === combo.source_id) as Headfi | undefined)
+        : null;
     const select1 = (comboGearRows ?? []).find((row) => row.id === combo.select1_id) as Headfi | undefined;
     const select2 =
       combo.select2_id != null
         ? ((comboGearRows ?? []).find((row) => row.id === combo.select2_id) as Headfi | undefined)
         : null;
 
+    if (combo.source_id != null && (!source || source.status2 !== '보유중')) {
+      return NextResponse.json({ error: '조합의 소스를 찾을 수 없거나 보유중이 아닙니다.' }, { status: 400 });
+    }
     if (!select1 || select1.status2 !== '보유중') {
       return NextResponse.json({ error: '조합의 기기 1을 찾을 수 없거나 보유중이 아닙니다.' }, { status: 400 });
     }
@@ -266,7 +273,7 @@ export async function POST(req: NextRequest) {
     const candidateLines = candidateHeadfiRows.map((item) => candidateLine(compressCandidateRow(item)));
     const candidateIds = candidateHeadfiRows.map((c) => c.id);
     const candidateContext = buildHeadphoneListeningContextSections(candidateHeadfiRows);
-    const comboBase = buildComboBaseForPrompt(select1, select2 ?? null);
+    const comboBase = buildComboBaseForPrompt(select1, select2 ?? null, source ?? null);
 
     const scores = await analyzeHeadfiMatchScore(
       comboBase,

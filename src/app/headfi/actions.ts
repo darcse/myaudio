@@ -280,7 +280,7 @@ export async function updateHeadfiInDB(id: number, data: HeadfiFormData) {
     const { data: combos } = await supabase
       .from('headfi_combos')
       .select('id')
-      .or(`select1_id.eq.${id},select2_id.eq.${id}`);
+      .or(`select1_id.eq.${id},select2_id.eq.${id},source_id.eq.${id}`);
     const comboIds = (combos ?? []).map((row) => row.id as string);
     if (comboIds.length > 0) {
       const { error: comboCacheError } = await supabase

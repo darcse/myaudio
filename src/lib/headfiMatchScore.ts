@@ -193,8 +193,60 @@ function buildDualChainRoleBlock(select1: Headfi, select2: Headfi): string {
 - "${name1}"와 "${name2}"를 각각 독립 앰프 2대로 해석하거나, 기기 1을 DAC/AMP 겸용으로 가정하지 말 것.`;
 }
 
-function buildComboDisplayName(select1: Headfi, select2: Headfi | null): string {
+function buildSourceGearSpecBlock(source: Headfi): string {
+  const slotLabel =
+    source.category === 'DAP'
+      ? '소스 — DAP(재생·출력, 헤드폰 구동 주체 아님)'
+      : '소스 — 재생·출력(헤드폰 구동 주체 아님)';
+  const lines = [buildComboGearSpecBlock(source, slotLabel)];
+  const scoresBlock = buildHeadfiSoundScoresPromptBlock(source);
+  if (scoresBlock) lines.push(`  ${scoresBlock.replace(/\n/g, '\n  ')}`);
+  const ai = source.ai_sound_analysis?.trim();
+  if (ai) lines.push(`  청음 AI 분석: ${ai}`);
+  return lines.join('\n');
+}
+
+function buildSourceInclusivePathRoleBlock(
+  source: Headfi,
+  select1: Headfi,
+  select2: Headfi | null,
+): string {
+  const sourceName = formatExactGearName(source);
   const name1 = formatExactGearName(select1);
+  const dapNote =
+    source.category === 'DAP'
+      ? ' DAP는 재생·디지털/아날로그 출력을 담당하는 소스로만 보고, 헤드폰 구동 주체·최종 앰프로 해석하지 말 것.'
+      : '';
+  if (select2) {
+    const name2 = formatExactGearName(select2);
+    return `[신호 경로 해석 규칙 — 소스 포함 조합]
+- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 기기 2 "${name2}" → 헤드폰/이어폰.
+- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
+- 기기 1 "${name1}": DAC 전용. 소스 출력→아날로그 라인아웃. 헤드폰 직접 구동은 하지 않음.
+- 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+- 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.`;
+  }
+  return `[신호 경로 해석 규칙 — 소스 포함 조합]
+- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 헤드폰/이어폰.
+- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
+- 기기 1 "${name1}": 소스 이후 단에서 헤드폰 구동·음색을 담당. drive는 기기 1 기준으로 평가.
+- 소스를 최종 헤드폰 앰프로 해석하지 말 것.`;
+}
+
+function buildComboDisplayName(
+  select1: Headfi,
+  select2: Headfi | null,
+  source: Headfi | null = null,
+): string {
+  const name1 = formatExactGearName(select1);
+  if (source) {
+    const sourceLabel = `${formatExactGearName(source)} (${source.category})`;
+    if (!select2) {
+      return `${sourceLabel} → ${name1} (${select1.category})`;
+    }
+    const name2 = formatExactGearName(select2);
+    return `${sourceLabel} → ${name1} (DAC) → ${name2} (AMP)`;
+  }
   if (!select2) {
     return `${name1} (${select1.category})`;
   }
@@ -205,26 +257,37 @@ function buildComboDisplayName(select1: Headfi, select2: Headfi | null): string 
 export function buildComboBaseForPrompt(
   select1: Headfi,
   select2: Headfi | null,
+  source: Headfi | null = null,
 ): {
   name: string;
   genres: string;
   combo_specs_block: string;
+  has_source?: boolean;
 } {
   const dualChain = select2 != null;
-  const blocks = [
+  const blocks: string[] = [];
+  if (source) {
+    blocks.push(buildSourceGearSpecBlock(source));
+  }
+  blocks.push(
     buildComboGearSpecBlock(
       select1,
       dualChain ? '기기 1 — DAC(라인아웃 출력 전용)' : '기기 1',
     ),
-  ];
+  );
   if (select2) {
     blocks.push(buildComboGearSpecBlock(select2, '기기 2 — AMP'));
+  }
+  if (source) {
+    blocks.push(buildSourceInclusivePathRoleBlock(source, select1, select2));
+  } else if (select2) {
     blocks.push(buildDualChainRoleBlock(select1, select2));
   }
   return {
-    name: buildComboDisplayName(select1, select2),
+    name: buildComboDisplayName(select1, select2, source),
     genres: '-',
     combo_specs_block: blocks.join('\n\n'),
+    ...(source ? { has_source: true as const } : {}),
   };
 }
 

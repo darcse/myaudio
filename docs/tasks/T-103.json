@@ -1,0 +1,32 @@
+{
+  "id": "T-103",
+  "feature_id": "GEAR-049",
+  "goal": "조합 관리의 소스 칸에서도 보유중인 DAP를 고를 수 있다. 같은 DAP는 소스와 기기1·2에 동시에 들어가지 않는다.",
+  "context": "T-102 후속 수정. T-102 변경분은 아직 커밋되지 않은 상태로 워킹트리에 있다(그대로 두고 이어서 수정).\n\n대상: src/app/headfi/headfiComboUtils.ts(isComboSourceCategory 등), src/app/headfi/_components/HeadfiComboManageSection.tsx(소스/기기 select 옵션).\n\n요구사항:\n1) 소스 후보 = 보유중 Source + DAP. 기기1·2 후보는 현행 유지(DAC·DAC/AMP·AMP·DAP·기타).\n2) 소스로 고른 기기는 기기1·2 목록에서 제외, 기기1·2로 고른 기기는 소스 목록에서 제외. 이미 고른 값이 다른 칸 선택으로 충돌하면 나중 선택 기준으로 상대 칸을 비우는 등 자연스럽게 처리(판단).\n3) 서버 검증(actions.ts mapHeadfiComboData의 '소스는 기기 1·2와 다른 기기' 체크)은 이미 있으니 유지.\n4) T-102에서 남은 미사용 export 정리: headfiComboUtils.ts의 COMBO_SOURCE_CATEGORIES·COMBO_DEVICE_CATEGORIES가 실제로 쓰이지 않으면 제거하거나 헬퍼에서 사용하도록 정리(둘 중 판단). src/lib/headfiMatchScore.ts의 isComboEligibleCategory·COMBO_ELIGIBLE_CATEGORIES는 레포 전체에서 사용처가 없음을 재확인한 뒤 제거.",
+  "scope": {
+    "in": [
+      "소스 후보에 DAP 추가",
+      "소스↔기기1·2 상호 제외",
+      "미사용 export 정리"
+    ],
+    "out": [
+      "AI 프롬프트·채점 로직 변경 금지",
+      "DB 스키마 변경 절대 금지",
+      "headfi_match_cache 삭제 로직 변경 금지",
+      "T-102 변경분 되돌리기 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "git 쓰기 금지(auto_commit=false). 커밋은 T-102와 함께 승인 후 한 번에"
+    ]
+  },
+  "done": [
+    "소스 select에 보유중 Source와 DAP가 함께 나온다",
+    "소스로 고른 DAP는 기기1·2 목록에 없고, 기기1·2로 고른 DAP는 소스 목록에 없다",
+    "사용처 없는 COMBO_* 상수와 isComboEligibleCategory가 남아있지 않다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 조합 관리 소스 슬롯 추가 및 매칭 조합 선택",
+  "status": "done",
+  "result": "isComboSourceCategory에 DAP 추가. 소스 옵션에서 기기1·2 선택값 제외, 기기 옵션에서 소스 선택값 제외. 충돌 시 source를 비우는 effect 유지(기기1=select2 충돌은 기존 effect). 미사용 COMBO_SOURCE/DEVICE_CATEGORIES 제거, headfiMatchScore의 COMBO_ELIGIBLE_CATEGORIES·isComboEligibleCategory 제거(사용처 없음 재확인).\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함(T-102와 함께 승인 후).\n\n커밋 승인: 261124_2247 (feat): 조합 관리 소스 슬롯 추가 및 매칭 조합 선택 (T-102+T-103 변경분 함께)"
+}
