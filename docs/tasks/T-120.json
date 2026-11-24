@@ -1,0 +1,31 @@
+{
+  "id": "T-120",
+  "goal": "앨범 상세 감상 기록 폼과 다이어리 감상 기록 수정 폼이 같은 공용 훅을 써서, 기기·조합 입력 규칙이 한 곳에서 관리된다. 사용자가 보는 동작은 지금과 똑같다.",
+  "context": "근거: docs/reports/refactor-survey-261125.md R2. 실행 에이전트: Claude Code. 동작 변경 없는 구조 정리(refactor)다.\n\n대상:\n- src/app/albums/_components/AlbumListenHistorySection.tsx(약 859줄)\n- src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 1,011줄)\n이미 공용화된 것: useListenHistoryComboOptions, ListenHistoryComboSelect, ReceiverComboSelect, fillListenHistoryFromCombo, comboHasSpeaker(그대로 사용).\n\n중복(보고서 기준): parseOptionalId, ensureGearOption, 폼 상태(selectedSource/DacAmp/DacAmp2/Headphone/ComboId, sourceOptions/dacAmpOptions/headphoneOptions, selectedMedia, listenDate, listenImpression 등), applySelectedCombo, clearComboSelection, 수정 시작 시 레코드→폼 매핑, 저장 payload(source_id·dac_amp_id·dac_amp2_id·headphone_id·combo_id·media) 구성.\n\n요구사항:\n1) 공용 훅(예: src/app/albums/_hooks/useListenHistoryGearForm.ts)으로 기기·조합 관련 상태·핸들러·payload 구성을 추출. 이름·경계는 판단하되, 두 컴포넌트에만 있는 차이는 옵션/콜백으로 흡수:\n   - Section 전용: receiverError(리시버 미선택 저장 차단)와 applySelectedCombo 시 setReceiverError(null), 아코디언 UI, 날씨 등 부가 로직 → 훅 밖에 두거나 콜백으로.\n   - Diary 전용 차이가 있으면 같은 방식.\n2) 공용 순수 헬퍼(parseOptionalId, ensureGearOption 등)는 한 곳(src/lib 또는 훅 파일)으로.\n3) 화면 마크업·스타일·문구·저장 대상 컬럼·순서는 그대로. 날짜·감상·매체 등 기기 외 필드는 훅에 넣을지 판단(넣지 않아도 됨).\n4) 결과에: 훅 경계 설명, 두 컴포넌트에서 남은 차이점 목록, 줄 수 변화, 그리고 JW가 직접 확인할 수동 점검 목록.\n5) 지시와 다르게 판단한 부분이 있으면 이유를 result 앞부분에 먼저 적는다.",
+  "scope": {
+    "in": [
+      "감상 기록 기기·조합 폼 로직 공용 훅 추출",
+      "두 컴포넌트가 훅 사용하도록 교체",
+      "중복 헬퍼 일원화"
+    ],
+    "out": [
+      "사용자 동작·UI·문구·저장 데이터 변경 절대 금지",
+      "DB 스키마·데이터 변경 금지",
+      "useListenHistoryComboOptions·ListenHistoryComboSelect·ReceiverComboSelect·listenHistoryCombo.ts의 동작 변경 금지(호출 방식 정리만 허용)",
+      "보고서의 다른 후보(R1·R5·R6) 착수 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 필요한 부분만 교체",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "두 컴포넌트에서 applySelectedCombo·clearComboSelection·parseOptionalId·ensureGearOption·payload 구성이 중복 정의되지 않고 공용 훅/헬퍼를 쓴다",
+    "result에 훅 경계, 남은 차이점, 줄 수 변화, 수동 점검 목록이 있다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(refactor): 감상 기록 기기·조합 폼 공용 훅 추출",
+  "status": "done",
+  "result": "[지시와 다르게 판단한 부분]\n- 매체(selectedMedia)는 저장 payload의 media 컬럼과 묶여 있어 훅에 넣었다. 날짜·소감은 훅 밖(각 컴포넌트)에 남겼다.\n- 다이어리는 기기 옵션 3종 조회와 '보유 헤드폰/이어폰' 조회를 Promise.all 하나로 같이 했는데, 앞의 3종이 훅으로 옮겨가면서 보유 헤드폰 조회만 컴포넌트에 별도 effect로 남았다(요청 1회 묶음 → 2묶음, 조회 조건·결과 동일). 화면 동작 차이 없음.\n\n[훅 경계] src/app/albums/_hooks/useListenHistoryGearForm.ts (useListenHistoryGearForm(isAuthenticated))\n- 상태: selectedMedia, selectedComboId, selectedSourceId/DacAmpId/DacAmp2Id/HeadphoneId, source/dacAmp/headphoneOptions\n- 내부에서 useListenHistoryComboOptions 호출 → comboOptions, getComboLabel 반환(comboById·gearById는 훅 안에서만 사용)\n- 옵션 3종 조회 effect(기존 쿼리 그대로)\n- 핸들러: resetGearFields, loadGearFields(레코드→폼, ensureGearOption 포함), applySelectedCombo(리시버가 채워졌으면 true 반환), changeSource/DacAmp/DacAmp2(값 설정+조합 해제), changeHeadphone(값 설정+스피커 조합이면 해제), buildGearPayload() → {media, source_id, dac_amp_id, dac_amp2_id, headphone_id, combo_id}\n- 파일 내부 헬퍼: parseOptionalId, ensureGearOption. 외부 공개는 mapGearOptions(다이어리 보유 헤드폰 조회에서 재사용)와 훅뿐.\n- 저장 payload는 {listened_at, impression, ...buildGearPayload()}로 펼쳐 컬럼 순서·값 동일.\n\n[두 컴포넌트에 남은 차이]\n- Section: receiverError(새 기록에서 리시버 미선택 시 저장 차단), 조합 선택 시 리시버가 채워지면 에러 해제(applySelectedCombo 반환값 사용), 리시버 변경 시 값 있으면 에러 해제, insert/update 분기·날씨 보강, 새 기록 시 오늘 날짜 기본값, 아코디언/탭 UI, editFormRef 스크롤.\n- Diary: 수정 전용(update만), editingEntry 객체 보관, 보유 헤드폰 조회(헤드폰 추천용), 수정 후 fetchData 전체 재조회, 토스트 문구('청취 기록을 수정했습니다.').\n- startEdit 매핑: Section은 snake_case 행을 loadGearFields 형식으로 변환해 넘기고, Diary는 DiaryListenEntry를 그대로 넘긴다(필드명 일치).\n\n[줄 수] AlbumListenHistorySection 859→753(-106), AlbumDiaryContent 1011→900(-111), 신규 훅 215. 합계 1870→1868.\n\n[검증] npx tsc --noEmit 통과, npm run lint 통과, npm run build:check 성공(Edge Runtime의 supabase process.version 경고는 기존 것). grep 결과 parseOptionalId·ensureGearOption·fillListenHistoryFromCombo·comboHasSpeaker는 src/app/albums 안에서 훅 파일에만 있음.\n\n[JW 수동 점검 목록]\n앨범 상세 감상 기록(아코디언·탭 둘 다):\n1. + 눌러 새 기록: 청취일이 오늘로 채워짐, 매체 기본값 표시.\n2. 리시버 없이 '추가' → 'Receiver를 선택해 주세요.' 표시, 리시버 고르면 사라짐.\n3. 조합 선택 → Source/Amp1/Amp2/Receiver 자동 채움, 리시버 에러가 떠 있었다면 사라짐. 목록에 없던(보유중 아님) 기기도 옵션에 추가돼 보임.\n4. 조합 선택 후 Source/Amp1/Amp2 하나 변경 → 조합 선택이 해제됨. 리시버 변경은 스피커 조합일 때만 해제.\n5. 저장 후 목록에 매체·기기·조합 정상 표시, 날씨 보강 동작.\n6. 기존 기록 연필 → 매체·조합·기기·날짜·소감이 그대로 채워짐 → 수정 저장 → '감상 기록을 수정했습니다.'\n다이어리:\n7. 항목 수정 열기 → 필드 채움 확인(보유중 아닌 기기도 옵션에 보임).\n8. 조합 선택·기기 변경 시 4번과 같은 동작.\n9. 저장 → '청취 기록을 수정했습니다.', 목록 갱신. 취소/삭제 시 폼 초기화.\n10. 다이어리 앨범 상세의 추천 헤드폰 선택 목록(보유 헤드폰)이 전처럼 보임.\n\ngit diff --stat: AlbumListenHistorySection.tsx, AlbumDiaryContent.tsx 수정, _hooks/useListenHistoryGearForm.ts 신규, TASK.json. 커밋 안 함(auto_commit=false).\n\n커밋 승인: 261125_0115 (refactor): 감상 기록 기기·조합 폼 공용 훅 추출"
+}

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchAllRows, fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import type { Album } from '@/app/albums/types';
 import type { Headfi } from '@/app/headfi/types';
 import {
@@ -66,7 +66,7 @@ export default async function Home() {
   ] = await Promise.all([
     supabase.from('album').select('*', { count: 'exact', head: true }),
     supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
-    fetchAllRows<{ category: string | null; status2: string | null }>(({ countExact }) =>
+    fetchSmallTableRows<{ category: string | null; status2: string | null }>(({ countExact }) =>
       supabase
         .from('headfi')
         .select('category, status2', selectCountOptions(countExact))

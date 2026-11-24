@@ -69,6 +69,19 @@ export async function fetchAllRows<T>(
   return { data: rows, error: null };
 }
 
+export async function fetchSmallTableRows<T>(
+  buildQuery: (args: { countExact: boolean }) => FetchAllRowsQuery<T>,
+  options?: FetchAllRowsOptions,
+): Promise<{ data: T[]; error: PostgrestError | null }> {
+  const query = buildQuery({ countExact: false });
+  const ordered = options?.orderById !== false ? query.order('id', { ascending: true }) : query;
+  const result = await ordered.range(0, SUPABASE_PAGE_SIZE - 1);
+  if (result.error) {
+    return { data: [], error: result.error };
+  }
+  return { data: result.data ?? [], error: null };
+}
+
 export function selectCountOptions(countExact: boolean): { count: 'exact' } | Record<string, never> {
   return countExact ? { count: 'exact' } : {};
 }

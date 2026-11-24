@@ -80,34 +80,27 @@ export function useListenHistoryGearForm(isAuthenticated: boolean | null) {
       setHeadphoneOptions([]);
       return;
     }
-    const supabase = createClient();
-    void Promise.all([
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_SOURCE_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_AMP_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-      supabase
-        .from('headfi')
-        .select('id, brand, model')
-        .in('category', [...LISTEN_HISTORY_RECEIVER_CATEGORIES])
-        .eq('status2', '보유중')
-        .order('brand')
-        .order('model'),
-    ]).then(([sourceRes, ampRes, hpRes]) => {
-      setSourceOptions(mapGearOptions(sourceRes.data));
-      setDacAmpOptions(mapGearOptions(ampRes.data));
-      setHeadphoneOptions(mapGearOptions(hpRes.data));
-    });
+    const categories: readonly string[][] = [
+      [...LISTEN_HISTORY_SOURCE_CATEGORIES],
+      [...LISTEN_HISTORY_AMP_CATEGORIES],
+      [...LISTEN_HISTORY_RECEIVER_CATEGORIES],
+    ];
+    void createClient()
+      .from('headfi')
+      .select('id, brand, model, category')
+      .in('category', [...new Set(categories.flat())])
+      .eq('status2', '보유중')
+      .order('brand')
+      .order('model')
+      .then(({ data }) => {
+        const rows = data ?? [];
+        const [sourceRows, ampRows, hpRows] = categories.map((list) =>
+          rows.filter((row) => list.includes(row.category)),
+        );
+        setSourceOptions(mapGearOptions(sourceRows));
+        setDacAmpOptions(mapGearOptions(ampRows));
+        setHeadphoneOptions(mapGearOptions(hpRows));
+      });
   }, [isAuthenticated]);
 
   const resetGearFields = useCallback(() => {

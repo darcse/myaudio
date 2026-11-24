@@ -20,7 +20,7 @@ import { applyGearAccessoryLinks } from '../accessoryLinksCache';
 import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { computeWiredPositionCoords, isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -56,6 +56,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function HeadfiLibraryContent() {
   const [library, setLibrary] = useState<Headfi[]>([]);
+  const [libraryVersion, setLibraryVersion] = useState(0);
   const [accessories, setAccessories] = useState<HeadfiAccessory[]>([]);
   const [accessoryLinkedGear, setAccessoryLinkedGear] = useState<HeadfiAccessoryLinkedGear[]>([]);
   const [accessoryCacheReady, setAccessoryCacheReady] = useState(false);
@@ -143,13 +144,14 @@ export function HeadfiLibraryContent() {
   const fetchLibrary = useCallback(async () => {
     try {
       const client = createClient();
-      const { data } = await fetchAllRows<Headfi>(({ countExact }) =>
+      const { data } = await fetchSmallTableRows<Headfi>(({ countExact }) =>
         client
           .from('headfi')
           .select('*', selectCountOptions(countExact))
           .order('created_at', { ascending: false }),
       );
       setLibrary(data);
+      setLibraryVersion((v) => v + 1);
     } finally {
       setIsLoading(false);
     }
@@ -178,7 +180,7 @@ export function HeadfiLibraryContent() {
   useEffect(() => {
     const client = createClient();
     if (isAuthenticated === true) {
-      void fetchAllRows<HeadfiCombo>(({ countExact }) =>
+      void fetchSmallTableRows<HeadfiCombo>(({ countExact }) =>
         client
           .from('headfi_combos')
           .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
@@ -199,7 +201,7 @@ export function HeadfiLibraryContent() {
           (data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
         ),
       );
-  }, [isAuthenticated, library]);
+  }, [isAuthenticated, libraryVersion]);
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 

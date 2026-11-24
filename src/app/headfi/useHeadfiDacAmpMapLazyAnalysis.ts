@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Headfi } from './types';
 import { hasPositionCoordinates } from '@/lib/headfiPosition';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
@@ -29,6 +29,11 @@ export function useHeadfiDacAmpMapLazyAnalysis(
   const viewingItemCategory = viewingItem?.category;
   const positionX = viewingItem?.position_x;
   const positionY = viewingItem?.position_y;
+  const onPatchRef = useRef(onPatch);
+
+  useEffect(() => {
+    onPatchRef.current = onPatch;
+  });
 
   useEffect(() => {
     if (!viewingItemId || !viewingItemCategory || !isDacAmpDapCategory(viewingItemCategory)) return;
@@ -46,7 +51,7 @@ export function useHeadfiDacAmpMapLazyAnalysis(
           label?: string;
         };
         if (!res.ok || data.x == null || data.y == null) return;
-        onPatch?.({
+        onPatchRef.current?.({
           id: viewingItemId,
           position_x: data.x,
           position_y: data.y,
@@ -54,5 +59,5 @@ export function useHeadfiDacAmpMapLazyAnalysis(
         });
       })
       .catch(() => {});
-  }, [viewingItemId, viewingItemCategory, positionX, positionY, onPatch]);
+  }, [viewingItemId, viewingItemCategory, positionX, positionY]);
 }

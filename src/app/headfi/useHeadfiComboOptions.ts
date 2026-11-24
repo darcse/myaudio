@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from './headfiComboUtils';
 import type { Headfi, HeadfiCombo } from './types';
 
@@ -18,13 +18,13 @@ export function useHeadfiComboOptions(isAuthenticated: boolean | null) {
     }
     const client = createClient();
     void Promise.all([
-      fetchAllRows<HeadfiCombo>(({ countExact }) =>
+      fetchSmallTableRows<HeadfiCombo>(({ countExact }) =>
         client
           .from('headfi_combos')
           .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
           .order('created_at', { ascending: false }),
       ),
-      fetchAllRows<Headfi>(({ countExact }) =>
+      fetchSmallTableRows<Headfi>(({ countExact }) =>
         client.from('headfi').select('id, brand, model, category', selectCountOptions(countExact)),
       ),
     ]).then(([comboRes, gearRes]) => {

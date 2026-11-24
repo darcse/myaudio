@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type React
 import { BarChart3, Disc, Mic2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchAllRows, fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
@@ -295,7 +295,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
             .from('artists')
             .select('artist_name, profile_image_url', selectCountOptions(countExact)),
         ),
-        fetchAllRows<GearSummary & { image_url?: string | null }>(({ countExact }) =>
+        fetchSmallTableRows<GearSummary & { image_url?: string | null }>(({ countExact }) =>
           client
             .from('headfi')
             .select('id, brand, model, category, image_url', selectCountOptions(countExact)),
@@ -384,45 +384,36 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated !== true) return;
-    void createClient()
-      .from('headfi')
-      .select('id, brand, model')
-      .in('category', ['헤드폰', '이어폰'])
-      .eq('status2', '보유중')
-      .order('brand')
-      .order('model')
-      .then(({ data }) => {
-        setHeadfiOwnedHeadphones(
-          (data ?? []).map((row) => ({
-            id: row.id,
-            brand: row.brand || '',
-            model: row.model || '',
-          })),
-        );
-      });
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     if (isAuthenticated !== true) {
       setWirelessMatchingList([]);
       return;
     }
-    const client = createClient();
-    void client
+    void createClient()
       .from('headfi')
-      .select('id,brand,model')
-      .eq('category', '기타')
+      .select('id, brand, model, category')
+      .in('category', ['헤드폰', '이어폰', '기타'])
       .eq('status2', '보유중')
       .order('brand')
       .order('model')
       .then(({ data }) => {
+        const rows = data ?? [];
+        setHeadfiOwnedHeadphones(
+          rows
+            .filter((row) => row.category === '헤드폰' || row.category === '이어폰')
+            .map((row) => ({
+              id: row.id,
+              brand: row.brand || '',
+              model: row.model || '',
+            })),
+        );
         setWirelessMatchingList(
-          (data ?? []).map((row) => ({
-            id: row.id,
-            brand: row.brand || '',
-            model: row.model || '',
-          })),
+          rows
+            .filter((row) => row.category === '기타')
+            .map((row) => ({
+              id: row.id,
+              brand: row.brand || '',
+              model: row.model || '',
+            })),
         );
       });
   }, [isAuthenticated]);

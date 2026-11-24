@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { BarChart3, Cpu, Headphones, Layers, Radio, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchAllRows, fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
-import { buildGearByIdMap, HEADFI_COMBO_SELECT } from '@/app/headfi/headfiComboUtils';
+import { buildGearByIdMap, HEADFI_COMBO_SELECT, resolvePairingComboLabel } from '@/app/headfi/headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import {
@@ -31,7 +31,6 @@ import {
   type ListenPeriodFilter,
   type ListenPeriodMonth,
 } from '@/app/albums/stats/albumListenStats';
-import { useHeadfiComboOptions } from '@/app/headfi/useHeadfiComboOptions';
 import { ListenHistoryMediaThumb } from '@/components/ListenHistoryMediaThumb';
 import { TopGearListenSection } from './TopGearListenSection';
 
@@ -47,7 +46,6 @@ function filterToggleStyle(active: boolean): React.CSSProperties {
 export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const isAuthenticated = useAuthState();
-  const { getPairingComboLabel } = useHeadfiComboOptions(isAuthenticated);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyRows, setHistoryRows] = useState<GearListenHistoryRow[]>([]);
@@ -83,12 +81,12 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
               selectCountOptions(countExact),
             ),
         ),
-        fetchAllRows<Headfi>(({ countExact }) =>
+        fetchSmallTableRows<Headfi>(({ countExact }) =>
           client
             .from('headfi')
             .select('id, brand, model, category, image_url', selectCountOptions(countExact)),
         ),
-        fetchAllRows<HeadfiCombo>(({ countExact }) =>
+        fetchSmallTableRows<HeadfiCombo>(({ countExact }) =>
           client.from('headfi_combos').select(HEADFI_COMBO_SELECT, selectCountOptions(countExact)),
         ),
       ]);
@@ -165,8 +163,11 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
   }, [viewingHeadfi?.id]);
 
   const viewingPairingComboLabel = useMemo(
-    () => (viewingHeadfi ? getPairingComboLabel(viewingHeadfi) : null),
-    [viewingHeadfi, getPairingComboLabel],
+    () =>
+      viewingHeadfi && isAuthenticated === true
+        ? resolvePairingComboLabel(viewingHeadfi.pairing_combo_id, [...comboById.values()], comboGearById)
+        : null,
+    [viewingHeadfi, isAuthenticated, comboById, comboGearById],
   );
 
   useEffect(() => {

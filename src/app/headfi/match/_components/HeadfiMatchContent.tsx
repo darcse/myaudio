@@ -11,7 +11,7 @@ import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import type { Headfi } from '../../types';
@@ -132,7 +132,7 @@ export function HeadfiMatchContent() {
     setIsLoading(true);
     try {
       const client = createClient();
-      const { data } = await fetchAllRows<Headfi>(({ countExact }) =>
+      const { data } = await fetchSmallTableRows<Headfi>(({ countExact }) =>
         client
           .from('headfi')
           .select('*', selectCountOptions(countExact))

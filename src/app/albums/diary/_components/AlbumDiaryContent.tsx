@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { BookOpen, CalendarDays, LayoutList, Music, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchAllRows, fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
@@ -159,7 +159,7 @@ export function AlbumDiaryContent() {
               selectCountOptions(countExact),
             ),
         ),
-        fetchAllRows<DiaryGearSummary>(({ countExact }) =>
+        fetchSmallTableRows<DiaryGearSummary>(({ countExact }) =>
           client.from('headfi').select('id, brand, model', selectCountOptions(countExact)),
         ),
       ]);

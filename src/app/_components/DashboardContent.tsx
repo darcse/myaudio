@@ -427,37 +427,28 @@ export function DashboardContent({
     const client = createClient();
     client
       .from('headfi')
-      .select('id,brand,model')
-      .in('category', ['헤드폰', '이어폰'])
+      .select('id,brand,model,category')
+      .in('category', ['헤드폰', '이어폰', '기타'])
       .eq('status2', '보유중')
       .order('brand')
       .order('model')
       .then(({ data }) => {
+        const rows = data || [];
         setHeadfiOwnedHeadphones(
-          (data || []).map((r) => ({
-            id: r.id,
-            brand: r.brand || '',
-            model: r.model || '',
-          })),
+          rows
+            .filter((r) => r.category === '헤드폰' || r.category === '이어폰')
+            .map((r) => ({
+              id: r.id,
+              brand: r.brand || '',
+              model: r.model || '',
+            })),
+        );
+        setWirelessMatchingList(
+          rows
+            .filter((r) => r.category === '기타')
+            .map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
         );
       });
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const client = createClient();
-    client
-      .from('headfi')
-      .select('id,brand,model')
-      .eq('category', '기타')
-      .eq('status2', '보유중')
-      .order('brand')
-      .order('model')
-      .then(({ data }) =>
-        setWirelessMatchingList(
-          (data || []).map((r) => ({ id: r.id, brand: r.brand || '', model: r.model || '' })),
-        ),
-      );
   }, [isAuthenticated]);
 
   const handleAlbumEditClick = useCallback(() => {

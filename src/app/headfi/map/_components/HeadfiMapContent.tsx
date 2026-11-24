@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
+import { fetchAllRows, fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
 import {
@@ -61,7 +61,7 @@ export function HeadfiMapContent() {
       const client = createClient();
       const [{ data: headfiData }, { data: cacheData }, { data: activeCombosData }] =
         await Promise.all([
-          fetchAllRows<Headfi>(({ countExact }) =>
+          fetchSmallTableRows<Headfi>(({ countExact }) =>
             client
               .from('headfi')
               .select('*', selectCountOptions(countExact))
@@ -84,7 +84,7 @@ export function HeadfiMapContent() {
               )
               .not('combo_id', 'is', null),
           ),
-          fetchAllRows<HeadfiCombo>(({ countExact }) =>
+          fetchSmallTableRows<HeadfiCombo>(({ countExact }) =>
             client
               .from('headfi_combos')
               .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
