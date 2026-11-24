@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { BookOpen, CalendarDays, LayoutList, Music, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
 import { AlbumForm } from '@/app/albums/_components/AlbumForm';
@@ -165,27 +166,37 @@ export function AlbumDiaryContent() {
     try {
       const client = createClient();
       const [albumRes, historyRes, gearRes] = await Promise.all([
-        client.from('album').select('*').order('release_date', { ascending: false }),
-        client
-          .from('album_listen_history')
-          .select(
-            'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id, combo_id',
-          ),
-        client.from('headfi').select('id, brand, model'),
+        fetchAllRows<Album>(({ countExact }) =>
+          client
+            .from('album')
+            .select('*', selectCountOptions(countExact))
+            .order('release_date', { ascending: false }),
+        ),
+        fetchAllRows<DiaryHistoryRow>(({ countExact }) =>
+          client
+            .from('album_listen_history')
+            .select(
+              'id, album_id, listened_at, created_at, captured_at, weather_condition, temperature, impression, media, source_id, dac_amp_id, dac_amp2_id, headphone_id, combo_id',
+              selectCountOptions(countExact),
+            ),
+        ),
+        fetchAllRows<DiaryGearSummary>(({ countExact }) =>
+          client.from('headfi').select('id, brand, model', selectCountOptions(countExact)),
+        ),
       ]);
       const errors: string[] = [];
       if (albumRes.error) {
         errors.push('앨범 목록을 불러오지 못했습니다.');
         setAlbums([]);
       } else {
-        setAlbums((albumRes.data ?? []) as Album[]);
+        setAlbums(albumRes.data);
       }
       if (historyRes.error) {
         errors.push('청취 기록을 불러오지 못했습니다.');
         setHistoryRows([]);
       } else {
         setHistoryRows(
-          ((historyRes.data ?? []) as DiaryHistoryRow[]).map((row) => ({
+          historyRes.data.map((row) => ({
             ...row,
             captured_at: row.captured_at ?? null,
             weather_condition: row.weather_condition ?? null,
@@ -201,7 +212,7 @@ export function AlbumDiaryContent() {
         setGearById(new Map());
       } else {
         const map = new Map<number, DiaryGearSummary>();
-        for (const row of gearRes.data ?? []) {
+        for (const row of gearRes.data) {
           map.set(row.id, {
             id: row.id,
             brand: row.brand || '',

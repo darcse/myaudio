@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 import type {
   MonthlyHeadfiActivityData,
@@ -54,24 +55,39 @@ function yearFromDate(value: string | null | undefined): number | null {
 export async function listHeadfiTrendYears(): Promise<number[]> {
   const supabase = createClient();
   const [gearRes, accessoryRes, salesRes] = await Promise.all([
-    supabase.from('headfi').select('purchase_date').not('purchase_date', 'is', null),
-    supabase.from('headfi_accessories').select('purchase_date').not('purchase_date', 'is', null),
-    supabase.from('headfi_sales').select('sale_date').not('sale_date', 'is', null),
+    fetchAllRows<{ purchase_date: string | null }>(({ countExact }) =>
+      supabase
+        .from('headfi')
+        .select('purchase_date', selectCountOptions(countExact))
+        .not('purchase_date', 'is', null),
+    ),
+    fetchAllRows<{ purchase_date: string | null }>(({ countExact }) =>
+      supabase
+        .from('headfi_accessories')
+        .select('purchase_date', selectCountOptions(countExact))
+        .not('purchase_date', 'is', null),
+    ),
+    fetchAllRows<{ sale_date: string | null }>(({ countExact }) =>
+      supabase
+        .from('headfi_sales')
+        .select('sale_date', selectCountOptions(countExact))
+        .not('sale_date', 'is', null),
+    ),
   ]);
   if (gearRes.error) throw new Error(gearRes.error.message);
   if (accessoryRes.error) throw new Error(accessoryRes.error.message);
   if (salesRes.error) throw new Error(salesRes.error.message);
 
   const years = new Set<number>();
-  for (const row of gearRes.data ?? []) {
+  for (const row of gearRes.data) {
     const y = yearFromDate(row.purchase_date);
     if (y != null) years.add(y);
   }
-  for (const row of accessoryRes.data ?? []) {
+  for (const row of accessoryRes.data) {
     const y = yearFromDate(row.purchase_date);
     if (y != null) years.add(y);
   }
-  for (const row of salesRes.data ?? []) {
+  for (const row of salesRes.data) {
     const y = yearFromDate(row.sale_date);
     if (y != null) years.add(y);
   }
@@ -103,24 +119,40 @@ export async function loadHeadfiTrendYearMonths(year: number): Promise<HeadfiTre
   const { start, endExclusive } = yearRange(year);
 
   const [gearRes, accessoryRes, salesRes] = await Promise.all([
-    supabase
-      .from('headfi')
-      .select('id, price, purchase_date, image_url')
-      .not('purchase_date', 'is', null)
-      .gte('purchase_date', start)
-      .lt('purchase_date', endExclusive),
-    supabase
-      .from('headfi_accessories')
-      .select('price, purchase_date')
-      .not('purchase_date', 'is', null)
-      .gte('purchase_date', start)
-      .lt('purchase_date', endExclusive),
-    supabase
-      .from('headfi_sales')
-      .select('category, headfi_gear_id, price, sale_date')
-      .not('sale_date', 'is', null)
-      .gte('sale_date', start)
-      .lt('sale_date', endExclusive),
+    fetchAllRows<{
+      id: number;
+      price: number | null;
+      purchase_date: string | null;
+      image_url: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi')
+        .select('id, price, purchase_date, image_url', selectCountOptions(countExact))
+        .not('purchase_date', 'is', null)
+        .gte('purchase_date', start)
+        .lt('purchase_date', endExclusive),
+    ),
+    fetchAllRows<{ price: number | null; purchase_date: string | null }>(({ countExact }) =>
+      supabase
+        .from('headfi_accessories')
+        .select('price, purchase_date', selectCountOptions(countExact))
+        .not('purchase_date', 'is', null)
+        .gte('purchase_date', start)
+        .lt('purchase_date', endExclusive),
+    ),
+    fetchAllRows<{
+      category: string | null;
+      headfi_gear_id: number | null;
+      price: number | null;
+      sale_date: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi_sales')
+        .select('category, headfi_gear_id, price, sale_date', selectCountOptions(countExact))
+        .not('sale_date', 'is', null)
+        .gte('sale_date', start)
+        .lt('sale_date', endExclusive),
+    ),
   ]);
   if (gearRes.error) throw new Error(gearRes.error.message);
   if (accessoryRes.error) throw new Error(accessoryRes.error.message);
@@ -129,7 +161,7 @@ export async function loadHeadfiTrendYearMonths(year: number): Promise<HeadfiTre
   const buckets: Record<number, MonthBucket> = {};
   for (let m = 1; m <= 12; m++) buckets[m] = emptyBucket();
 
-  for (const row of gearRes.data ?? []) {
+  for (const row of gearRes.data) {
     const mo = monthFromDate(row.purchase_date);
     if (mo == null) continue;
     const price = toMoney(row.price);
@@ -144,7 +176,7 @@ export async function loadHeadfiTrendYearMonths(year: number): Promise<HeadfiTre
     }
   }
 
-  for (const row of accessoryRes.data ?? []) {
+  for (const row of accessoryRes.data) {
     const mo = monthFromDate(row.purchase_date);
     if (mo == null) continue;
     buckets[mo].hasPurchase = true;
@@ -152,7 +184,7 @@ export async function loadHeadfiTrendYearMonths(year: number): Promise<HeadfiTre
   }
 
   const saleGearIds = new Set<number>();
-  for (const row of salesRes.data ?? []) {
+  for (const row of salesRes.data) {
     const mo = monthFromDate(row.sale_date);
     if (mo == null) continue;
     const price = toMoney(row.price);
@@ -207,34 +239,66 @@ export async function fetchMonthlyHeadfiActivity(
   const { start, endExclusive } = monthRange(year, month);
 
   const [gearRes, accessoryRes, salesRes] = await Promise.all([
-    supabase
-      .from('headfi')
-      .select('id, brand, model, category, image_url, price, purchase_date')
-      .not('purchase_date', 'is', null)
-      .gte('purchase_date', start)
-      .lt('purchase_date', endExclusive)
-      .order('purchase_date', { ascending: false }),
-    supabase
-      .from('headfi_accessories')
-      .select('id, name, price, purchase_date')
-      .not('purchase_date', 'is', null)
-      .gte('purchase_date', start)
-      .lt('purchase_date', endExclusive)
-      .order('purchase_date', { ascending: false }),
-    supabase
-      .from('headfi_sales')
-      .select('id, category, headfi_gear_id, accessory_id, price, sale_date')
-      .not('sale_date', 'is', null)
-      .gte('sale_date', start)
-      .lt('sale_date', endExclusive)
-      .order('sale_date', { ascending: false }),
+    fetchAllRows<{
+      id: number;
+      brand: string | null;
+      model: string | null;
+      category: string | null;
+      image_url: string | null;
+      price: number | null;
+      purchase_date: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi')
+        .select(
+          'id, brand, model, category, image_url, price, purchase_date',
+          selectCountOptions(countExact),
+        )
+        .not('purchase_date', 'is', null)
+        .gte('purchase_date', start)
+        .lt('purchase_date', endExclusive)
+        .order('purchase_date', { ascending: false }),
+    ),
+    fetchAllRows<{
+      id: string | number;
+      name: string | null;
+      price: number | null;
+      purchase_date: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi_accessories')
+        .select('id, name, price, purchase_date', selectCountOptions(countExact))
+        .not('purchase_date', 'is', null)
+        .gte('purchase_date', start)
+        .lt('purchase_date', endExclusive)
+        .order('purchase_date', { ascending: false }),
+    ),
+    fetchAllRows<{
+      id: number;
+      category: string | null;
+      headfi_gear_id: number | null;
+      accessory_id: string | number | null;
+      price: number | null;
+      sale_date: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi_sales')
+        .select(
+          'id, category, headfi_gear_id, accessory_id, price, sale_date',
+          selectCountOptions(countExact),
+        )
+        .not('sale_date', 'is', null)
+        .gte('sale_date', start)
+        .lt('sale_date', endExclusive)
+        .order('sale_date', { ascending: false }),
+    ),
   ]);
 
   if (gearRes.error) throw new Error(gearRes.error.message);
   if (accessoryRes.error) throw new Error(accessoryRes.error.message);
   if (salesRes.error) throw new Error(salesRes.error.message);
 
-  const purchasedGear: MonthlyPurchasedGear[] = (gearRes.data ?? []).map((row) => ({
+  const purchasedGear: MonthlyPurchasedGear[] = gearRes.data.map((row) => ({
     id: row.id,
     brand: row.brand || '',
     model: row.model || '',
@@ -244,14 +308,14 @@ export async function fetchMonthlyHeadfiActivity(
     purchase_date: String(row.purchase_date),
   }));
 
-  const purchasedAccessories: MonthlyPurchasedAccessory[] = (accessoryRes.data ?? []).map((row) => ({
+  const purchasedAccessories: MonthlyPurchasedAccessory[] = accessoryRes.data.map((row) => ({
     id: String(row.id),
     name: (row.name || '').trim() || '액세서리',
     price: row.price == null ? null : toMoney(row.price),
     purchase_date: String(row.purchase_date),
   }));
 
-  const sales = salesRes.data ?? [];
+  const sales = salesRes.data;
   const gearSaleIds = [
     ...new Set(
       sales

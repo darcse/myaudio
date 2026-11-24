@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BarChart3, Cpu, Headphones, Layers, Radio, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
@@ -74,20 +75,29 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     try {
       const client = createClient();
       const [historyRes, headfiRes, comboRes] = await Promise.all([
-        client
-          .from('album_listen_history')
-          .select(
-            'album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, combo_id, media',
-          ),
-        client.from('headfi').select('id, brand, model, category, image_url'),
-        client.from('headfi_combos').select(HEADFI_COMBO_SELECT),
+        fetchAllRows<GearListenHistoryRow>(({ countExact }) =>
+          client
+            .from('album_listen_history')
+            .select(
+              'album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, combo_id, media',
+              selectCountOptions(countExact),
+            ),
+        ),
+        fetchAllRows<Headfi>(({ countExact }) =>
+          client
+            .from('headfi')
+            .select('id, brand, model, category, image_url', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<HeadfiCombo>(({ countExact }) =>
+          client.from('headfi_combos').select(HEADFI_COMBO_SELECT, selectCountOptions(countExact)),
+        ),
       ]);
       const errors: string[] = [];
       if (historyRes.error) {
         errors.push('청취 기록을 불러오지 못했습니다.');
         setHistoryRows([]);
       } else {
-        setHistoryRows((historyRes.data ?? []) as GearListenHistoryRow[]);
+        setHistoryRows(historyRes.data);
       }
       if (headfiRes.error) {
         errors.push('기기 목록을 불러오지 못했습니다.');
@@ -95,7 +105,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
         setComboGearById(new Map());
       } else {
         const map = new Map<number, GearSummary>();
-        const gearRows = (headfiRes.data ?? []) as Headfi[];
+        const gearRows = headfiRes.data;
         for (const row of gearRows) {
           map.set(row.id, {
             id: row.id,
@@ -112,9 +122,7 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
         errors.push('조합 목록을 불러오지 못했습니다.');
         setComboById(new Map());
       } else {
-        setComboById(
-          new Map(((comboRes.data ?? []) as HeadfiCombo[]).map((combo) => [combo.id, combo])),
-        );
+        setComboById(new Map(comboRes.data.map((combo) => [combo.id, combo])));
       }
       if (errors.length > 0) {
         setLoadError(errors.join(' '));

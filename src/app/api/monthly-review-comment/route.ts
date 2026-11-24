@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { generateMonthlyReviewComment } from '@/lib/gemini';
 import {
   monthlyReviewCommentQuery,
@@ -112,19 +113,21 @@ async function loadTimeline(
       .select('id,title,album,created_at,cover_image_url')
       .gte('created_at', startIso)
       .lt('created_at', endExclusiveIso),
-    supabase
-      .from('album_listen_history')
-      .select('album_id, listened_at')
-      .gte('listened_at', listenStart)
-      .lt('listened_at', listenEndExclusive)
-      .order('listened_at', { ascending: true }),
+    fetchAllRows<{ album_id: number | null; listened_at: string | null }>(({ countExact }) =>
+      supabase
+        .from('album_listen_history')
+        .select('album_id, listened_at', selectCountOptions(countExact))
+        .gte('listened_at', listenStart)
+        .lt('listened_at', listenEndExclusive)
+        .order('listened_at', { ascending: true }),
+    ),
   ]);
   if (headfiRes.error) throw new Error(headfiRes.error.message);
   if (lyricsRes.error) throw new Error(lyricsRes.error.message);
   if (listenRes.error) throw new Error(listenRes.error.message);
 
   let albums: MonthlyReviewTimeline['albums'] = [];
-  const listenRows = listenRes.data ?? [];
+  const listenRows = listenRes.data;
   if (listenRows.length > 0) {
     const firstListenByAlbum = new Map<number, string>();
     for (const row of listenRows) {

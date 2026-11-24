@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recommendByMood } from '@/lib/gemini';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,27 +17,52 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    const { data: albums, error: albumsErr } = await supabase
-      .from('album')
-      .select('id, artist, album_name, genre1, genre2');
+    const { data: albums, error: albumsErr } = await fetchAllRows<{
+      id: number;
+      artist: string | null;
+      album_name: string | null;
+      genre1: string | null;
+      genre2: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('album')
+        .select('id, artist, album_name, genre1, genre2', selectCountOptions(countExact)),
+    );
 
     if (albumsErr) {
       return NextResponse.json({ error: albumsErr.message }, { status: 500 });
     }
-    if (!albums || albums.length === 0) {
+    if (albums.length === 0) {
       return NextResponse.json({ error: 'No albums found' }, { status: 404 });
     }
 
-    const { data: headphones, error: headphonesErr } = await supabase
-      .from('headfi')
-      .select('id, brand, model, trait_warmth, trait_brightness, soundstage')
-      .eq('category', '헤드폰')
-      .eq('status2', '보유중');
+    const { data: headphonesRaw, error: headphonesErr } = await fetchAllRows<{
+      id: number;
+      brand: string | null;
+      model: string | null;
+      trait_warmth: number | null;
+      trait_brightness: number | null;
+      soundstage: number | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('headfi')
+        .select(
+          'id, brand, model, trait_warmth, trait_brightness, soundstage',
+          selectCountOptions(countExact),
+        )
+        .eq('category', '헤드폰')
+        .eq('status2', '보유중'),
+    );
 
     if (headphonesErr) {
       return NextResponse.json({ error: headphonesErr.message }, { status: 500 });
     }
-    if (!headphones || headphones.length === 0) {
+    const headphones = headphonesRaw.map((row) => ({
+      ...row,
+      brand: row.brand ?? '',
+      model: row.model ?? '',
+    }));
+    if (headphones.length === 0) {
       return NextResponse.json({ error: 'No headphones found' }, { status: 404 });
     }
 

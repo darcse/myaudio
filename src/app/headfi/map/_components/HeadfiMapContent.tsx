@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
 import {
@@ -58,27 +59,48 @@ export function HeadfiMapContent() {
     if (!options?.background) setIsLoading(true);
     try {
       const client = createClient();
-      const [{ data: headfiData }, { data: cacheData }] = await Promise.all([
-        client.from('headfi').select('*').order('brand').order('model'),
-        client
-          .from('headfi_match_cache')
-          .select('combo_id, target_gear_id, drive, synergy, genre, comment')
-          .not('combo_id', 'is', null),
-      ]);
-      const { data: activeCombosData } = await client
-        .from('headfi_combos')
-        .select(HEADFI_COMBO_SELECT)
-        .is('deleted_at', null)
-        .eq('is_matching', true)
-        .order('created_at', { ascending: true });
+      const [{ data: headfiData }, { data: cacheData }, { data: activeCombosData }] =
+        await Promise.all([
+          fetchAllRows<Headfi>(({ countExact }) =>
+            client
+              .from('headfi')
+              .select('*', selectCountOptions(countExact))
+              .order('brand')
+              .order('model'),
+          ),
+          fetchAllRows<{
+            combo_id: string | null;
+            target_gear_id: number | null;
+            drive: number | null;
+            synergy: number | null;
+            genre: number | null;
+            comment: string | null;
+          }>(({ countExact }) =>
+            client
+              .from('headfi_match_cache')
+              .select(
+                'combo_id, target_gear_id, drive, synergy, genre, comment',
+                selectCountOptions(countExact),
+              )
+              .not('combo_id', 'is', null),
+          ),
+          fetchAllRows<HeadfiCombo>(({ countExact }) =>
+            client
+              .from('headfi_combos')
+              .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
+              .is('deleted_at', null)
+              .eq('is_matching', true)
+              .order('created_at', { ascending: true }),
+          ),
+        ]);
 
-      const libraryRows = (headfiData as Headfi[]) || [];
+      const libraryRows = headfiData;
       const gearById = buildGearByIdMap(libraryRows);
-      const activeCombos = ((activeCombosData ?? []) as HeadfiCombo[]).filter(
+      const activeCombos = activeCombosData.filter(
         (combo) => !isSpeakerCombo(combo, gearById),
       );
       const activeComboIds = new Set(activeCombos.map((combo) => combo.id));
-      const matchCacheRows = (cacheData ?? [])
+      const matchCacheRows = cacheData
         .filter((row) => typeof row.combo_id === 'string' && row.combo_id && activeComboIds.has(row.combo_id))
         .map((row) => ({
           combo_id: row.combo_id as string,

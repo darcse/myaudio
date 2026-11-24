@@ -3,6 +3,7 @@ import { recommendHeadfiAlbums } from '@/lib/anthropicHeadfi';
 import { buildHeadfiSoundScoresPromptBlock, pickHeadfiSoundScores } from '@/lib/headfiSoundScores';
 import { formatFrInterpretationForPrompt, selectAlbumsForHeadfiMatch } from '@/lib/headfiAlbumMatch';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 
 const HEADFI_ALBUM_RECOMMEND_SELECT =
   'id, brand, model, category, recommended_genres, fr_interpretation, ai_sound_analysis, bass_quantity, bass_depth, bass_control, midrange_body, treble_airiness, treble_smoothness, resolution, dynamic_range, separation, soundstage, imaging, musicality, listening_comfort, trait_warmth, trait_brightness, trait_vocal_position, trait_bass_decay';
@@ -32,7 +33,18 @@ export async function POST(req: NextRequest) {
 
     const [headfiRes, albumsRes] = await Promise.all([
       supabase.from('headfi').select(HEADFI_ALBUM_RECOMMEND_SELECT).eq('id', headfiId).single(),
-      supabase.from('album').select('id, artist, album_name, genre1, genre2, audio_tags'),
+      fetchAllRows<{
+        id: number;
+        artist: string | null;
+        album_name: string | null;
+        genre1: string | null;
+        genre2: string | null;
+        audio_tags: string[] | null;
+      }>(({ countExact }) =>
+        supabase
+          .from('album')
+          .select('id, artist, album_name, genre1, genre2, audio_tags', selectCountOptions(countExact)),
+      ),
     ]);
 
     if (headfiRes.error || !headfiRes.data) {
@@ -42,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: albumsRes.error.message }, { status: 500 });
     }
 
-    const albums = albumsRes.data ?? [];
+    const albums = albumsRes.data;
     if (albums.length === 0) {
       return NextResponse.json({ error: '보유 앨범이 없습니다.' }, { status: 404 });
     }

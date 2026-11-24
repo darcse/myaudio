@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { filterAlbumsByScope, type CatalogScope } from '@/lib/catalogScope';
 import type { Album } from './types';
@@ -94,7 +95,9 @@ export async function fetchCatalogLotteryFilterRows(
 ): Promise<CatalogLotteryFilterRowsResult> {
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.from('album').select(FILTER_SELECT);
+    const { data, error } = await fetchAllRows<CatalogLotteryFilterRow>(({ countExact }) =>
+      supabase.from('album').select(FILTER_SELECT, selectCountOptions(countExact)),
+    );
     if (error) return { status: 'error', message: getClientErrorMessage(error) };
     const rows = normalizeFilterRows(data);
     return {
@@ -112,9 +115,10 @@ export async function fetchCatalogAlbumLotteryDraw(
   try {
     const matchFilters = toCatalogMatchFilters(filters);
     const supabase = createClient();
-    const { data: filterRows, error: filterError } = await supabase
-      .from('album')
-      .select(FILTER_SELECT);
+    const { data: filterRows, error: filterError } = await fetchAllRows<CatalogLotteryFilterRow>(
+      ({ countExact }) =>
+        supabase.from('album').select(FILTER_SELECT, selectCountOptions(countExact)),
+    );
 
     if (filterError) return { status: 'error', message: getClientErrorMessage(filterError) };
 

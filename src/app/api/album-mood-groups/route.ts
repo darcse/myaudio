@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureAlbumMoodGroups } from '@/lib/albumMoodGroupsServer';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { MOOD_GROUP_MUST_BE_NINE_MSG } from '@/lib/gemini';
 
 type AlbumRow = {
@@ -28,14 +29,15 @@ export async function GET(req: Request) {
       }
       return NextResponse.json({ groups: data ?? [] });
     }
-    const { data: albumRows, error: albumErr } = await supabase
-      .from('album')
-      .select('id, genre1, genre2, audio_tags');
+    const { data: albumRows, error: albumErr } = await fetchAllRows<AlbumRow>(({ countExact }) =>
+      supabase
+        .from('album')
+        .select('id, genre1, genre2, audio_tags', selectCountOptions(countExact)),
+    );
     if (albumErr) {
       return NextResponse.json({ error: albumErr.message }, { status: 500 });
     }
-    const albums = (albumRows ?? []) as AlbumRow[];
-    const groups = await ensureAlbumMoodGroups(supabase, albums, false);
+    const groups = await ensureAlbumMoodGroups(supabase, albumRows, false);
     return NextResponse.json({ groups });
   } catch (err) {
     if (err instanceof Error && err.message === MOOD_GROUP_MUST_BE_NINE_MSG) {
@@ -56,14 +58,15 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const supabase = await createClient();
-    const { data: albumRows, error: albumErr } = await supabase
-      .from('album')
-      .select('id, genre1, genre2, audio_tags');
+    const { data: albumRows, error: albumErr } = await fetchAllRows<AlbumRow>(({ countExact }) =>
+      supabase
+        .from('album')
+        .select('id, genre1, genre2, audio_tags', selectCountOptions(countExact)),
+    );
     if (albumErr) {
       return NextResponse.json({ error: albumErr.message }, { status: 500 });
     }
-    const albums = (albumRows ?? []) as AlbumRow[];
-    const groups = await ensureAlbumMoodGroups(supabase, albums, true);
+    const groups = await ensureAlbumMoodGroups(supabase, albumRows, true);
     return NextResponse.json({ groups });
   } catch (err) {
     if (err instanceof Error && err.message === MOOD_GROUP_MUST_BE_NINE_MSG) {

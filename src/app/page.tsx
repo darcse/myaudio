@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import type { Album } from '@/app/albums/types';
 import type { Headfi } from '@/app/headfi/types';
 import {
@@ -65,7 +66,12 @@ export default async function Home() {
   ] = await Promise.all([
     supabase.from('album').select('*', { count: 'exact', head: true }),
     supabase.from('headfi').select('*', { count: 'exact', head: true }).eq('status2', '보유중'),
-    supabase.from('headfi').select('category, status2').not('status2', 'in', '(방출,양도)'),
+    fetchAllRows<{ category: string | null; status2: string | null }>(({ countExact }) =>
+      supabase
+        .from('headfi')
+        .select('category, status2', selectCountOptions(countExact))
+        .not('status2', 'in', '(방출,양도)'),
+    ),
     supabase.from('album_listen_history').select('*', { count: 'exact', head: true }),
     supabase
       .from('album_listen_history')
@@ -82,11 +88,13 @@ export default async function Home() {
       .select('id,brand,model,image_url,purchase_date')
       .order('purchase_date', { ascending: false, nullsFirst: false })
       .limit(2),
-    supabase
-      .from('album_listen_history')
-      .select('album_id, listened_at')
-      .gte('listened_at', weekStartKey)
-      .order('listened_at', { ascending: false }),
+    fetchAllRows<{ album_id: number | null; listened_at: string | null }>(({ countExact }) =>
+      supabase
+        .from('album_listen_history')
+        .select('album_id, listened_at', selectCountOptions(countExact))
+        .gte('listened_at', weekStartKey)
+        .order('listened_at', { ascending: false }),
+    ),
   ]);
 
   const monthlyListenRows = (recentListenRes.data ?? []) as MonthlyListenJoinRow[];
@@ -131,7 +139,7 @@ export default async function Home() {
     if (monthlyListenAlbums.length >= 7) break;
   }
 
-  const weeklyHistoryRows = weeklyHistoryRes.data ?? [];
+  const weeklyHistoryRows = weeklyHistoryRes.data;
   const weeklyAlbumIds = [
     ...new Set(
       weeklyHistoryRows
@@ -168,7 +176,7 @@ export default async function Home() {
       totalAlbums={albumsCountRes.count ?? 0}
       totalHeadfi={headfiCountRes.count ?? 0}
       monthlyListens={monthlyListens}
-      headfiCategoryRows={(headfiCatsRes.data ?? []) as Pick<Headfi, 'category'>[]}
+      headfiCategoryRows={headfiCatsRes.data as Pick<Headfi, 'category'>[]}
       monthlyListenAlbums={monthlyListenAlbums}
       recentAlbums={(recentAlbumsRes.data ?? []) as Album[]}
       recentHeadfi={(recentHeadfiRes.data ?? []) as Headfi[]}

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAlbumMutations } from '../_hooks/useAlbumMutations';
 import { AlbumList } from './AlbumList';
@@ -168,18 +169,24 @@ export function AlbumsLibraryContent({
         try {
           const client = createClient();
           const [albumRes, artistsRes] = await Promise.all([
-            client
-              .from('album')
-              .select('*')
-              .or('owns_cd.eq.true,owns_lp.eq.true,owns_cassette.eq.true')
-              .order('release_date', { ascending: false }),
-            client.from('artists').select('artist_name, name_alt'),
+            fetchAllRows<Album>(({ countExact }) =>
+              client
+                .from('album')
+                .select('*', selectCountOptions(countExact))
+                .or('owns_cd.eq.true,owns_lp.eq.true,owns_cassette.eq.true')
+                .order('release_date', { ascending: false }),
+            ),
+            fetchAllRows<{ artist_name: string; name_alt: string | null }>(({ countExact }) =>
+              client
+                .from('artists')
+                .select('artist_name, name_alt', selectCountOptions(countExact)),
+            ),
           ]);
-          setLibrary((albumRes.data as Album[]) || []);
+          setLibrary(albumRes.data);
           if (artistsRes.error) {
             setArtistNameAltByName({});
           } else {
-            setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data ?? []));
+            setArtistNameAltByName(buildArtistNameAltMap(artistsRes.data));
           }
         } finally {
           if (!silent) setIsLoading(false);

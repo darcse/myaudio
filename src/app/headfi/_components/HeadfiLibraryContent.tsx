@@ -20,6 +20,7 @@ import { applyGearAccessoryLinks } from '../accessoryLinksCache';
 import { HEADFI_SALE_CATEGORY_OPTIONS, isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { computeWiredPositionCoords, isPositionMapCategory } from '@/lib/headfiPosition';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { invalidateCatalogLibraryCache } from '@/lib/catalogLibraryCache';
 import { getClientErrorMessage } from '@/lib/supabase-error';
@@ -142,8 +143,13 @@ export function HeadfiLibraryContent() {
   const fetchLibrary = useCallback(async () => {
     try {
       const client = createClient();
-      const { data } = await client.from('headfi').select('*').order('created_at', { ascending: false });
-      setLibrary((data as Headfi[]) || []);
+      const { data } = await fetchAllRows<Headfi>(({ countExact }) =>
+        client
+          .from('headfi')
+          .select('*', selectCountOptions(countExact))
+          .order('created_at', { ascending: false }),
+      );
+      setLibrary(data);
     } finally {
       setIsLoading(false);
     }
@@ -172,11 +178,12 @@ export function HeadfiLibraryContent() {
   useEffect(() => {
     const client = createClient();
     if (isAuthenticated === true) {
-      void client
-        .from('headfi_combos')
-        .select(HEADFI_COMBO_SELECT)
-        .order('created_at', { ascending: false })
-        .then(({ data }) => setCombos((data as HeadfiCombo[]) || []));
+      void fetchAllRows<HeadfiCombo>(({ countExact }) =>
+        client
+          .from('headfi_combos')
+          .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
+          .order('created_at', { ascending: false }),
+      ).then(({ data }) => setCombos(data));
     } else {
       setCombos([]);
     }

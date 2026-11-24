@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type React
 import { BarChart3, Disc, Mic2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { getClientErrorMessage } from '@/lib/supabase-error';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
@@ -278,29 +279,46 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
     try {
       const client = createClient();
       const [albumRes, historyRes, artistsRes, headfiRes] = await Promise.all([
-        client.from('album').select('*').order('release_date', { ascending: false }),
-        client.from('album_listen_history').select('album_id, listened_at, headphone_id'),
-        client.from('artists').select('artist_name, profile_image_url'),
-        client.from('headfi').select('id, brand, model, category, image_url'),
+        fetchAllRows<Album>(({ countExact }) =>
+          client
+            .from('album')
+            .select('*', selectCountOptions(countExact))
+            .order('release_date', { ascending: false }),
+        ),
+        fetchAllRows<GearListenHistoryRow>(({ countExact }) =>
+          client
+            .from('album_listen_history')
+            .select('album_id, listened_at, headphone_id', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<{ artist_name: string; profile_image_url: string | null }>(({ countExact }) =>
+          client
+            .from('artists')
+            .select('artist_name, profile_image_url', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<GearSummary & { image_url?: string | null }>(({ countExact }) =>
+          client
+            .from('headfi')
+            .select('id, brand, model, category, image_url', selectCountOptions(countExact)),
+        ),
       ]);
       const errors: string[] = [];
       if (albumRes.error) {
         errors.push('앨범 목록을 불러오지 못했습니다.');
         setAlbums([]);
       } else {
-        setAlbums((albumRes.data ?? []) as Album[]);
+        setAlbums(albumRes.data);
       }
       if (historyRes.error) {
         errors.push('청취 기록을 불러오지 못했습니다.');
         setHistoryRows([]);
       } else {
-        setHistoryRows(historyRes.data ?? []);
+        setHistoryRows(historyRes.data);
       }
       if (artistsRes.error) {
         setArtistProfileUrls({});
       } else {
         const profiles: Record<string, string | null> = {};
-        for (const row of artistsRes.data ?? []) {
+        for (const row of artistsRes.data) {
           const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
           if (!name) continue;
           profiles[name] =
@@ -314,7 +332,7 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
         setGearById(new Map());
       } else {
         const map = new Map<number, GearSummary>();
-        for (const row of headfiRes.data ?? []) {
+        for (const row of headfiRes.data) {
           map.set(row.id, {
             id: row.id,
             brand: row.brand || '',
@@ -343,14 +361,16 @@ export function AlbumStatsContent({ embedded = false, fixedTab }: AlbumStatsCont
   }, []);
 
   const refreshHistory = useCallback(async () => {
-    const { data, error } = await createClient()
-      .from('album_listen_history')
-      .select('album_id, listened_at, headphone_id');
+    const { data, error } = await fetchAllRows<GearListenHistoryRow>(({ countExact }) =>
+      createClient()
+        .from('album_listen_history')
+        .select('album_id, listened_at, headphone_id', selectCountOptions(countExact)),
+    );
     if (error) {
       toast.error('청취 기록을 불러오지 못했습니다.');
       return;
     }
-    setHistoryRows(data ?? []);
+    setHistoryRows(data);
   }, []);
 
   useEffect(() => {

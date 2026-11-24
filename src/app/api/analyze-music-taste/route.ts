@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { analyzeMusicTaste } from '@/lib/gemini';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -14,14 +15,21 @@ function shuffle<T>(items: T[]): T[] {
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('album')
-      .select('genre1, genre2, country, release_date');
+    const { data, error } = await fetchAllRows<{
+      genre1: string | null;
+      genre2: string | null;
+      country: string | null;
+      release_date: string | null;
+    }>(({ countExact }) =>
+      supabase
+        .from('album')
+        .select('genre1, genre2, country, release_date', selectCountOptions(countExact)),
+    );
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    if (!data || data.length === 0) {
+    if (data.length === 0) {
       return NextResponse.json({ error: 'No albums found' }, { status: 404 });
     }
 

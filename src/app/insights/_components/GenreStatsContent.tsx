@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Disc, Trophy, UserCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 import { AlbumDetailModal } from '@/app/albums/_components/AlbumDetailModal';
@@ -336,28 +337,38 @@ export function GenreStatsContent() {
     try {
       const client = createClient();
       const [albumRes, historyRes, artistsRes] = await Promise.all([
-        client.from('album').select('*'),
-        client.from('album_listen_history').select('album_id, listened_at'),
-        client.from('artists').select('artist_name, profile_image_url'),
+        fetchAllRows<Album>(({ countExact }) =>
+          client.from('album').select('*', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<HistoryRow>(({ countExact }) =>
+          client
+            .from('album_listen_history')
+            .select('album_id, listened_at', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<{ artist_name: string; profile_image_url: string | null }>(({ countExact }) =>
+          client
+            .from('artists')
+            .select('artist_name, profile_image_url', selectCountOptions(countExact)),
+        ),
       ]);
       const errors: string[] = [];
       if (albumRes.error) {
         errors.push('앨범 목록을 불러오지 못했습니다.');
         setAlbums([]);
       } else {
-        setAlbums((albumRes.data ?? []) as Album[]);
+        setAlbums(albumRes.data);
       }
       if (historyRes.error) {
         errors.push('청취 기록을 불러오지 못했습니다.');
         setHistoryRows([]);
       } else {
-        setHistoryRows((historyRes.data ?? []) as HistoryRow[]);
+        setHistoryRows(historyRes.data);
       }
       if (artistsRes.error) {
         setArtistProfileUrls({});
       } else {
         const profiles: Record<string, string | null> = {};
-        for (const row of artistsRes.data ?? []) {
+        for (const row of artistsRes.data) {
           const name = typeof row.artist_name === 'string' ? row.artist_name.trim() : '';
           if (!name) continue;
           profiles[name] =
@@ -448,14 +459,16 @@ export function GenreStatsContent() {
   }, [viewingAlbum?.id, viewingAlbum?.manual_recommended_headphone_ids, viewingAlbum?.audio_tags]);
 
   const refreshHistory = useCallback(async () => {
-    const { data, error } = await createClient()
-      .from('album_listen_history')
-      .select('album_id, listened_at');
+    const { data, error } = await fetchAllRows<HistoryRow>(({ countExact }) =>
+      createClient()
+        .from('album_listen_history')
+        .select('album_id, listened_at', selectCountOptions(countExact)),
+    );
     if (error) {
       toast.error('청취 기록을 불러오지 못했습니다.');
       return;
     }
-    setHistoryRows((data ?? []) as HistoryRow[]);
+    setHistoryRows(data);
   }, []);
 
   const openAlbum = useCallback(

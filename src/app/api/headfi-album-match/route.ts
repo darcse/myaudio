@@ -6,6 +6,7 @@ import {
 } from '@/lib/headfiAlbumMatch';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 
 const WIRED_CATEGORIES = new Set(['헤드폰', '이어폰']);
 
@@ -54,7 +55,17 @@ export async function POST(req: NextRequest) {
         .select('id, brand, model, category, fr_interpretation, recommended_genres, status2, trait_warmth, trait_brightness')
         .eq('id', headphoneId)
         .single(),
-      supabase.from('album').select('id, artist, genre1, genre2, audio_tags'),
+      fetchAllRows<{
+        id: number;
+        artist: string | null;
+        genre1: string | null;
+        genre2: string | null;
+        audio_tags: string[] | null;
+      }>(({ countExact }) =>
+        supabase
+          .from('album')
+          .select('id, artist, genre1, genre2, audio_tags', selectCountOptions(countExact)),
+      ),
     ]);
 
     if (dacRes.error || !dacRes.data) {
@@ -77,7 +88,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '보유중인 기기만 추천할 수 있습니다.' }, { status: 400 });
     }
 
-    const albums = albumsRes.data ?? [];
+    const albums = albumsRes.data;
     if (albums.length === 0) {
       return NextResponse.json({ error: '보유 앨범이 없습니다.' }, { status: 404 });
     }

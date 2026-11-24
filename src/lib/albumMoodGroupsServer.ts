@@ -9,6 +9,7 @@ import {
   type ManualMoodPin,
 } from '@/lib/albumMoodMembership';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { generateAlbumMoodGroups, type AlbumMoodGroupRow } from '@/lib/gemini';
 
 type AlbumRow = {
@@ -52,13 +53,16 @@ async function persistGroups(
 async function fetchManualMoodPins(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<ManualMoodPin[]> {
-  const { data, error } = await supabase
-    .from('album')
-    .select('id, mood_name')
-    .eq('mood_manually_set', true);
+  const { data, error } = await fetchAllRows<{ id: number | string; mood_name: string | null }>(
+    ({ countExact }) =>
+      supabase
+        .from('album')
+        .select('id, mood_name', selectCountOptions(countExact))
+        .eq('mood_manually_set', true),
+  );
   if (error) throw new Error(error.message);
   const pins: ManualMoodPin[] = [];
-  for (const row of data ?? []) {
+  for (const row of data) {
     const id = typeof row.id === 'number' ? row.id : parseInt(String(row.id), 10);
     const mood_name = typeof row.mood_name === 'string' ? row.mood_name.trim() : '';
     if (!Number.isInteger(id) || !mood_name) continue;

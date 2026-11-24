@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { BarChart3, Headphones, Package, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import { useAuthState } from '@/hooks/useAuthState';
 import { updateAlbumInDB } from '@/app/albums/actions';
 import type { Album, AlbumFormData } from '@/app/albums/types';
@@ -209,15 +210,21 @@ export function DashboardContent({
     try {
       const client = createClient();
       const [albumRes, historyRes] = await Promise.all([
-        client.from('album').select('*'),
-        client.from('album_listen_history').select('album_id, listened_at'),
+        fetchAllRows<Album>(({ countExact }) =>
+          client.from('album').select('*', selectCountOptions(countExact)),
+        ),
+        fetchAllRows<{ album_id: number | null; listened_at: string | null }>(({ countExact }) =>
+          client
+            .from('album_listen_history')
+            .select('album_id, listened_at', selectCountOptions(countExact)),
+        ),
       ]);
       if (albumRes.error || historyRes.error) {
         toast.error('아티스트 정보를 불러오지 못했습니다.');
         return;
       }
-      setArtistModalAlbums((albumRes.data ?? []) as Album[]);
-      setArtistListenHistoryIndex(buildListenHistoryIndex(historyRes.data ?? []));
+      setArtistModalAlbums(albumRes.data);
+      setArtistListenHistoryIndex(buildListenHistoryIndex(historyRes.data));
       setViewingArtistName(artistName);
     } catch {
       toast.error('아티스트 정보를 불러오지 못했습니다.');
@@ -245,17 +252,20 @@ export function DashboardContent({
         const month = now.getMonth() + 1;
         const monthStart = `${year}-${padMonthDay(month)}-01`;
         const client = createClient();
-        const { data: historyData, error: historyError } = await client
-          .from('album_listen_history')
-          .select('album_id, listened_at, headphone_id')
-          .gte('listened_at', monthStart)
-          .not('headphone_id', 'is', null);
+        const { data: historyData, error: historyError } = await fetchAllRows<GearListenHistoryRow>(
+          ({ countExact }) =>
+            client
+              .from('album_listen_history')
+              .select('album_id, listened_at, headphone_id', selectCountOptions(countExact))
+              .gte('listened_at', monthStart)
+              .not('headphone_id', 'is', null),
+        );
         if (cancelled) return;
         if (historyError) {
           setMonthlyReceivers([]);
           return;
         }
-        const historyRows = (historyData ?? []) as GearListenHistoryRow[];
+        const historyRows = historyData;
         const headfiIds = [
           ...new Set(
             historyRows

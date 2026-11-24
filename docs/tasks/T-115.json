@@ -1,0 +1,29 @@
+{
+  "id": "T-115",
+  "goal": "감상 기록에서 소스 없이 DAP 단독(예: M33 R2R) 조합을 고르면 그 DAP가 DAC/AMP 칸이 아닌 소스 칸에 채워져, 기존 기록 방식(DAP 단독 = 소스 칸)과 일치한다.",
+  "context": "T-114 변경분은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 수정하며, 커밋은 T-114+T-115를 한 번에 한다.\n\n원인: src/lib/listenHistoryCombo.ts fillListenHistoryFromCombo는 조합 source_id가 없고 기기가 'Source' 카테고리일 때만 소스 칸으로 옮긴다. 감상 기록의 소스 칸 기준(src/lib/listenHistoryGear.ts LISTEN_HISTORY_SOURCE_CATEGORIES = ['Source','DAP'])과 달라, DAP 단독 조합이 DAC/AMP 칸에 들어간다. JW의 기존 기록은 DAP 단독 청취를 소스 칸에 넣어왔다(M33 R2R 122건).\n\n요구사항:\n1) fillListenHistoryFromCombo: 조합 source_id가 없을 때 기기1이 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)에 속하면 소스 칸으로. 상수를 직접 재사용(문자열 하드코딩 지양). 소스가 있는 조합의 DAP(기기1)는 지금처럼 DAC/AMP 칸.\n2) 기기2는 대상 아님(현행 유지).\n3) 다른 채움·해제 규칙 변경 없음.",
+  "scope": {
+    "in": [
+      "DAP 단독 조합의 소스 칸 채움 규칙 수정"
+    ],
+    "out": [
+      "DB 스키마·데이터 변경 절대 금지(소급은 플래너가 별도 SQL로 수행)",
+      "LISTEN_HISTORY_*_CATEGORIES 상수 변경 금지",
+      "T-114 변경분 되돌리기 금지",
+      "매칭 프롬프트·조합 관리 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "git 쓰기 금지(auto_commit=false). T-114와 함께 승인 후 커밋"
+    ]
+  },
+  "done": [
+    "감상 기록에서 'M33 R2R' 단독 조합을 고르면 소스 칸에 M33이 채워지고 DAC/AMP 칸은 빈다",
+    "소스가 있는 조합(예: M33 R2R → Neo iDSD 2)은 기존처럼 M33=소스, Neo iDSD 2=DAC/AMP로 채워진다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 인사이트 조합 랭킹 및 DAP 단독 조합 소스 칸 채움",
+  "status": "done",
+  "result": "fillListenHistoryFromCombo: 기기1은 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)면 소스 칸. 기기2 Source 승격은 현행 유지. combo.source_id 있으면 DAP는 DAC/AMP.\nT-114 변경분 유지.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nJW 커밋 지시 → T-114+T-115 함께 커밋·푸시."
+}

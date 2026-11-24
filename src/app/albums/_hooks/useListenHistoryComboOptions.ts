@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import {
   buildGearByIdMap,
   buildListenHistoryComboLabels,
@@ -29,11 +30,20 @@ export function useListenHistoryComboOptions(isAuthenticated: boolean | null) {
     }
     const client = createClient();
     void Promise.all([
-      client.from('headfi_combos').select(HEADFI_COMBO_SELECT).order('created_at', { ascending: false }),
-      client.from('headfi').select('id, brand, model, category, status2'),
+      fetchAllRows<HeadfiCombo>(({ countExact }) =>
+        client
+          .from('headfi_combos')
+          .select(HEADFI_COMBO_SELECT, selectCountOptions(countExact))
+          .order('created_at', { ascending: false }),
+      ),
+      fetchAllRows<Headfi>(({ countExact }) =>
+        client
+          .from('headfi')
+          .select('id, brand, model, category, status2', selectCountOptions(countExact)),
+      ),
     ]).then(([comboRes, gearRes]) => {
-      setCombos((comboRes.data as HeadfiCombo[]) ?? []);
-      setGearLibrary((gearRes.data as Headfi[]) ?? []);
+      setCombos(comboRes.data);
+      setGearLibrary(gearRes.data);
     });
   }, [isAuthenticated]);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
 import type { Album } from '@/app/albums/types';
 
 export type CatalogArtistMetaRow = {
@@ -92,9 +93,22 @@ export function writeCatalogLibraryCache(data: CatalogLibraryData) {
 async function fetchCatalogLibraryData(userId: string | null): Promise<CatalogLibraryData> {
   const client = createClient();
   const [albumRes, historyRes, artistsRes] = await Promise.all([
-    client.from('album').select('*').order('created_at', { ascending: false }),
-    client.from('album_listen_history').select('album_id, listened_at'),
-    client.from('artists').select('artist_name, name_alt, profile_image_url'),
+    fetchAllRows<Album>(({ countExact }) =>
+      client
+        .from('album')
+        .select('*', selectCountOptions(countExact))
+        .order('created_at', { ascending: false }),
+    ),
+    fetchAllRows<CatalogListenHistoryRow>(({ countExact }) =>
+      client
+        .from('album_listen_history')
+        .select('album_id, listened_at', selectCountOptions(countExact)),
+    ),
+    fetchAllRows<CatalogArtistMetaRow>(({ countExact }) =>
+      client
+        .from('artists')
+        .select('artist_name, name_alt, profile_image_url', selectCountOptions(countExact)),
+    ),
   ]);
 
   if (albumRes.error) {
@@ -102,11 +116,9 @@ async function fetchCatalogLibraryData(userId: string | null): Promise<CatalogLi
   }
 
   return {
-    albums: (albumRes.data as Album[]) ?? [],
-    artistsMeta: (artistsRes.error ? [] : (artistsRes.data ?? [])) as CatalogArtistMetaRow[],
-    listenHistory: (historyRes.error
-      ? []
-      : (historyRes.data ?? [])) as CatalogListenHistoryRow[],
+    albums: albumRes.data,
+    artistsMeta: artistsRes.error ? [] : artistsRes.data,
+    listenHistory: historyRes.error ? [] : historyRes.data,
     userId,
   };
 }

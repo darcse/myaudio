@@ -1,29 +1,33 @@
 {
-  "id": "T-115",
-  "goal": "감상 기록에서 소스 없이 DAP 단독(예: M33 R2R) 조합을 고르면 그 DAP가 DAC/AMP 칸이 아닌 소스 칸에 채워져, 기존 기록 방식(DAP 단독 = 소스 칸)과 일치한다.",
-  "context": "T-114 변경분은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 수정하며, 커밋은 T-114+T-115를 한 번에 한다.\n\n원인: src/lib/listenHistoryCombo.ts fillListenHistoryFromCombo는 조합 source_id가 없고 기기가 'Source' 카테고리일 때만 소스 칸으로 옮긴다. 감상 기록의 소스 칸 기준(src/lib/listenHistoryGear.ts LISTEN_HISTORY_SOURCE_CATEGORIES = ['Source','DAP'])과 달라, DAP 단독 조합이 DAC/AMP 칸에 들어간다. JW의 기존 기록은 DAP 단독 청취를 소스 칸에 넣어왔다(M33 R2R 122건).\n\n요구사항:\n1) fillListenHistoryFromCombo: 조합 source_id가 없을 때 기기1이 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)에 속하면 소스 칸으로. 상수를 직접 재사용(문자열 하드코딩 지양). 소스가 있는 조합의 DAP(기기1)는 지금처럼 DAC/AMP 칸.\n2) 기기2는 대상 아님(현행 유지).\n3) 다른 채움·해제 규칙 변경 없음.",
+  "id": "T-116",
+  "goal": "감상 기록이나 앨범이 1,000건을 넘어도 통계·대시보드·다이어리 등 모든 화면과 API가 전체 데이터를 기준으로 집계·표시한다(Supabase 기본 1,000행 제한으로 잘리지 않음).",
+  "context": "버그: Supabase(PostgREST)는 range/limit 없는 select를 최대 1,000행으로 자른다. 2026-11-25 기준 album_listen_history 1,057건, album 853건. 그 결과 인사이트 사용 탭 조합 랭킹이 DB보다 적게 나옴(예: M33 R2R 단독 DB 122건 → 화면 117회, iPhone Air → Go Blu Air 131건 → 125회). 같은 원인으로 다른 통계도 조용히 덜 세어지고 있음.\n\n확인된 album_listen_history 전체 조회 위치(전수 아님, 시작점):\n- src/app/headfi/stats/_components/HeadfiUsageStatsContent.tsx(약 77행)\n- src/app/albums/stats/_components/AlbumStatsContent.tsx(약 282, 348행)\n- src/app/insights/_components/GenreStatsContent.tsx(약 340, 453행)\n- src/app/_components/DashboardContent.tsx(약 213, 250행)\n- src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 171행)\n- src/lib/catalogLibraryCache.ts(약 96행)\n- src/app/api/monthly-review-comment/route.ts(약 117행)\n- src/app/page.tsx(약 87행)\nalbum 테이블 전체 조회도 다수(GenreStatsContent, DashboardContent, api/headfi-album-recommend, api/headfi-album-match, api/mood-recommend, api/album-mood-groups, api/analyze-music-taste, artists 등) — 곧 1,000건을 넘음.\n\n요구사항:\n1) 공용 페이지네이션 헬퍼 1개(예: src/lib/supabase/fetchAllRows.ts). 쿼리 빌더를 받아 .range()로 1,000건씩 끝까지 가져온다. 첫 요청에 count: 'exact'로 전체 건수를 받고 나머지 페이지는 병렬 요청(Promise.all). 정렬이 있으면 유지, 없으면 페이지 간 중복·누락이 없도록 안정 정렬 키(id 등)를 보장. 클라이언트·서버(route) 양쪽에서 쓸 수 있게.\n2) album_listen_history와 album을 'eq 등 조건 없이 전체' 또는 '결과가 1,000행을 넘을 수 있는 조건'으로 읽는 곳을 레포 전체에서 전수조사해 헬퍼로 교체. 단건·앨범별(eq album_id)·limit이 명시된 조회는 제외. headfi·artists 등 다른 테이블도 1,000행을 넘을 수 있는 전체 조회가 있으면 목록만 result에 보고(교체는 판단, 기본안은 함께 교체).\n3) result에 교체한 위치 목록(파일:행)과 제외한 위치·이유를 표로.\n4) 집계 로직·화면 표시는 변경하지 않는다(데이터가 전부 들어오게만).\n5) select 컬럼은 기존과 동일하게 유지(필요 이상으로 늘리지 말 것).",
   "scope": {
     "in": [
-      "DAP 단독 조합의 소스 칸 채움 규칙 수정"
+      "공용 전체 조회 헬퍼",
+      "album_listen_history·album 전체 조회 위치 전수 교체",
+      "기타 테이블 1,000행 초과 가능 조회 보고(기본 교체)"
     ],
     "out": [
-      "DB 스키마·데이터 변경 절대 금지(소급은 플래너가 별도 SQL로 수행)",
-      "LISTEN_HISTORY_*_CATEGORIES 상수 변경 금지",
-      "T-114 변경분 되돌리기 금지",
-      "매칭 프롬프트·조합 관리 변경 금지",
+      "DB 스키마·데이터 변경 절대 금지",
+      "DB 함수(RPC)·뷰 추가 금지(DB 집계 전환은 범위 밖)",
+      "집계·랭킹·표시 로직 변경 금지",
+      "select 컬럼 추가·삭제 금지",
+      "단건·album_id별·limit 명시 조회 변경 금지",
       "window.confirm / alert / prompt 금지",
       "전체 파일 재작성 금지, 최소 수정",
       "result에 '커밋 승인' 줄 작성 금지",
-      "git 쓰기 금지(auto_commit=false). T-114와 함께 승인 후 커밋"
+      "git 쓰기 금지(auto_commit=false)"
     ]
   },
   "done": [
-    "감상 기록에서 'M33 R2R' 단독 조합을 고르면 소스 칸에 M33이 채워지고 DAC/AMP 칸은 빈다",
-    "소스가 있는 조합(예: M33 R2R → Neo iDSD 2)은 기존처럼 M33=소스, Neo iDSD 2=DAC/AMP로 채워진다",
+    "인사이트 사용 탭 조합 랭킹에서 M33 R2R 단독이 122회, iPhone Air → Go Blu Air가 131회(2026 전체 기준)로 DB와 일치한다",
+    "album_listen_history·album 전체 조회 위치가 모두 헬퍼를 쓰고, result에 교체·제외 목록이 있다",
+    "기존 통계 화면이 오류 없이 열리고 숫자가 이전보다 같거나 크다(줄지 않는다)",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 인사이트 조합 랭킹 및 DAP 단독 조합 소스 칸 채움",
+  "commit_message": "(fix): Supabase 1,000행 제한으로 통계가 잘리던 문제 수정",
   "status": "done",
-  "result": "fillListenHistoryFromCombo: 기기1은 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)면 소스 칸. 기기2 Source 승격은 현행 유지. combo.source_id 있으면 DAP는 DAC/AMP.\nT-114 변경분 유지.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nJW 커밋 지시 → T-114+T-115 함께 커밋·푸시."
+  "result": "공용 헬퍼: src/lib/supabase/fetchAllRows.ts (PAGE=1000, 첫 페이지 count exact, 나머지 Promise.all, 기본 order id).\n\n## 교체\n| 위치 | 테이블 |\n|---|---|\n| HeadfiUsageStatsContent fetchData | album_listen_history, headfi, headfi_combos |\n| AlbumStatsContent fetchData·refreshHistory | album, album_listen_history, artists, headfi |\n| GenreStatsContent fetchData·refreshHistory | album, album_listen_history, artists |\n| DashboardContent openArtistByName·월간 리시버 | album, album_listen_history |\n| AlbumDiaryContent fetchData | album, album_listen_history, headfi |\n| catalogLibraryCache fetchCatalogLibraryData | album, album_listen_history, artists |\n| page.tsx weeklyHistory·headfiCats | album_listen_history(주간), headfi |\n| monthly-review-comment listen | album_listen_history(월) |\n| albumLotteryDraw filter selects | album |\n| analyze-music-taste / mood-recommend / headfi-album-recommend·match / album-mood-groups GET·POST | album (+ mood-recommend headfi) |\n| albumMoodGroupsServer fetchManualMoodPins | album(mood_manually_set) |\n| AlbumsLibraryContent physicalOwned | album, artists |\n| HeadfiLibraryContent fetchLibrary·combos | headfi, headfi_combos |\n| HeadfiMatchContent / HeadfiMapContent | headfi, headfi_match_cache, headfi_combos |\n| useListenHistoryComboOptions / useHeadfiComboOptions | headfi_combos, headfi |\n| headfiTrendData listYears·yearMonths·monthly | headfi, accessories, sales |\n\n## 제외\n| 위치 | 이유 |\n|---|---|\n| AlbumListenHistorySection | eq album_id |\n| page.tsx count head / limit 80·2 | head:true 또는 limit 명시 |\n| ReceiverComboSelect | limit 30 |\n| diary/stats/api 단건 update·delete·eq id | 단건·mutation |\n| album .in(id) / .eq(id) / winner limit 1 | 단건·id 목록 |\n| HeadfiLibrary wireless matching eq category | 소량 필터 |\n| ArtistsLibrary/updateArtist* eq artist·composer | 아티스트 단위 |\n| albumEnrichment·lyrics·GlobalAlbumDetail 등 | 단건/소량 |\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261125_0045 (fix): Supabase 1,000행 제한으로 통계가 잘리던 문제 수정"
 }
