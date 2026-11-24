@@ -18,6 +18,7 @@ export const COMBO_SOURCE_LINK_OPTIONS = [
   '광(옵티컬)',
   '동축',
   '아날로그 라인아웃',
+  '포노 아웃',
   '블루투스',
 ] as const;
 
@@ -44,6 +45,7 @@ export function normalizeComboOptionValue(
 function shortenConnectionLabel(value: string): string {
   if (value === '광(옵티컬)') return '광';
   if (value === '아날로그 라인아웃') return '라인';
+  if (value === '포노 아웃') return '포노';
   if (value === '4.4mm to 4.4mm') return '4.4';
   if (value === '로컬 파일') return '로컬';
   return value;

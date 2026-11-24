@@ -204,8 +204,8 @@ export function HeadfiComboManageSection({
   }, [sourceId]);
 
   useEffect(() => {
-    if (!select2Id) setDeviceLink('');
-  }, [select2Id]);
+    if (!select1Id) setDeviceLink('');
+  }, [select1Id]);
 
   const handleAdd = async () => {
     if (isAuthenticated !== true) {
@@ -323,7 +323,7 @@ export function HeadfiComboManageSection({
           className="mb-4 space-y-3 rounded-xl p-3 sm:p-4"
           style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
         >
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-80">소스 (선택)</label>
               <select
@@ -339,6 +339,20 @@ export function HeadfiComboManageSection({
                 ))}
               </select>
             </div>
+            <ComboOptionSelect
+              label="매체 (선택)"
+              value={sourceMedia}
+              options={COMBO_SOURCE_MEDIA_OPTIONS}
+              onChange={setSourceMedia}
+              disabled={!sourceId}
+            />
+            <ComboOptionSelect
+              label="소스 → 기기1 연결 (선택)"
+              value={sourceLink}
+              options={COMBO_SOURCE_LINK_OPTIONS}
+              onChange={setSourceLink}
+              disabled={!sourceId}
+            />
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-80">기기 1 (필수)</label>
               <select
@@ -354,6 +368,13 @@ export function HeadfiComboManageSection({
                 ))}
               </select>
             </div>
+            <ComboOptionSelect
+              label="기기1 → 기기2 연결 (선택)"
+              value={deviceLink}
+              options={COMBO_DEVICE_LINK_OPTIONS}
+              onChange={setDeviceLink}
+              disabled={!select1Id}
+            />
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-80">기기 2 (선택)</label>
               <select
@@ -372,34 +393,6 @@ export function HeadfiComboManageSection({
               </select>
             </div>
           </div>
-          {sourceId || select2Id ? (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {sourceId ? (
-                <>
-                  <ComboOptionSelect
-                    label="매체 (선택)"
-                    value={sourceMedia}
-                    options={COMBO_SOURCE_MEDIA_OPTIONS}
-                    onChange={setSourceMedia}
-                  />
-                  <ComboOptionSelect
-                    label="소스 연결 (선택)"
-                    value={sourceLink}
-                    options={COMBO_SOURCE_LINK_OPTIONS}
-                    onChange={setSourceLink}
-                  />
-                </>
-              ) : null}
-              {select2Id ? (
-                <ComboOptionSelect
-                  label="기기 간 연결 (선택)"
-                  value={deviceLink}
-                  options={COMBO_DEVICE_LINK_OPTIONS}
-                  onChange={setDeviceLink}
-                />
-              ) : null}
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -514,14 +507,34 @@ export function HeadfiComboManageSection({
                           ) : null}
                         </div>
                         {linksDirty ? (
-                          <button
-                            type="button"
-                            className="btn-apple btn-apple-secondary h-[32px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={isSavingLinks || deletingId != null}
-                            onClick={() => void handleSaveLinks(combo)}
-                          >
-                            {isSavingLinks ? '저장 중…' : '연결 저장'}
-                          </button>
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                className="btn-apple btn-apple-secondary h-[32px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={isSavingLinks || deletingId != null}
+                                onClick={() => void handleSaveLinks(combo)}
+                              >
+                                {isSavingLinks ? '저장 중…' : '연결 저장'}
+                              </button>
+                              <button
+                                type="button"
+                                className="rounded-lg px-2 py-1 text-xs font-medium opacity-70 transition-opacity hover:opacity-100 disabled:opacity-40"
+                                disabled={isSavingLinks || deletingId != null}
+                                onClick={() =>
+                                  setLinkDrafts((prev) => ({
+                                    ...prev,
+                                    [combo.id]: baseline,
+                                  }))
+                                }
+                              >
+                                취소
+                              </button>
+                            </div>
+                            <p className="text-[11px] opacity-55">
+                              저장하면 이 조합의 매칭 점수가 초기화됩니다
+                            </p>
+                          </div>
                         ) : null}
                       </>
                     ) : (

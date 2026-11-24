@@ -221,6 +221,9 @@ function buildSourceLinkRuleLine(sourceLink: string, sourceName: string, name1: 
   if (sourceLink === '아날로그 라인아웃') {
     return `- 소스→기기 1 연결: 아날로그 라인아웃. 소스 "${sourceName}"의 DAC·아날로그 음색이 반영됨.`;
   }
+  if (sourceLink === '포노 아웃') {
+    return `- 소스→기기 1 연결: 포노 아웃. 소스 "${sourceName}"는 포노 레벨(RIAA 미보정) 신호를 출력하므로 기기 1 "${name1}"이 포노 앰프(증폭·RIAA 보정) 역할을 하는 것으로 해석하고, 기기 1에 포노 입력이 없으면 매칭이 성립하기 어려운 점을 감안.`;
+  }
   if (sourceLink === '블루투스') {
     return `- 소스→기기 1 연결: 블루투스(무선). 코덱 손실 가능성을 고려.`;
   }

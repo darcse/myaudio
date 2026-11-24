@@ -38,11 +38,6 @@ export function HeadfiMapContent() {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (searchParams.get('tab') !== 'combos') return;
-    router.replace('/headfi/combos');
-  }, [router, searchParams]);
-
   const setActiveTab = useCallback(
     (tab: MapTab) => {
       const sp = new URLSearchParams(searchParams.toString());
