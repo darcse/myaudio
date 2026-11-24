@@ -1,5 +1,10 @@
 import type { Album } from '@/app/albums/types';
 import { buildListenHistoryIndex } from '@/app/artists/utils';
+import {
+  buildListenHistoryComboLabels,
+  formatListenHistoryComboBaseLabel,
+} from '@/app/headfi/headfiComboUtils';
+import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
 import { isDacAmpOnlyCategory } from '@/lib/headfiMatchScore';
 import {
   LISTEN_HISTORY_MEDIA_OPTIONS,
@@ -47,6 +52,7 @@ export type GearListenHistoryRow = HistoryRow & {
   dac_amp_id?: number | null;
   dac_amp2_id?: number | null;
   source_id?: number | null;
+  combo_id?: string | null;
   media?: string | null;
 };
 
@@ -219,6 +225,54 @@ export function buildSourceListenRankings(
     (category) => (LISTEN_HISTORY_SOURCE_CATEGORIES as readonly string[]).includes(category),
     limit,
   );
+}
+
+function comboIdToRankKey(comboId: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < comboId.length; i += 1) {
+    hash ^= comboId.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash === 0 ? -1 : hash;
+}
+
+export function buildComboListenRankings(
+  historyRows: GearListenHistoryRow[],
+  comboById: Map<string, HeadfiCombo>,
+  gearById: Map<number, Headfi>,
+  limit = GEAR_LISTEN_RANKING_LIMIT,
+): GearListenRankItem[] {
+  const counts = new Map<string, number>();
+  for (const row of historyRows) {
+    const comboId = row.combo_id?.trim();
+    if (!comboId) continue;
+    counts.set(comboId, (counts.get(comboId) ?? 0) + 1);
+  }
+
+  const rankedCombos: HeadfiCombo[] = [];
+  for (const comboId of counts.keys()) {
+    const combo = comboById.get(comboId);
+    if (combo) rankedCombos.push(combo);
+  }
+  const labels = buildListenHistoryComboLabels(rankedCombos, gearById, { markDeleted: true });
+
+  const items: GearListenRankItem[] = [];
+  for (const [comboId, listenCount] of counts.entries()) {
+    const combo = comboById.get(comboId);
+    const label = combo
+      ? (labels.get(comboId) ?? formatListenHistoryComboBaseLabel(combo, gearById))
+      : '알 수 없는 조합';
+    items.push({
+      headfiId: comboIdToRankKey(comboId),
+      brand: '',
+      model: label,
+      category: '',
+      imageUrl: null,
+      listenCount,
+    });
+  }
+
+  return sortGearListenRankItems(items, limit);
 }
 
 export function buildMediaListenRankings(

@@ -1,30 +1,29 @@
 {
-  "id": "T-113",
-  "goal": "감상 기록의 조합 선택 목록이 '모델명 → 모델명 + 모델명' 형태로 짧게 보인다(예: Mac mini M6 → EH2 + ZEN CAN Studio).",
-  "context": "T-112 변경분은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 수정하며, 커밋은 T-112+T-113을 한 번에 한다.\n\n현재: src/app/albums/_hooks/useListenHistoryComboOptions.ts가 formatComboLabel(브랜드+모델+(카테고리) + 연결 정보 suffix)을 사용해 라벨이 길다. 예: 'Apple Mac mini M6 (Source) → SHANLING EH2 (DAC/AMP) + iFi ZEN CAN Studio (AMP) · 스트리밍 · USB · XLR'.\n\n요구사항:\n1) 감상 기록 조합 select 라벨만 짧은 형식으로: 각 기기는 model만(model이 비면 brand), 카테고리·연결·매체 정보 없음. 구성은 '소스 → 기기1 + 기기2', 소스 없으면 '기기1 + 기기2'. headfiComboUtils의 기존 formatGearMapLabel/formatComboWithOptionalSource 재사용을 우선 검토(연결 suffix 없는 변형).\n2) 짧은 라벨이 같은 조합이 2개 이상이면(연결·매체만 다른 경우) 그 조합들에만 축약 연결 정보를 덧붙여 구분(formatComboConnectionSuffix compact 재사용).\n3) 기록에 저장된 조합이 목록에 없을 때 표시하는 orphan 라벨도 같은 짧은 형식.\n4) 조합 관리 화면·매칭맵·헤드폰 매칭기기 표시 라벨은 변경 금지.",
+  "id": "T-115",
+  "goal": "감상 기록에서 소스 없이 DAP 단독(예: M33 R2R) 조합을 고르면 그 DAP가 DAC/AMP 칸이 아닌 소스 칸에 채워져, 기존 기록 방식(DAP 단독 = 소스 칸)과 일치한다.",
+  "context": "T-114 변경분은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 수정하며, 커밋은 T-114+T-115를 한 번에 한다.\n\n원인: src/lib/listenHistoryCombo.ts fillListenHistoryFromCombo는 조합 source_id가 없고 기기가 'Source' 카테고리일 때만 소스 칸으로 옮긴다. 감상 기록의 소스 칸 기준(src/lib/listenHistoryGear.ts LISTEN_HISTORY_SOURCE_CATEGORIES = ['Source','DAP'])과 달라, DAP 단독 조합이 DAC/AMP 칸에 들어간다. JW의 기존 기록은 DAP 단독 청취를 소스 칸에 넣어왔다(M33 R2R 122건).\n\n요구사항:\n1) fillListenHistoryFromCombo: 조합 source_id가 없을 때 기기1이 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)에 속하면 소스 칸으로. 상수를 직접 재사용(문자열 하드코딩 지양). 소스가 있는 조합의 DAP(기기1)는 지금처럼 DAC/AMP 칸.\n2) 기기2는 대상 아님(현행 유지).\n3) 다른 채움·해제 규칙 변경 없음.",
   "scope": {
     "in": [
-      "감상 기록 조합 select·orphan 라벨 짧은 형식",
-      "중복 라벨만 연결 정보로 구분"
+      "DAP 단독 조합의 소스 칸 채움 규칙 수정"
     ],
     "out": [
-      "조합 관리·매칭맵·매칭기기 라벨 변경 금지(formatComboLabel 등 기존 함수 동작 변경 금지, 새 함수로 추가)",
-      "T-112 동작(채움·해제·저장 규칙) 변경 금지",
-      "DB 스키마 변경 절대 금지",
+      "DB 스키마·데이터 변경 절대 금지(소급은 플래너가 별도 SQL로 수행)",
+      "LISTEN_HISTORY_*_CATEGORIES 상수 변경 금지",
+      "T-114 변경분 되돌리기 금지",
+      "매칭 프롬프트·조합 관리 변경 금지",
       "window.confirm / alert / prompt 금지",
       "전체 파일 재작성 금지, 최소 수정",
       "result에 '커밋 승인' 줄 작성 금지",
-      "git 쓰기 금지(auto_commit=false). T-112와 함께 승인 후 커밋"
+      "git 쓰기 금지(auto_commit=false). T-114와 함께 승인 후 커밋"
     ]
   },
   "done": [
-    "감상 기록 조합 목록이 'Mac mini M6 → EH2 + ZEN CAN Studio'처럼 모델명만으로 보인다",
-    "짧은 라벨이 겹치는 조합만 축약 연결 정보가 붙어 구분된다",
-    "조합 관리·매칭맵 라벨은 그대로다",
+    "감상 기록에서 'M33 R2R' 단독 조합을 고르면 소스 칸에 M33이 채워지고 DAC/AMP 칸은 빈다",
+    "소스가 있는 조합(예: M33 R2R → Neo iDSD 2)은 기존처럼 M33=소스, Neo iDSD 2=DAC/AMP로 채워진다",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 감상 기록 조합 선택 및 combo_id 기록",
+  "commit_message": "(feat): 인사이트 조합 랭킹 및 DAP 단독 조합 소스 칸 채움",
   "status": "done",
-  "result": "formatListenHistoryComboBaseLabel 추가(formatGearMapLabel + formatComboWithOptionalSource, suffix 없음). 기존 formatComboLabel/Map/Pairing 미변경.\nuseListenHistoryComboOptions: 목록은 base 라벨, 중복 base만 compact connection suffix. orphan(getComboLabel)도 base 형식.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함(T-112와 함께 승인 후).\n\ngit: headfiComboUtils.ts, useListenHistoryComboOptions.ts (+ T-112 미커밋 파일 유지)\n\n커밋 승인: 261125_0017 (feat): 감상 기록 조합 선택 및 combo_id 기록 (T-112+T-113 변경분)"
+  "result": "fillListenHistoryFromCombo: 기기1은 LISTEN_HISTORY_SOURCE_CATEGORIES(Source·DAP)면 소스 칸. 기기2 Source 승격은 현행 유지. combo.source_id 있으면 DAP는 DAC/AMP.\nT-114 변경분 유지.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nJW 커밋 지시 → T-114+T-115 함께 커밋·푸시."
 }

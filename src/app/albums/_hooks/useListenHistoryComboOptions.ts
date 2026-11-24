@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   buildGearByIdMap,
-  formatComboConnectionSuffix,
+  buildListenHistoryComboLabels,
   formatListenHistoryComboBaseLabel,
   HEADFI_COMBO_SELECT,
   isActiveHeadfiCombo,
@@ -43,20 +43,10 @@ export function useListenHistoryComboOptions(isAuthenticated: boolean | null) {
     const active = combos.filter(
       (combo) => isActiveHeadfiCombo(combo) && !isReleasedHeadfiCombo(combo, gearById),
     );
-    const withBase = active.map((combo) => ({
-      combo,
-      base: formatListenHistoryComboBaseLabel(combo, gearById),
-    }));
-    const baseCounts = new Map<string, number>();
-    for (const item of withBase) {
-      baseCounts.set(item.base, (baseCounts.get(item.base) ?? 0) + 1);
-    }
-    return withBase.map(({ combo, base }) => ({
+    const labels = buildListenHistoryComboLabels(active, gearById);
+    return active.map((combo) => ({
       id: combo.id,
-      label:
-        (baseCounts.get(base) ?? 0) > 1
-          ? base + formatComboConnectionSuffix(combo, true)
-          : base,
+      label: labels.get(combo.id) ?? formatListenHistoryComboBaseLabel(combo, gearById),
     }));
   }, [combos, gearById]);
 

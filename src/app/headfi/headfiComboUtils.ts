@@ -223,6 +223,33 @@ export function formatListenHistoryComboBaseLabel(
   return formatComboWithOptionalSource(combo, gearById, formatGearMapLabel);
 }
 
+export function buildListenHistoryComboLabels(
+  combos: HeadfiCombo[],
+  gearById: Map<number, Headfi>,
+  options?: { markDeleted?: boolean },
+): Map<string, string> {
+  const withBase = combos.map((combo) => ({
+    combo,
+    base: formatListenHistoryComboBaseLabel(combo, gearById),
+  }));
+  const baseCounts = new Map<string, number>();
+  for (const item of withBase) {
+    baseCounts.set(item.base, (baseCounts.get(item.base) ?? 0) + 1);
+  }
+  const labels = new Map<string, string>();
+  for (const { combo, base } of withBase) {
+    let label =
+      (baseCounts.get(base) ?? 0) > 1
+        ? base + formatComboConnectionSuffix(combo, true)
+        : base;
+    if (options?.markDeleted && !isActiveHeadfiCombo(combo)) {
+      label = `${label} (삭제됨)`;
+    }
+    labels.set(combo.id, label);
+  }
+  return labels;
+}
+
 export function buildGearByIdMap(library: Headfi[]): Map<number, Headfi> {
   return new Map(library.map((item) => [item.id, item]));
 }

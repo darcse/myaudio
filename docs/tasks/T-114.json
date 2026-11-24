@@ -1,0 +1,32 @@
+{
+  "id": "T-114",
+  "feature_id": "STATS-003",
+  "goal": "인사이트 > 사용 탭에서 '최다 사용 소스 기기' 랭킹 자리에 조합별 청취 횟수 랭킹이 표시되고, 기간(연·월)별로 볼 수 있다.",
+  "context": "데이터: album_listen_history.combo_id(uuid, headfi_combos.id). 기존 기록 중 309건은 소급으로 채워짐, 이후 감상 기록 폼에서 조합 선택 시 저장됨.\n\n대상(확인됨):\n- src/app/insights/page.tsx: tab==='usage' → HeadfiUsageStatsContent embedded.\n- src/app/headfi/stats/_components/HeadfiUsageStatsContent.tsx: album_listen_history를 'album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, media'로 조회, periodFilter(연·월)·rankingLimit으로 리시버·DAC/AMP·소스·매체 랭킹 표시.\n- src/app/albums/stats/albumListenStats.ts: build*ListenRankings, filterGearHistoryByPeriod 등 랭킹 유틸.\n- 조합 라벨: src/app/headfi/headfiComboUtils.ts formatListenHistoryComboBaseLabel(+겹칠 때 formatComboConnectionSuffix compact). 같은 규칙이 src/app/albums/_hooks/useListenHistoryComboOptions.ts에 있음 → 라벨 생성 로직을 공용 함수로 빼서 두 곳이 같이 쓰도록(판단).\n\n요구사항:\n1) 조회 select에 combo_id 추가, headfi_combos는 삭제된 것 포함 전체 조회(HEADFI_COMBO_SELECT).\n2) 화면의 소스 랭킹(sourceRanking) 카드를 제거하고 그 자리에 같은 컴포넌트·형태로 '조합' 랭킹을 표시. 같은 periodFilter·rankingLimit 적용. combo_id 없는 기록은 집계 제외. buildSourceListenRankings 등 소스 랭킹 계산 유틸은 삭제하지 않는다(다른 곳에서 쓰이는지 확인해 result에 기록, 이 화면에서만 호출 제거).\n3) 라벨은 감상 기록 조합 선택과 같은 짧은 형식. 삭제된 조합도 기록이 있으면 표시(라벨 그대로, 필요 시 '(삭제됨)' 짧게).\n4) 항목 클릭 동작은 없어도 됨(기존 리시버의 기기 모달 같은 동작 추가 금지).\n5) 빈 상태: 기간 내 조합 기록이 없으면 기존 랭킹들과 같은 빈 상태 표시.",
+  "scope": {
+    "in": [
+      "사용 탭 소스 랭킹 카드 → 조합 랭킹으로 교체",
+      "조합 짧은 라벨 공용화"
+    ],
+    "out": [
+      "DB 스키마·데이터 변경 절대 금지",
+      "리시버·DAC/AMP·매체 랭킹 집계 로직 변경 금지, 소스 랭킹 유틸 삭제 금지",
+      "다른 인사이트 탭 변경 금지",
+      "감상 기록 조합 선택 동작 변경 금지(라벨 공용화로 인한 동일 결과 유지)",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "인사이트 사용 탭에서 소스 랭킹이 사라지고 같은 자리에 조합 랭킹이 보이며 연·월 필터에 따라 바뀐다",
+    "조합 라벨이 감상 기록 조합 선택과 같은 짧은 형식이다(라벨 로직 한 곳)",
+    "리시버·DAC/AMP·매체 랭킹 결과가 변경 전과 같다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 인사이트 사용 통계 소스 랭킹을 조합 랭킹으로 교체",
+  "status": "done",
+  "result": "buildListenHistoryComboLabels 공용화(headfiComboUtils) → useListenHistoryComboOptions·조합 랭킹 공유.\nHeadfiUsageStatsContent: combo_id·headfi_combos(삭제 포함) 조회, 소스 카드→조합 랭킹(클릭 없음, 삭제됨 표기). buildComboListenRankings 추가.\nbuildSourceListenRankings는 유지·삭제안함. 호출처는 이 화면뿐이었고 제거 후 현재 미사용(정의만 잔존).\n리시버·DAC/AMP·매체 집계 로직 미변경.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\ngit diff --stat: TASK.json, useListenHistoryComboOptions, albumListenStats, headfiComboUtils, HeadfiUsageStatsContent\n\n[플래너] 검토 OK. 커밋은 T-115와 함께."
+}

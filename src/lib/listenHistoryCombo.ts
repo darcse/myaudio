@@ -1,4 +1,5 @@
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
+import { LISTEN_HISTORY_SOURCE_CATEGORIES } from '@/lib/listenHistoryGear';
 
 export type ListenHistoryComboGear = Pick<Headfi, 'id' | 'brand' | 'model' | 'category'>;
 
@@ -21,6 +22,10 @@ export function comboHasSpeaker(
   return false;
 }
 
+function isListenHistorySourceCategory(category: string | null | undefined): boolean {
+  return (LISTEN_HISTORY_SOURCE_CATEGORIES as readonly string[]).includes(category ?? '');
+}
+
 export function fillListenHistoryFromCombo(
   combo: HeadfiCombo,
   gearById: Map<number, ListenHistoryComboGear>,
@@ -30,7 +35,12 @@ export function fillListenHistoryFromCombo(
   let speakerId: number | null = null;
   let hasSpeaker = false;
 
-  for (const id of [combo.select1_id, combo.select2_id]) {
+  const deviceEntries: { id: number | null; isDevice1: boolean }[] = [
+    { id: combo.select1_id, isDevice1: true },
+    { id: combo.select2_id, isDevice1: false },
+  ];
+
+  for (const { id, isDevice1 } of deviceEntries) {
     if (id == null) continue;
     const gear = gearById.get(id);
     if (!gear) continue;
@@ -39,7 +49,13 @@ export function fillListenHistoryFromCombo(
       speakerId = gear.id;
       continue;
     }
-    if (combo.source_id == null && sourceId == null && gear.category === 'Source') {
+    if (
+      combo.source_id == null &&
+      sourceId == null &&
+      (isDevice1
+        ? isListenHistorySourceCategory(gear.category)
+        : gear.category === 'Source')
+    ) {
       sourceId = gear.id;
       continue;
     }

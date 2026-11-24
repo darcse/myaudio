@@ -2,19 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3, Cpu, Headphones, Music, Radio, Trophy } from 'lucide-react';
+import { BarChart3, Cpu, Headphones, Layers, Radio, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiDetailModal } from '@/app/headfi/_components/HeadfiDetailModal';
 import { HeadfiPageHeader, HeadfiSubHeader } from '@/app/headfi/_components/HeadfiPageHeader';
-import type { Headfi } from '@/app/headfi/types';
+import { buildGearByIdMap, HEADFI_COMBO_SELECT } from '@/app/headfi/headfiComboUtils';
+import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
 import { isDacAmpDapCategory } from '@/lib/headfiMatchScore';
 import {
+  buildComboListenRankings,
   buildDacAmpListenRankings,
   buildMediaListenRankings,
   buildReceiverListenRankings,
-  buildSourceListenRankings,
   clampListenPeriodFilter,
   filterGearHistoryByPeriod,
   formatPeriodLabel,
@@ -50,6 +51,8 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyRows, setHistoryRows] = useState<GearListenHistoryRow[]>([]);
   const [gearById, setGearById] = useState<Map<number, GearSummary>>(() => new Map());
+  const [comboById, setComboById] = useState<Map<string, HeadfiCombo>>(() => new Map());
+  const [comboGearById, setComboGearById] = useState<Map<number, Headfi>>(() => new Map());
   const [periodFilter, setPeriodFilter] = useState<ListenPeriodFilter>(getDefaultListenPeriodFilter);
   const [gearCategoryFilter, setGearCategoryFilter] = useState<GearCategoryFilter>('all');
   const [viewingHeadfi, setViewingHeadfi] = useState<Headfi | null>(null);
@@ -70,11 +73,14 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     setLoadError(null);
     try {
       const client = createClient();
-      const [historyRes, headfiRes] = await Promise.all([
+      const [historyRes, headfiRes, comboRes] = await Promise.all([
         client
           .from('album_listen_history')
-          .select('album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, media'),
+          .select(
+            'album_id, listened_at, headphone_id, dac_amp_id, dac_amp2_id, source_id, combo_id, media',
+          ),
         client.from('headfi').select('id, brand, model, category, image_url'),
+        client.from('headfi_combos').select(HEADFI_COMBO_SELECT),
       ]);
       const errors: string[] = [];
       if (historyRes.error) {
@@ -86,9 +92,11 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
       if (headfiRes.error) {
         errors.push('기기 목록을 불러오지 못했습니다.');
         setGearById(new Map());
+        setComboGearById(new Map());
       } else {
         const map = new Map<number, GearSummary>();
-        for (const row of headfiRes.data ?? []) {
+        const gearRows = (headfiRes.data ?? []) as Headfi[];
+        for (const row of gearRows) {
           map.set(row.id, {
             id: row.id,
             brand: row.brand || '',
@@ -98,6 +106,15 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
           });
         }
         setGearById(map);
+        setComboGearById(buildGearByIdMap(gearRows));
+      }
+      if (comboRes.error) {
+        errors.push('조합 목록을 불러오지 못했습니다.');
+        setComboById(new Map());
+      } else {
+        setComboById(
+          new Map(((comboRes.data ?? []) as HeadfiCombo[]).map((combo) => [combo.id, combo])),
+        );
       }
       if (errors.length > 0) {
         setLoadError(errors.join(' '));
@@ -109,6 +126,8 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
       toast.error(message);
       setHistoryRows([]);
       setGearById(new Map());
+      setComboById(new Map());
+      setComboGearById(new Map());
     } finally {
       setIsLoading(false);
     }
@@ -211,9 +230,9 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
     () => buildDacAmpListenRankings(gearById, filteredHistoryRows, rankingLimit),
     [gearById, filteredHistoryRows, rankingLimit],
   );
-  const sourceRanking = useMemo(
-    () => buildSourceListenRankings(gearById, filteredHistoryRows, rankingLimit),
-    [gearById, filteredHistoryRows, rankingLimit],
+  const comboRanking = useMemo(
+    () => buildComboListenRankings(filteredHistoryRows, comboById, comboGearById, rankingLimit),
+    [filteredHistoryRows, comboById, comboGearById, rankingLimit],
   );
   const mediaRanking = useMemo(
     () => buildMediaListenRankings(filteredHistoryRows, rankingLimit),
@@ -333,12 +352,11 @@ export function HeadfiUsageStatsContent({ embedded = false }: { embedded?: boole
               emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 구동계 청취 기록이 없습니다.`}
             />
             <TopGearListenSection
-              title={`최다 사용 소스기기 TOP ${rankingLimit}`}
-              icon={<Music className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
-              items={sourceRanking}
+              title={`최다 사용 조합 TOP ${rankingLimit}`}
+              icon={<Layers className="size-4 shrink-0 opacity-70" strokeWidth={1.5} />}
+              items={comboRanking}
               periodFilter={periodFilter}
-              onGearClick={(id) => void openHeadfiById(id)}
-              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 소스기기 청취 기록이 없습니다.`}
+              emptyDetail={`${formatPeriodLabel(periodFilter)}에 태깅된 조합 청취 기록이 없습니다.`}
             />
             <TopGearListenSection
               title={`최다 사용 미디어 TOP ${rankingLimit}`}
