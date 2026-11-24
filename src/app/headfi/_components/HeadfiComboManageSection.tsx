@@ -18,10 +18,12 @@ import {
   COMBO_SOURCE_MEDIA_OPTIONS,
   formatGearShortLabel,
   HEADFI_COMBO_SELECT,
-  isComboDeviceCategory,
+  isComboDevice1Category,
+  isComboDevice2Category,
   isComboSourceCategory,
   isOwnedHeadfi,
   isReleasedHeadfiCombo,
+  isSpeakerCombo,
   notifyHeadfiCombosChanged,
 } from '../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../types';
@@ -146,15 +148,27 @@ export function HeadfiComboManageSection({
     [library, select1Id, select2Id],
   );
 
-  const deviceOptions = useMemo(
+  const device1Options = useMemo(
     () =>
       library.filter(
         (item) =>
           isOwnedHeadfi(item) &&
-          isComboDeviceCategory(item.category) &&
+          isComboDevice1Category(item.category) &&
           String(item.id) !== sourceId,
       ),
     [library, sourceId],
+  );
+
+  const device2Options = useMemo(
+    () =>
+      library.filter(
+        (item) =>
+          isOwnedHeadfi(item) &&
+          isComboDevice2Category(item.category) &&
+          String(item.id) !== sourceId &&
+          String(item.id) !== select1Id,
+      ),
+    [library, sourceId, select1Id],
   );
 
   const loadCombos = useCallback(async () => {
@@ -314,9 +328,9 @@ export function HeadfiComboManageSection({
         </h3>
       )}
 
-      {deviceOptions.length === 0 ? (
+      {device1Options.length === 0 ? (
         <p className="mb-4 text-sm opacity-60">
-          보유중인 DAC/AMP/DAP/기타 기기가 없습니다. 먼저 기기를 등록해 주세요.
+          보유중인 DAC/AMP/DAP/Source/스피커/기타 기기가 없습니다. 먼저 기기를 등록해 주세요.
         </p>
       ) : (
         <div
@@ -361,7 +375,7 @@ export function HeadfiComboManageSection({
                 onChange={(e) => setSelect1Id(e.target.value)}
               >
                 <option value="">선택하세요</option>
-                {deviceOptions.map((item) => (
+                {device1Options.map((item) => (
                   <option key={item.id} value={item.id}>
                     {formatGearShortLabel(item)}
                   </option>
@@ -383,13 +397,11 @@ export function HeadfiComboManageSection({
                 onChange={(e) => setSelect2Id(e.target.value)}
               >
                 <option value="">비워두기</option>
-                {deviceOptions
-                  .filter((item) => String(item.id) !== select1Id)
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {formatGearShortLabel(item)}
-                    </option>
-                  ))}
+                {device2Options.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {formatGearShortLabel(item)}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -399,7 +411,7 @@ export function HeadfiComboManageSection({
       <button
         type="button"
         className="btn-apple btn-apple-secondary mb-4 inline-flex h-[42px] items-center gap-2 px-4 disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={saving || deviceOptions.length === 0 || !select1Id}
+        disabled={saving || device1Options.length === 0 || !select1Id}
         onClick={() => void handleAdd()}
       >
         <Plus className="size-4" strokeWidth={2} />
@@ -428,6 +440,7 @@ export function HeadfiComboManageSection({
               const isSavingLinks = savingLinksId === combo.id;
               const released = isReleasedHeadfiCombo(combo, gearById);
               const matching = combo.is_matching !== false;
+              const speakerCombo = isSpeakerCombo(combo, gearById);
               const draft = linkDrafts[combo.id] ?? comboLinkDraftFromCombo(combo);
               const baseline = comboLinkDraftFromCombo(combo);
               const linksDirty =
@@ -542,17 +555,20 @@ export function HeadfiComboManageSection({
                     )}
                   </div>
 
-                  <div className="mt-3 md:mt-1">
+                  <div className="mt-3 space-y-1 md:mt-1">
                     <label className="inline-flex items-center gap-1.5 text-xs opacity-75">
                       <input
                         type="checkbox"
                         className="size-3.5 accent-[var(--foreground)]"
-                        checked={matching}
-                        disabled={isMatchingBusy || deletingId != null}
+                        checked={speakerCombo ? false : matching}
+                        disabled={speakerCombo || isMatchingBusy || deletingId != null}
                         onChange={(e) => void handleMatchingChange(combo, e.target.checked)}
                       />
                       매칭 조합
                     </label>
+                    {speakerCombo ? (
+                      <p className="text-[11px] opacity-55">스피커 조합은 헤드폰 매칭 대상이 아닙니다</p>
+                    ) : null}
                   </div>
 
                   <div className="mt-3 flex items-center justify-end gap-1.5 md:mt-0">

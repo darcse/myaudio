@@ -11,6 +11,7 @@ import {
   buildGearByIdMap,
   formatComboMapLabel,
   isReleasedHeadfiCombo,
+  isSpeakerCombo,
 } from '@/app/headfi/headfiComboUtils';
 import {
   computeMatchScoreDisplay,
@@ -304,7 +305,9 @@ export function MatchMapTab({
 
       const currentCache = cacheRef.current;
       const prevFailed = rowBatchByHpRef.current[hp.id]?.failedComboIds ?? [];
-      const scorableCombos = combos.filter((combo) => !isReleasedHeadfiCombo(combo, gearById));
+      const scorableCombos = combos.filter(
+        (combo) => !isReleasedHeadfiCombo(combo, gearById) && !isSpeakerCombo(combo, gearById),
+      );
       let targets: HeadfiCombo[];
       if (options.onlyFailed) {
         targets = scorableCombos.filter((combo) => prevFailed.includes(combo.id));

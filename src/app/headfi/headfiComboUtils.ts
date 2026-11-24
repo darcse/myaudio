@@ -20,6 +20,7 @@ export const COMBO_SOURCE_LINK_OPTIONS = [
   '아날로그 라인아웃',
   '포노 아웃',
   '블루투스',
+  'AirPlay',
 ] as const;
 
 export const COMBO_DEVICE_LINK_OPTIONS = [
@@ -27,6 +28,7 @@ export const COMBO_DEVICE_LINK_OPTIONS = [
   'XLR',
   '4.4mm to 4.4mm',
   '블루투스',
+  '스피커 케이블',
 ] as const;
 
 export type ComboSourceMedia = (typeof COMBO_SOURCE_MEDIA_OPTIONS)[number];
@@ -48,6 +50,7 @@ function shortenConnectionLabel(value: string): string {
   if (value === '포노 아웃') return '포노';
   if (value === '4.4mm to 4.4mm') return '4.4';
   if (value === '로컬 파일') return '로컬';
+  if (value === '스피커 케이블') return '스피커선';
   return value;
 }
 
@@ -96,6 +99,23 @@ export function isComboDeviceCategory(category: string | null | undefined): bool
     category === 'DAP' ||
     category === '기타'
   );
+}
+
+export function isComboDevice1Category(category: string | null | undefined): boolean {
+  return isComboDeviceCategory(category) || category === 'Source' || category === '스피커';
+}
+
+export function isComboDevice2Category(category: string | null | undefined): boolean {
+  return isComboDeviceCategory(category) || category === '스피커';
+}
+
+export function isSpeakerCombo(
+  combo: Pick<HeadfiCombo, 'select1_id' | 'select2_id'>,
+  gearById: Map<number, Headfi>,
+): boolean {
+  const device1 = combo.select1_id != null ? gearById.get(combo.select1_id) : undefined;
+  const device2 = combo.select2_id != null ? gearById.get(combo.select2_id) : undefined;
+  return device1?.category === '스피커' || device2?.category === '스피커';
 }
 
 export function isOwnedHeadfi(item: Pick<Headfi, 'status2'>): boolean {

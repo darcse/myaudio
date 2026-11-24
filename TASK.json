@@ -1,35 +1,38 @@
 {
-  "id": "T-108",
-  "goal": "조합 추가 폼이 두 줄(소스·매체·소스 연결 / 기기1·기기 연결·기기2)로 정리되어 덜 복잡해 보이고, 목록의 연결 수정에 취소와 점수 초기화 안내가 붙는다. 소스 연결에 '포노 아웃'을 고를 수 있고 AI 채점이 이를 올바르게 해석한다.",
-  "context": "대상: src/app/headfi/_components/HeadfiComboManageSection.tsx(추가 폼·목록), src/app/headfi/headfiComboUtils.ts(COMBO_SOURCE_LINK_OPTIONS, shortenConnectionLabel), src/lib/headfiMatchScore.ts(buildSourceLinkRuleLine), src/app/headfi/map/_components/HeadfiMapContent.tsx.\n\n현재 상태: 추가 폼은 3열 그리드에 소스·기기1·기기2가 첫 줄, 매체·소스 연결이 조건부로 둘째 줄에 나타남(기기 연결도 기기2 선택 시 조건부 노출). 목록의 연결 수정은 값이 바뀐 행(linksDirty)에만 '연결 저장' 버튼이 나옴.\n\n요구사항:\n1) 추가 폼 배치(데스크톱 3열 고정):\n   - 1줄: 소스 | 매체 | 소스 연결(라벨은 '소스 → 기기1 연결' 취지로)\n   - 2줄: 기기1 | 기기 연결(라벨은 '기기1 → 기기2 연결' 취지로) | 기기2\n   - 칸은 숨기지 않고 항상 자리를 차지. 매체·소스 연결은 소스 선택 시 활성, 기기 연결은 기기1 선택 시 활성(그 전엔 disabled). 별도 안내 문구 없음.\n   - 상위 값을 비우면 비활성화되는 하위 값은 비운다(현행 원칙 유지). 기기2가 없을 때 기기 연결 값은 서버에서 null 처리되는 현행 동작 유지.\n   - 모바일: 소스 → 매체 → 소스 연결 → 기기1 → 기기 연결 → 기기2 순으로 세로 스택.\n2) 목록 연결 수정: linksDirty일 때 '연결 저장' 옆에 '취소'(드래프트를 저장값으로 되돌림)와 짧은 안내 '저장하면 이 조합의 매칭 점수가 초기화됩니다'를 표시.\n3) COMBO_SOURCE_LINK_OPTIONS에 '포노 아웃' 추가(순서: USB, 광(옵티컬), 동축, 아날로그 라인아웃, 포노 아웃, 블루투스). 매칭맵 축약 라벨은 '포노'.\n4) 프롬프트(buildSourceLinkRuleLine): '포노 아웃'이면 '소스는 포노 레벨(RIAA 미보정) 신호를 출력하므로 기기 1이 포노 앰프(증폭·RIAA 보정) 역할을 하는 것으로 해석하고, 기기 1에 포노 입력이 없으면 매칭이 성립하기 어려운 점을 감안' 취지의 규칙 줄. 기존 '아날로그 라인아웃' 해석은 그대로. 포노 아웃이 아닌 조합의 프롬프트 문자열은 변경 전과 동일해야 함.\n5) HeadfiMapContent의 ?tab=combos → /headfi/combos 리다이렉트 useEffect 제거(배포된 적 없는 주소).",
+  "id": "T-110",
+  "goal": "CDP·카세트 플레이어처럼 헤드폰을 단독 구동하는 소스 기기를 조합의 기기1로 고를 수 있고, 스피커(액티브·패시브)로 끝나는 조합도 만들 수 있다. 소스 연결에 AirPlay를 고를 수 있다. AI 채점은 소스 기기의 출력 스펙으로 구동력을 평가하고, 스피커 조합은 헤드폰 매칭 대상에서 빠진다.",
+  "context": "T-109 변경분(헤드폰 연결 단자)은 검토 OK지만 아직 커밋 전이다. 그대로 두고 이어서 작업하며, 커밋은 T-109+T-110을 한 번에 한다.\n\n현재 상태:\n- src/app/headfi/headfiComboUtils.ts isComboDeviceCategory: DAC·DAC/AMP·AMP·DAP·기타. isComboSourceCategory: Source·DAP.\n- HeadfiComboManageSection: 기기1·기기2 모두 isComboDeviceCategory 목록 사용, 소스↔기기 상호 제외 로직 있음.\n- src/lib/headfiMatchScore.ts buildComboGearSpecBlock: isDacAmpDapCategory(DAC·AMP·DAC/AMP·DAP)일 때만 스펙 줄(구동방식/Chipset/Rk/Vrms) 추가. Source 기기는 등록 폼에 amp_type·output_impedance·chipset·vrms_bal·vrms_single이 있으나 프롬프트에 안 들어감.\n\n요구사항:\n1) 기기1 후보에 보유중 Source 추가. 기기2 후보는 현행 유지(Source 제외). 같은 기기가 소스와 기기1에 동시에 들어가지 않는 기존 상호 제외 유지.\n2) 서버 저장 검증(actions mapHeadfiComboData)이 카테고리를 검사한다면 기기1에 Source 허용되도록 맞춤(검사가 없으면 변경 불필요, result에 기록).\n3) 프롬프트: 조합 슬롯(기기1·기기2) 블록에서 Source 기기도 스펙 줄을 출력(formatDacAmpSpecsForPrompt 재사용). 소스 슬롯의 Source 블록 출력은 현행 유지.\n4) 기기1이 Source이고 기기2가 없으면 '기기 1(소스 기기)이 재생과 헤드폰 직접 구동을 모두 담당, drive는 기기 1 출력 기준' 취지의 경로 규칙을 추가. 기기1이 Source이고 기기2가 있으면 기존 아날로그 DAC→AMP 규칙을 쓰되 기기1을 '소스 기기(재생·라인 출력)'로 표기(판단).\n5) 기기1이 Source가 아닌 조합의 프롬프트 문자열은 변경 전과 동일해야 함.\n6) isDacAmpDapCategory 자체를 바꾸지 말 것(대시보드·포지션·앨범매칭 등 다른 곳에서 사용).\n\n추가 요구사항(스피커·AirPlay):\n7) 기기1·기기2 후보 모두에 보유중 '스피커' 카테고리 추가(액티브: 소스→스피커(기기1), 패시브: 소스→앰프(기기1)→스피커(기기2)).\n8) 스피커가 기기1 또는 기기2에 들어간 조합 = 스피커 조합. 헤드폰 매칭이 성립하지 않으므로: 조합 목록에서 매칭 체크 비활성(사유 짧게 표시), 매칭맵 열·일괄 채점 대상에서 제외(is_matching 값과 무관하게 제외 판정 헬퍼를 headfiComboUtils에 두고 매칭맵 필터에 적용). 저장 시 is_matching은 DB 기본값 그대로 둬도 됨(표시·필터로 제외). API로 스피커 조합 채점 요청이 오면 400.\n9) 기기 연결(device_link) 옵션에 '스피커 케이블' 추가(패시브 스피커용, 매칭맵 축약 '스피커선'). 프롬프트 규칙은 불필요(스피커 조합은 채점 안 함).\n10) 소스 연결(source_link) 옵션에 'AirPlay' 추가(순서: ... 포노 아웃, 블루투스, AirPlay). 프롬프트: 'AirPlay(무선, 최대 16bit/44.1kHz ALAC 무손실 전송). 블루투스보다 손실이 적음' 취지의 규칙 줄. 다른 연결의 프롬프트 문자열은 변경 없음.\n11) 스피커는 소스 후보에는 넣지 않는다.",
   "scope": {
     "in": [
-      "추가 폼 2줄 3열 재배치 + 활성/비활성 규칙",
-      "목록 연결 수정 취소·안내",
-      "소스 연결 '포노 아웃' 옵션 + 프롬프트 규칙",
-      "?tab=combos 리다이렉트 제거"
+      "기기1 후보에 Source 추가",
+      "저장 검증 확인/보정",
+      "조합 슬롯 Source 스펙 줄·경로 규칙",
+      "기기1·기기2 후보에 스피커 추가",
+      "스피커 조합 매칭 제외(체크 비활성·맵 필터·API 400)",
+      "device_link '스피커 케이블', source_link 'AirPlay' 옵션 + AirPlay 프롬프트 규칙"
     ],
     "out": [
+      "isDacAmpDapCategory·COMBO 외 공용 카테고리 판정 함수 변경 금지",
+      "기기2 후보는 스피커 추가 외 변경 금지",
       "DB 스키마 변경 절대 금지",
       "headfi_match_cache 삭제 조건 변경 금지",
-      "조합 저장·수정 서버 액션의 검증 규칙 변경 금지(옵션 상수 추가로 인한 허용값 확대만)",
-      "포노 아웃 외 프롬프트 문자열 변경 금지",
-      "목록 행의 매칭 체크·삭제·방출 표시 동작 변경 금지",
+      "기기1이 Source가 아니고 AirPlay를 쓰지 않는 조합의 프롬프트 변경 금지",
+      "T-109 변경분 되돌리기 금지",
       "window.confirm / alert / prompt 금지",
       "전체 파일 재작성 금지, 최소 수정",
       "result에 '커밋 승인' 줄 작성 금지(플래너 전용)",
-      "git 쓰기 금지(auto_commit=false)"
+      "git 쓰기 금지(auto_commit=false). T-109와 함께 승인 후 커밋"
     ]
   },
   "done": [
-    "데스크톱에서 추가 폼이 [소스|매체|소스 연결] / [기기1|기기 연결|기기2] 두 줄로 보이고, 소스·기기1 선택 전에는 해당 연결 칸이 비활성이다",
-    "목록에서 연결을 바꾸면 저장·취소와 점수 초기화 안내가 나오고, 취소 시 원래 값으로 돌아간다",
-    "소스 연결에서 '포노 아웃'을 고를 수 있고, 해당 조합 채점 프롬프트에 기기1이 포노 앰프 역할이라는 규칙이 들어간다(result에 근거)",
-    "/headfi/map의 ?tab=combos 리다이렉트 코드가 없다",
+    "조합 추가 폼 기기1 목록에 보유 Source·스피커가, 기기2 목록에 스피커가 나오고(기기2엔 Source 없음), 소스로 고른 기기는 기기1에서 빠진다",
+    "기기1이 Source인 조합의 프롬프트에 그 기기의 Rk·Vrms 스펙 줄과 직접 구동 규칙이 들어간다(result에 근거)",
+    "스피커 조합은 저장되지만 매칭 체크가 비활성이고 매칭맵 열·일괄 채점에 나오지 않으며 API 채점 요청은 400이다",
+    "기기 연결에 '스피커 케이블', 소스 연결에 'AirPlay'가 있고 AirPlay 조합 프롬프트에 무선 무손실 규칙이 들어간다. 해당 없는 조합의 프롬프트는 변경 전과 동일하다",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 조합 추가 폼 2줄 배치 및 포노 아웃 연결 추가",
+  "commit_message": "(feat): 헤드폰 연결 단자, 소스·스피커 기기 조합 및 AirPlay 연결 지원",
   "status": "done",
-  "result": "추가 폼: grid 1열→sm 3열, DOM 순서 소스·매체·소스연결·기기1·기연결·기기2. 매체/소스연결 disabled=!sourceId, 기연결 disabled=!select1Id. 소스 비우면 매체·소스연결 클리어, 기기1 비우면 기연결 클리어(서버는 select2 없을 때 device_link null 유지).\n\n목록: linksDirty 시 연결 저장+취소(baseline 복원)+안내 '저장하면 이 조합의 매칭 점수가 초기화됩니다'.\n\n옵션: COMBO_SOURCE_LINK_OPTIONS에 '포노 아웃'(라인아웃 다음). shorten→'포노'.\n\n프롬프트: buildSourceLinkRuleLine에 포노 아웃 전용 분기(포노 레벨·기기1 포노앰프·입력 없으면 매칭 어려움). 다른 링크 분기 문자열 미변경.\n\n맵: ?tab=combos redirect useEffect 제거.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: ComboManageSection/headfiComboUtils/headfiMatchScore/MapContent/TASK.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261124_2342 (feat): 조합 추가 폼 2줄 배치 및 포노 아웃 연결 추가"
+  "result": "카테고리: isComboDevice1Category(+Source·스피커), isComboDevice2Category(+스피커). isComboDeviceCategory·isDacAmpDapCategory 미변경. isSpeakerCombo 헬퍼.\n\n폼: device1/device2 옵션 분리. 스피커 조합 매칭 체크 비활성+안내.\n\n저장: mapHeadfiComboData에 카테고리 검사 없음 → 코드 변경 없이 Source/스피커 저장 가능(기록).\n\n프롬프트: buildComboGearSpecBlock forceOutputSpecs로 기기1 Source만 스펙 줄(소스 슬롯 Source는 force 없음→현행). 단독 Source→buildSourceDeviceSoloPathRoleBlock. Source+기기2→기기1 '소스 기기(재생·라인 출력)' 표기. select1≠Source면 기존 문자열 경로.\n\n스피커 제외: MapContent is_matching 조회 후 isSpeakerCombo 필터. MatchMapTab 일괄도 제외. API select1/2가 스피커면 400.\n\n옵션: device_link '스피커 케이블'(축약 스피커선), source_link AirPlay + 규칙 줄. 다른 링크 분기 미변경.\n\nT-109 변경분 유지.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: T-109+T-110 관련 src + TASK.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261124_2357 (feat): 헤드폰 연결 단자, 소스·스피커 기기 조합 및 AirPlay 연결 지원 (T-109+T-110 변경분)"
 }

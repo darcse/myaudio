@@ -1,0 +1,35 @@
+{
+  "id": "T-108",
+  "goal": "조합 추가 폼이 두 줄(소스·매체·소스 연결 / 기기1·기기 연결·기기2)로 정리되어 덜 복잡해 보이고, 목록의 연결 수정에 취소와 점수 초기화 안내가 붙는다. 소스 연결에 '포노 아웃'을 고를 수 있고 AI 채점이 이를 올바르게 해석한다.",
+  "context": "대상: src/app/headfi/_components/HeadfiComboManageSection.tsx(추가 폼·목록), src/app/headfi/headfiComboUtils.ts(COMBO_SOURCE_LINK_OPTIONS, shortenConnectionLabel), src/lib/headfiMatchScore.ts(buildSourceLinkRuleLine), src/app/headfi/map/_components/HeadfiMapContent.tsx.\n\n현재 상태: 추가 폼은 3열 그리드에 소스·기기1·기기2가 첫 줄, 매체·소스 연결이 조건부로 둘째 줄에 나타남(기기 연결도 기기2 선택 시 조건부 노출). 목록의 연결 수정은 값이 바뀐 행(linksDirty)에만 '연결 저장' 버튼이 나옴.\n\n요구사항:\n1) 추가 폼 배치(데스크톱 3열 고정):\n   - 1줄: 소스 | 매체 | 소스 연결(라벨은 '소스 → 기기1 연결' 취지로)\n   - 2줄: 기기1 | 기기 연결(라벨은 '기기1 → 기기2 연결' 취지로) | 기기2\n   - 칸은 숨기지 않고 항상 자리를 차지. 매체·소스 연결은 소스 선택 시 활성, 기기 연결은 기기1 선택 시 활성(그 전엔 disabled). 별도 안내 문구 없음.\n   - 상위 값을 비우면 비활성화되는 하위 값은 비운다(현행 원칙 유지). 기기2가 없을 때 기기 연결 값은 서버에서 null 처리되는 현행 동작 유지.\n   - 모바일: 소스 → 매체 → 소스 연결 → 기기1 → 기기 연결 → 기기2 순으로 세로 스택.\n2) 목록 연결 수정: linksDirty일 때 '연결 저장' 옆에 '취소'(드래프트를 저장값으로 되돌림)와 짧은 안내 '저장하면 이 조합의 매칭 점수가 초기화됩니다'를 표시.\n3) COMBO_SOURCE_LINK_OPTIONS에 '포노 아웃' 추가(순서: USB, 광(옵티컬), 동축, 아날로그 라인아웃, 포노 아웃, 블루투스). 매칭맵 축약 라벨은 '포노'.\n4) 프롬프트(buildSourceLinkRuleLine): '포노 아웃'이면 '소스는 포노 레벨(RIAA 미보정) 신호를 출력하므로 기기 1이 포노 앰프(증폭·RIAA 보정) 역할을 하는 것으로 해석하고, 기기 1에 포노 입력이 없으면 매칭이 성립하기 어려운 점을 감안' 취지의 규칙 줄. 기존 '아날로그 라인아웃' 해석은 그대로. 포노 아웃이 아닌 조합의 프롬프트 문자열은 변경 전과 동일해야 함.\n5) HeadfiMapContent의 ?tab=combos → /headfi/combos 리다이렉트 useEffect 제거(배포된 적 없는 주소).",
+  "scope": {
+    "in": [
+      "추가 폼 2줄 3열 재배치 + 활성/비활성 규칙",
+      "목록 연결 수정 취소·안내",
+      "소스 연결 '포노 아웃' 옵션 + 프롬프트 규칙",
+      "?tab=combos 리다이렉트 제거"
+    ],
+    "out": [
+      "DB 스키마 변경 절대 금지",
+      "headfi_match_cache 삭제 조건 변경 금지",
+      "조합 저장·수정 서버 액션의 검증 규칙 변경 금지(옵션 상수 추가로 인한 허용값 확대만)",
+      "포노 아웃 외 프롬프트 문자열 변경 금지",
+      "목록 행의 매칭 체크·삭제·방출 표시 동작 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "result에 '커밋 승인' 줄 작성 금지(플래너 전용)",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "데스크톱에서 추가 폼이 [소스|매체|소스 연결] / [기기1|기기 연결|기기2] 두 줄로 보이고, 소스·기기1 선택 전에는 해당 연결 칸이 비활성이다",
+    "목록에서 연결을 바꾸면 저장·취소와 점수 초기화 안내가 나오고, 취소 시 원래 값으로 돌아간다",
+    "소스 연결에서 '포노 아웃'을 고를 수 있고, 해당 조합 채점 프롬프트에 기기1이 포노 앰프 역할이라는 규칙이 들어간다(result에 근거)",
+    "/headfi/map의 ?tab=combos 리다이렉트 코드가 없다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 조합 추가 폼 2줄 배치 및 포노 아웃 연결 추가",
+  "status": "done",
+  "result": "추가 폼: grid 1열→sm 3열, DOM 순서 소스·매체·소스연결·기기1·기연결·기기2. 매체/소스연결 disabled=!sourceId, 기연결 disabled=!select1Id. 소스 비우면 매체·소스연결 클리어, 기기1 비우면 기연결 클리어(서버는 select2 없을 때 device_link null 유지).\n\n목록: linksDirty 시 연결 저장+취소(baseline 복원)+안내 '저장하면 이 조합의 매칭 점수가 초기화됩니다'.\n\n옵션: COMBO_SOURCE_LINK_OPTIONS에 '포노 아웃'(라인아웃 다음). shorten→'포노'.\n\n프롬프트: buildSourceLinkRuleLine에 포노 아웃 전용 분기(포노 레벨·기기1 포노앰프·입력 없으면 매칭 어려움). 다른 링크 분기 문자열 미변경.\n\n맵: ?tab=combos redirect useEffect 제거.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: ComboManageSection/headfiComboUtils/headfiMatchScore/MapContent/TASK.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261124_2342 (feat): 조합 추가 폼 2줄 배치 및 포노 아웃 연결 추가"
+}

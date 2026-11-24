@@ -284,6 +284,9 @@ export function HeadfiInfoSection({
                       .join(' · ') || '-'}
                   </p>
                 </div>
+                <p className="col-span-2">
+                  <strong>연결 단자:</strong> {viewingItem.connector?.trim() || '-'}
+                </p>
                 {cat === '헤드폰' ? (
                   <p className="col-span-2">
                     <strong>구동력:</strong> {viewingItem.volume || '-'} / {viewingItem.volume_type || '-'}

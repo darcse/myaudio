@@ -15,6 +15,7 @@ export interface Headfi {
   type1: string | null;
   type2: string | null;
   impedance: number | null;
+  connector?: string | null;
   db1: number | null;
   db2: number | null;
   volume: string | null;
@@ -195,6 +196,7 @@ export interface HeadfiFormData {
   type1: string;
   type2: string;
   impedance: string;
+  connector: string;
   db1: string;
   db2: string;
   volume: string;

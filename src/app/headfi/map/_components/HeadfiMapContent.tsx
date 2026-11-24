@@ -6,7 +6,12 @@ import { Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthState } from '@/hooks/useAuthState';
 import { HeadfiPageHeader, HeadfiSubHeader } from '../../_components/HeadfiPageHeader';
-import { HEADFI_COMBO_SELECT, HEADFI_COMBOS_CHANGED_EVENT } from '../../headfiComboUtils';
+import {
+  buildGearByIdMap,
+  HEADFI_COMBO_SELECT,
+  HEADFI_COMBOS_CHANGED_EVENT,
+  isSpeakerCombo,
+} from '../../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
 import { PositionMapTab } from './PositionMapTab';
@@ -67,7 +72,11 @@ export function HeadfiMapContent() {
         .eq('is_matching', true)
         .order('created_at', { ascending: true });
 
-      const activeCombos = (activeCombosData ?? []) as HeadfiCombo[];
+      const libraryRows = (headfiData as Headfi[]) || [];
+      const gearById = buildGearByIdMap(libraryRows);
+      const activeCombos = ((activeCombosData ?? []) as HeadfiCombo[]).filter(
+        (combo) => !isSpeakerCombo(combo, gearById),
+      );
       const activeComboIds = new Set(activeCombos.map((combo) => combo.id));
       const matchCacheRows = (cacheData ?? [])
         .filter((row) => typeof row.combo_id === 'string' && row.combo_id && activeComboIds.has(row.combo_id))
@@ -80,7 +89,7 @@ export function HeadfiMapContent() {
           comment: row.comment || '',
         }));
 
-      setLibrary((headfiData as Headfi[]) || []);
+      setLibrary(libraryRows);
       setCombos(activeCombos);
       setMatchCache(matchCacheRows);
     } finally {

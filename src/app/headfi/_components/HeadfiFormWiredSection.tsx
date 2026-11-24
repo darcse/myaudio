@@ -6,6 +6,7 @@ import {
   HeadfiFormPurchaseStatusRow,
   HeadfiFormTextInput,
 } from './HeadfiFormSharedFields';
+import { HEADFI_CONNECTOR_OPTIONS } from '../utils';
 import type { HeadfiFormSectionProps } from './headfiFormTypes';
 import { getHeadfiFormCategoryFlags, INPUT_BASE_CLASS } from './headfiFormUtils';
 
@@ -99,6 +100,21 @@ export function HeadfiFormWiredSection({
           <HeadfiFormTextInput label="db SPL/V" field="db1" type="number" formData={formData} setFormData={setFormData} />
           <HeadfiFormTextInput label="db/mW" field="db2" type="number" formData={formData} setFormData={setFormData} />
         </div>
+      </div>
+      <div className="col-span-2">
+        <label className="mb-1 block text-sm font-semibold opacity-90">연결 단자</label>
+        <select
+          className="select-apple h-[42px] w-full px-3 py-2"
+          value={formData.connector}
+          onChange={(e) => setFormData({ ...formData, connector: e.target.value })}
+        >
+          <option value="">비워두기</option>
+          {HEADFI_CONNECTOR_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       </div>
       {isHeadphone ? (
         <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-4">

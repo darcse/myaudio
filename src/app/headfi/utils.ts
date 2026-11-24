@@ -1,5 +1,21 @@
 import type { Headfi, HeadfiFormData } from './types';
 
+export const HEADFI_CONNECTOR_OPTIONS = [
+  '4.4mm 밸런스',
+  '3.5mm',
+  '6.35mm',
+  'XLR4',
+  '2.5mm 밸런스',
+] as const;
+
+export type HeadfiConnector = (typeof HEADFI_CONNECTOR_OPTIONS)[number];
+
+export function normalizeHeadfiConnector(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) return null;
+  return (HEADFI_CONNECTOR_OPTIONS as readonly string[]).includes(trimmed) ? trimmed : null;
+}
+
 export const emptyHeadfiFormData: HeadfiFormData = {
   brand: '',
   model: '',
@@ -7,6 +23,7 @@ export const emptyHeadfiFormData: HeadfiFormData = {
   type1: '',
   type2: '',
   impedance: '',
+  connector: '',
   db1: '',
   db2: '',
   volume: '',

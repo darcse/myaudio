@@ -20,6 +20,7 @@ import {
 } from './headfiComboUtils';
 import { normalizeHeadfiAccessoryStatus } from './headfiStatus';
 import { wiredListeningScoreColumns } from './listeningEvaluation';
+import { normalizeHeadfiConnector } from './utils';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
 
 function optionalFiniteNumber(raw: string | undefined): number | null {
@@ -77,6 +78,7 @@ function emptyWiredFields() {
     type1: '',
     type2: '',
     impedance: null as number | null,
+    connector: null as string | null,
     db1: null as number | null,
     db2: null as number | null,
     volume: '',
@@ -206,6 +208,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       type1: data.type1,
       type2: data.type2,
       impedance: parseIntOrNull(data.impedance),
+      connector: normalizeHeadfiConnector(data.connector),
       db1: parseFloatOrNull(data.db1),
       db2: parseFloatOrNull(data.db2),
       volume: data.volume,
@@ -230,6 +233,7 @@ function mapHeadfiData(data: HeadfiFormData) {
       type1: data.type1,
       type2: data.type2,
       impedance: parseIntOrNull(data.impedance),
+      connector: normalizeHeadfiConnector(data.connector),
       db1: parseFloatOrNull(data.db1),
       db2: parseFloatOrNull(data.db2),
       volume: '',

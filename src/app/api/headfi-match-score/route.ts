@@ -176,6 +176,12 @@ export async function POST(req: NextRequest) {
     if (combo.select2_id != null && (!select2 || select2.status2 !== '보유중')) {
       return NextResponse.json({ error: '조합의 기기 2를 찾을 수 없거나 보유중이 아닙니다.' }, { status: 400 });
     }
+    if (select1.category === '스피커' || select2?.category === '스피커') {
+      return NextResponse.json(
+        { error: '스피커 조합은 헤드폰 매칭 채점 대상이 아닙니다.' },
+        { status: 400 },
+      );
+    }
 
     const { data: allGear, error: listError } = await supabase
       .from('headfi')

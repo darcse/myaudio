@@ -70,17 +70,18 @@ export async function analyzeHeadfiMatchScore(
 [기준 조합] ${base.name}${comboSection}
 [기준 조합 요약] 추천장르:${base.genres}${dacBaseSpecs}${baseListeningBlocks}${candidateSection}
 [후보 기기 목록]
-id|기기명|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역|musicality|warmth|brightness|vocal|decay
+id|기기명|연결단자|정합임피던스(Rk) 또는 헤드폰Ω|감도|Vrms@32Ω|Vrms@300Ω|저역|중역|고역|musicality|warmth|brightness|vocal|decay
 ${list}
-저역=양감·깊이·컨트롤 평균, 중역=밀도감, 고역=공기감·부드러움 평균. musicality는 1~10 품질. warmth/brightness/vocal/decay는 성향 -2~+2(0=중립, '-'=모름). 성향은 우열이 아니라 시너지 힌트다.
+연결단자=헤드폰/이어폰 입력 단자(없으면 '-'). 저역=양감·깊이·컨트롤 평균, 중역=밀도감, 고역=공기감·부드러움 평균. musicality는 1~10 품질. warmth/brightness/vocal/decay는 성향 -2~+2(0=중립, '-'=모름). 성향은 우열이 아니라 시너지 힌트다.
 
 각 후보 기기와의 조합을 아래 기준으로 100점 만점 평가:
-- drive: 해당 DAC/AMP/DAP가 헤드폰을 충분히 구동할 수 있는지 (정합 임피던스 Rk, Vrms@32Ω·Vrms@300Ω, 헤드폰 임피던스·감도 매칭)
+- drive: 해당 DAC/AMP/DAP가 헤드폰을 충분히 구동할 수 있는지 (정합 임피던스 Rk, Vrms@32Ω·Vrms@300Ω, 헤드폰 임피던스·감도·연결 단자 매칭)
 ${synergyCriterion}
 - genre: 조합이 특정 장르에서 강점을 보이는지
 
 평가 시 주의사항:
 - 정합 임피던스(Rk), Vrms@32Ω, Vrms@300Ω, 헤드폰 임피던스/감도 수치를 반드시 고려해서 drive 점수 산정 (값이 '-'이면 해당 항목 없이 판단)
+- DAC/AMP/DAP의 Vrms 값은 밸런스 출력 기준. 후보의 연결 단자가 싱글엔드(3.5mm·6.35mm)면 실제 출력 전압이 밸런스 대비 절반 이하임을 감안해 drive 평가. 단자가 '-'이면 이 항목 없이 판단
 - 헤드폰/이어폰의 청음 평가 점수·AI 분석·FR 그래프 분석${hasHpListeningContext ? '을 위 컨텍스트에서' : '이 있으면'} synergy·genre 판단에 반영
 - 음색이 겹치면 synergy 낮게, 상호 보완이면 높게${sourceEvalNotes}
 - 학습된 리뷰·측정 지식을 바탕으로 판단

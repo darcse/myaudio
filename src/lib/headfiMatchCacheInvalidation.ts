@@ -9,6 +9,7 @@ const WIRED_HP_IEM_MATCH_FIELDS = [
   'category',
   'status2',
   'impedance',
+  'connector',
   'db1',
   'bass_quantity',
   'bass_depth',
