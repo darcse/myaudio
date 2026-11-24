@@ -8,7 +8,8 @@
     "build:check": "BUILD_CHECK=true next build",
     "start": "next start",
     "lint": "eslint",
-    "generate-icons": "node scripts/generate-pwa-icons.mjs"
+    "generate-icons": "node scripts/generate-pwa-icons.mjs",
+    "snapshot:prompt": "tsx scripts/snapshot-combo-prompt.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.4",
@@ -34,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.19",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
