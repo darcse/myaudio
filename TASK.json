@@ -1,33 +1,30 @@
 {
-  "id": "T-116",
-  "goal": "감상 기록이나 앨범이 1,000건을 넘어도 통계·대시보드·다이어리 등 모든 화면과 API가 전체 데이터를 기준으로 집계·표시한다(Supabase 기본 1,000행 제한으로 잘리지 않음).",
-  "context": "버그: Supabase(PostgREST)는 range/limit 없는 select를 최대 1,000행으로 자른다. 2026-11-25 기준 album_listen_history 1,057건, album 853건. 그 결과 인사이트 사용 탭 조합 랭킹이 DB보다 적게 나옴(예: M33 R2R 단독 DB 122건 → 화면 117회, iPhone Air → Go Blu Air 131건 → 125회). 같은 원인으로 다른 통계도 조용히 덜 세어지고 있음.\n\n확인된 album_listen_history 전체 조회 위치(전수 아님, 시작점):\n- src/app/headfi/stats/_components/HeadfiUsageStatsContent.tsx(약 77행)\n- src/app/albums/stats/_components/AlbumStatsContent.tsx(약 282, 348행)\n- src/app/insights/_components/GenreStatsContent.tsx(약 340, 453행)\n- src/app/_components/DashboardContent.tsx(약 213, 250행)\n- src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 171행)\n- src/lib/catalogLibraryCache.ts(약 96행)\n- src/app/api/monthly-review-comment/route.ts(약 117행)\n- src/app/page.tsx(약 87행)\nalbum 테이블 전체 조회도 다수(GenreStatsContent, DashboardContent, api/headfi-album-recommend, api/headfi-album-match, api/mood-recommend, api/album-mood-groups, api/analyze-music-taste, artists 등) — 곧 1,000건을 넘음.\n\n요구사항:\n1) 공용 페이지네이션 헬퍼 1개(예: src/lib/supabase/fetchAllRows.ts). 쿼리 빌더를 받아 .range()로 1,000건씩 끝까지 가져온다. 첫 요청에 count: 'exact'로 전체 건수를 받고 나머지 페이지는 병렬 요청(Promise.all). 정렬이 있으면 유지, 없으면 페이지 간 중복·누락이 없도록 안정 정렬 키(id 등)를 보장. 클라이언트·서버(route) 양쪽에서 쓸 수 있게.\n2) album_listen_history와 album을 'eq 등 조건 없이 전체' 또는 '결과가 1,000행을 넘을 수 있는 조건'으로 읽는 곳을 레포 전체에서 전수조사해 헬퍼로 교체. 단건·앨범별(eq album_id)·limit이 명시된 조회는 제외. headfi·artists 등 다른 테이블도 1,000행을 넘을 수 있는 전체 조회가 있으면 목록만 result에 보고(교체는 판단, 기본안은 함께 교체).\n3) result에 교체한 위치 목록(파일:행)과 제외한 위치·이유를 표로.\n4) 집계 로직·화면 표시는 변경하지 않는다(데이터가 전부 들어오게만).\n5) select 컬럼은 기존과 동일하게 유지(필요 이상으로 늘리지 말 것).",
+  "id": "T-117",
+  "goal": "코드는 그대로 두고, 리팩토링 후보 목록(효과·위험도·예상 규모·검증 방법 포함)이 보고서로 나와 JW가 어떤 정리를 할지 고를 수 있다.",
+  "context": "조사 전용 작업이다. 코드 수정 금지. 실행 에이전트: Claude Code(규칙은 AGENTS.md·CLAUDE.md 동일 적용).\n\n배경: 2026-11-24~25에 헤드파이 조합 개편(T-102~T-116, 파일 44개 이상, 약 2,300줄 추가)을 짧은 주기로 덧붙이며 진행해 중복·분기 누적이 의심된다. 로드맵: 프로젝트 문서 claude/headfi-combo-roadmap.md(레포 밖) — 요약은 docs/tasks/T-102~T-116.json 참고.\n\n우선 조사 대상(플래너가 본 후보, 이것만으로 제한하지 말 것):\n1) src/lib/headfiMatchScore.ts(약 480줄): 조합 경로 규칙 블록(buildDualChainRoleBlock, buildSourceInclusivePathRoleBlock, buildSourceDeviceSoloPathRoleBlock, buildComboBaseForPrompt 등)이 소스 유무·블루투스/아날로그·기기1 Source 여부로 거의 같은 문장 블록이 여러 벌. 정리 시 프롬프트 문자열이 한 글자라도 바뀌면 채점 결과가 달라지므로 '조합 유형별 정리 전후 문자열 동일성 비교' 방법을 반드시 제안.\n2) src/app/headfi/_components/HeadfiComboManageSection.tsx(약 614줄): 추가 폼·목록·연결 수정·매칭 체크가 한 파일.\n3) 감상 기록 폼 중복: src/app/albums/_components/AlbumListenHistorySection.tsx(약 859줄)와 src/app/albums/diary/_components/AlbumDiaryContent.tsx(약 1,000줄)의 기기 select·조합 채움·해제 로직.\n4) 죽은/미사용 코드: buildSourceListenRankings(호출처 없음), /api/headfi-match-score의 '후보 20개 채점' 분기(호출처 없음 추정), 그 외 발견분.\n5) src/app/headfi/headfiComboUtils.ts(약 255줄)와 src/lib/listenHistoryCombo.ts 등 조합 관련 유틸의 책임 분산·중복.\n6) 그 외 레포 전체에서 눈에 띄는 큰 중복·과도한 파일(상위 몇 개만, 우선순위 표시).\n\n산출물:\n- docs/reports/refactor-survey-261125.md 에 보고서 작성. 항목마다: 위치(파일·대략 행), 문제 요약, 제안 정리 방식(한두 문장), 효과, 위험도(상/중/하)와 이유, 예상 규모(작/중/대), 동작 동일성 검증 방법, 선행 조건. 마지막에 추천 진행 순서(작업 단위로 쪼갠 T 후보 목록).\n- 테스트 인프라가 없다면 최소한의 검증 장치(예: 프롬프트 스냅샷 비교 스크립트) 제안 포함. 설치·작성은 하지 말 것.\n- result에는 보고서 경로와 상위 5개 요약만.",
   "scope": {
     "in": [
-      "공용 전체 조회 헬퍼",
-      "album_listen_history·album 전체 조회 위치 전수 교체",
-      "기타 테이블 1,000행 초과 가능 조회 보고(기본 교체)"
+      "읽기 전용 코드 조사",
+      "docs/reports/refactor-survey-261125.md 보고서 작성"
     ],
     "out": [
-      "DB 스키마·데이터 변경 절대 금지",
-      "DB 함수(RPC)·뷰 추가 금지(DB 집계 전환은 범위 밖)",
-      "집계·랭킹·표시 로직 변경 금지",
-      "select 컬럼 추가·삭제 금지",
-      "단건·album_id별·limit 명시 조회 변경 금지",
-      "window.confirm / alert / prompt 금지",
-      "전체 파일 재작성 금지, 최소 수정",
+      "src 등 코드 파일 수정 절대 금지(보고서 파일 1개만 생성)",
+      "패키지 설치·설정 파일 변경 금지",
+      "DB 조회·변경 금지",
+      "테스트·스크립트 작성 금지(제안만)",
+      "feature_list·규칙 문서 수정 금지",
       "result에 '커밋 승인' 줄 작성 금지",
-      "git 쓰기 금지(auto_commit=false)"
+      "auto_commit 기준 밖의 git 조작 금지"
     ]
   },
   "done": [
-    "인사이트 사용 탭 조합 랭킹에서 M33 R2R 단독이 122회, iPhone Air → Go Blu Air가 131회(2026 전체 기준)로 DB와 일치한다",
-    "album_listen_history·album 전체 조회 위치가 모두 헬퍼를 쓰고, result에 교체·제외 목록이 있다",
-    "기존 통계 화면이 오류 없이 열리고 숫자가 이전보다 같거나 크다(줄지 않는다)",
-    "npx tsc --noEmit 과 npm run lint 통과"
+    "docs/reports/refactor-survey-261125.md에 위 1)~6) 관점의 후보가 표준 항목(위치·문제·방식·효과·위험도·규모·검증·선행조건)으로 정리돼 있다",
+    "headfiMatchScore 정리 항목에 프롬프트 문자열 동일성 검증 방법이 구체적으로 있다",
+    "추천 진행 순서가 작업 단위(T 후보)로 제시돼 있다",
+    "src 등 코드 파일 변경이 없다(git diff에 보고서·TASK.json만)"
   ],
-  "auto_commit": false,
-  "commit_message": "(fix): Supabase 1,000행 제한으로 통계가 잘리던 문제 수정",
+  "auto_commit": true,
+  "commit_message": "(docs): 리팩토링 후보 조사 보고서",
   "status": "done",
-  "result": "공용 헬퍼: src/lib/supabase/fetchAllRows.ts (PAGE=1000, 첫 페이지 count exact, 나머지 Promise.all, 기본 order id).\n\n## 교체\n| 위치 | 테이블 |\n|---|---|\n| HeadfiUsageStatsContent fetchData | album_listen_history, headfi, headfi_combos |\n| AlbumStatsContent fetchData·refreshHistory | album, album_listen_history, artists, headfi |\n| GenreStatsContent fetchData·refreshHistory | album, album_listen_history, artists |\n| DashboardContent openArtistByName·월간 리시버 | album, album_listen_history |\n| AlbumDiaryContent fetchData | album, album_listen_history, headfi |\n| catalogLibraryCache fetchCatalogLibraryData | album, album_listen_history, artists |\n| page.tsx weeklyHistory·headfiCats | album_listen_history(주간), headfi |\n| monthly-review-comment listen | album_listen_history(월) |\n| albumLotteryDraw filter selects | album |\n| analyze-music-taste / mood-recommend / headfi-album-recommend·match / album-mood-groups GET·POST | album (+ mood-recommend headfi) |\n| albumMoodGroupsServer fetchManualMoodPins | album(mood_manually_set) |\n| AlbumsLibraryContent physicalOwned | album, artists |\n| HeadfiLibraryContent fetchLibrary·combos | headfi, headfi_combos |\n| HeadfiMatchContent / HeadfiMapContent | headfi, headfi_match_cache, headfi_combos |\n| useListenHistoryComboOptions / useHeadfiComboOptions | headfi_combos, headfi |\n| headfiTrendData listYears·yearMonths·monthly | headfi, accessories, sales |\n\n## 제외\n| 위치 | 이유 |\n|---|---|\n| AlbumListenHistorySection | eq album_id |\n| page.tsx count head / limit 80·2 | head:true 또는 limit 명시 |\n| ReceiverComboSelect | limit 30 |\n| diary/stats/api 단건 update·delete·eq id | 단건·mutation |\n| album .in(id) / .eq(id) / winner limit 1 | 단건·id 목록 |\n| HeadfiLibrary wireless matching eq category | 소량 필터 |\n| ArtistsLibrary/updateArtist* eq artist·composer | 아티스트 단위 |\n| albumEnrichment·lyrics·GlobalAlbumDetail 등 | 단건/소량 |\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261125_0045 (fix): Supabase 1,000행 제한으로 통계가 잘리던 문제 수정"
+  "result": "보고서: docs/reports/refactor-survey-261125.md (R1~R6 표준 항목 정리 완료). 코드 변경 없음 — git diff는 보고서 신규 파일 + TASK.json만.\n\n상위 5개:\n1) [R1·위험상] headfiMatchScore.ts 조합 경로 규칙 블록(buildDualChainRoleBlock/buildSourceInclusivePathRoleBlock 등)이 소스유무·BT·기기1Source 조합마다 거의 같은 문장을 여러 벌 하드코딩. 정리 시 buildComboBaseForPrompt 전수 조합 스냅샷(JSON 덤프) before/after diff 완전일치 검증 필수.\n2) [R2·규모대] 청취 기록 폼이 AlbumListenHistorySection(859)·AlbumDiaryContent(1011)에 상태·핸들러(applySelectedCombo·clearComboSelection·parseOptionalId·ensureGearOption·저장 payload) 통째 복제. 공용 훅 useListenHistoryEntryForm 추출 제안.\n3) [R4·위험하] 죽은 코드: buildSourceListenRankings(albumListenStats.ts:216) 호출처 0건 → 단독 즉시 삭제 가능.\n4) [R3·위험중] /api/headfi-match-score 배치(후보20 pickCandidates)·cacheOnly 분기 도달 불가(호출부 전부 targetGearId 단일). 단일 타겟 전제로 축소 제안.\n5) [R6·규모대] 1000줄+ 초대형 컴포넌트(AlbumForm 1290, AlbumTrackListContent 1259, ArtistsLibraryContent 1206 등). 전용 T 아닌 개별 작업 편승 권고.\n\n검증 인프라: 프롬프트 스냅샷 스크립트 제안만(미작성). 추천 순서: T-a(R4삭제)→T-b(스냅샷)→T-c(R3)→T-d(R2)→T-e(R1). R5/R6 보류.\n\ngit diff --stat: docs/reports/refactor-survey-261125.md 신규 + TASK.json. src 변경 없음."
 }
