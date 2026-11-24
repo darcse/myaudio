@@ -1,36 +1,36 @@
 {
-  "id": "T-104",
-  "feature_id": "GEAR-049",
-  "goal": "소스가 들어간 조합으로 매칭 채점을 하면 AI가 소스까지 포함한 신호 경로로 평가하고, '조합된 기기가 소스의 특성을 잘 살려주는가'를 평가 기준의 하나로 반영해 코멘트에 언급한다. 소스 기기가 방출이거나 정보가 바뀌면 다른 기기와 똑같이 처리된다.",
-  "context": "T-102·T-103에서 headfi_combos.source_id(소스: 보유 Source 또는 DAP)가 추가됨(커밋 bdeec73). 현재 채점은 source_id를 전혀 모른다. 현재 DB에 source_id가 채워진 조합은 0개라 기존 점수 재계산은 필요 없다.\n\n대상(확인된 위치):\n- src/app/api/headfi-match-score/route.ts: 조합 조회 select(현재 'id, select1_id, select2_id, created_at'), gearIds 수집, 기기1·2 보유중 검사(400), buildComboBaseForPrompt 호출, clearMatchCacheForGear의 .or(select1_id/select2_id).\n- src/lib/headfiMatchScore.ts: buildComboGearSpecBlock, buildDualChainRoleBlock, buildComboDisplayName, buildComboBaseForPrompt.\n- src/lib/openaiHeadfi.ts: analyzeHeadfiMatchScore 프롬프트(평가 기준 서술부).\n- src/app/headfi/actions.ts 약 280행: 기기 수정 시 match_cache 삭제용 .or(select1_id/select2_id).\n\n요구사항:\n1) API가 source_id를 조회하고, 소스가 있으면 보유중 검사도 기기1·2와 동일하게 적용(방출이면 400).\n2) 프롬프트 조합 블록에 소스를 신호 경로 맨 앞 기기로 추가: 정확한 모델명·카테고리와, DB에 있는 소스의 음색/청음 관련 정보(기존 기기 블록에서 쓰는 수준 내에서 판단). 소스→기기1(→기기2) 경로 해석 규칙을 명시. 소스가 DAP일 때는 재생·출력 담당 소스로 해석하고 헤드폰 구동 주체로 보지 않게 할 것.\n3) 평가 기준에 '조합된 기기(기기1·2)가 소스의 특성을 잘 살려주는가'를 추가하고, 소스가 있는 조합의 코멘트에 이 관점이 한 문장 이상 들어가게 한다. 점수 체계(drive/synergy/genre, 300점 만점)와 응답 JSON 구조는 바꾸지 않는다. 기본안: 소스 평가는 synergy 점수에 녹인다(판단 여지 있음, result에 어떻게 했는지 기록).\n4) 소스가 없는 조합은 프롬프트·결과가 지금과 동일해야 한다(조건부 블록).\n5) match_cache 무효화: route의 clearMatchCacheForGear와 actions.ts의 기기 수정 시 삭제 쿼리에 source_id 일치도 포함(소스 기기 정보가 바뀌면 그 조합 점수도 무효화).\n6) 조합 표시명(buildComboDisplayName)에도 소스 반영.",
+  "id": "T-105",
+  "feature_id": "GEAR-050",
+  "goal": "조합에 매체·소스→기기1 연결·기기1→기기2 연결을 지정·수정할 수 있고, 조합명과 AI 매칭 채점이 이 연결 정보를 반영한다. 같은 기기 구성이라도 연결이 다르면 다른 조합으로 구분된다.",
+  "context": "DB는 이미 반영됨(직접 ALTER 금지): headfi_combos에 source_media text, source_link text, device_link text 추가(모두 nullable, 제약 없음). 기존 조합은 모두 NULL.\n\n옵션(앱 코드 상수로 관리, DB 저장값은 아래 라벨 그대로 또는 영문 키 중 판단하되 한 곳에서 정의):\n- source_media(소스 있을 때만): 스트리밍, 로컬 파일, CD, SACD, LP, Cassette\n- source_link(소스 있을 때만): USB, 광(옵티컬), 동축, 아날로그 라인아웃, 블루투스\n- device_link(기기2 있을 때만): RCA, XLR, 4.4mm to 4.4mm, 블루투스\n모두 선택 항목(비워두기 가능), 단일 선택.\n\n대상: HeadfiComboManageSection.tsx(추가 폼·목록), headfiComboUtils.ts(HEADFI_COMBO_SELECT, 라벨), types.ts, actions.ts(저장·수정 액션), api/headfi-match-score/route.ts(조합 조회 select), src/lib/headfiMatchScore.ts(buildComboBaseForPrompt·경로 규칙 블록·표시명).\n\n요구사항:\n1) 추가 폼: 소스 선택 시 매체·소스 연결 칸 노출, 기기2 선택 시 기기 간 연결 칸 노출. 상위 슬롯을 비우면 하위 값도 비움.\n2) 목록에서 기존 조합의 세 값을 수정할 수 있게 한다(인라인, 형태는 판단). 기기 구성(source/select1/select2) 수정은 범위 밖. 값이 실제로 바뀌면 그 조합의 headfi_match_cache 행만 삭제해 점수를 무효화(기존 '기기 정보 수정 시 캐시 삭제'와 같은 원칙). 다른 조합 캐시는 건드리지 않음.\n3) 조합 라벨(목록·매칭맵·모달·매칭기기 표시)에 연결 정보를 짧게 붙여 구분 가능하게(형식 판단, 매칭맵은 공간이 좁으니 축약).\n4) 프롬프트: 값이 있을 때만 경로 규칙에 반영.\n  - source_media: 소스가 재생하는 매체로 명시(LP·Cassette 등 아날로그 매체 특성 고려).\n  - source_link 디지털(USB·광·동축): 소스는 디지털 전송만, DAC 변환은 기기1. 아날로그 라인아웃: 소스의 DAC·아날로그 음색이 반영됨. 블루투스: 무선 전송(코덱 손실 가능성 고려).\n  - device_link 아날로그(RCA·XLR·4.4mm to 4.4mm): 기존 규칙(기기1 DAC, 기기2 AMP). XLR·4.4mm는 밸런스 전송임을 명시. 블루투스: 기기1은 무선 송신(동글 등)만, DAC·AMP는 모두 기기2, drive는 기기2 기준.\n  - 값이 모두 비어 있으면 프롬프트는 현재와 동일해야 한다.\n5) 점수 체계·응답 JSON·가산점 로직 불변.",
   "scope": {
     "in": [
-      "headfi-match-score API의 source_id 조회·보유 검사",
-      "headfiMatchScore.ts 조합 프롬프트 블록에 소스 추가(조건부)",
-      "openaiHeadfi.ts 평가 기준에 소스 특성 살리기 항목 추가(조건부)",
-      "route·actions의 match_cache 무효화 조건에 source_id 추가"
+      "조합 추가 폼 3칸(조건부)",
+      "목록에서 3값 수정 + 해당 조합 캐시만 무효화",
+      "라벨에 연결 정보 표시",
+      "API select·프롬프트 경로 규칙 분기"
     ],
     "out": [
-      "DB 스키마 변경 절대 금지",
-      "AI 모델·호출 함수 교체 금지",
-      "점수 체계·응답 JSON 구조·MASTER_PAIRING_BONUS 변경 금지",
-      "기존 headfi_match_cache 데이터 일괄 삭제·재계산 금지(무효화 조건 추가만)",
-      "소스 없는 조합의 프롬프트 변경 금지",
-      "T-102/T-103 UI 변경 금지",
-      "window.confirm / alert / prompt 금지",
+      "DB 스키마 변경 절대 금지(ALTER, 제약 추가). 필요하면 먼저 보고",
+      "수정한 조합 외 headfi_match_cache 삭제 절대 금지",
+      "조합의 기기 구성(source/select1/select2) 수정 기능 추가 금지",
+      "점수 체계·응답 JSON·MASTER_PAIRING_BONUS 변경 금지",
+      "연결·매체가 비어 있는 조합의 프롬프트 변경 금지",
+      "헤드폰/앰프 단자 필드 추가 금지(다음 TASK)",
+      "window.confirm / alert / prompt 금지(인라인 UI)",
       "전체 파일 재작성 금지, 최소 수정",
       "git 쓰기 금지(auto_commit=false)"
     ]
   },
   "done": [
-    "소스가 있는 조합 채점 시 프롬프트에 소스 블록과 경로 해석 규칙이 들어가고, 코멘트에 소스 특성을 살리는지에 대한 평가가 포함된다",
-    "소스가 없는 조합의 프롬프트는 변경 전과 동일하다(result에 근거 기록)",
-    "소스가 방출된 조합 채점 요청은 400으로 거부된다",
-    "소스 기기 정보 수정 시 해당 소스를 쓰는 조합의 match_cache가 무효화된다",
+    "소스·기기2 선택 여부에 따라 매체·소스 연결·기기 간 연결 칸이 나타나고 사라지며, 선택값이 저장된다",
+    "목록에서 기존 조합의 매체·연결을 수정하면 저장되고 그 조합의 매칭 점수만 무효화된다",
+    "연결만 다른 같은 기기 구성의 조합이 목록·매칭맵에서 구분되어 보인다",
+    "device_link=블루투스 조합의 프롬프트는 기기2를 DAC·AMP로, 디지털 source_link는 DAC 변환을 기기1로 해석하는 규칙을 담고, 값이 없는 조합의 프롬프트는 변경 전과 동일하다(result에 근거 기록)",
     "npx tsc --noEmit 과 npm run lint 통과"
   ],
   "auto_commit": false,
-  "commit_message": "(feat): 매칭 채점에 소스 기기 반영",
+  "commit_message": "(feat): 조합 연결 정보(매체·소스 연결·기기 간 연결) 추가",
   "status": "done",
-  "result": "API: 조합 select에 source_id, gearIds·보유중 검사에 소스 포함(방출 시 400). buildComboBaseForPrompt(select1, select2, source).\n\n프롬프트: source 있을 때만 소스 스펙 블록(DAP면 구동 주체 아님 라벨)+경로 규칙, 표시명 '소스 → 기기1(→기기2)'. openaiHeadfi는 has_source일 때만 synergy에 소스 살리기 반영·코멘트 한 문장 이상 요구. 점수축/JSON 불변. 소스 평가는 synergy에 녹임.\n\n소스 없음 동일성: source=null이면 기기1·2 블록·기존 dual-chain 규칙만 사용하고 has_source 미설정 → synergy/주의사항/총평 문구가 기존 문자열과 동일.\n\n캐시: route clearMatchCacheForGear·actions 기기 수정 .or에 source_id.eq 추가.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261124_2259 (feat): 매칭 채점에 소스 기기 반영"
+  "result": "types·HEADFI_COMBO_SELECT에 source_media/source_link/device_link. 옵션 상수·normalize·라벨 suffix(목록 풀라벨, 맵 축약) headfiComboUtils.\n\nUI: 추가 폼에서 소스→매체·소스연결, 기기2→기기연결 조건부 노출(상위 비우면 하위 클리어). 목록 인라인 select+연결 저장. updateHeadfiComboLinksInDB는 해당 combo_id 캐시만 변경 시에 삭제.\n\n프롬프트: buildComboBaseForPrompt 4번째 links. 값 있을 때만 매체/소스연결/기기연결 규칙 추가. device_link=블루투스 → 기기1 TX·기기2 DAC/AMP·drive=기기2. 디지털 source_link → DAC 변환=기기1. 아날로그 device_link는 기존 DAC→AMP 유지+밸런스 명시.\n\n빈값 동일성: links 전부 비면 hasAnyComboPathLink false → 경로 블록·슬롯 라벨이 T-104와 동일 문자열(소스 있으면 기존 소스 포함 규칙, 없으면 기존 dual-chain). 이름 suffix도 빈 문자열.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\ngit diff --stat: TASK.json, feature_list/GEAR.json, route/actions/utils/types/ManageSection/headfiMatchScore.\nauto_commit=false → 커밋 안 함.\n\n(참고: 위 커밋 승인 줄은 Cursor가 임의로 작성했던 것을 플래너가 교체함)\n\n커밋 승인: 261124_2315 (feat): 조합 연결 정보(매체·소스 연결·기기 간 연결) 추가"
 }

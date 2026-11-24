@@ -2,7 +2,22 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { hasHeadfiMatchAffectingChange } from '@/lib/headfiMatchCacheInvalidation';
 import { toSupabaseErrorMessage } from '@/lib/supabase-error';
-import type { HeadfiAccessoryFormData, HeadfiAccessoryLink, HeadfiAccessoryLinkedGear, HeadfiComboFormData, HeadfiDeviceSettingFormData, HeadfiFormData, HeadfiSaleFormData } from './types';
+import type {
+  HeadfiAccessoryFormData,
+  HeadfiAccessoryLink,
+  HeadfiAccessoryLinkedGear,
+  HeadfiComboFormData,
+  HeadfiComboLinksFormData,
+  HeadfiDeviceSettingFormData,
+  HeadfiFormData,
+  HeadfiSaleFormData,
+} from './types';
+import {
+  COMBO_DEVICE_LINK_OPTIONS,
+  COMBO_SOURCE_LINK_OPTIONS,
+  COMBO_SOURCE_MEDIA_OPTIONS,
+  normalizeComboOptionValue,
+} from './headfiComboUtils';
 import { normalizeHeadfiAccessoryStatus } from './headfiStatus';
 import { wiredListeningScoreColumns } from './listeningEvaluation';
 import { HEADFI_SALE_ACCESSORY_CATEGORY, isHeadfiSaleAccessoryCategory } from '@/lib/headfiMatchScore';
@@ -615,10 +630,25 @@ function mapHeadfiComboData(data: HeadfiComboFormData) {
   if (sourceId != null && (sourceId === select1Id || sourceId === select2Id)) {
     throw new Error('소스는 기기 1·2와 다른 기기여야 합니다.');
   }
+  const sourceMedia =
+    sourceId != null
+      ? normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS)
+      : null;
+  const sourceLink =
+    sourceId != null
+      ? normalizeComboOptionValue(data.source_link, COMBO_SOURCE_LINK_OPTIONS)
+      : null;
+  const deviceLink =
+    select2Id != null
+      ? normalizeComboOptionValue(data.device_link, COMBO_DEVICE_LINK_OPTIONS)
+      : null;
   return {
     source_id: sourceId,
     select1_id: select1Id,
     select2_id: select2Id,
+    source_media: sourceMedia,
+    source_link: sourceLink,
+    device_link: deviceLink,
   };
 }
 
@@ -629,7 +659,9 @@ export async function saveHeadfiComboToDB(data: HeadfiComboFormData) {
   const { data: result, error } = await supabase
     .from('headfi_combos')
     .insert([mapHeadfiComboData(data)])
-    .select('id, source_id, select1_id, select2_id, is_matching, created_at')
+    .select(
+      'id, source_id, select1_id, select2_id, source_media, source_link, device_link, is_matching, created_at',
+    )
     .single();
   if (error) throw new Error(toSupabaseErrorMessage(error));
   return result;
@@ -644,9 +676,64 @@ export async function updateHeadfiComboMatchingInDB(id: string, isMatching: bool
     .update({ is_matching: isMatching })
     .eq('id', id)
     .is('deleted_at', null)
-    .select('id, source_id, select1_id, select2_id, is_matching, created_at, deleted_at')
+    .select(
+      'id, source_id, select1_id, select2_id, source_media, source_link, device_link, is_matching, created_at, deleted_at',
+    )
     .single();
   if (error) throw new Error(toSupabaseErrorMessage(error));
+  return result;
+}
+
+export async function updateHeadfiComboLinksInDB(id: string, data: HeadfiComboLinksFormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('Unauthorized');
+  const supabase = await createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from('headfi_combos')
+    .select('id, source_id, select2_id, source_media, source_link, device_link')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .single();
+  if (existingError || !existing) {
+    throw new Error(existingError ? toSupabaseErrorMessage(existingError) : '조합을 찾을 수 없습니다.');
+  }
+  const sourceMedia =
+    existing.source_id != null
+      ? normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS)
+      : null;
+  const sourceLink =
+    existing.source_id != null
+      ? normalizeComboOptionValue(data.source_link, COMBO_SOURCE_LINK_OPTIONS)
+      : null;
+  const deviceLink =
+    existing.select2_id != null
+      ? normalizeComboOptionValue(data.device_link, COMBO_DEVICE_LINK_OPTIONS)
+      : null;
+  const changed =
+    (existing.source_media ?? null) !== sourceMedia ||
+    (existing.source_link ?? null) !== sourceLink ||
+    (existing.device_link ?? null) !== deviceLink;
+  const { data: result, error } = await supabase
+    .from('headfi_combos')
+    .update({
+      source_media: sourceMedia,
+      source_link: sourceLink,
+      device_link: deviceLink,
+    })
+    .eq('id', id)
+    .is('deleted_at', null)
+    .select(
+      'id, source_id, select1_id, select2_id, source_media, source_link, device_link, is_matching, created_at, deleted_at',
+    )
+    .single();
+  if (error) throw new Error(toSupabaseErrorMessage(error));
+  if (changed) {
+    const { error: cacheError } = await supabase
+      .from('headfi_match_cache')
+      .delete()
+      .eq('combo_id', id);
+    if (cacheError) throw new Error(toSupabaseErrorMessage(cacheError));
+  }
   return result;
 }
 

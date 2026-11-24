@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     const { data: comboRow, error: comboError } = await supabase
       .from('headfi_combos')
-      .select('id, source_id, select1_id, select2_id, created_at')
+      .select('id, source_id, select1_id, select2_id, source_media, source_link, device_link, created_at')
       .eq('id', comboId)
       .single();
 
@@ -273,7 +273,11 @@ export async function POST(req: NextRequest) {
     const candidateLines = candidateHeadfiRows.map((item) => candidateLine(compressCandidateRow(item)));
     const candidateIds = candidateHeadfiRows.map((c) => c.id);
     const candidateContext = buildHeadphoneListeningContextSections(candidateHeadfiRows);
-    const comboBase = buildComboBaseForPrompt(select1, select2 ?? null, source ?? null);
+    const comboBase = buildComboBaseForPrompt(select1, select2 ?? null, source ?? null, {
+      source_media: combo.source_media,
+      source_link: combo.source_link,
+      device_link: combo.device_link,
+    });
 
     const scores = await analyzeHeadfiMatchScore(
       comboBase,

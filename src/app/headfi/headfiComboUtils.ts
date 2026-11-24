@@ -2,7 +2,76 @@ import { HEADFI_STATUS2_OWNED } from './headfiStatus';
 import type { Headfi, HeadfiCombo } from './types';
 
 export const HEADFI_COMBO_SELECT =
-  'id, source_id, select1_id, select2_id, is_matching, created_at, deleted_at';
+  'id, source_id, select1_id, select2_id, source_media, source_link, device_link, is_matching, created_at, deleted_at';
+
+export const COMBO_SOURCE_MEDIA_OPTIONS = [
+  '스트리밍',
+  '로컬 파일',
+  'CD',
+  'SACD',
+  'LP',
+  'Cassette',
+] as const;
+
+export const COMBO_SOURCE_LINK_OPTIONS = [
+  'USB',
+  '광(옵티컬)',
+  '동축',
+  '아날로그 라인아웃',
+  '블루투스',
+] as const;
+
+export const COMBO_DEVICE_LINK_OPTIONS = [
+  'RCA',
+  'XLR',
+  '4.4mm to 4.4mm',
+  '블루투스',
+] as const;
+
+export type ComboSourceMedia = (typeof COMBO_SOURCE_MEDIA_OPTIONS)[number];
+export type ComboSourceLink = (typeof COMBO_SOURCE_LINK_OPTIONS)[number];
+export type ComboDeviceLink = (typeof COMBO_DEVICE_LINK_OPTIONS)[number];
+
+export function normalizeComboOptionValue(
+  value: string | null | undefined,
+  options: readonly string[],
+): string | null {
+  const trimmed = value?.trim() ?? '';
+  if (!trimmed) return null;
+  return options.includes(trimmed) ? trimmed : null;
+}
+
+function shortenConnectionLabel(value: string): string {
+  if (value === '광(옵티컬)') return '광';
+  if (value === '아날로그 라인아웃') return '라인';
+  if (value === '4.4mm to 4.4mm') return '4.4';
+  if (value === '로컬 파일') return '로컬';
+  if (value === '스트리밍') return '스트리밍';
+  return value;
+}
+
+export function formatComboConnectionParts(
+  combo: Pick<HeadfiCombo, 'source_media' | 'source_link' | 'device_link'>,
+): string[] {
+  const parts: string[] = [];
+  const media = combo.source_media?.trim();
+  const sourceLink = combo.source_link?.trim();
+  const deviceLink = combo.device_link?.trim();
+  if (media) parts.push(media);
+  if (sourceLink) parts.push(sourceLink);
+  if (deviceLink) parts.push(deviceLink);
+  return parts;
+}
+
+export function formatComboConnectionSuffix(
+  combo: Pick<HeadfiCombo, 'source_media' | 'source_link' | 'device_link'>,
+  compact = false,
+): string {
+  const parts = formatComboConnectionParts(combo);
+  if (parts.length === 0) return '';
+  if (compact) return ` · ${parts.map(shortenConnectionLabel).join('/')}`;
+  return ` · ${parts.join(' · ')}`;
+}
 
 export function isActiveHeadfiCombo(combo: Pick<HeadfiCombo, 'deleted_at'>): boolean {
   return combo.deleted_at == null;
@@ -85,7 +154,10 @@ function formatComboWithOptionalSource(
 }
 
 export function formatComboLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
-  return formatComboWithOptionalSource(combo, gearById, formatGearShortLabel);
+  return (
+    formatComboWithOptionalSource(combo, gearById, formatGearShortLabel) +
+    formatComboConnectionSuffix(combo)
+  );
 }
 
 function formatGearPairingDisplayLabel(item: Headfi | undefined): string {
@@ -94,7 +166,10 @@ function formatGearPairingDisplayLabel(item: Headfi | undefined): string {
 }
 
 export function formatComboPairingDisplayLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
-  return formatComboWithOptionalSource(combo, gearById, formatGearPairingDisplayLabel);
+  return (
+    formatComboWithOptionalSource(combo, gearById, formatGearPairingDisplayLabel) +
+    formatComboConnectionSuffix(combo)
+  );
 }
 
 export function resolvePairingComboLabel(
@@ -114,7 +189,10 @@ export function formatGearMapLabel(item: Headfi | undefined): string {
 }
 
 export function formatComboMapLabel(combo: HeadfiCombo, gearById: Map<number, Headfi>): string {
-  return formatComboWithOptionalSource(combo, gearById, formatGearMapLabel);
+  return (
+    formatComboWithOptionalSource(combo, gearById, formatGearMapLabel) +
+    formatComboConnectionSuffix(combo, true)
+  );
 }
 
 export function buildGearByIdMap(library: Headfi[]): Map<number, Headfi> {

@@ -164,6 +164,9 @@ export interface HeadfiCombo {
   source_id?: number | null;
   select1_id: number | null;
   select2_id: number | null;
+  source_media?: string | null;
+  source_link?: string | null;
+  device_link?: string | null;
   is_matching?: boolean;
   created_at?: string | null;
   deleted_at?: string | null;
@@ -173,6 +176,15 @@ export interface HeadfiComboFormData {
   source_id: string;
   select1_id: string;
   select2_id: string;
+  source_media: string;
+  source_link: string;
+  device_link: string;
+}
+
+export interface HeadfiComboLinksFormData {
+  source_media: string;
+  source_link: string;
+  device_link: string;
 }
 
 /** 폼에서 액션으로 넘기는 데이터 (모든 필드 문자열) */

@@ -8,10 +8,14 @@ import { getClientErrorMessage } from '@/lib/supabase-error';
 import {
   deleteHeadfiComboFromDB,
   saveHeadfiComboToDB,
+  updateHeadfiComboLinksInDB,
   updateHeadfiComboMatchingInDB,
 } from '../actions';
 import {
   buildGearByIdMap,
+  COMBO_DEVICE_LINK_OPTIONS,
+  COMBO_SOURCE_LINK_OPTIONS,
+  COMBO_SOURCE_MEDIA_OPTIONS,
   formatComboLabel,
   formatGearShortLabel,
   HEADFI_COMBO_SELECT,
@@ -30,6 +34,53 @@ type HeadfiComboManageSectionProps = {
   hideHeading?: boolean;
 };
 
+type ComboLinkDraft = {
+  source_media: string;
+  source_link: string;
+  device_link: string;
+};
+
+function comboLinkDraftFromCombo(combo: HeadfiCombo): ComboLinkDraft {
+  return {
+    source_media: combo.source_id != null ? (combo.source_media ?? '') : '',
+    source_link: combo.source_id != null ? (combo.source_link ?? '') : '',
+    device_link: combo.select2_id != null ? (combo.device_link ?? '') : '',
+  };
+}
+
+function ComboOptionSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold opacity-80">{label}</label>
+      <select
+        className="select-apple h-[42px] w-full px-3 py-2"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">비워두기</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export function HeadfiComboManageSection({
   library,
   isAuthenticated,
@@ -42,9 +93,14 @@ export function HeadfiComboManageSection({
   const [matchingId, setMatchingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [savingLinksId, setSavingLinksId] = useState<string | null>(null);
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, ComboLinkDraft>>({});
   const [sourceId, setSourceId] = useState('');
   const [select1Id, setSelect1Id] = useState('');
   const [select2Id, setSelect2Id] = useState('');
+  const [sourceMedia, setSourceMedia] = useState('');
+  const [sourceLink, setSourceLink] = useState('');
+  const [deviceLink, setDeviceLink] = useState('');
 
   const gearById = useMemo(() => buildGearByIdMap(library), [library]);
 
@@ -74,6 +130,7 @@ export function HeadfiComboManageSection({
   const loadCombos = useCallback(async () => {
     if (isAuthenticated !== true) {
       setCombos([]);
+      setLinkDrafts({});
       return;
     }
     setLoading(true);
@@ -87,8 +144,12 @@ export function HeadfiComboManageSection({
         toast.error(error.message || '조합 목록을 불러오지 못했습니다.');
         return;
       }
-      setCombos((data ?? []) as HeadfiCombo[]);
-      onCombosChange?.((data ?? []) as HeadfiCombo[]);
+      const next = (data ?? []) as HeadfiCombo[];
+      setCombos(next);
+      setLinkDrafts(
+        Object.fromEntries(next.map((combo) => [combo.id, comboLinkDraftFromCombo(combo)])),
+      );
+      onCombosChange?.(next);
     } finally {
       setLoading(false);
     }
@@ -106,6 +167,17 @@ export function HeadfiComboManageSection({
     if (sourceId && (sourceId === select1Id || sourceId === select2Id)) setSourceId('');
   }, [select1Id, select2Id, sourceId]);
 
+  useEffect(() => {
+    if (!sourceId) {
+      setSourceMedia('');
+      setSourceLink('');
+    }
+  }, [sourceId]);
+
+  useEffect(() => {
+    if (!select2Id) setDeviceLink('');
+  }, [select2Id]);
+
   const handleAdd = async () => {
     if (isAuthenticated !== true) {
       toast.error('로그인이 필요합니다.');
@@ -121,10 +193,16 @@ export function HeadfiComboManageSection({
         source_id: sourceId,
         select1_id: select1Id,
         select2_id: select2Id,
+        source_media: sourceId ? sourceMedia : '',
+        source_link: sourceId ? sourceLink : '',
+        device_link: select2Id ? deviceLink : '',
       });
       setSourceId('');
       setSelect1Id('');
       setSelect2Id('');
+      setSourceMedia('');
+      setSourceLink('');
+      setDeviceLink('');
       toast.success('조합을 저장했습니다.');
       await loadCombos();
       notifyHeadfiCombosChanged();
@@ -150,12 +228,42 @@ export function HeadfiComboManageSection({
     }
   };
 
+  const handleSaveLinks = async (combo: HeadfiCombo) => {
+    const draft = linkDrafts[combo.id] ?? comboLinkDraftFromCombo(combo);
+    setSavingLinksId(combo.id);
+    try {
+      const updated = (await updateHeadfiComboLinksInDB(combo.id, {
+        source_media: combo.source_id != null ? draft.source_media : '',
+        source_link: combo.source_id != null ? draft.source_link : '',
+        device_link: combo.select2_id != null ? draft.device_link : '',
+      })) as HeadfiCombo;
+      const next = combos.map((item) => (item.id === combo.id ? { ...item, ...updated } : item));
+      setCombos(next);
+      setLinkDrafts((prev) => ({
+        ...prev,
+        [combo.id]: comboLinkDraftFromCombo({ ...combo, ...updated }),
+      }));
+      onCombosChange?.(next);
+      notifyHeadfiCombosChanged();
+      toast.success('연결 정보를 저장했습니다.');
+    } catch (error) {
+      toast.error(getClientErrorMessage(error) || '연결 정보를 저장하지 못했습니다.');
+    } finally {
+      setSavingLinksId(null);
+    }
+  };
+
   const handleDelete = async (comboId: string) => {
     setDeletingId(comboId);
     try {
       await deleteHeadfiComboFromDB(comboId);
       const next = combos.filter((combo) => combo.id !== comboId);
       setCombos(next);
+      setLinkDrafts((prev) => {
+        const copy = { ...prev };
+        delete copy[comboId];
+        return copy;
+      });
       onCombosChange?.(next);
       setDeleteConfirmId(null);
       toast.success('조합을 삭제했습니다.');
@@ -185,54 +293,84 @@ export function HeadfiComboManageSection({
           보유중인 DAC/AMP/DAP/기타 기기가 없습니다. 먼저 기기를 등록해 주세요.
         </p>
       ) : (
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-xs font-semibold opacity-80">소스 (선택)</label>
-            <select
-              className="select-apple h-[42px] w-full px-3 py-2"
-              value={sourceId}
-              onChange={(e) => setSourceId(e.target.value)}
-            >
-              <option value="">비워두기</option>
-              {sourceOptions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatGearShortLabel(item)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold opacity-80">기기 1 (필수)</label>
-            <select
-              className="select-apple h-[42px] w-full px-3 py-2"
-              value={select1Id}
-              onChange={(e) => setSelect1Id(e.target.value)}
-            >
-              <option value="">선택하세요</option>
-              {deviceOptions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatGearShortLabel(item)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold opacity-80">기기 2 (선택)</label>
-            <select
-              className="select-apple h-[42px] w-full px-3 py-2"
-              value={select2Id}
-              onChange={(e) => setSelect2Id(e.target.value)}
-            >
-              <option value="">비워두기</option>
-              {deviceOptions
-                .filter((item) => String(item.id) !== select1Id)
-                .map((item) => (
+        <div className="mb-4 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold opacity-80">소스 (선택)</label>
+              <select
+                className="select-apple h-[42px] w-full px-3 py-2"
+                value={sourceId}
+                onChange={(e) => setSourceId(e.target.value)}
+              >
+                <option value="">비워두기</option>
+                {sourceOptions.map((item) => (
                   <option key={item.id} value={item.id}>
                     {formatGearShortLabel(item)}
                   </option>
                 ))}
-            </select>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold opacity-80">기기 1 (필수)</label>
+              <select
+                className="select-apple h-[42px] w-full px-3 py-2"
+                value={select1Id}
+                onChange={(e) => setSelect1Id(e.target.value)}
+              >
+                <option value="">선택하세요</option>
+                {deviceOptions.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {formatGearShortLabel(item)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold opacity-80">기기 2 (선택)</label>
+              <select
+                className="select-apple h-[42px] w-full px-3 py-2"
+                value={select2Id}
+                onChange={(e) => setSelect2Id(e.target.value)}
+              >
+                <option value="">비워두기</option>
+                {deviceOptions
+                  .filter((item) => String(item.id) !== select1Id)
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {formatGearShortLabel(item)}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
+          {sourceId || select2Id ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {sourceId ? (
+                <>
+                  <ComboOptionSelect
+                    label="매체 (선택)"
+                    value={sourceMedia}
+                    options={COMBO_SOURCE_MEDIA_OPTIONS}
+                    onChange={setSourceMedia}
+                  />
+                  <ComboOptionSelect
+                    label="소스 연결 (선택)"
+                    value={sourceLink}
+                    options={COMBO_SOURCE_LINK_OPTIONS}
+                    onChange={setSourceLink}
+                  />
+                </>
+              ) : null}
+              {select2Id ? (
+                <ComboOptionSelect
+                  label="기기 간 연결 (선택)"
+                  value={deviceLink}
+                  options={COMBO_DEVICE_LINK_OPTIONS}
+                  onChange={setDeviceLink}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -256,15 +394,23 @@ export function HeadfiComboManageSection({
             const isConfirming = deleteConfirmId === combo.id;
             const isDeleting = deletingId === combo.id;
             const isMatchingBusy = matchingId === combo.id;
+            const isSavingLinks = savingLinksId === combo.id;
             const released = isReleasedHeadfiCombo(combo, gearById);
             const matching = combo.is_matching !== false;
+            const draft = linkDrafts[combo.id] ?? comboLinkDraftFromCombo(combo);
+            const baseline = comboLinkDraftFromCombo(combo);
+            const linksDirty =
+              draft.source_media !== baseline.source_media ||
+              draft.source_link !== baseline.source_link ||
+              draft.device_link !== baseline.device_link;
+            const canEditLinks = combo.source_id != null || combo.select2_id != null;
             return (
               <li
                 key={combo.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2.5"
+                className="flex flex-wrap items-start justify-between gap-3 rounded-xl px-3 py-2.5"
                 style={{ background: 'var(--badge-bg)', border: '1px solid var(--border)' }}
               >
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className="min-w-0 truncate text-sm font-medium">
                       {formatComboLabel(combo, gearById)}
@@ -281,7 +427,7 @@ export function HeadfiComboManageSection({
                       </span>
                     ) : null}
                   </div>
-                  <label className="mt-1.5 inline-flex items-center gap-1.5 text-xs opacity-75">
+                  <label className="inline-flex items-center gap-1.5 text-xs opacity-75">
                     <input
                       type="checkbox"
                       className="size-3.5 accent-[var(--foreground)]"
@@ -291,6 +437,64 @@ export function HeadfiComboManageSection({
                     />
                     매칭 조합
                   </label>
+                  {canEditLinks ? (
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {combo.source_id != null ? (
+                        <>
+                          <ComboOptionSelect
+                            label="매체"
+                            value={draft.source_media}
+                            options={COMBO_SOURCE_MEDIA_OPTIONS}
+                            disabled={isSavingLinks || deletingId != null}
+                            onChange={(value) =>
+                              setLinkDrafts((prev) => ({
+                                ...prev,
+                                [combo.id]: { ...draft, source_media: value },
+                              }))
+                            }
+                          />
+                          <ComboOptionSelect
+                            label="소스 연결"
+                            value={draft.source_link}
+                            options={COMBO_SOURCE_LINK_OPTIONS}
+                            disabled={isSavingLinks || deletingId != null}
+                            onChange={(value) =>
+                              setLinkDrafts((prev) => ({
+                                ...prev,
+                                [combo.id]: { ...draft, source_link: value },
+                              }))
+                            }
+                          />
+                        </>
+                      ) : null}
+                      {combo.select2_id != null ? (
+                        <ComboOptionSelect
+                          label="기기 간 연결"
+                          value={draft.device_link}
+                          options={COMBO_DEVICE_LINK_OPTIONS}
+                          disabled={isSavingLinks || deletingId != null}
+                          onChange={(value) =>
+                            setLinkDrafts((prev) => ({
+                              ...prev,
+                              [combo.id]: { ...draft, device_link: value },
+                            }))
+                          }
+                        />
+                      ) : null}
+                      {linksDirty ? (
+                        <div className="flex items-end sm:col-span-3">
+                          <button
+                            type="button"
+                            className="btn-apple btn-apple-secondary h-[36px] px-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={isSavingLinks || deletingId != null}
+                            onClick={() => void handleSaveLinks(combo)}
+                          >
+                            {isSavingLinks ? '저장 중…' : '연결 저장'}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
                 {isConfirming ? (
                   <div className="flex shrink-0 items-center gap-1.5">

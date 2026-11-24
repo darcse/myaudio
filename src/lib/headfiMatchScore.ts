@@ -184,13 +184,90 @@ function buildComboGearSpecBlock(item: Headfi, slotLabel: string): string {
   return lines.join('\n');
 }
 
-function buildDualChainRoleBlock(select1: Headfi, select2: Headfi): string {
+export type ComboPathLinks = {
+  source_media?: string | null;
+  source_link?: string | null;
+  device_link?: string | null;
+};
+
+function trimPathLink(value: string | null | undefined): string {
+  return value?.trim() ?? '';
+}
+
+function hasAnyComboPathLink(links?: ComboPathLinks | null): boolean {
+  if (!links) return false;
+  return Boolean(
+    trimPathLink(links.source_media) ||
+      trimPathLink(links.source_link) ||
+      trimPathLink(links.device_link),
+  );
+}
+
+function formatComboPathLinksSuffix(links?: ComboPathLinks | null): string {
+  if (!links) return '';
+  const parts = [
+    trimPathLink(links.source_media),
+    trimPathLink(links.source_link),
+    trimPathLink(links.device_link),
+  ].filter(Boolean);
+  if (parts.length === 0) return '';
+  return ` · ${parts.join(' · ')}`;
+}
+
+function buildSourceMediaRuleLine(media: string): string | null {
+  if (!media) return null;
+  const analogNote =
+    media === 'LP' || media === 'Cassette'
+      ? ' 아날로그 매체 특성(노이즈·대역·다이나믹)을 고려할 것.'
+      : '';
+  return `- 소스 재생 매체: ${media}.${analogNote}`;
+}
+
+function buildSourceLinkRuleLine(sourceLink: string, sourceName: string, name1: string): string | null {
+  if (!sourceLink) return null;
+  if (sourceLink === 'USB' || sourceLink === '광(옵티컬)' || sourceLink === '동축') {
+    return `- 소스→기기 1 연결: ${sourceLink}(디지털). 소스 "${sourceName}"는 디지털 전송만 담당하고, DAC 변환은 기기 1 "${name1}"이 담당.`;
+  }
+  if (sourceLink === '아날로그 라인아웃') {
+    return `- 소스→기기 1 연결: 아날로그 라인아웃. 소스 "${sourceName}"의 DAC·아날로그 음색이 반영됨.`;
+  }
+  if (sourceLink === '블루투스') {
+    return `- 소스→기기 1 연결: 블루투스(무선). 코덱 손실 가능성을 고려.`;
+  }
+  return `- 소스→기기 1 연결: ${sourceLink}.`;
+}
+
+function buildDeviceLinkAnalogNote(deviceLink: string): string | null {
+  if (!deviceLink) return null;
+  if (deviceLink === 'XLR' || deviceLink === '4.4mm to 4.4mm') {
+    return `- 기기 간 연결: ${deviceLink}(밸런스 아날로그 전송). 기기 1 DAC → 기기 2 AMP 역할은 위와 동일.`;
+  }
+  if (deviceLink === 'RCA') {
+    return `- 기기 간 연결: RCA(아날로그 전송). 기기 1 DAC → 기기 2 AMP 역할은 위와 동일.`;
+  }
+  return null;
+}
+
+function buildDualChainRoleBlock(
+  select1: Headfi,
+  select2: Headfi,
+  deviceLink: string = '',
+): string {
   const name1 = formatExactGearName(select1);
   const name2 = formatExactGearName(select2);
-  return `[신호 경로 해석 규칙 — 2기기 조합]
+  if (deviceLink === '블루투스') {
+    return `[신호 경로 해석 규칙 — 2기기 조합]
+- 기기 간 연결: 블루투스(무선).
+- 기기 1 "${name1}": 무선 송신(동글 등)만 담당. DAC·AMP·헤드폰 구동으로 해석하지 말 것.
+- 기기 2 "${name2}": DAC·AMP 모두 담당. 무선 수신→DAC→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+- "${name1}"를 DAC로, "${name2}"를 AMP만으로 해석하지 말 것.`;
+  }
+  const base = `[신호 경로 해석 규칙 — 2기기 조합]
 - 기기 1 "${name1}": DAC 전용. 디지털 입력→아날로그 라인아웃 출력만 담당. 헤드폰 직접 구동·헤드폰단 앰핑은 하지 않음.
 - 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
 - "${name1}"와 "${name2}"를 각각 독립 앰프 2대로 해석하거나, 기기 1을 DAC/AMP 겸용으로 가정하지 말 것.`;
+  const analogNote = buildDeviceLinkAnalogNote(deviceLink);
+  return analogNote ? `${base}\n${analogNote}` : base;
 }
 
 function buildSourceGearSpecBlock(source: Headfi): string {
@@ -210,6 +287,7 @@ function buildSourceInclusivePathRoleBlock(
   source: Headfi,
   select1: Headfi,
   select2: Headfi | null,
+  links?: ComboPathLinks | null,
 ): string {
   const sourceName = formatExactGearName(source);
   const name1 = formatExactGearName(select1);
@@ -217,47 +295,82 @@ function buildSourceInclusivePathRoleBlock(
     source.category === 'DAP'
       ? ' DAP는 재생·디지털/아날로그 출력을 담당하는 소스로만 보고, 헤드폰 구동 주체·최종 앰프로 해석하지 말 것.'
       : '';
+  const media = trimPathLink(links?.source_media);
+  const sourceLink = trimPathLink(links?.source_link);
+  const deviceLink = trimPathLink(links?.device_link);
+  const extraLines = [
+    buildSourceMediaRuleLine(media),
+    buildSourceLinkRuleLine(sourceLink, sourceName, name1),
+  ].filter((line): line is string => Boolean(line));
+
   if (select2) {
     const name2 = formatExactGearName(select2);
-    return `[신호 경로 해석 규칙 — 소스 포함 조합]
+    if (deviceLink === '블루투스') {
+      return `[신호 경로 해석 규칙 — 소스 포함 조합]
+- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 기기 2 "${name2}" → 헤드폰/이어폰.
+- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
+${extraLines.length > 0 ? `${extraLines.join('\n')}\n` : ''}- 기기 간 연결: 블루투스(무선).
+- 기기 1 "${name1}": 무선 송신(동글 등)만 담당. DAC·AMP·헤드폰 구동으로 해석하지 말 것.
+- 기기 2 "${name2}": DAC·AMP 모두 담당. 무선 수신→DAC→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+- 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.`;
+    }
+    const analogNote = buildDeviceLinkAnalogNote(deviceLink);
+    const base = `[신호 경로 해석 규칙 — 소스 포함 조합]
 - 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 기기 2 "${name2}" → 헤드폰/이어폰.
 - 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
 - 기기 1 "${name1}": DAC 전용. 소스 출력→아날로그 라인아웃. 헤드폰 직접 구동은 하지 않음.
 - 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
 - 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.`;
+    if (!hasAnyComboPathLink(links)) return base;
+    const notes = [...extraLines, analogNote].filter((line): line is string => Boolean(line));
+    return notes.length > 0 ? `${base}\n${notes.join('\n')}` : base;
   }
-  return `[신호 경로 해석 규칙 — 소스 포함 조합]
+
+  const base = `[신호 경로 해석 규칙 — 소스 포함 조합]
 - 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 헤드폰/이어폰.
 - 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
 - 기기 1 "${name1}": 소스 이후 단에서 헤드폰 구동·음색을 담당. drive는 기기 1 기준으로 평가.
 - 소스를 최종 헤드폰 앰프로 해석하지 말 것.`;
+  if (!hasAnyComboPathLink(links)) return base;
+  return extraLines.length > 0 ? `${base}\n${extraLines.join('\n')}` : base;
 }
 
 function buildComboDisplayName(
   select1: Headfi,
   select2: Headfi | null,
   source: Headfi | null = null,
+  links?: ComboPathLinks | null,
 ): string {
   const name1 = formatExactGearName(select1);
+  const suffix = formatComboPathLinksSuffix(links);
   if (source) {
     const sourceLabel = `${formatExactGearName(source)} (${source.category})`;
     if (!select2) {
-      return `${sourceLabel} → ${name1} (${select1.category})`;
+      return `${sourceLabel} → ${name1} (${select1.category})${suffix}`;
     }
     const name2 = formatExactGearName(select2);
-    return `${sourceLabel} → ${name1} (DAC) → ${name2} (AMP)`;
+    const deviceLink = trimPathLink(links?.device_link);
+    if (deviceLink === '블루투스') {
+      return `${sourceLabel} → ${name1} (TX) → ${name2} (DAC/AMP)${suffix}`;
+    }
+    return `${sourceLabel} → ${name1} (DAC) → ${name2} (AMP)${suffix}`;
   }
   if (!select2) {
-    return `${name1} (${select1.category})`;
+    return `${name1} (${select1.category})${suffix}`;
   }
   const name2 = formatExactGearName(select2);
-  return `${name1} (DAC) → ${name2} (AMP)`;
+  const deviceLink = trimPathLink(links?.device_link);
+  if (deviceLink === '블루투스') {
+    return `${name1} (TX) → ${name2} (DAC/AMP)${suffix}`;
+  }
+  return `${name1} (DAC) → ${name2} (AMP)${suffix}`;
 }
 
 export function buildComboBaseForPrompt(
   select1: Headfi,
   select2: Headfi | null,
   source: Headfi | null = null,
+  links?: ComboPathLinks | null,
 ): {
   name: string;
   genres: string;
@@ -265,6 +378,8 @@ export function buildComboBaseForPrompt(
   has_source?: boolean;
 } {
   const dualChain = select2 != null;
+  const deviceLink = trimPathLink(links?.device_link);
+  const deviceLinkBt = dualChain && deviceLink === '블루투스';
   const blocks: string[] = [];
   if (source) {
     blocks.push(buildSourceGearSpecBlock(source));
@@ -272,19 +387,25 @@ export function buildComboBaseForPrompt(
   blocks.push(
     buildComboGearSpecBlock(
       select1,
-      dualChain ? '기기 1 — DAC(라인아웃 출력 전용)' : '기기 1',
+      dualChain
+        ? deviceLinkBt
+          ? '기기 1 — 무선 송신'
+          : '기기 1 — DAC(라인아웃 출력 전용)'
+        : '기기 1',
     ),
   );
   if (select2) {
-    blocks.push(buildComboGearSpecBlock(select2, '기기 2 — AMP'));
+    blocks.push(
+      buildComboGearSpecBlock(select2, deviceLinkBt ? '기기 2 — DAC·AMP' : '기기 2 — AMP'),
+    );
   }
   if (source) {
-    blocks.push(buildSourceInclusivePathRoleBlock(source, select1, select2));
+    blocks.push(buildSourceInclusivePathRoleBlock(source, select1, select2, links));
   } else if (select2) {
-    blocks.push(buildDualChainRoleBlock(select1, select2));
+    blocks.push(buildDualChainRoleBlock(select1, select2, deviceLink));
   }
   return {
-    name: buildComboDisplayName(select1, select2, source),
+    name: buildComboDisplayName(select1, select2, source, links),
     genres: '-',
     combo_specs_block: blocks.join('\n\n'),
     ...(source ? { has_source: true as const } : {}),

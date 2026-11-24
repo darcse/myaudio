@@ -1,0 +1,36 @@
+{
+  "id": "T-104",
+  "feature_id": "GEAR-049",
+  "goal": "소스가 들어간 조합으로 매칭 채점을 하면 AI가 소스까지 포함한 신호 경로로 평가하고, '조합된 기기가 소스의 특성을 잘 살려주는가'를 평가 기준의 하나로 반영해 코멘트에 언급한다. 소스 기기가 방출이거나 정보가 바뀌면 다른 기기와 똑같이 처리된다.",
+  "context": "T-102·T-103에서 headfi_combos.source_id(소스: 보유 Source 또는 DAP)가 추가됨(커밋 bdeec73). 현재 채점은 source_id를 전혀 모른다. 현재 DB에 source_id가 채워진 조합은 0개라 기존 점수 재계산은 필요 없다.\n\n대상(확인된 위치):\n- src/app/api/headfi-match-score/route.ts: 조합 조회 select(현재 'id, select1_id, select2_id, created_at'), gearIds 수집, 기기1·2 보유중 검사(400), buildComboBaseForPrompt 호출, clearMatchCacheForGear의 .or(select1_id/select2_id).\n- src/lib/headfiMatchScore.ts: buildComboGearSpecBlock, buildDualChainRoleBlock, buildComboDisplayName, buildComboBaseForPrompt.\n- src/lib/openaiHeadfi.ts: analyzeHeadfiMatchScore 프롬프트(평가 기준 서술부).\n- src/app/headfi/actions.ts 약 280행: 기기 수정 시 match_cache 삭제용 .or(select1_id/select2_id).\n\n요구사항:\n1) API가 source_id를 조회하고, 소스가 있으면 보유중 검사도 기기1·2와 동일하게 적용(방출이면 400).\n2) 프롬프트 조합 블록에 소스를 신호 경로 맨 앞 기기로 추가: 정확한 모델명·카테고리와, DB에 있는 소스의 음색/청음 관련 정보(기존 기기 블록에서 쓰는 수준 내에서 판단). 소스→기기1(→기기2) 경로 해석 규칙을 명시. 소스가 DAP일 때는 재생·출력 담당 소스로 해석하고 헤드폰 구동 주체로 보지 않게 할 것.\n3) 평가 기준에 '조합된 기기(기기1·2)가 소스의 특성을 잘 살려주는가'를 추가하고, 소스가 있는 조합의 코멘트에 이 관점이 한 문장 이상 들어가게 한다. 점수 체계(drive/synergy/genre, 300점 만점)와 응답 JSON 구조는 바꾸지 않는다. 기본안: 소스 평가는 synergy 점수에 녹인다(판단 여지 있음, result에 어떻게 했는지 기록).\n4) 소스가 없는 조합은 프롬프트·결과가 지금과 동일해야 한다(조건부 블록).\n5) match_cache 무효화: route의 clearMatchCacheForGear와 actions.ts의 기기 수정 시 삭제 쿼리에 source_id 일치도 포함(소스 기기 정보가 바뀌면 그 조합 점수도 무효화).\n6) 조합 표시명(buildComboDisplayName)에도 소스 반영.",
+  "scope": {
+    "in": [
+      "headfi-match-score API의 source_id 조회·보유 검사",
+      "headfiMatchScore.ts 조합 프롬프트 블록에 소스 추가(조건부)",
+      "openaiHeadfi.ts 평가 기준에 소스 특성 살리기 항목 추가(조건부)",
+      "route·actions의 match_cache 무효화 조건에 source_id 추가"
+    ],
+    "out": [
+      "DB 스키마 변경 절대 금지",
+      "AI 모델·호출 함수 교체 금지",
+      "점수 체계·응답 JSON 구조·MASTER_PAIRING_BONUS 변경 금지",
+      "기존 headfi_match_cache 데이터 일괄 삭제·재계산 금지(무효화 조건 추가만)",
+      "소스 없는 조합의 프롬프트 변경 금지",
+      "T-102/T-103 UI 변경 금지",
+      "window.confirm / alert / prompt 금지",
+      "전체 파일 재작성 금지, 최소 수정",
+      "git 쓰기 금지(auto_commit=false)"
+    ]
+  },
+  "done": [
+    "소스가 있는 조합 채점 시 프롬프트에 소스 블록과 경로 해석 규칙이 들어가고, 코멘트에 소스 특성을 살리는지에 대한 평가가 포함된다",
+    "소스가 없는 조합의 프롬프트는 변경 전과 동일하다(result에 근거 기록)",
+    "소스가 방출된 조합 채점 요청은 400으로 거부된다",
+    "소스 기기 정보 수정 시 해당 소스를 쓰는 조합의 match_cache가 무효화된다",
+    "npx tsc --noEmit 과 npm run lint 통과"
+  ],
+  "auto_commit": false,
+  "commit_message": "(feat): 매칭 채점에 소스 기기 반영",
+  "status": "done",
+  "result": "API: 조합 select에 source_id, gearIds·보유중 검사에 소스 포함(방출 시 400). buildComboBaseForPrompt(select1, select2, source).\n\n프롬프트: source 있을 때만 소스 스펙 블록(DAP면 구동 주체 아님 라벨)+경로 규칙, 표시명 '소스 → 기기1(→기기2)'. openaiHeadfi는 has_source일 때만 synergy에 소스 살리기 반영·코멘트 한 문장 이상 요구. 점수축/JSON 불변. 소스 평가는 synergy에 녹임.\n\n소스 없음 동일성: source=null이면 기기1·2 블록·기존 dual-chain 규칙만 사용하고 has_source 미설정 → synergy/주의사항/총평 문구가 기존 문자열과 동일.\n\n캐시: route clearMatchCacheForGear·actions 기기 수정 .or에 source_id.eq 추가.\n\n검증: npx tsc --noEmit 통과, npm run lint 통과.\nauto_commit=false → 커밋 안 함.\n\n커밋 승인: 261124_2259 (feat): 매칭 채점에 소스 기기 반영"
+}
