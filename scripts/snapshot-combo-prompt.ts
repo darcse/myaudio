@@ -62,6 +62,9 @@ const select1s: { key: string; item: Headfi }[] = [
   { key: 'Source', item: gear(11, 'S1Brand', 'Transport', 'Source', dacSpecs) },
   { key: 'DAC', item: gear(12, 'S1Brand', 'Dac One', 'DAC', dacSpecs) },
   { key: 'DAC/AMP', item: gear(13, 'S1Brand', 'DacAmp One', 'DAC/AMP', dacSpecs) },
+  { key: 'DAP', item: gear(14, 'S1Brand', 'Dap One', 'DAP', dacSpecs) },
+  { key: 'AMP', item: gear(15, 'S1Brand', 'Amp Solo', 'AMP', dacSpecs) },
+  { key: '기타', item: gear(16, 'S1Brand', 'Wireless Tx', '기타', dacSpecs) },
 ];
 
 const select2s: { key: string; item: Headfi | null }[] = [

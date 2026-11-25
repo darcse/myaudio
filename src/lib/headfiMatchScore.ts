@@ -214,35 +214,61 @@ function buildSourceMediaRuleLine(media: string): string | null {
   return `- 소스 재생 매체: ${media}.${analogNote}`;
 }
 
+const SOURCE_LINK_PREFIX = '- 소스→기기 1 연결: ';
+const DUAL_CHAIN_HEADER = '[신호 경로 해석 규칙 — 2기기 조합]';
+const SOURCE_INCLUSIVE_HEADER = '[신호 경로 해석 규칙 — 소스 포함 조합]';
+const BT_DEVICE_LINK_LINE = '- 기기 간 연결: 블루투스(무선).';
+const NO_ROLE_SWAP_LINE = '- 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.';
+
+function appendLines(base: string, lines: (string | null)[]): string {
+  const notes = lines.filter((line): line is string => Boolean(line));
+  return notes.length > 0 ? `${base}\n${notes.join('\n')}` : base;
+}
+
 function buildSourceLinkRuleLine(sourceLink: string, sourceName: string, name1: string): string | null {
   if (!sourceLink) return null;
   if (sourceLink === 'USB' || sourceLink === '광(옵티컬)' || sourceLink === '동축') {
-    return `- 소스→기기 1 연결: ${sourceLink}(디지털). 소스 "${sourceName}"는 디지털 전송만 담당하고, DAC 변환은 기기 1 "${name1}"이 담당.`;
+    return `${SOURCE_LINK_PREFIX}${sourceLink}(디지털). 소스 "${sourceName}"는 디지털 전송만 담당하고, DAC 변환은 기기 1 "${name1}"이 담당.`;
   }
   if (sourceLink === '아날로그 라인아웃') {
-    return `- 소스→기기 1 연결: 아날로그 라인아웃. 소스 "${sourceName}"의 DAC·아날로그 음색이 반영됨.`;
+    return `${SOURCE_LINK_PREFIX}아날로그 라인아웃. 소스 "${sourceName}"의 DAC·아날로그 음색이 반영됨.`;
   }
   if (sourceLink === '포노 아웃') {
-    return `- 소스→기기 1 연결: 포노 아웃. 소스 "${sourceName}"는 포노 레벨(RIAA 미보정) 신호를 출력하므로 기기 1 "${name1}"이 포노 앰프(증폭·RIAA 보정) 역할을 하는 것으로 해석하고, 기기 1에 포노 입력이 없으면 매칭이 성립하기 어려운 점을 감안.`;
+    return `${SOURCE_LINK_PREFIX}포노 아웃. 소스 "${sourceName}"는 포노 레벨(RIAA 미보정) 신호를 출력하므로 기기 1 "${name1}"이 포노 앰프(증폭·RIAA 보정) 역할을 하는 것으로 해석하고, 기기 1에 포노 입력이 없으면 매칭이 성립하기 어려운 점을 감안.`;
   }
   if (sourceLink === '블루투스') {
-    return `- 소스→기기 1 연결: 블루투스(무선). 코덱 손실 가능성을 고려.`;
+    return `${SOURCE_LINK_PREFIX}블루투스(무선). 코덱 손실 가능성을 고려.`;
   }
   if (sourceLink === 'AirPlay') {
-    return `- 소스→기기 1 연결: AirPlay(무선, 최대 16bit/44.1kHz ALAC 무손실 전송). 블루투스보다 손실이 적음.`;
+    return `${SOURCE_LINK_PREFIX}AirPlay(무선, 최대 16bit/44.1kHz ALAC 무손실 전송). 블루투스보다 손실이 적음.`;
   }
-  return `- 소스→기기 1 연결: ${sourceLink}.`;
+  return `${SOURCE_LINK_PREFIX}${sourceLink}.`;
 }
 
 function buildDeviceLinkAnalogNote(deviceLink: string): string | null {
-  if (!deviceLink) return null;
-  if (deviceLink === 'XLR' || deviceLink === '4.4mm to 4.4mm') {
-    return `- 기기 간 연결: ${deviceLink}(밸런스 아날로그 전송). 기기 1 DAC → 기기 2 AMP 역할은 위와 동일.`;
-  }
-  if (deviceLink === 'RCA') {
-    return `- 기기 간 연결: RCA(아날로그 전송). 기기 1 DAC → 기기 2 AMP 역할은 위와 동일.`;
-  }
-  return null;
+  const label =
+    deviceLink === 'XLR' || deviceLink === '4.4mm to 4.4mm'
+      ? `${deviceLink}(밸런스 아날로그 전송)`
+      : deviceLink === 'RCA'
+        ? 'RCA(아날로그 전송)'
+        : null;
+  if (!label) return null;
+  return `- 기기 간 연결: ${label}. 기기 1 DAC → 기기 2 AMP 역할은 위와 동일.`;
+}
+
+function buildBluetoothDeviceLines(name1: string, name2: string): string {
+  return `${BT_DEVICE_LINK_LINE}
+- 기기 1 "${name1}": 무선 송신(동글 등)만 담당. DAC·AMP·헤드폰 구동으로 해석하지 말 것.
+- 기기 2 "${name2}": DAC·AMP 모두 담당. 무선 수신→DAC→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.`;
+}
+
+function buildLineOutDevice1Line(select1: Headfi, name1: string, flow: string): string {
+  const role = select1.category === 'Source' ? '소스 기기(재생·라인 출력).' : 'DAC 전용.';
+  return `- 기기 1 "${name1}": ${role} ${flow}`;
+}
+
+function buildAmpDevice2Line(name2: string): string {
+  return `- 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.`;
 }
 
 function buildDualChainRoleBlock(
@@ -253,22 +279,15 @@ function buildDualChainRoleBlock(
   const name1 = formatExactGearName(select1);
   const name2 = formatExactGearName(select2);
   if (deviceLink === '블루투스') {
-    return `[신호 경로 해석 규칙 — 2기기 조합]
-- 기기 간 연결: 블루투스(무선).
-- 기기 1 "${name1}": 무선 송신(동글 등)만 담당. DAC·AMP·헤드폰 구동으로 해석하지 말 것.
-- 기기 2 "${name2}": DAC·AMP 모두 담당. 무선 수신→DAC→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+    return `${DUAL_CHAIN_HEADER}
+${buildBluetoothDeviceLines(name1, name2)}
 - "${name1}"를 DAC로, "${name2}"를 AMP만으로 해석하지 말 것.`;
   }
-  const device1Line =
-    select1.category === 'Source'
-      ? `- 기기 1 "${name1}": 소스 기기(재생·라인 출력). 디지털 입력→아날로그 라인아웃 출력만 담당. 헤드폰 직접 구동·헤드폰단 앰핑은 하지 않음.`
-      : `- 기기 1 "${name1}": DAC 전용. 디지털 입력→아날로그 라인아웃 출력만 담당. 헤드폰 직접 구동·헤드폰단 앰핑은 하지 않음.`;
-  const base = `[신호 경로 해석 규칙 — 2기기 조합]
-${device1Line}
-- 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
+  const base = `${DUAL_CHAIN_HEADER}
+${buildLineOutDevice1Line(select1, name1, '디지털 입력→아날로그 라인아웃 출력만 담당. 헤드폰 직접 구동·헤드폰단 앰핑은 하지 않음.')}
+${buildAmpDevice2Line(name2)}
 - "${name1}"와 "${name2}"를 각각 독립 앰프 2대로 해석하거나, 기기 1을 DAC/AMP 겸용으로 가정하지 말 것.`;
-  const analogNote = buildDeviceLinkAnalogNote(deviceLink);
-  return analogNote ? `${base}\n${analogNote}` : base;
+  return appendLines(base, [buildDeviceLinkAnalogNote(deviceLink)]);
 }
 
 function buildSourceDeviceSoloPathRoleBlock(select1: Headfi): string {
@@ -299,6 +318,7 @@ function buildSourceInclusivePathRoleBlock(
 ): string {
   const sourceName = formatExactGearName(source);
   const name1 = formatExactGearName(select1);
+  const name2 = select2 ? formatExactGearName(select2) : null;
   const dapNote =
     source.category === 'DAP'
       ? ' DAP는 재생·디지털/아날로그 출력을 담당하는 소스로만 보고, 헤드폰 구동 주체·최종 앰프로 해석하지 말 것.'
@@ -309,45 +329,36 @@ function buildSourceInclusivePathRoleBlock(
   const extraLines = [
     buildSourceMediaRuleLine(media),
     buildSourceLinkRuleLine(sourceLink, sourceName, name1),
-  ].filter((line): line is string => Boolean(line));
-
+  ];
+  const chain = name2 ? `기기 1 "${name1}" → 기기 2 "${name2}"` : `기기 1 "${name1}"`;
+  const header = `${SOURCE_INCLUSIVE_HEADER}
+- 신호 경로: 소스 "${sourceName}" → ${chain} → 헤드폰/이어폰.
+- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.`;
   const select1IsSourceDevice = select1.category === 'Source';
-  if (select2) {
-    const name2 = formatExactGearName(select2);
+  const keepNotes = hasAnyComboPathLink(links) || select1IsSourceDevice;
+
+  if (name2 != null) {
     if (deviceLink === '블루투스') {
-      return `[신호 경로 해석 규칙 — 소스 포함 조합]
-- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 기기 2 "${name2}" → 헤드폰/이어폰.
-- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
-${extraLines.length > 0 ? `${extraLines.join('\n')}\n` : ''}- 기기 간 연결: 블루투스(무선).
-- 기기 1 "${name1}": 무선 송신(동글 등)만 담당. DAC·AMP·헤드폰 구동으로 해석하지 말 것.
-- 기기 2 "${name2}": DAC·AMP 모두 담당. 무선 수신→DAC→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
-- 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.`;
+      return `${appendLines(header, extraLines)}
+${buildBluetoothDeviceLines(name1, name2)}
+${NO_ROLE_SWAP_LINE}`;
     }
-    const analogNote = buildDeviceLinkAnalogNote(deviceLink);
-    const device1Line = select1IsSourceDevice
-      ? `- 기기 1 "${name1}": 소스 기기(재생·라인 출력). 소스 출력→아날로그 라인아웃. 헤드폰 직접 구동은 하지 않음.`
-      : `- 기기 1 "${name1}": DAC 전용. 소스 출력→아날로그 라인아웃. 헤드폰 직접 구동은 하지 않음.`;
-    const base = `[신호 경로 해석 규칙 — 소스 포함 조합]
-- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 기기 2 "${name2}" → 헤드폰/이어폰.
-- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
-${device1Line}
-- 기기 2 "${name2}": AMP. 기기 1 라인아웃→헤드폰 구동. drive·Vrms·Rk·출력 여유는 기기 2 기준으로 평가.
-- 소스·기기 1·기기 2를 서로 역할이 바뀐 독립 앰프들로 해석하지 말 것.`;
-    if (!hasAnyComboPathLink(links) && !select1IsSourceDevice) return base;
-    const notes = [...extraLines, analogNote].filter((line): line is string => Boolean(line));
-    return notes.length > 0 ? `${base}\n${notes.join('\n')}` : base;
+    const base = `${header}
+${buildLineOutDevice1Line(select1, name1, '소스 출력→아날로그 라인아웃. 헤드폰 직접 구동은 하지 않음.')}
+${buildAmpDevice2Line(name2)}
+${NO_ROLE_SWAP_LINE}`;
+    if (!keepNotes) return base;
+    return appendLines(base, [...extraLines, buildDeviceLinkAnalogNote(deviceLink)]);
   }
 
   const device1SoloLine = select1IsSourceDevice
     ? `- 기기 1 "${name1}": 소스 기기로 재생과 헤드폰 직접 구동을 담당. drive는 기기 1 출력 기준으로 평가.`
     : `- 기기 1 "${name1}": 소스 이후 단에서 헤드폰 구동·음색을 담당. drive는 기기 1 기준으로 평가.`;
-  const base = `[신호 경로 해석 규칙 — 소스 포함 조합]
-- 신호 경로: 소스 "${sourceName}" → 기기 1 "${name1}" → 헤드폰/이어폰.
-- 소스 "${sourceName}": 재생·출력 담당.${dapNote} drive·Vrms·Rk·헤드폰 구동력은 소스 기준으로 평가하지 말 것.
+  const base = `${header}
 ${device1SoloLine}
 - 소스를 최종 헤드폰 앰프로 해석하지 말 것.`;
-  if (!hasAnyComboPathLink(links) && !select1IsSourceDevice) return base;
-  return extraLines.length > 0 ? `${base}\n${extraLines.join('\n')}` : base;
+  if (!keepNotes) return base;
+  return appendLines(base, extraLines);
 }
 
 function buildComboDisplayName(
@@ -358,27 +369,15 @@ function buildComboDisplayName(
 ): string {
   const name1 = formatExactGearName(select1);
   const suffix = formatComboConnectionSuffix(links ?? {});
-  if (source) {
-    const sourceLabel = `${formatExactGearName(source)} (${source.category})`;
-    if (!select2) {
-      return `${sourceLabel} → ${name1} (${select1.category})${suffix}`;
-    }
-    const name2 = formatExactGearName(select2);
-    const deviceLink = trimPathLink(links?.device_link);
-    if (deviceLink === '블루투스') {
-      return `${sourceLabel} → ${name1} (TX) → ${name2} (DAC/AMP)${suffix}`;
-    }
-    return `${sourceLabel} → ${name1} (DAC) → ${name2} (AMP)${suffix}`;
-  }
+  const prefix = source ? `${formatExactGearName(source)} (${source.category}) → ` : '';
   if (!select2) {
-    return `${name1} (${select1.category})${suffix}`;
+    return `${prefix}${name1} (${select1.category})${suffix}`;
   }
   const name2 = formatExactGearName(select2);
-  const deviceLink = trimPathLink(links?.device_link);
-  if (deviceLink === '블루투스') {
-    return `${name1} (TX) → ${name2} (DAC/AMP)${suffix}`;
+  if (trimPathLink(links?.device_link) === '블루투스') {
+    return `${prefix}${name1} (TX) → ${name2} (DAC/AMP)${suffix}`;
   }
-  return `${name1} (DAC) → ${name2} (AMP)${suffix}`;
+  return `${prefix}${name1} (DAC) → ${name2} (AMP)${suffix}`;
 }
 
 export function buildComboBaseForPrompt(
