@@ -10,7 +10,11 @@ import {
   listenHistoryMediaForForm,
   type ListenHistoryMedia,
 } from '@/lib/listenHistoryGear';
-import { comboHasSpeaker, fillListenHistoryFromCombo } from '@/lib/listenHistoryCombo';
+import {
+  comboHasSpeaker,
+  fillListenHistoryFromCombo,
+  listenHistoryMediaForCombo,
+} from '@/lib/listenHistoryCombo';
 import { useListenHistoryComboOptions } from './useListenHistoryComboOptions';
 
 type GearOption = { id: number; brand: string; model: string };
@@ -131,6 +135,8 @@ export function useListenHistoryGearForm(isAuthenticated: boolean | null) {
     const combo = comboById.get(comboId);
     if (!combo) return false;
     const fill = fillListenHistoryFromCombo(combo, comboGearById);
+    const comboMedia = listenHistoryMediaForCombo(combo);
+    if (comboMedia) setSelectedMedia(comboMedia);
     setSelectedSourceId(fill.sourceId);
     setSelectedDacAmpId(fill.dacAmpId);
     setSelectedDacAmp2Id(fill.dacAmp2Id);

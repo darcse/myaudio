@@ -623,21 +623,20 @@ export async function deleteHeadfiDeviceSettingFromDB(id: number) {
 
 function mapHeadfiComboData(data: HeadfiComboFormData) {
   const select1Id = parseIntOrNull(data.select1_id);
-  if (select1Id == null) throw new Error('기기 1을 선택해 주세요.');
   const select2Raw = data.select2_id.trim();
   const select2Id = select2Raw ? parseIntOrNull(select2Raw) : null;
   if (select2Raw && select2Id == null) throw new Error('기기 2 선택값이 올바르지 않습니다.');
+  if (select1Id == null && select2Id != null) throw new Error('기기 2는 기기 1을 선택한 뒤 고를 수 있습니다.');
   if (select2Id != null && select2Id === select1Id) throw new Error('같은 기기는 조합할 수 없습니다.');
   const sourceRaw = data.source_id.trim();
   const sourceId = sourceRaw ? parseIntOrNull(sourceRaw) : null;
   if (sourceRaw && sourceId == null) throw new Error('소스 선택값이 올바르지 않습니다.');
+  if (select1Id == null && sourceId == null) throw new Error('소스 또는 기기 1을 선택해 주세요.');
   if (sourceId != null && (sourceId === select1Id || sourceId === select2Id)) {
     throw new Error('소스는 기기 1·2와 다른 기기여야 합니다.');
   }
-  const sourceMedia =
-    sourceId != null
-      ? normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS)
-      : null;
+  const sourceMedia = normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS);
+  if (!sourceMedia) throw new Error('매체를 선택해 주세요.');
   const sourceLink =
     sourceId != null
       ? normalizeComboOptionValue(data.source_link, COMBO_SOURCE_LINK_OPTIONS)
@@ -701,10 +700,8 @@ export async function updateHeadfiComboLinksInDB(id: string, data: HeadfiComboLi
   if (existingError || !existing) {
     throw new Error(existingError ? toSupabaseErrorMessage(existingError) : '조합을 찾을 수 없습니다.');
   }
-  const sourceMedia =
-    existing.source_id != null
-      ? normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS)
-      : null;
+  const sourceMedia = normalizeComboOptionValue(data.source_media, COMBO_SOURCE_MEDIA_OPTIONS);
+  if (!sourceMedia) throw new Error('매체를 선택해 주세요.');
   const sourceLink =
     existing.source_id != null
       ? normalizeComboOptionValue(data.source_link, COMBO_SOURCE_LINK_OPTIONS)

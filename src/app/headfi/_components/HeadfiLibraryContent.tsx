@@ -35,7 +35,7 @@ import type {
   HeadfiSaleFormData,
   SelectedHeadfi,
 } from '../types';
-import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from '../headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, isSourceOnlyCombo, resolvePairingComboLabel } from '../headfiComboUtils';
 import { HeadfiSpendingStatsModal } from './HeadfiSpendingStatsModal';
 import { HeadfiAccessoryModal } from './HeadfiAccessoryModal';
 import { HeadfiSaleModal } from './HeadfiSaleModal';
@@ -208,7 +208,7 @@ export function HeadfiLibraryContent() {
   const comboOptions = useMemo(
     () =>
       combos
-        .filter(isActiveHeadfiCombo)
+        .filter((combo) => isActiveHeadfiCombo(combo) && !isSourceOnlyCombo(combo))
         .map((combo) => ({
           id: combo.id,
           label: formatComboLabel(combo, gearById),

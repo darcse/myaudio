@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fetchSmallTableRows, selectCountOptions } from '@/lib/supabase/fetchAllRows';
-import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, resolvePairingComboLabel } from './headfiComboUtils';
+import { buildGearByIdMap, formatComboLabel, HEADFI_COMBO_SELECT, isActiveHeadfiCombo, isSourceOnlyCombo, resolvePairingComboLabel } from './headfiComboUtils';
 import type { Headfi, HeadfiCombo } from './types';
 
 export function useHeadfiComboOptions(isAuthenticated: boolean | null) {
@@ -38,7 +38,7 @@ export function useHeadfiComboOptions(isAuthenticated: boolean | null) {
   const comboOptions = useMemo(
     () =>
       combos
-        .filter(isActiveHeadfiCombo)
+        .filter((combo) => isActiveHeadfiCombo(combo) && !isSourceOnlyCombo(combo))
         .map((combo) => ({
           id: combo.id,
           label: formatComboLabel(combo, gearById),

@@ -1,5 +1,21 @@
 import type { Headfi, HeadfiCombo } from '@/app/headfi/types';
-import { LISTEN_HISTORY_SOURCE_CATEGORIES } from '@/lib/listenHistoryGear';
+import { LISTEN_HISTORY_SOURCE_CATEGORIES, type ListenHistoryMedia } from '@/lib/listenHistoryGear';
+
+const COMBO_MEDIA_TO_LISTEN_HISTORY_MEDIA: Partial<Record<string, ListenHistoryMedia>> = {
+  스트리밍: 'Apple Music',
+  '로컬 파일': 'FLAC',
+  CD: 'CD',
+  LP: 'LP',
+  Cassette: 'Cassette',
+};
+
+export function listenHistoryMediaForCombo(
+  combo: Pick<HeadfiCombo, 'source_media'>,
+): ListenHistoryMedia | null {
+  const media = combo.source_media?.trim();
+  if (!media) return null;
+  return COMBO_MEDIA_TO_LISTEN_HISTORY_MEDIA[media] ?? null;
+}
 
 export type ListenHistoryComboGear = Pick<Headfi, 'id' | 'brand' | 'model' | 'category'>;
 

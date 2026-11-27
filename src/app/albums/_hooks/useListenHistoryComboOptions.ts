@@ -54,10 +54,12 @@ export function useListenHistoryComboOptions(isAuthenticated: boolean | null) {
       (combo) => isActiveHeadfiCombo(combo) && !isReleasedHeadfiCombo(combo, gearById),
     );
     const labels = buildListenHistoryComboLabels(active, gearById);
-    return active.map((combo) => ({
-      id: combo.id,
-      label: labels.get(combo.id) ?? formatListenHistoryComboBaseLabel(combo, gearById),
-    }));
+    return active
+      .map((combo) => ({
+        id: combo.id,
+        label: labels.get(combo.id) ?? formatListenHistoryComboBaseLabel(combo, gearById),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ko'));
   }, [combos, gearById]);
 
   const comboById = useMemo(() => new Map(combos.map((combo) => [combo.id, combo])), [combos]);

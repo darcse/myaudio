@@ -11,7 +11,7 @@ import {
   buildGearByIdMap,
   HEADFI_COMBO_SELECT,
   HEADFI_COMBOS_CHANGED_EVENT,
-  isSpeakerCombo,
+  isMatchExcludedCombo,
 } from '../../headfiComboUtils';
 import type { Headfi, HeadfiCombo } from '../../types';
 import { MatchMapTab } from './MatchMapTab';
@@ -97,7 +97,7 @@ export function HeadfiMapContent() {
       const libraryRows = headfiData;
       const gearById = buildGearByIdMap(libraryRows);
       const activeCombos = activeCombosData.filter(
-        (combo) => !isSpeakerCombo(combo, gearById),
+        (combo) => !isMatchExcludedCombo(combo, gearById),
       );
       const activeComboIds = new Set(activeCombos.map((combo) => combo.id));
       const matchCacheRows = cacheData

@@ -8,7 +8,6 @@ export const COMBO_SOURCE_MEDIA_OPTIONS = [
   '스트리밍',
   '로컬 파일',
   'CD',
-  'SACD',
   'LP',
   'Cassette',
 ] as const;
@@ -118,6 +117,17 @@ export function isSpeakerCombo(
   return device1?.category === '스피커' || device2?.category === '스피커';
 }
 
+export function isSourceOnlyCombo(combo: Pick<HeadfiCombo, 'select1_id'>): boolean {
+  return combo.select1_id == null;
+}
+
+export function isMatchExcludedCombo(
+  combo: Pick<HeadfiCombo, 'select1_id' | 'select2_id'>,
+  gearById: Map<number, Headfi>,
+): boolean {
+  return isSourceOnlyCombo(combo) || isSpeakerCombo(combo, gearById);
+}
+
 export function isOwnedHeadfi(item: Pick<Headfi, 'status2'>): boolean {
   return item.status2 === HEADFI_STATUS2_OWNED;
 }
@@ -167,9 +177,10 @@ function formatComboWithOptionalSource(
   gearById: Map<number, Headfi>,
   formatGear: (item: Headfi | undefined) => string,
 ): string {
-  const devices = formatComboDevicesLabel(combo, gearById, formatGear);
   const source =
     combo.source_id != null ? gearById.get(combo.source_id) : undefined;
+  if (isSourceOnlyCombo(combo)) return formatGear(source);
+  const devices = formatComboDevicesLabel(combo, gearById, formatGear);
   if (!source) return devices;
   return `${formatGear(source)} → ${devices}`;
 }

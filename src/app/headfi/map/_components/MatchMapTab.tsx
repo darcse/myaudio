@@ -11,7 +11,7 @@ import {
   buildGearByIdMap,
   formatComboMapLabel,
   isReleasedHeadfiCombo,
-  isSpeakerCombo,
+  isMatchExcludedCombo,
 } from '@/app/headfi/headfiComboUtils';
 import { isUsbCMatchExcluded } from '@/app/headfi/utils';
 import {
@@ -307,7 +307,7 @@ export function MatchMapTab({
       const currentCache = cacheRef.current;
       const prevFailed = rowBatchByHpRef.current[hp.id]?.failedComboIds ?? [];
       const scorableCombos = combos.filter(
-        (combo) => !isReleasedHeadfiCombo(combo, gearById) && !isSpeakerCombo(combo, gearById),
+        (combo) => !isReleasedHeadfiCombo(combo, gearById) && !isMatchExcludedCombo(combo, gearById),
       );
       let targets: HeadfiCombo[];
       if (options.onlyFailed) {
